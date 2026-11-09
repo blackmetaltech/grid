@@ -1,0 +1,33 @@
+keys,en
+TANK_TAGLINE,Torricelli's law · mass balance
+TANK_BLURB,"Water comes in through a valve and leaves through a hole at the bottom. Hold the depth in the band by working out the opening, not by guessing."
+MODE_LEARNER,LEARNER
+MODE_LEARNER_DESC,"New to fluids · the tank explains itself, equations on screen"
+MODE_ENGINEER,ENGINEER
+MODE_ENGINEER_DESC,"I know the basics · fewer hints, same physics"
+MODE_SANDBOX,SANDBOX
+MODE_SANDBOX_DESC,Just give me the tank
+DOCK_VALVE,VALVE
+DOCK_LEVEL,LEVEL
+DOCK_CODEX,CODEX
+TICK_BUTTON,NEXT ▶
+KEY_SPACE_DESC,Advance the tank one tick (10 s of simulated time)
+KEY_DOCK_DESC,"Valve, Level, Codex"
+KEY_WHEEL,Click the valve wheel
+KEY_WHEEL_DESC,Open the valve controls
+HUD_DEPTH,DEPTH
+HUD_VALVE,VALVE
+HUD_HELD,HELD
+HUD_TIME,TICK %d · %d s
+COACH_TANK_TITLE,This is your tank
+COACH_TANK_BODY,Water comes in through the valve on the left and leaves through the hole at the bottom. The gauge shows the depth; the dashed band is your target.
+COACH_TANK_WHY,The depth is the running total of what flows in minus what flows out: A·dh/dt = q_in − q_out.
+COACH_CONTROLS_TITLE,Open the valve controls
+COACH_CONTROLS_BODY,"{click} VALVE in the dock. The drawer has the opening, the flows in litres per second, and the equation behind them."
+COACH_CONTROLS_WHY,"You will set the opening there, and see what it does to q_in and the depth the tank settles at."
+COACH_VALVE_TITLE,Open the valve a little
+COACH_VALVE_BODY,"Drag the slider, or use the +10 % and +1 % buttons. The stream into the tank gets thicker."
+COACH_VALVE_WHY,Inflow is proportional to the opening: q_in = opening × q_max.
+COACH_HOLD_TITLE,Let time pass and hold the band
+COACH_HOLD_BODY,"Press {tick}. Keep the depth inside the dashed band for 3 ticks in a row. Watch the jet: the deeper the water, the farther it shoots."
+COACH_HOLD_WHY,"Outflow grows with √h, so one fixed valve always settles at one depth: where q_in = q_out."

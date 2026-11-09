@@ -1,0 +1,13 @@
+node_modules/
+.work/
+*.log
+godot/.godot/
+*.import
+godot/sidecar/
+godot/build/
+godot/android/build/
+godot/android/.build_version
+/build/
+dist/
+__pycache__/
+*.translation

@@ -1,0 +1,153 @@
+# GRID release workflow (template from cobanana-core/ci/release.yml; the scaffold substitutes GRID and grid).
+#
+# SUBMODULE: this repo includes the shared core as a git submodule at core/. Its URL in .gitmodules is RELATIVE
+# (`url = ../cobanana-core`), so it resolves against this game's own GitHub remote (github.com/<owner>/cobanana-core) and
+# works locally and in CI without hard-coding an owner. Every checkout below therefore uses `submodules: recursive`.
+# If cobanana-core is a PRIVATE repo, the default GITHUB_TOKEN cannot read it: create a fine-grained PAT (or deploy key)
+# with read access to cobanana-core, store it as the secret CORE_TOKEN and add `token: ${{ secrets.CORE_TOKEN }}` to each
+# actions/checkout step (the token is also used for the submodule clone).
+#
+# Flow: tag v* -> test, smoke, export, package x4, publish (GitHub release with notes from CHANGELOG.md + SHA256SUMS.txt).
+# The release notes come from the CHANGELOG.md heading containing `[x.y.z]`. The Android APK is built by hand
+# (see core/android/README.md) and uploaded with `gh release upload`.
+name: release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version: { description: 'version label (no publish on manual runs)', default: 'dev' }
+
+env:
+  GODOT_VERSION: 4.7.2
+  NODE_VERSION: 22.23.4
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install --frozen-lockfile
+      - run: ./node_modules/.bin/tsc --noEmit
+      - run: ./node_modules/.bin/vitest run
+
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install --frozen-lockfile
+      - name: Build the engine sidecar
+        run: ./node_modules/.bin/vite build -c vite.bridge.config.ts
+      - name: Godot
+        run: |
+          base=https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable
+          curl -fsSL -o godot.zip $base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          unzip -q godot.zip && sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+      - name: UI smoke test (every screen)
+        run: |
+          godot --headless --path godot --import || true
+          CB_SMOKE=1 timeout 180 godot --headless --path godot 2>&1 | tee smoke.log
+          grep -q "SMOKE OK" smoke.log
+          ! grep -E "SCRIPT ERROR|Parse Error" smoke.log
+
+  export:
+    needs: [test, smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: pnpm install --frozen-lockfile
+      - name: Build the engine sidecar
+        run: ./node_modules/.bin/vite build -c vite.bridge.config.ts
+      - name: Godot + export templates
+        run: |
+          base=https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable
+          curl -fsSL -o godot.zip $base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip
+          curl -fsSL -o templates.tpz $base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz
+          unzip -q godot.zip && sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          d=$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          mkdir -p $d && unzip -q templates.tpz -d /tmp/tpl && mv /tmp/tpl/templates/* $d/
+      - name: Export
+        run: |
+          mkdir -p godot/build/linux godot/build/windows godot/build/macos
+          godot --headless --path godot --import || true
+          for p in Linux Windows macOS; do godot --headless --path godot --export-release "$p" || exit 1; done
+          ls -R godot/build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: godot-export
+          path: |
+            godot/build
+            godot/sidecar/bridge.mjs
+
+  package:
+    needs: export
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: linux,       os: ubuntu-latest, node: linux-x64,     ext: tar.xz }
+          - { target: windows,     os: ubuntu-latest, node: win-x64,       ext: zip }
+          - { target: macos-arm64, os: macos-latest,  node: darwin-arm64,  ext: tar.xz }
+          - { target: macos-x64,   os: macos-latest,  node: darwin-x64,    ext: tar.xz }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      # the artifact holds build/<os>/... and sidecar/bridge.mjs (common ancestor godot/ is stripped)
+      - uses: actions/download-artifact@v4
+        with: { name: godot-export, path: ex }
+      - name: Put the sidecar where package.sh expects it
+        run: mkdir -p godot/sidecar && cp ex/sidecar/bridge.mjs godot/sidecar/bridge.mjs
+      - name: Node runtime
+        run: |
+          f=node-v${NODE_VERSION}-${{ matrix.node }}
+          curl -fsSL -o node.${{ matrix.ext }} https://nodejs.org/dist/v${NODE_VERSION}/$f.${{ matrix.ext }}
+          mkdir node && if [ "${{ matrix.ext }}" = zip ]; then unzip -q node.zip -d node; else tar xf node.tar.xz -C node; fi
+          mv node/$f nodedist
+      - name: Package
+        run: |
+          ver=${GITHUB_REF_NAME}; [ "${GITHUB_REF_TYPE}" = tag ] || ver=${{ github.event.inputs.version || 'dev' }}
+          core/ci/package.sh ${{ matrix.target }} ex/build/$(echo ${{ matrix.target }} | sed 's/-.*//') nodedist dist "$ver" GRID grid
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.target }}
+          path: dist/*
+
+  publish:
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - uses: actions/download-artifact@v4
+        with: { pattern: dist-*, path: dist, merge-multiple: true }
+      - name: Release notes from CHANGELOG.md
+        run: |
+          ver=${GITHUB_REF_NAME#v}
+          awk -v v="$ver" '/^## \[/{p=index($0,"["v"]")>0; next} p' CHANGELOG.md > notes.md
+          printf '\n---\nDownload the archive for your OS, extract, and run. Node.js is bundled; nothing else to install.\n- **Windows**: unzip, run `GRID\\GRID.exe` (SmartScreen: More info, Run anyway; builds are unsigned).\n- **Linux (x86_64)**: `tar xf`, run `GRID/grid.sh`. Needs a Vulkan-capable GPU/driver.\n- **macOS** (arm64 = Apple Silicon, x64 = Intel): unzip, then `xattr -dr com.apple.quarantine GRID.app` and open (builds are unsigned).\n' > tail.md
+          [ -s notes.md ] || { echo "no CHANGELOG entry for $ver"; exit 1; }
+          cat tail.md >> notes.md
+      - run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: notes.md
