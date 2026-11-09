@@ -1,12 +1,12 @@
 # GRID release workflow (template from cobanana-core/ci/release.yml; the scaffold substitutes GRID and grid).
 #
-# SUBMODULE: this repo includes the shared core as a git submodule at core/. Its URL in .gitmodules is RELATIVE
-# (`url = ../cobanana-core`), so it resolves against this game's own GitHub remote (github.com/<owner>/cobanana-core) and
-# works locally and in CI without hard-coding an owner. Every checkout below therefore uses `submodules: recursive`.
-# If cobanana-core is a PRIVATE repo, the default GITHUB_TOKEN cannot read it: create a fine-grained PAT (or deploy key)
-# with read access to cobanana-core, store it as the secret CORE_TOKEN and add `token: ${{ secrets.CORE_TOKEN }}` to each
-# actions/checkout step (the token is also used for the submodule clone).
+# SUBMODULE ACCESS: core/ is a git submodule with the RELATIVE url `../cobanana-core`, which resolves against this repo's
+# remote (https://github.com/<owner>/cobanana-core in Actions). cobanana-core is private and a game repo's GITHUB_TOKEN cannot
+# read it, so every job checks the game out with its own token WITHOUT submodules, then fetches core over SSH with the
+# read-only deploy key stored as the secret CORE_SSH_KEY (url.insteadOf rewrites the resolved https url to SSH).
+# Do NOT pass the deploy key to actions/checkout's `ssh-key`: it would also be used for the game repo, which it cannot read.
 #
+# Cost: this workflow runs only on v* tags (and by hand); pushes run the cheap Linux-only ci.yml.
 # Flow: tag v* -> test, smoke, export, package x4, publish (GitHub release with notes from CHANGELOG.md + SHA256SUMS.txt).
 # The release notes come from the CHANGELOG.md heading containing `[x.y.z]`. The Android APK is built by hand
 # (see core/android/README.md) and uploaded with `gh release upload`.
@@ -26,8 +26,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
+      - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+      - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
+        env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$CORE_SSH_KEY" > ~/.ssh/core_key && chmod 600 ~/.ssh/core_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
+          git submodule update --init --recursive
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
@@ -40,8 +47,15 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
+      - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+      - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
+        env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$CORE_SSH_KEY" > ~/.ssh/core_key && chmod 600 ~/.ssh/core_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
+          git submodule update --init --recursive
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
@@ -65,8 +79,15 @@ jobs:
     needs: [test, smoke]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
+      - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+      - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
+        env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$CORE_SSH_KEY" > ~/.ssh/core_key && chmod 600 ~/.ssh/core_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
+          git submodule update --init --recursive
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
@@ -107,8 +128,15 @@ jobs:
           - { target: macos-x64,   os: macos-latest,  node: darwin-x64,    ext: tar.xz }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-        with: { submodules: recursive }
+      - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+      - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
+        env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
+        run: |
+          mkdir -p ~/.ssh && printf '%s\n' "$CORE_SSH_KEY" > ~/.ssh/core_key && chmod 600 ~/.ssh/core_key
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
+          git submodule update --init --recursive
       # the artifact holds build/<os>/... and sidecar/bridge.mjs (common ancestor godot/ is stripped)
       - uses: actions/download-artifact@v4
         with: { name: godot-export, path: ex }
@@ -136,7 +164,6 @@ jobs:
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
-        with: { submodules: recursive }
       - uses: actions/download-artifact@v4
         with: { pattern: dist-*, path: dist, merge-multiple: true }
       - name: Release notes from CHANGELOG.md
