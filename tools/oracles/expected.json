@@ -1,0 +1,2705 @@
+{
+ "levels": {
+  "L03": {
+   "cables": {
+    "25mm2": {
+     "I_A": 14.353105518252747,
+     "R_loop_ohm": 1.454,
+     "V_far_V": 359.1305845764605,
+     "loss_W": 299.5409216783137,
+     "loss_pct_exact": 5.8110938805592856,
+     "loss_pct_naive": 5.0346260387811625,
+     "loss_pct_naive_Pfar": 5.1903361224548075
+    },
+    "35mm2": {
+     "I_A": 14.114245453602765,
+     "R_loop_ohm": 1.048,
+     "V_far_V": 365.20827076462433,
+     "loss_W": 208.77409711132455,
+     "loss_pct_exact": 4.050217483959696,
+     "loss_pct_naive": 3.6288088642659275,
+     "loss_pct_naive_Pfar": 3.741040066253534
+    },
+    "50mm2": {
+     "I_A": 13.961890500781957,
+     "R_loop_ohm": 0.774,
+     "V_far_V": 369.19349675239476,
+     "loss_W": 150.8792150394089,
+     "loss_pct_exact": 2.9270567717645326,
+     "loss_pct_naive": 2.6800554016620497,
+     "loss_pct_naive_Pfar": 2.7629437130536596
+    }
+   },
+   "inputs": {
+    "P_far_W": 5154.639175257732,
+    "P_load_W": 5000,
+    "R_ohm_km_20C": {
+     "25": 0.727,
+     "35": 0.524,
+     "50": 0.387
+    },
+    "V_send": 380.0,
+    "converter_eta": 0.97,
+    "loop_km": 2.0,
+    "loss_def": "line I^2R / P_far (power delivered at the far end of the line)",
+    "source": "IEC 60228 class 2 copper max R20 (DESIGN 4.2)"
+   }
+  },
+  "L07": {
+   "Qc_rule_MVAr": 0.829823947249853,
+   "cap900": {
+    "I_A": 98.3038693118375,
+    "V_pu": 0.9565089582671003,
+    "loading": 0.8548162548855435
+   },
+   "cap900_constQ": {
+    "I_A": 96.9512164440281,
+    "V_pu": 0.9575833335840351,
+    "note": "not the oracle: Q independent of V, for comparison only"
+   },
+   "inputs": {
+    "Vbase_kV": 11,
+    "Vs_pu": 1.03,
+    "cap_at": "mill bus (far end)",
+    "constant_PQ_load": "yes (P,Q fixed); capacitor Q = Qc*(V/Vnom)^2",
+    "feeder": "4 km l11-weasel r 1.1255 x 0.377 ohm/km, rating 115 A",
+    "mill": "1.2 MW pf 0.70 lag",
+    "village": "0.5 MW pf 0.95 lag"
+   },
+   "nocap": {
+    "I_A": 122.02135737748557,
+    "V_pu": 0.9441740496772524,
+    "loading": 1.0610552815433527,
+    "loss_kW": 201.09369262923218
+   }
+  },
+  "L15": {
+   "A_im": 0.007124236628321741,
+   "A_mag": 0.9321028670739885,
+   "A_re": 0.9320756407395342,
+   "Ps_noload_MW": 1.0453252722311865,
+   "Qnominal_MVAr": 192.07999999999998,
+   "Qs_charging_exact_MVAr": 201.38257375815795,
+   "VR0_kV": 429.13718445654,
+   "inputs": {
+    "line": "l400-twinmoose r 0.0347 x 0.327 ohm/km b 3.43 uS/km, 350 km, exact pi, VS = 400 kV LL"
+   },
+   "note": "Qs_charging = -Im(Ss) at no load (sending end absorbs negative Q = delivers charging)",
+   "rise_pct": 7.284296114135014
+  },
+  "L17": {
+   "caps80_N1": {
+    "Pmax_MW": 290.8249231626325,
+    "Pmax_grid_MW": 290.00000000000006
+   },
+   "inputs": {
+    "STATCOM": "constant current: Q = Imax*|V|; caps: Q = Qc*|V|^2",
+    "Sbase_MVA": 100,
+    "line": "l220-twinzebra r 0.0418 x 0.302 ohm/km b 3.72 uS/km, 150 km, exact pi, n circuits",
+    "note": "Pmax_grid_MW = reviewer 2 MW grid (the doc's integers); Pmax_MW = refined nose by bisection on solvability",
+    "pf": 0.92,
+    "ring_Xs_pu": 0.02
+   },
+   "none_N1": {
+    "Pmax_MW": 266.5812262848576,
+    "Pmax_grid_MW": 266.00000000000006
+   },
+   "none_both": {
+    "Pmax_MW": 457.22631889110016,
+    "Pmax_grid_MW": 456.00000000000006
+   },
+   "statcom100_N1": {
+    "Pmax_MW": 316.5635870673706,
+    "Pmax_grid_MW": 316.00000000000006
+   },
+   "statcom200_N1": {
+    "Pmax_MW": 368.803715974087,
+    "Pmax_grid_MW": 368.00000000000006
+   }
+  },
+  "L19": {
+   "coal13": {
+    "H_sys_s": 3.4285714285714284,
+    "RoCoF0_Hz_s": -0.44288548752834467,
+    "RoCoF0_rk4_Hz_s": -0.4428854875283448,
+    "S_sys_MVA": 8232,
+    "f_end_Hz": 49.857134692904566,
+    "nadir_Hz": 49.58820465425297,
+    "nadir_noUFLS_Hz": 49.58820465425297,
+    "shed_MW": 0.0,
+    "t_nadir_s": 1.7200000000000013
+   },
+   "coal13_bess200": {
+    "H_sys_s": 3.4285714285714284,
+    "RoCoF0_Hz_s": -0.44288548752834467,
+    "RoCoF0_rk4_Hz_s": -0.4428854875283448,
+    "S_sys_MVA": 8232,
+    "f_end_Hz": 49.87178829200643,
+    "nadir_Hz": 49.66858316836873,
+    "nadir_noUFLS_Hz": 49.66858316836873,
+    "shed_MW": 0.0,
+    "t_nadir_s": 1.480000000000001
+   },
+   "inputs": {
+    "BESS": "1% droop FFR, T_B 0.2 s",
+    "hydro_each_MW": 225,
+    "load_MW": 6900,
+    "model": "DESIGN 3.6 via review/l19/l19_ce.py (RK4 dt 10 ms, 60 s, offset dead-zone 10 mHz, UFLS 6 stages, 200 ms)",
+    "trip": "500 MW coal unit at t=0"
+   },
+   "naive_12coal": {
+    "H_sys_s": 3.423076923076923,
+    "RoCoF0_Hz_s": -0.4777191775586639,
+    "RoCoF0_rk4_Hz_s": -0.47771917755866394,
+    "S_sys_MVA": 7644,
+    "f_end_Hz": 49.72029937054345,
+    "nadir_Hz": 48.94165434333006,
+    "nadir_noUFLS_Hz": 48.0676424961242,
+    "shed_MW": 345.0,
+    "t_nadir_s": 2.4099999999999926
+   },
+   "naive_bess200": {
+    "H_sys_s": 3.423076923076923,
+    "RoCoF0_Hz_s": -0.4777191775586639,
+    "RoCoF0_rk4_Hz_s": -0.47771917755866394,
+    "S_sys_MVA": 7644,
+    "f_end_Hz": 49.03381880254767,
+    "nadir_Hz": 49.03381880254767,
+    "nadir_noUFLS_Hz": 49.03381880254767,
+    "shed_MW": 0.0,
+    "t_nadir_s": 59.99999999999663
+   },
+   "note": "RoCoF0 negative (frequency falls); naive_bess200 is the 'BESS alone 200 MW -> 49.03 Hz' case"
+  }
+ },
+ "meta": {
+  "generator": "tools/oracles/emit_expected.py",
+  "note": "All values computed by script from the oracle inputs, unrounded (full float repr); 'printed' = DESIGN 9.1 as printed, 'printedHalfUlp' = half the last printed digit (used by check_printed.py). Tests compare against values, never printed. Naming: <quantity>_<unit> (e.g. I_A, P_W, VS_LL_kV, loss_MW), pu quantities end _pu or are bare names; angles in degrees (_deg), sign as in DESIGN 9.1 (PS-06 delta>0 sending leads; PS-13/15 negative angles lag slack; AC-06 phi>0 V leads I; AC-08 lead_deg>0 I leads V). Complex quantities are split: <name>_re/_im (rectangular) or <name>_mag/<name>_deg (polar), as printed. Row tol/tolKind apply to every value unless a 'tols' override exists for that name. Conventions: PS-17/18/19 100 MVA base, line zone 138 kV, T X0=X1=0.10; G-17 ideal tap on bus-1 side with x_t on bus-2 side (Y=[[y/t^2,-y/t],[-y/t,y]]); G-04 Qc = capacitor own rating; PS-14 GS order bus 2 then bus 3 with new V2, PV |V| rescaled to 1.05; G-12 analytic (expm) and RK4 dt 10 ms; PS-24 closed form and RK4 (dt 0.1 ms and 1 ms). Levels: L03 constants IEC 60228 R20 0.727/0.524/0.387 ohm/km, loop 2 km, far converter constant power 5000/0.97 W, sending end holds 380 V, loss% = I^2R / P_far; L07/L15/L17/L19 as in each entry's 'inputs'.",
+  "numpy": "2.5.2",
+  "scipy": "1.18.1"
+ },
+ "oracles": {
+  "AC-01": {
+   "inputs": {
+    "R": 100,
+    "V": 220,
+    "f": 50
+   },
+   "printed": {
+    "I_A": 2.2,
+    "P_W": 484.0
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "P_W": 0.05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "RMS in R",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "P_W": "W"
+   },
+   "values": {
+    "I_A": 2.2,
+    "P_W": 484.0
+   }
+  },
+  "AC-02": {
+   "inputs": {
+    "I_rms": 10,
+    "V_peak": 300
+   },
+   "printed": {
+    "Ipeak_A": 14.14,
+    "Vrms_V": 212.1
+   },
+   "printedHalfUlp": {
+    "Ipeak_A": 0.005,
+    "Vrms_V": 0.05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Peak <-> rms",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Ipeak_A": "A",
+    "Vrms_V": "V"
+   },
+   "values": {
+    "Ipeak_A": 14.142135623730951,
+    "Vrms_V": 212.13203435596424
+   }
+  },
+  "AC-03": {
+   "inputs": {
+    "L": 0.044,
+    "V": 220,
+    "f": 50
+   },
+   "printed": {
+    "I_A": 15.92,
+    "XL_ohm": 13.82
+   },
+   "printedHalfUlp": {
+    "I_A": 0.005,
+    "XL_ohm": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "X_L",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "XL_ohm": "ohm"
+   },
+   "values": {
+    "I_A": 15.915494309189533,
+    "XL_ohm": 13.82300767579509
+   }
+  },
+  "AC-04": {
+   "inputs": {
+    "C": 6e-05,
+    "V": 110,
+    "f": 60
+   },
+   "printed": {
+    "I_A": 2.488,
+    "XC_ohm": 44.21
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "XC_ohm": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "X_C",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "XC_ohm": "ohm"
+   },
+   "values": {
+    "I_A": 2.4881413816431164,
+    "XC_ohm": 44.20970641441537
+   }
+  },
+  "AC-05": {
+   "inputs": {
+    "C": 0.000796,
+    "L": 0.02548,
+    "R": 3.0,
+    "f": 50
+   },
+   "note": "textbook 5 ohm with rounded X",
+   "printed": {
+    "Z_ohm": 5.005
+   },
+   "printedHalfUlp": {
+    "Z_ohm": 0.0005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "LCR |Z|",
+   "tol": 0.002,
+   "tolKind": "rel",
+   "units": {
+    "Z_ohm": "ohm"
+   },
+   "values": {
+    "Z_ohm": 5.004729387865442
+   }
+  },
+  "AC-06": {
+   "inputs": {
+    "C": 0.000796,
+    "L": 0.02548,
+    "R": 3.0,
+    "f": 50
+   },
+   "note": "positive = V leads I (current lags)",
+   "printed": {
+    "phi_deg": 53.17
+   },
+   "printedHalfUlp": {
+    "phi_deg": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "LCR phase",
+   "tol": 0.003,
+   "tolKind": "rel",
+   "units": {
+    "phi_deg": "deg"
+   },
+   "values": {
+    "phi_deg": 53.170699255466324
+   }
+  },
+  "AC-07": {
+   "inputs": {
+    "C": 0.000796,
+    "L": 0.02548,
+    "R": 3.0,
+    "V": 230,
+    "f": 50
+   },
+   "printed": {
+    "I_A": 45.96,
+    "P_W": 6336.0,
+    "pf": 0.5994
+   },
+   "printedHalfUlp": {
+    "I_A": 0.005,
+    "P_W": 0.5,
+    "pf": 5e-05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "LCR I, pf, P",
+   "tol": 0.003,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "P_W": "W",
+    "pf": ""
+   },
+   "values": {
+    "I_A": 45.9565307482283,
+    "P_W": 6336.00815523856,
+    "pf": 0.5994330097594995
+   }
+  },
+  "AC-08": {
+   "inputs": {
+    "C": 2e-05,
+    "R": 100,
+    "V": 220,
+    "f": 50
+   },
+   "note": "lead_deg > 0: I leads V",
+   "printed": {
+    "I_A": 1.17,
+    "Z_ohm": 187.96,
+    "lead_deg": 57.86,
+    "pf": 0.532
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "Z_ohm": 0.005,
+    "lead_deg": 0.005,
+    "pf": 5e-05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "RC phasor",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "Z_ohm": "ohm",
+    "lead_deg": "deg",
+    "pf": ""
+   },
+   "values": {
+    "I_A": 1.1704396979030978,
+    "Z_ohm": 187.9635494200523,
+    "lead_deg": 57.85809236465795,
+    "pf": 0.5320180445014081
+   }
+  },
+  "AC-09": {
+   "inputs": {
+    "C": 3.2e-05,
+    "L": 2.0,
+    "R": 10.0
+   },
+   "printed": {
+    "Q": 25.0,
+    "f0_Hz": 19.89,
+    "w0_rad_s": 125.0
+   },
+   "printedHalfUlp": {
+    "Q": 0.005,
+    "f0_Hz": 0.005,
+    "w0_rad_s": 0.05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Resonance",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "Q": "",
+    "f0_Hz": "Hz",
+    "w0_rad_s": "rad/s"
+   },
+   "values": {
+    "Q": 25.0,
+    "f0_Hz": 19.89436788648692,
+    "w0_rad_s": 125.0
+   }
+  },
+  "AC-10": {
+   "inputs": {
+    "C": 3.2e-05,
+    "L": 2.0,
+    "R": 10.0
+   },
+   "printed": {
+    "df_Hz": 0.7958,
+    "dw_rad_s": 5.0
+   },
+   "printedHalfUlp": {
+    "df_Hz": 5e-05,
+    "dw_rad_s": 0.0005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Bandwidth",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "df_Hz": "Hz",
+    "dw_rad_s": "rad/s"
+   },
+   "values": {
+    "df_Hz": 0.7957747154594768,
+    "dw_rad_s": 5.0
+   }
+  },
+  "AC-11": {
+   "inputs": {
+    "C": 3.2e-05,
+    "L": 2.0,
+    "R": 10.0,
+    "V": 220
+   },
+   "printed": {
+    "I_A": 22.0,
+    "VC_V": 5500.0,
+    "VL_V": 5500.0
+   },
+   "printedHalfUlp": {
+    "I_A": 0.005,
+    "VC_V": 0.5,
+    "VL_V": 0.5
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Voltage magnification",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "VC_V": "V",
+    "VL_V": "V"
+   },
+   "values": {
+    "I_A": 22.0,
+    "VC_V": 5500.0,
+    "VL_V": 5500.0
+   }
+  },
+  "AC-12": {
+   "inputs": {
+    "C": 6e-05,
+    "L": 0.08,
+    "R": 0,
+    "V": 230,
+    "f": 50
+   },
+   "note": "capacitive: I leads V",
+   "printed": {
+    "I_A": 8.238,
+    "Iamp_A": 11.65,
+    "P_W": 0.0,
+    "XC_ohm": 53.05,
+    "XL_ohm": 25.13
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "Iamp_A": 0.005,
+    "P_W": 0.5,
+    "XC_ohm": 0.005,
+    "XL_ohm": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Pure LC, wattless",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "Iamp_A": "A",
+    "P_W": "W",
+    "XC_ohm": "ohm",
+    "XL_ohm": "ohm"
+   },
+   "values": {
+    "I_A": 8.238145009685162,
+    "Iamp_A": 11.65049640149299,
+    "P_W": 0.0,
+    "XC_ohm": 53.05164769729845,
+    "XL_ohm": 25.132741228718345
+   }
+  },
+  "AC-13": {
+   "inputs": {
+    "Np": 4000,
+    "P": 50000.0,
+    "Vp": 2300,
+    "Vs": 230
+   },
+   "printed": {
+    "Ip_A": 21.74,
+    "Is_A": 217.4,
+    "Ns": 400.0
+   },
+   "printedHalfUlp": {
+    "Ip_A": 0.005,
+    "Is_A": 0.05,
+    "Ns": 0.5
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Transformer turns/currents",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Ip_A": "A",
+    "Is_A": "A",
+    "Ns": "turns"
+   },
+   "values": {
+    "Ip_A": 21.73913043478261,
+    "Is_A": 217.3913043478261,
+    "Ns": 400.0
+   }
+  },
+  "AC-14": {
+   "inputs": {
+    "Iin": 5,
+    "Iout": 40,
+    "Vin": 220,
+    "Vout": 22
+   },
+   "printed": {
+    "eta_pct": 80.0
+   },
+   "printedHalfUlp": {
+    "eta_pct": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Transformer efficiency",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "eta_pct": "%"
+   },
+   "values": {
+    "eta_pct": 80.0
+   }
+  },
+  "AC-15": {
+   "inputs": {
+    "P": 800000.0,
+    "R_loop": 15,
+    "V": 4000
+   },
+   "note": "R_loop = 15 ohm: script uses 2 x 15 x 0.5",
+   "printed": {
+    "I_A": 200.0,
+    "loss_kW": 600.0
+   },
+   "printedHalfUlp": {
+    "I_A": 0.05,
+    "loss_kW": 0.05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Town line, low V",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "loss_kW": "kW"
+   },
+   "values": {
+    "I_A": 200.0,
+    "loss_kW": 600.0
+   }
+  },
+  "AC-16": {
+   "inputs": {
+    "P": 800000.0,
+    "R_loop": 15,
+    "V": 40000
+   },
+   "note": "R_loop = 15 ohm: script uses 2 x 15 x 0.5",
+   "printed": {
+    "I_A": 20.0,
+    "loss_kW": 6.0
+   },
+   "printedHalfUlp": {
+    "I_A": 0.005,
+    "loss_kW": 0.0005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Town line, high V",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "loss_kW": "kW"
+   },
+   "values": {
+    "I_A": 20.0,
+    "loss_kW": 6.0
+   }
+  },
+  "AC-17": {
+   "inputs": {
+    "B": 0.03,
+    "N": 20,
+    "R": 10,
+    "omega": 50,
+    "r": 0.08
+   },
+   "printed": {
+    "I0_A": 0.06032,
+    "Pavg_W": 0.01819,
+    "e0_V": 0.6032
+   },
+   "printedHalfUlp": {
+    "I0_A": 5e-06,
+    "Pavg_W": 5e-06,
+    "e0_V": 5e-05
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "AC generator emf",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "I0_A": "A",
+    "Pavg_W": "W",
+    "e0_V": "V"
+   },
+   "values": {
+    "I0_A": 0.06031857894892403,
+    "Pavg_W": 0.018191654832087907,
+    "e0_V": 0.6031857894892403
+   }
+  },
+  "AC-18": {
+   "inputs": {
+    "VL": 160,
+    "VR": 120
+   },
+   "printed": {
+    "V_V": 200.0,
+    "phi_deg": 53.13
+   },
+   "printedHalfUlp": {
+    "V_V": 0.05,
+    "phi_deg": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "RL phasor sum",
+   "tol": 1e-05,
+   "tolKind": "rel",
+   "units": {
+    "V_V": "V",
+    "phi_deg": "deg"
+   },
+   "values": {
+    "V_V": 200.0,
+    "phi_deg": 53.13010235415598
+   }
+  },
+  "AC-19": {
+   "inputs": {
+    "M": 1.5,
+    "dI": 20,
+    "dt": 0.5
+   },
+   "printed": {
+    "emf_V": 60.0
+   },
+   "printedHalfUlp": {
+    "emf_V": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Mutual inductance",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "emf_V": "V"
+   },
+   "values": {
+    "emf_V": 60.0
+   }
+  },
+  "AC-20": {
+   "inputs": {
+    "C": 3e-05,
+    "L": 0.027
+   },
+   "printed": {
+    "T_ms": 5.655,
+    "f_Hz": 176.8,
+    "w_rad_s": 1111.0
+   },
+   "printedHalfUlp": {
+    "T_ms": 0.0005,
+    "f_Hz": 0.05,
+    "w_rad_s": 0.5
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "LC frequency",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "T_ms": "ms",
+    "f_Hz": "Hz",
+    "w_rad_s": "rad/s"
+   },
+   "values": {
+    "T_ms": 5.654866776461628,
+    "f_Hz": 176.8388256576615,
+    "w_rad_s": 1111.111111111111
+   }
+  },
+  "AC-21": {
+   "inputs": {
+    "C": 3e-05,
+    "L": 0.027,
+    "q0": 0.006
+   },
+   "printed": {
+    "E_J": 0.6,
+    "Imax_A": 6.667
+   },
+   "printedHalfUlp": {
+    "E_J": 5e-05,
+    "Imax_A": 0.0005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "LC energy",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "E_J": "J",
+    "Imax_A": "A"
+   },
+   "values": {
+    "E_J": 0.6,
+    "Imax_A": 6.666666666666667
+   }
+  },
+  "AC-22": {
+   "inputs": {
+    "I": 5,
+    "V": 220,
+    "f": 50
+   },
+   "printed": {
+    "L_H": 0.1401,
+    "P_choke_W": 0.0,
+    "P_resistor_W": 1100.0,
+    "Z_ohm": 44.0
+   },
+   "printedHalfUlp": {
+    "L_H": 5e-05,
+    "P_choke_W": 0.5,
+    "P_resistor_W": 0.5,
+    "Z_ohm": 0.005
+   },
+   "source": "NCERT XII ch 6-7 style (worker-solved; no exact example number attached yet)",
+   "title": "Choke vs resistor",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "L_H": "H",
+    "P_choke_W": "W",
+    "P_resistor_W": "W",
+    "Z_ohm": "ohm"
+   },
+   "values": {
+    "L_H": 0.1400563499208679,
+    "P_choke_W": 0.0,
+    "P_resistor_W": 1100.0,
+    "Z_ohm": 44.0
+   }
+  },
+  "G-01": {
+   "inputs": {
+    "A_mm2": 2.5,
+    "Rload": 4.8,
+    "V": 48,
+    "length_m": "2 x 300",
+    "rho": 1.724e-08
+   },
+   "printed": {
+    "I_A": 5.371,
+    "Rc_ohm": 4.138,
+    "Vload_V": 25.78
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "Rc_ohm": 0.0005,
+    "Vload_V": 0.005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Resistance formula",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "Rc_ohm": "ohm",
+    "Vload_V": "V"
+   },
+   "values": {
+    "I_A": 5.370569280343717,
+    "Rc_ohm": 4.1376,
+    "Vload_V": 25.77873254564984
+   }
+  },
+  "G-01b": {
+   "inputs": {
+    "R_ohm_km": 7.41,
+    "Rload": 4.8,
+    "V": 48,
+    "length_m": "2 x 300"
+   },
+   "note": "loss_pct = voltage drop % of the source voltage (= cable loss share of source power)",
+   "printed": {
+    "I_A": 5.191,
+    "Rc_ohm": 4.446,
+    "Vload_V": 24.92,
+    "loss_pct": 48.1
+   },
+   "printedHalfUlp": {
+    "I_A": 0.0005,
+    "Rc_ohm": 0.0005,
+    "Vload_V": 0.005,
+    "loss_pct": 0.05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "L01 naive (catalogue path)",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "I_A": "A",
+    "Rc_ohm": "ohm",
+    "Vload_V": "V",
+    "loss_pct": "%"
+   },
+   "values": {
+    "I_A": 5.191434133679429,
+    "Rc_ohm": 4.446,
+    "Vload_V": 24.91888384166126,
+    "loss_pct": 48.08565866320571
+   }
+  },
+  "G-02": {
+   "inputs": {
+    "Rload": 4.8,
+    "V": 48,
+    "builds": [
+     {
+      "A_mm2": 25,
+      "R_ohm_km": 0.727,
+      "length_m": 300
+     },
+     {
+      "A_mm2": 10,
+      "R_ohm_km": 1.83,
+      "length_m": 120
+     }
+    ]
+   },
+   "note": "loss_pct = voltage-drop % of source",
+   "printed": {
+    "V_10mm": 43.98,
+    "V_25mm": 44.0,
+    "loss_pct_10mm": 8.38,
+    "loss_pct_25mm": 8.33
+   },
+   "printedHalfUlp": {
+    "V_10mm": 0.005,
+    "V_25mm": 0.005,
+    "loss_pct_10mm": 0.005,
+    "loss_pct_25mm": 0.005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "L01 lesson builds",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "V_10mm": "V",
+    "V_25mm": "V",
+    "loss_pct_10mm": "%",
+    "loss_pct_25mm": "%"
+   },
+   "values": {
+    "V_10mm": 43.97617956939991,
+    "V_25mm": 44.00137504297009,
+    "loss_pct_10mm": 8.382959230416853,
+    "loss_pct_25mm": 8.330468660478985
+   }
+  },
+  "G-03": {
+   "inputs": {
+    "Qc_MVAr": 2,
+    "Ssc_MVA": 50,
+    "V_kV": 11,
+    "f0": 50
+   },
+   "printed": {
+    "fr_Hz": 250.0,
+    "hr": 5.0
+   },
+   "printedHalfUlp": {
+    "fr_Hz": 0.05,
+    "hr": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Parallel resonance order",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "fr_Hz": "Hz",
+    "hr": ""
+   },
+   "values": {
+    "fr_Hz": 250.0,
+    "hr": 5.0
+   }
+  },
+  "G-04": {
+   "inputs": {
+    "Qc_MVAr": 2,
+    "Ssc_MVA": 50,
+    "V_kV": 11,
+    "reactor": 0.07
+   },
+   "note": "Qc = capacitor's own rating V^2/Xc; Qeff = Qc/(1-0.07)",
+   "printed": {
+    "Qeff_MVAr": 2.1505,
+    "h_parallel": 3.015,
+    "h_series": 3.78
+   },
+   "printedHalfUlp": {
+    "Qeff_MVAr": 5e-05,
+    "h_parallel": 0.0005,
+    "h_series": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Detuned bank",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Qeff_MVAr": "MVAr",
+    "h_parallel": "",
+    "h_series": ""
+   },
+   "values": {
+    "Qeff_MVAr": 2.1505376344086025,
+    "h_parallel": 3.015113445777636,
+    "h_series": 3.7796447300922718
+   }
+  },
+  "G-05": {
+   "inputs": {
+    "Ia": "10@0",
+    "Ib": "6@-120",
+    "Ic": "4@120"
+   },
+   "note": "IN = Ia+Ib+Ic",
+   "printed": {
+    "IN_deg": -19.11,
+    "IN_mag": 5.2915
+   },
+   "printedHalfUlp": {
+    "IN_deg": 0.005,
+    "IN_mag": 5e-05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Neutral current",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "IN_deg": "deg",
+    "IN_mag": "A"
+   },
+   "values": {
+    "IN_deg": -19.10660535086909,
+    "IN_mag": 5.291502622129183
+   }
+  },
+  "G-06": {
+   "inputs": {
+    "M": 10,
+    "TMS": 0.1
+   },
+   "printed": {
+    "t_s": 0.2971
+   },
+   "printedHalfUlp": {
+    "t_s": 5e-05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "IDMT SI",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "t_s": "s"
+   },
+   "values": {
+    "t_s": 0.2970598624188416
+   }
+  },
+  "G-07": {
+   "inputs": {
+    "CTI": 0.3,
+    "I_fault": 4000,
+    "Is_up": 600,
+    "t_down_s": "unrounded G-06"
+   },
+   "note": "TMS2 from the unrounded downstream time",
+   "printed": {
+    "TMS2": 0.1649,
+    "t_EI_s": 0.0808,
+    "t_VI_s": 0.15
+   },
+   "printedHalfUlp": {
+    "TMS2": 5e-05,
+    "t_EI_s": 5e-05,
+    "t_VI_s": 5e-05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Grading",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "TMS2": "",
+    "t_EI_s": "s",
+    "t_VI_s": "s"
+   },
+   "values": {
+    "TMS2": 0.1649224483914671,
+    "t_EI_s": 0.08080808080808081,
+    "t_VI_s": 0.15000000000000002
+   }
+  },
+  "G-08": {
+   "inputs": {
+    "P_MW": 3,
+    "v": 8,
+    "v_in": 3,
+    "v_out": 25,
+    "v_rated": 12
+   },
+   "printed": {
+    "P_MW": 0.8554
+   },
+   "printedHalfUlp": {
+    "P_MW": 5e-05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Wind curve",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P_MW": "MW"
+   },
+   "values": {
+    "P_MW": 0.855379188712522
+   }
+  },
+  "G-09": {
+   "inputs": {
+    "P_MW": 50,
+    "eta_rt": 0.86,
+    "hours": 1
+   },
+   "note": "eta_one_way = sqrt(eta_rt)",
+   "printed": {
+    "dSoC_MWh": 53.916
+   },
+   "printedHalfUlp": {
+    "dSoC_MWh": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "BESS SoC",
+   "tol": 1e-05,
+   "tolKind": "rel",
+   "units": {
+    "dSoC_MWh": "MWh"
+   },
+   "values": {
+    "dSoC_MWh": 53.91638660171921
+   }
+  },
+  "G-10": {
+   "inputs": {
+    "V1": 1,
+    "X_pu": 0.15,
+    "pf": 1
+   },
+   "printed": {
+    "Pmax_pu": 3.3333,
+    "Vnose_pu": 0.7071
+   },
+   "printedHalfUlp": {
+    "Pmax_pu": 5e-05,
+    "Vnose_pu": 5e-05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "P-V nose",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Pmax_pu": "pu",
+    "Vnose_pu": "pu"
+   },
+   "values": {
+    "Pmax_pu": 3.3333333333333335,
+    "Vnose_pu": 0.7071067811865475
+   }
+  },
+  "G-11": {
+   "inputs": {
+    "C_F_km": 1.1e-08,
+    "L_H_km": 0.001,
+    "f": 50,
+    "l_km": 300
+   },
+   "printed": {
+    "beta_rad_km": 0.00104195,
+    "rise_pct": 5.093
+   },
+   "printedHalfUlp": {
+    "beta_rad_km": 5e-09,
+    "rise_pct": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Lossless Ferranti",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "beta_rad_km": "rad/km",
+    "rise_pct": "%"
+   },
+   "values": {
+    "beta_rad_km": 0.0010419484076094312,
+    "rise_pct": 5.092580551506254
+   }
+  },
+  "G-12": {
+   "inputs": {
+    "D": 1,
+    "H": 5,
+    "R": 0.05,
+    "TG_s": 0.5,
+    "dPL_pu": 0.1,
+    "f0": 50,
+    "model": "first-order governor, no deadband"
+   },
+   "note": "analytic = matrix exponential; rk4_* = RK4 dt 10 ms; rk4_max_abs_err_Hz = max |RK4 - analytic| on integer seconds 0..30 (doc: <= 1e-6)",
+   "printed": {
+    "df_1s_Hz": -0.302584,
+    "df_ss_Hz": -0.238095,
+    "nadir_Hz": -0.30752,
+    "rocof0_Hz_s": -0.5,
+    "t_nadir_s": 1.174
+   },
+   "printedHalfUlp": {
+    "df_1s_Hz": 5e-07,
+    "df_ss_Hz": 5e-07,
+    "nadir_Hz": 5e-06,
+    "rocof0_Hz_s": 5e-05,
+    "t_nadir_s": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Frequency response vs analytic",
+   "tol": 1e-05,
+   "tolKind": "abs",
+   "units": {
+    "df_1s_Hz": "Hz",
+    "df_ss_Hz": "Hz",
+    "nadir_Hz": "Hz",
+    "rk4_df_1s_Hz": "Hz",
+    "rk4_max_abs_err_Hz": "Hz",
+    "rocof0_Hz_s": "Hz/s",
+    "t_nadir_s": "s"
+   },
+   "values": {
+    "df_1s_Hz": -0.302584259321034,
+    "df_ss_Hz": -0.2380952380952381,
+    "nadir_Hz": -0.30751954223292527,
+    "rk4_df_1s_Hz": -0.3025842596059434,
+    "rk4_max_abs_err_Hz": 2.849093738710451e-10,
+    "rocof0_Hz_s": -0.5,
+    "t_nadir_s": 1.1737464226418994
+   }
+  },
+  "G-13": {
+   "inputs": {
+    "Tw_s": 2,
+    "form": "(1 - Tw s)/(1 + 0.5 Tw s), unit step"
+   },
+   "printed": {
+    "y0plus": -2.0,
+    "y_1s": -0.10364
+   },
+   "printedHalfUlp": {
+    "y0plus": 0.5,
+    "y_1s": 5e-06
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Hydro inverse response",
+   "tol": 1e-05,
+   "tolKind": "abs",
+   "units": {
+    "y0plus": "",
+    "y_1s": ""
+   },
+   "values": {
+    "y0plus": -2.0,
+    "y_1s": -0.103638323514327
+   }
+  },
+  "G-14": {
+   "inputs": {
+    "G": 800,
+    "Pdc_MW": 100,
+    "Tcell": 45,
+    "gamma_per_C": -0.004
+   },
+   "note": "STC 1000 W/m2, 25 C",
+   "printed": {
+    "Pdc_MW": 73.6
+   },
+   "printedHalfUlp": {
+    "Pdc_MW": 0.005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "PV model",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "Pdc_MW": "MW"
+   },
+   "values": {
+    "Pdc_MW": 73.60000000000001
+   }
+  },
+  "G-15": {
+   "inputs": {
+    "V5": 0.04,
+    "V7": 0.03
+   },
+   "printed": {
+    "THD_pct": 5.0
+   },
+   "printedHalfUlp": {
+    "THD_pct": 0.0005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "THD",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "THD_pct": "%"
+   },
+   "values": {
+    "THD_pct": 5.0
+   }
+  },
+  "G-16": {
+   "inputs": {
+    "HR_MJ_kWh": 10.3,
+    "price_inr_GJ": 220,
+    "price_usd_GJ": 2.6
+   },
+   "printed": {
+    "cost_inr_MWh": 2266.0,
+    "cost_usd_MWh": 26.78
+   },
+   "printedHalfUlp": {
+    "cost_inr_MWh": 0.5,
+    "cost_usd_MWh": 0.005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Marginal fuel cost",
+   "tol": 1e-06,
+   "tolKind": "rel",
+   "units": {
+    "cost_inr_MWh": "INR/MWh",
+    "cost_usd_MWh": "$/MWh"
+   },
+   "values": {
+    "cost_inr_MWh": 2266.0,
+    "cost_usd_MWh": 26.78
+   }
+  },
+  "G-17": {
+   "inputs": {
+    "V1": 1,
+    "load_pu": [
+     0.5,
+     0.2
+    ],
+    "tap_side": "bus 1 (ideal tap), xt on bus 2 side; Y=[[y/t^2,-y/t],[-y/t,y]]",
+    "tau": [
+     1.05,
+     1.0
+    ],
+    "xt": 0.1
+   },
+   "printed": {
+    "V2_tau100": 0.97825,
+    "V2_tau105": 0.92934
+   },
+   "printedHalfUlp": {
+    "V2_tau100": 5e-06,
+    "V2_tau105": 5e-06
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Tap convention",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "V2_tau100": "pu",
+    "V2_tau105": "pu",
+    "V2ang_deg_tau100": "deg",
+    "V2ang_deg_tau105": "deg"
+   },
+   "values": {
+    "V2_tau100": 0.9782482306186262,
+    "V2_tau105": 0.9293394004285399,
+    "V2ang_deg_tau100": -2.929765360158135,
+    "V2ang_deg_tau105": -3.2384623460853046
+   }
+  },
+  "G-18": {
+   "inputs": {
+    "sources": 2,
+    "x_pu": 0.2
+   },
+   "printed": {
+    "If_pu": 10.0
+   },
+   "printedHalfUlp": {
+    "If_pu": 0.005
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Parallel sources",
+   "tol": 1e-09,
+   "tolKind": "rel",
+   "units": {
+    "If_pu": "pu"
+   },
+   "values": {
+    "If_pu": 9.999999999999998
+   }
+  },
+  "G-19": {
+   "inputs": {
+    "case1": "4-pole 1500 rpm",
+    "case2": "24-pole hydro 50 Hz"
+   },
+   "printed": {
+    "N_rpm": 250.0,
+    "f_Hz": 50.0
+   },
+   "printedHalfUlp": {
+    "N_rpm": 0.05,
+    "f_Hz": 0.05
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "f = pN/120",
+   "tol": 0,
+   "tolKind": "rel",
+   "units": {
+    "N_rpm": "rpm",
+    "f_Hz": "Hz"
+   },
+   "values": {
+    "N_rpm": 250.0,
+    "f_Hz": 50.0
+   }
+  },
+  "G-20": {
+   "inputs": {
+    "expr": "1 + a + a^2"
+   },
+   "printed": {
+    "sum_mag": 0.0
+   },
+   "printedHalfUlp": {
+    "sum_mag": 0.5
+   },
+   "source": "GRID model oracle (model definition or derived check, director-computed)",
+   "title": "Balanced phasors",
+   "tol": 1e-12,
+   "tolKind": "abs",
+   "units": {
+    "sum_mag": ""
+   },
+   "values": {
+    "sum_mag": 3.510833468576701e-16
+   }
+  },
+  "PS-01": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "Vbase_kV": 132,
+    "Z1_ohm": 20,
+    "Z2_ohm": 50
+   },
+   "printed": {
+    "Ib_A": 437.4,
+    "Zb_ohm": 174.2,
+    "z20_pu": 0.1148,
+    "z50_pu": 0.287
+   },
+   "printedHalfUlp": {
+    "Ib_A": 0.05,
+    "Zb_ohm": 0.05,
+    "z20_pu": 5e-05,
+    "z50_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "pu bases",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Ib_A": "A",
+    "Zb_ohm": "ohm",
+    "z20_pu": "pu",
+    "z50_pu": "pu"
+   },
+   "values": {
+    "Ib_A": 437.38656756789834,
+    "Zb_ohm": 174.24,
+    "z20_pu": 0.1147842056932966,
+    "z50_pu": 0.2869605142332415
+   }
+  },
+  "PS-02": {
+   "inputs": {
+    "S1_MVA": 30,
+    "S2_MVA": 100,
+    "V1_kV": 13.8,
+    "V2_kV": 13.2,
+    "x": 0.15
+   },
+   "printed": {
+    "x_pu": 0.5465
+   },
+   "printedHalfUlp": {
+    "x_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Change of base",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "x_pu": "pu"
+   },
+   "values": {
+    "x_pu": 0.5464876033057853
+   }
+  },
+  "PS-03": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "zones_kV": [
+     13.8,
+     138,
+     69
+    ]
+   },
+   "printed": {
+    "Xg_pu": 0.6667,
+    "Xt1_pu": 0.2,
+    "Xt2_pu": 0.2,
+    "line_r_pu": 0.21,
+    "line_x_pu": 0.5251
+   },
+   "printedHalfUlp": {
+    "Xg_pu": 5e-05,
+    "Xt1_pu": 5e-05,
+    "Xt2_pu": 5e-05,
+    "line_r_pu": 5e-05,
+    "line_x_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Impedance diagram",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Xg_pu": "pu",
+    "Xt1_pu": "pu",
+    "Xt2_pu": "pu",
+    "line_r_pu": "pu",
+    "line_x_pu": "pu"
+   },
+   "values": {
+    "Xg_pu": 0.6666666666666666,
+    "Xt1_pu": 0.2,
+    "Xt2_pu": 0.2,
+    "line_r_pu": 0.21003990758244068,
+    "line_x_pu": 0.5250997689561017
+   }
+  },
+  "PS-04": {
+   "inputs": {
+    "VLL": 400,
+    "Z_ohm": 30,
+    "phi_deg": 30
+   },
+   "printed": {
+    "IL_A": 23.09,
+    "Iph_A": 13.33,
+    "P_kW": 13.86,
+    "Q_kvar": 8.0
+   },
+   "printedHalfUlp": {
+    "IL_A": 0.005,
+    "Iph_A": 0.005,
+    "P_kW": 0.005,
+    "Q_kvar": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Delta load",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "IL_A": "A",
+    "Iph_A": "A",
+    "P_kW": "kW",
+    "Q_kvar": "kvar"
+   },
+   "values": {
+    "IL_A": 23.09401076758503,
+    "Iph_A": 13.333333333333334,
+    "P_kW": 13.85640646055102,
+    "Q_kvar": 8.0
+   }
+  },
+  "PS-05": {
+   "inputs": {
+    "P_kW": 500,
+    "V": 440,
+    "f": 50,
+    "pf1": 0.7,
+    "pf2": 0.95
+   },
+   "note": "C_Y per phase (star), C_D per phase (delta)",
+   "printed": {
+    "CD_uF": 1895.0,
+    "CY_uF": 5685.0,
+    "Qc_kvar": 345.8
+   },
+   "printedHalfUlp": {
+    "CD_uF": 0.5,
+    "CY_uF": 0.5,
+    "Qc_kvar": 0.05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "PF capacitor",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "CD_uF": "uF",
+    "CY_uF": "uF",
+    "Qc_kvar": "kvar"
+   },
+   "values": {
+    "CD_uF": 1894.9521220850877,
+    "CY_uF": 5684.856366255263,
+    "Qc_kvar": 345.75997802077205
+   }
+  },
+  "PS-06": {
+   "inputs": {
+    "P_MW": 50,
+    "V_kV": 132,
+    "Z_ohm": [
+     10,
+     40
+    ],
+    "pf": 0.8
+   },
+   "note": "delta > 0: sending end leads receiving end",
+   "printed": {
+    "VR_pct": 11.87,
+    "VS_LL_kV": 147.67,
+    "delta_deg": 4.782,
+    "eta_pct": 95.71,
+    "loss_MW": 2.242
+   },
+   "printedHalfUlp": {
+    "VR_pct": 0.005,
+    "VS_LL_kV": 0.005,
+    "delta_deg": 0.0005,
+    "eta_pct": 0.005,
+    "loss_MW": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Short line",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "VR_pct": "%",
+    "VS_LL_kV": "kV",
+    "delta_deg": "deg",
+    "eta_pct": "%",
+    "loss_MW": "MW"
+   },
+   "values": {
+    "VR_pct": 11.86785316078233,
+    "VS_LL_kV": 147.66556617223267,
+    "delta_deg": 4.782194046542902,
+    "eta_pct": 95.7086554702627,
+    "loss_MW": 2.2418790174471996
+   }
+  },
+  "PS-07": {
+   "inputs": {
+    "P_MW": 60,
+    "V_kV": 132,
+    "Y_S": 0.0005,
+    "Z_ohm": [
+     20,
+     80
+    ],
+    "pf": 0.85
+   },
+   "note": "VR = (|VS|/|A| - VR_fl)/VR_fl, i.e. no-load voltage vs full-load voltage",
+   "printed": {
+    "A_im": 0.005,
+    "A_re": 0.98,
+    "B_deg": 75.96,
+    "B_mag": 82.46,
+    "VR_pct": 26.79,
+    "VS_LL_kV": 164.0
+   },
+   "printedHalfUlp": {
+    "A_im": 5e-05,
+    "A_re": 5e-05,
+    "B_deg": 0.005,
+    "B_mag": 0.005,
+    "VR_pct": 0.005,
+    "VS_LL_kV": 0.05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Nominal-pi ABCD",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "A_im": "",
+    "A_re": "",
+    "B_deg": "deg",
+    "B_mag": "ohm",
+    "VR_pct": "%",
+    "VS_LL_kV": "kV"
+   },
+   "values": {
+    "A_im": 0.005,
+    "A_re": 0.98,
+    "B_deg": 75.96375653207353,
+    "B_mag": 82.46211251235322,
+    "VR_pct": 26.790809601201126,
+    "VS_LL_kV": 164.0187260294445
+   }
+  },
+  "PS-08": {
+   "inputs": {
+    "VS_kV": 220,
+    "l_km": 300,
+    "y_S_km": 3.3e-06,
+    "z_ohm_km": [
+     0.1,
+     0.5
+    ]
+   },
+   "note": "rise_pct = (VR0 - VS)/VS (rise relative to the sending voltage, as printed in the doc); negative Zc angle is the capacitive-line convention",
+   "printed": {
+    "A_im": 0.014485,
+    "A_re": 0.92663,
+    "VR0_kV": 237.39,
+    "Zc_deg": -5.655,
+    "Zc_mag": 393.08,
+    "rise_pct": 7.905
+   },
+   "printedHalfUlp": {
+    "A_im": 5e-07,
+    "A_re": 5e-06,
+    "VR0_kV": 0.005,
+    "Zc_deg": 0.0005,
+    "Zc_mag": 0.005,
+    "rise_pct": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Long line, Ferranti",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "A_im": "",
+    "A_re": "",
+    "VR0_kV": "kV",
+    "Zc_deg": "deg",
+    "Zc_mag": "ohm",
+    "rise_pct": "%"
+   },
+   "values": {
+    "A_im": 0.01448514583512665,
+    "A_re": 0.9266280966902342,
+    "VR0_kV": 237.39095093299014,
+    "Zc_deg": -5.654966237010108,
+    "Zc_mag": 393.0849053781447,
+    "rise_pct": 7.904977696813699
+   }
+  },
+  "PS-09": {
+   "inputs": {
+    "C_F_km": 1.1e-08,
+    "L_H_km": 0.001
+   },
+   "printed": {
+    "SIL220_MW": 160.5,
+    "SIL400_MW": 530.7,
+    "Zc_ohm": 301.5
+   },
+   "printedHalfUlp": {
+    "SIL220_MW": 0.05,
+    "SIL400_MW": 0.05,
+    "Zc_ohm": 0.05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "SIL",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "SIL220_MW": "MW",
+    "SIL400_MW": "MW",
+    "Zc_ohm": "ohm"
+   },
+   "values": {
+    "SIL220_MW": 160.52463985320136,
+    "SIL400_MW": 530.659966456864,
+    "Zc_ohm": 301.5113445777636
+   }
+  },
+  "PS-10": {
+   "inputs": {
+    "P_MW": 100,
+    "R_ohm_ph": 10,
+    "V_kV": [
+     132,
+     220
+    ],
+    "pf": 1
+   },
+   "printed": {
+    "I132_A": 437.4,
+    "I220_A": 262.4,
+    "loss132_MW": 5.739,
+    "loss220_MW": 2.066
+   },
+   "printedHalfUlp": {
+    "I132_A": 0.05,
+    "I220_A": 0.05,
+    "loss132_MW": 0.0005,
+    "loss220_MW": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Loss vs voltage",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "I132_A": "A",
+    "I220_A": "A",
+    "loss132_MW": "MW",
+    "loss220_MW": "MW"
+   },
+   "values": {
+    "I132_A": 437.38656756789834,
+    "I220_A": 262.431940540739,
+    "loss132_MW": 5.739210284664831,
+    "loss220_MW": 2.066115702479339
+   }
+  },
+  "PS-11": {
+   "inputs": {
+    "P_MW": 50,
+    "V_kV": 132,
+    "Z_ohm": [
+     10,
+     40
+    ],
+    "pf": 0.8
+   },
+   "printed": {
+    "eta_pct": 95.71,
+    "loss_MW": 2.242
+   },
+   "printedHalfUlp": {
+    "eta_pct": 0.005,
+    "loss_MW": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Line efficiency",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "eta_pct": "%",
+    "loss_MW": "MW"
+   },
+   "values": {
+    "eta_pct": 95.7086554702627,
+    "loss_MW": 2.2418790174471996
+   }
+  },
+  "PS-12": {
+   "inputs": {
+    "lines": [
+     [
+      1,
+      2,
+      [
+       0.02,
+       0.06
+      ],
+      0.06
+     ],
+     [
+      1,
+      3,
+      [
+       0.08,
+       0.24
+      ],
+      0.05
+     ],
+     [
+      2,
+      3,
+      [
+       0.06,
+       0.18
+      ],
+      0.04
+     ]
+    ]
+   },
+   "note": "B is the total line charging (B/2 at each end)",
+   "printed": {
+    "Y11_im": -18.695,
+    "Y11_re": 6.25,
+    "Y12_im": 15.0,
+    "Y12_re": -5.0,
+    "Y13_im": 3.75,
+    "Y13_re": -1.25,
+    "Y22_im": -19.95,
+    "Y22_re": 6.6667,
+    "Y23_im": 5.0,
+    "Y23_re": -1.6667,
+    "Y33_im": -8.705,
+    "Y33_re": 2.9167
+   },
+   "printedHalfUlp": {
+    "Y11_im": 0.0005,
+    "Y11_re": 0.005,
+    "Y12_im": 0.5,
+    "Y12_re": 0.5,
+    "Y13_im": 0.005,
+    "Y13_re": 0.005,
+    "Y22_im": 0.005,
+    "Y22_re": 5e-05,
+    "Y23_im": 0.5,
+    "Y23_re": 5e-05,
+    "Y33_im": 0.0005,
+    "Y33_re": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Y_bus with charging",
+   "tol": 1e-05,
+   "tolKind": "abs",
+   "units": {
+    "Y11_im": "pu",
+    "Y11_re": "pu",
+    "Y12_im": "pu",
+    "Y12_re": "pu",
+    "Y13_im": "pu",
+    "Y13_re": "pu",
+    "Y22_im": "pu",
+    "Y22_re": "pu",
+    "Y23_im": "pu",
+    "Y23_re": "pu",
+    "Y33_im": "pu",
+    "Y33_re": "pu"
+   },
+   "values": {
+    "Y11_im": -18.695,
+    "Y11_re": 6.250000000000001,
+    "Y12_im": 15.0,
+    "Y12_re": -5.000000000000001,
+    "Y13_im": 3.75,
+    "Y13_re": -1.2500000000000002,
+    "Y22_im": -19.950000000000003,
+    "Y22_re": 6.666666666666668,
+    "Y23_im": 5.0,
+    "Y23_re": -1.6666666666666667,
+    "Y33_im": -8.705,
+    "Y33_re": 2.916666666666667
+   }
+  },
+  "PS-13": {
+   "inputs": {
+    "SL_pu": [
+     0.8,
+     0.4
+    ],
+    "V1": 1.0,
+    "Z_pu": [
+     0.05,
+     0.15
+    ]
+   },
+   "printed": {
+    "S1_im": 0.55501,
+    "S1_re": 0.85167,
+    "V2_deg": -6.526,
+    "V2_mag": 0.87987,
+    "loss_im": 0.15501,
+    "loss_re": 0.05167
+   },
+   "printedHalfUlp": {
+    "S1_im": 5e-06,
+    "S1_re": 5e-06,
+    "V2_deg": 0.0005,
+    "V2_mag": 5e-06,
+    "loss_im": 5e-06,
+    "loss_re": 5e-06
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "2-bus analytic LF",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "S1_im": "pu",
+    "S1_re": "pu",
+    "V2_deg": "deg",
+    "V2_mag": "pu",
+    "loss_im": "pu",
+    "loss_re": "pu"
+   },
+   "values": {
+    "S1_im": 0.5550055679356352,
+    "S1_re": 0.8516685226452118,
+    "V2_deg": -6.525970284334974,
+    "V2_mag": 0.8798668869081243,
+    "loss_im": 0.15500556793563516,
+    "loss_re": 0.051668522645211726
+   }
+  },
+  "PS-14": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "bus1": "slack 1.05@0",
+    "bus2": "PQ load 256.6+j110.2 MW/Mvar",
+    "bus3": "PV Pg=200 MW |V|=1.05",
+    "charging": 0,
+    "lines_pu": [
+     [
+      1,
+      2,
+      [
+       0.02,
+       0.04
+      ]
+     ],
+     [
+      1,
+      3,
+      [
+       0.01,
+       0.03
+      ]
+     ],
+     [
+      2,
+      3,
+      [
+       0.0125,
+       0.025
+      ]
+     ]
+    ],
+    "order": "bus 2, then bus 3 using new V2; PV |V| rescaled to 1.05",
+    "start": "flat"
+   },
+   "printed": {
+    "Q3_pu": 0.71206,
+    "V2_im": -0.031,
+    "V2_re": 1.01331,
+    "V3_deg": 0.2433
+   },
+   "printedHalfUlp": {
+    "Q3_pu": 5e-06,
+    "V2_im": 5e-06,
+    "V2_re": 5e-06,
+    "V3_deg": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "GS iteration 1",
+   "tol": 1e-05,
+   "tolKind": "abs",
+   "units": {
+    "Q3_pu": "pu",
+    "V2_im": "pu",
+    "V2_re": "pu",
+    "V3_deg": "deg"
+   },
+   "values": {
+    "Q3_pu": 0.7120615384615399,
+    "V2_im": -0.03100000000000001,
+    "V2_re": 1.0133076923076925,
+    "V3_deg": 0.24333665390290468
+   }
+  },
+  "PS-15": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "bus1": "slack 1.05@0",
+    "bus2": "PQ load 256.6+j110.2 MW/Mvar",
+    "bus3": "PV Pg=200 MW |V|=1.05",
+    "charging": 0,
+    "lines_pu": [
+     [
+      1,
+      2,
+      [
+       0.02,
+       0.04
+      ]
+     ],
+     [
+      1,
+      3,
+      [
+       0.01,
+       0.03
+      ]
+     ],
+     [
+      2,
+      3,
+      [
+       0.0125,
+       0.025
+      ]
+     ]
+    ],
+    "mismatch_tol_pu": 1e-06,
+    "start": "flat (1.05, 1.0, 1.05 pu; 0 rad)"
+   },
+   "note": "iterations = Newton updates until max P/Q mismatch < 1e-6 pu (reference); iterations_max = 4 is the doc's bound (constant, iterations <= iterations_max asserted)",
+   "printed": {
+    "V2_pu": 1.01334,
+    "V3_ang_deg": 0.4751,
+    "V3_pu": 1.05,
+    "ang2_deg": -1.3772,
+    "iterations_max": 4.0
+   },
+   "printedHalfUlp": {
+    "V2_pu": 5e-06,
+    "V3_ang_deg": 5e-05,
+    "V3_pu": 0.005,
+    "ang2_deg": 5e-05,
+    "iterations_max": 0.5
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "NR converged",
+   "tol": 1e-05,
+   "tolKind": "abs",
+   "tols": {
+    "V3_ang_deg": {
+     "tol": 0.001,
+     "tolKind": "abs"
+    },
+    "ang2_deg": {
+     "tol": 0.001,
+     "tolKind": "abs"
+    },
+    "iterations": {
+     "tol": 0,
+     "tolKind": "abs"
+    },
+    "iterations_max": {
+     "tol": 0,
+     "tolKind": "abs"
+    }
+   },
+   "units": {
+    "V2_pu": "pu",
+    "V3_ang_deg": "deg",
+    "V3_pu": "pu",
+    "ang2_deg": "deg",
+    "iterations": "count",
+    "iterations_max": "count"
+   },
+   "values": {
+    "V2_pu": 1.0133362977009102,
+    "V3_ang_deg": 0.4750677585457131,
+    "V3_pu": 1.05,
+    "ang2_deg": -1.3772272006798512,
+    "iterations": 3.0,
+    "iterations_max": 4.0
+   }
+  },
+  "PS-16": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "bus1": "slack 1.05@0",
+    "bus2": "PQ load 256.6+j110.2 MW/Mvar",
+    "bus3": "PV Pg=200 MW |V|=1.05",
+    "charging": 0,
+    "lines_pu": [
+     [
+      1,
+      2,
+      [
+       0.02,
+       0.04
+      ]
+     ],
+     [
+      1,
+      3,
+      [
+       0.01,
+       0.03
+      ]
+     ],
+     [
+      2,
+      3,
+      [
+       0.0125,
+       0.025
+      ]
+     ]
+    ]
+   },
+   "note": "S_ij leaves bus i (measured at bus i end)",
+   "printed": {
+    "Q3_Mvar": 60.915,
+    "S12_MW": 89.951,
+    "S12_Mvar": 52.035,
+    "S23_MW": -168.608,
+    "S23_Mvar": -62.083,
+    "lossP_MW": 5.965,
+    "lossQ_Mvar": 12.005,
+    "slackP_MW": 62.565,
+    "slackQ_Mvar": 61.29
+   },
+   "printedHalfUlp": {
+    "Q3_Mvar": 0.0005,
+    "S12_MW": 0.0005,
+    "S12_Mvar": 0.0005,
+    "S23_MW": 0.0005,
+    "S23_Mvar": 0.0005,
+    "lossP_MW": 0.0005,
+    "lossQ_Mvar": 0.0005,
+    "slackP_MW": 0.0005,
+    "slackQ_Mvar": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "NR flows and losses",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Q3_Mvar": "Mvar",
+    "S12_MW": "MW",
+    "S12_Mvar": "Mvar",
+    "S23_MW": "MW",
+    "S23_Mvar": "Mvar",
+    "lossP_MW": "MW",
+    "lossQ_Mvar": "Mvar",
+    "slackP_MW": "MW",
+    "slackQ_Mvar": "Mvar"
+   },
+   "values": {
+    "Q3_Mvar": 60.91470001137296,
+    "S12_MW": 89.95053243560301,
+    "S12_Mvar": 52.03537100628054,
+    "S23_MW": -168.60842958185052,
+    "S23_Mvar": -62.08255302862664,
+    "lossP_MW": 5.964619425426266,
+    "lossQ_Mvar": 12.005034095566785,
+    "slackP_MW": 62.564619425425846,
+    "slackQ_Mvar": 61.290334084195806
+   }
+  },
+  "PS-17": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "T_X": 0.1,
+    "T_X0": 0.1,
+    "Vline_kV": 138,
+    "gen_X1": 0.15,
+    "line_X1_ohm": 40
+   },
+   "printed": {
+    "If_kA": 0.9094,
+    "If_pu": 2.1737,
+    "S_MVA": 217.4,
+    "Z1_pu": 0.46
+   },
+   "printedHalfUlp": {
+    "If_kA": 5e-05,
+    "If_pu": 5e-05,
+    "S_MVA": 0.05,
+    "Z1_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "3-phase fault",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "If_kA": "kA",
+    "If_pu": "pu",
+    "S_MVA": "MVA",
+    "Z1_pu": "pu"
+   },
+   "values": {
+    "If_kA": 0.9094205815337102,
+    "If_pu": 2.1737244606780046,
+    "S_MVA": 217.37244606780047,
+    "Z1_pu": 0.4600399075824407
+   }
+  },
+  "PS-18": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "T_X": 0.1,
+    "T_X0": 0.1,
+    "Vline_kV": 138,
+    "gen_X0": 0.05,
+    "gen_X1": 0.15,
+    "gen_X2": 0.17,
+    "line_X0_ohm": 120,
+    "line_X1_ohm": 40,
+    "note": "gen X0 blocked by delta"
+   },
+   "printed": {
+    "Ia_kA": 0.7515,
+    "Ia_pu": 1.7962,
+    "Z0_pu": 0.7301,
+    "Z2_pu": 0.48
+   },
+   "printedHalfUlp": {
+    "Ia_kA": 5e-05,
+    "Ia_pu": 5e-05,
+    "Z0_pu": 5e-05,
+    "Z2_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "SLG fault",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Ia_kA": "kA",
+    "Ia_pu": "pu",
+    "Z0_pu": "pu",
+    "Z2_pu": "pu"
+   },
+   "values": {
+    "Ia_kA": 0.7514726548277787,
+    "Ia_pu": 1.7961925697513275,
+    "Z0_pu": 0.730119722747322,
+    "Z2_pu": 0.4800399075824407
+   }
+  },
+  "PS-19": {
+   "inputs": {
+    "Sbase_MVA": 100,
+    "T_X": 0.1,
+    "T_X0": 0.1,
+    "Vline_kV": 138,
+    "gen_X0": 0.05,
+    "gen_X1": 0.15,
+    "gen_X2": 0.17,
+    "line_X0_ohm": 120,
+    "line_X1_ohm": 40,
+    "note": "gen X0 blocked by delta"
+   },
+   "printed": {
+    "Ib_kA": 0.7708,
+    "Ib_pu": 1.8425
+   },
+   "printedHalfUlp": {
+    "Ib_kA": 5e-05,
+    "Ib_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "LL fault",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "Ib_kA": "kA",
+    "Ib_pu": "pu"
+   },
+   "values": {
+    "Ib_kA": 0.7708256995522508,
+    "Ib_pu": 1.8424508000579625
+   }
+  },
+  "PS-20": {
+   "inputs": {
+    "D_MW": 975,
+    "a": [
+     500.0,
+     400.0,
+     200.0
+    ],
+    "b": [
+     5.3,
+     5.5,
+     5.8
+    ],
+    "c": [
+     0.004,
+     0.006,
+     0.009
+    ]
+   },
+   "printed": {
+    "P1_MW": 482.89,
+    "P2_MW": 305.26,
+    "P3_MW": 186.84,
+    "cost_usd_h": 8228.03,
+    "lambda_usd_MWh": 9.163
+   },
+   "printedHalfUlp": {
+    "P1_MW": 0.005,
+    "P2_MW": 0.005,
+    "P3_MW": 0.005,
+    "cost_usd_h": 0.005,
+    "lambda_usd_MWh": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "ED, no limits",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P1_MW": "MW",
+    "P2_MW": "MW",
+    "P3_MW": "MW",
+    "cost_usd_h": "$/h",
+    "lambda_usd_MWh": "$/MWh"
+   },
+   "values": {
+    "P1_MW": 482.89473684210515,
+    "P2_MW": 305.26315789473676,
+    "P3_MW": 186.84210526315786,
+    "cost_usd_h": 8228.026315789471,
+    "lambda_usd_MWh": 9.163157894736841
+   }
+  },
+  "PS-21": {
+   "inputs": {
+    "D_MW": 1000,
+    "Pmax": [
+     450.0,
+     350.0,
+     300.0
+    ],
+    "Pmin": [
+     200.0,
+     150.0,
+     100.0
+    ],
+    "a": [
+     500.0,
+     400.0,
+     200.0
+    ],
+    "b": [
+     5.3,
+     5.5,
+     5.8
+    ],
+    "c": [
+     0.004,
+     0.006,
+     0.009
+    ]
+   },
+   "note": "lambda from bisection on total P with P_i clipped to [Pmin, Pmax]; unit 1 binds at its 450 MW maximum, units 2 and 3 are interior",
+   "printed": {
+    "P1_MW": 450.0,
+    "P2_MW": 340.0,
+    "P3_MW": 210.0,
+    "cost_usd_h": 8473.5,
+    "lambda_usd_MWh": 9.58
+   },
+   "printedHalfUlp": {
+    "P1_MW": 0.5,
+    "P2_MW": 0.5,
+    "P3_MW": 0.5,
+    "cost_usd_h": 0.05,
+    "lambda_usd_MWh": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "ED, limits binding",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P1_MW": "MW",
+    "P2_MW": "MW",
+    "P3_MW": "MW",
+    "cost_usd_h": "$/h",
+    "lambda_usd_MWh": "$/MWh"
+   },
+   "values": {
+    "P1_MW": 450.0,
+    "P2_MW": 340.0,
+    "P3_MW": 210.00000000000003,
+    "cost_usd_h": 8473.5,
+    "lambda_usd_MWh": 9.58
+   }
+  },
+  "PS-22": {
+   "inputs": {
+    "B11": 0.0001,
+    "B12": -2e-05,
+    "B22": 0.00015,
+    "D_MW": 300,
+    "a": [
+     300.0,
+     250.0
+    ],
+    "b": [
+     8.0,
+     9.0
+    ],
+    "c": [
+     0.004,
+     0.005
+    ]
+   },
+   "note": "B coefficients in 1/MW; coordination equations dC/dP = lambda (1 - dPL/dP)",
+   "printed": {
+    "P1_MW": 213.67,
+    "P2_MW": 91.365,
+    "PL_MW": 5.0368,
+    "lambda_usd_MWh": 10.104
+   },
+   "printedHalfUlp": {
+    "P1_MW": 0.005,
+    "P2_MW": 0.0005,
+    "PL_MW": 5e-05,
+    "lambda_usd_MWh": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "ED with B-losses",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P1_MW": "MW",
+    "P2_MW": "MW",
+    "PL_MW": "MW",
+    "lambda_usd_MWh": "$/MWh"
+   },
+   "values": {
+    "P1_MW": 213.67167016222834,
+    "P2_MW": 91.3651407537273,
+    "PL_MW": 5.0368109159556305,
+    "lambda_usd_MWh": 10.104244491745646
+   }
+  },
+  "PS-23": {
+   "inputs": {
+    "H_s": 5,
+    "S_MVA": 500,
+    "dP_pu": 0.2,
+    "f0": 60
+   },
+   "note": "rocof magnitude; sign negative for generation loss",
+   "printed": {
+    "KE_MJ": 2500.0,
+    "rocof_Hz_s": 1.2
+   },
+   "printedHalfUlp": {
+    "KE_MJ": 0.5,
+    "rocof_Hz_s": 0.0005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Swing / RoCoF",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "KE_MJ": "MJ",
+    "rocof_Hz_s": "Hz/s"
+   },
+   "values": {
+    "KE_MJ": 2500.0,
+    "rocof_Hz_s": 1.2
+   }
+  },
+  "PS-24": {
+   "inputs": {
+    "H_s": 5,
+    "Pm_pu": 0.8,
+    "Pmax_pu": 1.8,
+    "f0": 60,
+    "fault": "terminal 3-phase (Pe=0)"
+   },
+   "note": "t_cr_rk4_s: RK4 dt=0.1 ms with the step snapped to the clearing instant, bisection, stable if omega<0 after clearing before delta>pi+0.5 (recheck/ps24.py); _1ms_ the same at the engine's dt=1 ms",
+   "printed": {
+    "delta0_deg": 26.39,
+    "delta_cr_deg": 84.77,
+    "t_cr_rk4_s": 0.25996,
+    "t_cr_s": 0.26
+   },
+   "printedHalfUlp": {
+    "delta0_deg": 0.005,
+    "delta_cr_deg": 0.005,
+    "t_cr_rk4_s": 5e-06,
+    "t_cr_s": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Equal-area CCT",
+   "tol": 0.001,
+   "tolKind": "rel",
+   "units": {
+    "delta0_deg": "deg",
+    "delta_cr_deg": "deg",
+    "t_cr_rk4_1ms_s": "s",
+    "t_cr_rk4_s": "s",
+    "t_cr_s": "s"
+   },
+   "values": {
+    "delta0_deg": 26.387799961243,
+    "delta_cr_deg": 84.77450801473232,
+    "t_cr_rk4_1ms_s": 0.2599561662940687,
+    "t_cr_rk4_s": 0.25995616629588764,
+    "t_cr_s": 0.2599561662958628
+   }
+  },
+  "PS-25": {
+   "inputs": {
+    "D": 0.8,
+    "R_pu": 0.05,
+    "dP_pu": 0.01,
+    "f0": 50
+   },
+   "printed": {
+    "df_Hz": -0.02404
+   },
+   "printedHalfUlp": {
+    "df_Hz": 5e-06
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Droop delta f",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "df_Hz": "Hz"
+   },
+   "values": {
+    "df_Hz": -0.024038461538461536
+   }
+  },
+  "PS-26": {
+   "inputs": {
+    "D": 0,
+    "G1": "500 MVA 4%",
+    "G2": "300 MVA 5%",
+    "dP_MW": 100,
+    "f0": 50
+   },
+   "note": "R_i in Hz/MW = R_pu*f0/S_i",
+   "printed": {
+    "P1_MW": 67.57,
+    "P2_MW": 32.43,
+    "df_Hz": -0.2703
+   },
+   "printedHalfUlp": {
+    "P1_MW": 0.005,
+    "P2_MW": 0.005,
+    "df_Hz": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Droop sharing",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P1_MW": "MW",
+    "P2_MW": "MW",
+    "df_Hz": "Hz"
+   },
+   "values": {
+    "P1_MW": 67.56756756756756,
+    "P2_MW": 32.432432432432435,
+    "df_Hz": -0.2702702702702703
+   }
+  },
+  "PS-27": {
+   "inputs": {
+    "I": 1,
+    "Vt": 1,
+    "Xs": 1.2,
+    "pf": 0.8
+   },
+   "printed": {
+    "E_pu": 1.9698,
+    "delta_deg": 29.17
+   },
+   "printedHalfUlp": {
+    "E_pu": 5e-05,
+    "delta_deg": 0.005
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Excitation emf",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "E_pu": "pu",
+    "delta_deg": "deg"
+   },
+   "values": {
+    "E_pu": 1.969771560359221,
+    "delta_deg": 29.167613379577798
+   }
+  },
+  "PS-28": {
+   "inputs": {
+    "E": 1.969771560359221,
+    "V": 1,
+    "X": 1.2
+   },
+   "note": "E taken unrounded from PS-27",
+   "printed": {
+    "P_at_delta_pu": 0.8,
+    "Pmax_pu": 1.6415
+   },
+   "printedHalfUlp": {
+    "P_at_delta_pu": 5e-05,
+    "Pmax_pu": 5e-05
+   },
+   "source": "Saadat/Glover/Grainger-Stevenson/Kothari-Nagrath/GATE style (worker-solved; no exact example number)",
+   "title": "Max power",
+   "tol": 0.0001,
+   "tolKind": "rel",
+   "units": {
+    "P_at_delta_pu": "pu",
+    "Pmax_pu": "pu"
+   },
+   "values": {
+    "P_at_delta_pu": 0.8,
+    "Pmax_pu": 1.6414763002993509
+   }
+  }
+ }
+}
