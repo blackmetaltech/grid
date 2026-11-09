@@ -80,8 +80,9 @@ describe('oracle expected.json', () => {
     expect(Math.round(l17.none_both.Pmax_grid_MW)).toBe(456);
     const l19 = level('L19');
     expect(l19.naive_12coal.nadir_Hz).toBeCloseTo(48.94, 2);
-    expect(l19.coal13.nadir_Hz).toBeCloseTo(49.59, 2);
-    expect(l19.coal13_bess200.nadir_Hz).toBeCloseTo(49.67, 2);
+    // DESIGN card says 49.59/49.67: those came from a jump deadband; the §3.6 offset dead-zone gives 49.58/49.66 (docs/DECISIONS.md #5)
+    expect(l19.coal13.nadir_Hz).toBeCloseTo(49.58, 2);
+    expect(l19.coal13_bess200.nadir_Hz).toBeCloseTo(49.66, 2);
     expect(l19.naive_12coal.shed_MW).toBe(345);
     expect(l19.naive_bess200.nadir_Hz).toBeCloseTo(49.03, 2);
   });

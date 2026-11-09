@@ -613,7 +613,8 @@ def l19_build(ncoal, hydP=225, nh=4, R=0.05):
 
 
 def l19row(units, bess=0):
-    r = sim(units, bess); r0 = sim(units, bess, ufls=False)
+    # DESIGN 3.6 / REVIEW E5: offset dead-zone (the script default "hard" is a jump deadband)
+    r = sim(units, bess, dband="zone"); r0 = sim(units, bess, dband="zone", ufls=False)
     return dict(RoCoF0_Hz_s=r["rocof_an"], RoCoF0_rk4_Hz_s=r["rocof_rk4"], nadir_Hz=r["nadir"], t_nadir_s=r["t_nadir"],
                 nadir_noUFLS_Hz=r0["nadir"], shed_MW=r["shed"], H_sys_s=r["H"], S_sys_MVA=r["S"], f_end_Hz=r["f_end"])
 

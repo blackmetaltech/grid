@@ -386,7 +386,7 @@ the Bench": the series-LCR bench, Q and bandwidth belong to **NODE** (its ticket
 
   | Commitment | RoCoF at 0⁺ (analytic = RK4 slope) | Nadir | UFLS |
   |---|---|---|---|
-  | Minimum commitment: 12 coal ≈ 491 MW + 4 hydro 225 MW (naive) | −0.478 Hz/s (H_sys 3.42 s, 7,644 MVA) | 48.94 Hz (48.07 Hz without UFLS) | stage 1 sheds 345 MW |
+  | Minimum commitment: 12 coal ≈ 491 MW + 4 hydro 225 MW (naive) | −0.478 Hz/s (H_sys 3.42 s, 7,644 MVA) | 48.94 Hz (48.939 with the offset dead-zone, DECISIONS #5) (48.07 Hz without UFLS) | stage 1 sheds 345 MW |
   | 13th coal unit spinning, headroom spread (12 × ≈ 453 MW) | −0.443 Hz/s | 49.59 Hz | none |
   | 13th unit + 200 MW 1%-droop FFR BESS | −0.443 Hz/s | 49.67 Hz | none |
 
