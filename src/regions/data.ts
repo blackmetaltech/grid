@@ -1,18 +1,304 @@
-// Game-specific regional parameters. Physics is region-independent: a pack may change prices, names, currency and standards,
-// never the laws or constants of the rig (the `g` field exists so that tests can prove no pack tampers with it).
-import { RIG } from '../state';
+// Region-pack data for GRID (DESIGN §11.2). Physics is region-independent: a pack may change prices, limits, standards
+// references and catalogue prices, never the laws or material constants of the simulation. The schema is therefore STRICT:
+// unknown keys are rejected at every level, so a physics constant (conductor resistivity, g, permeability…) cannot be smuggled
+// into a pack. Physics catalogues (conductor geometry, governor constants) live in shared code, not here.
+//
+// Every non-trivial number carries provenance (`provenance[path] = {source, confidence}`), every catalogue row carries
+// `source` + `confidence`. `recall` (model recall, not yet opened) is allowed only in a `draft` pack: `releaseGateProblems`
+// is the data release gate (RELEASE=1 in the tests makes it fatal for shipping packs).
+import { hashOf } from '@core/kit';
+import type { RegionPack } from '@core/regions';
 
-export interface TankRegionData {
-  /** Standard gravity, m/s². Must equal RIG.g in every pack. */
-  g: number;
-  /** Price of supply water in the pack's currency per m³. */
-  supplyPricePerM3: number;
+export type Confidence = 'datasheet' | 'standard' | 'report' | 'secondary' | 'derived' | 'recall' | 'game';
+export const CONFIDENCES: readonly Confidence[] = ['datasheet', 'standard', 'report', 'secondary', 'derived', 'recall', 'game'];
+
+export interface Sourced { source: string; confidence: Confidence }
+
+export interface BandKv { minKv: number; maxKv: number }
+
+export interface UflsRow { /** pick-up, Hz */ hz: number; /** percent of demand shed */ shedPct: number; /** relay + breaker delay, s */ delayS: number }
+export interface TripRow { /** frequency threshold, Hz */ hz: number; /** time above/below it before the unit trips, s */ s: number }
+
+export interface GridRegionData {
+  /** Nominal frequency, Hz. */
+  f0: 50 | 60;
+  voltage: {
+    /** LV phase-to-neutral and line-to-line voltage, V (230/400 in IEC 60038). */
+    lvPhaseV: number;
+    lvLineV: number;
+    /** Nominal system voltages above LV, kV, strictly ascending. */
+    levelsKv: number[];
+    /** Steady-state band per level, kV, keyed by the level as a string ('400'). */
+    bandsKv: Record<string, BandKv>;
+    /** Levels (kV) with no kV band in the pack: they use `mvBandPct`. */
+    pctBandLevelsKv: number[];
+    /** LV supply band, ± percent of nominal. */
+    lvBandPct: number;
+    /** MV load-bus band, ± percent, per game mode. */
+    mvBandPct: { learner: number; engineer: number };
+    /** Short-term emergency lower limits, kV, keyed like `bandsKv` (may be empty). */
+    emergencyMinKv: Record<string, number>;
+  };
+  gridcode: {
+    /** Standard frequency range [low, high], Hz. */
+    standardRangeHz: [number, number];
+    /** Maximum steady-state and instantaneous deviations, Hz; null when the pack does not specify them. */
+    maxSteadyDevHz: number | null;
+    maxInstDevHz: number | null;
+    /** Frequency-response insensitivity (deadband), ± Hz. */
+    fcrDeadbandHz: number;
+    /** Time for full primary response, s. */
+    fcrFullActivationS: number;
+    /** Allowed governor droop range [min, max], percent. */
+    droopRangePct: [number, number];
+    /** Under-frequency load shedding stages, strictly descending in Hz. */
+    ufls: UflsRow[];
+    genUfTrip: TripRow;
+    genOfTrip: TripRow;
+    /** Over-voltage trip stages: voltage in pu, time in s. */
+    ovStages: { pu: number; s: number }[];
+    /** A load bus below this voltage (pu) for this long (s) loses its motor share. */
+    uvLoadTrip: { pu: number; s: number };
+    /** Imbalance settlement period, minutes. */
+    settlementMin: number;
+  };
+  economy: {
+    /** Pack currency per MWh. */
+    energyPricePerMWh: number;
+    /** Value of lost load, pack currency per MWh. */
+    vollPerMWh: number;
+    /** Fuel prices: pack currency per GJ of fuel (nuclear: per MWh of electricity, `nuclearPerMWhe`). */
+    fuelPerGJ: { coal: number; gas: number; diesel: number; biomass: number };
+    nuclearPerMWhe: number | null;
+  };
+  climate: { /** degrees north */ latitudeDeg: number };
+  catalogues: Catalogues;
+  /** Source and confidence per data path (see REQUIRED_PROVENANCE). */
+  provenance: Record<string, Sourced>;
 }
 
-export function validateTankData(d: TankRegionData): string[] {
+// ---- catalogue rows: priced SKUs only; physics columns are shared and live elsewhere ----
+export interface CatalogueRow extends Sourced { id: string }
+export interface GeneratorRow extends CatalogueRow { kind: string; /** pack currency per kW */ capexPerKw: number }
+export interface TransformerRow extends CatalogueRow { mva: number; kvHv: number; kvLv: number; /** pack currency per unit */ price: number }
+export interface CompensationRow extends CatalogueRow { mvar: number; /** pack currency per kVAr */ pricePerKvar: number }
+export interface StorageRow extends CatalogueRow { mw: number; mwh: number; /** pack currency per kW and per kWh */ capexPerKw: number; capexPerKwh: number }
+export interface ProtectionRow extends CatalogueRow { kind: string; /** pack currency per unit */ price: number }
+export interface Catalogues {
+  generators: GeneratorRow[];
+  transformers: TransformerRow[];
+  compensation: CompensationRow[];
+  storage: StorageRow[];
+  protection: ProtectionRow[];
+}
+
+/** Allowed keys per catalogue (row keys beyond these are rejected: no physics columns in a pack). */
+const ROW_KEYS: Record<keyof Catalogues, string[]> = {
+  generators: ['id', 'kind', 'capexPerKw', 'source', 'confidence'],
+  transformers: ['id', 'mva', 'kvHv', 'kvLv', 'price', 'source', 'confidence'],
+  compensation: ['id', 'mvar', 'pricePerKvar', 'source', 'confidence'],
+  storage: ['id', 'mw', 'mwh', 'capexPerKw', 'capexPerKwh', 'source', 'confidence'],
+  protection: ['id', 'kind', 'price', 'source', 'confidence'],
+};
+const ROW_NUMS: Record<keyof Catalogues, string[]> = {
+  generators: ['capexPerKw'], transformers: ['mva', 'kvHv', 'kvLv', 'price'], compensation: ['mvar', 'pricePerKvar'],
+  storage: ['mw', 'mwh', 'capexPerKw', 'capexPerKwh'], protection: ['price'],
+};
+
+/** Data paths that must carry provenance (a path whose value is null is exempt). */
+export const REQUIRED_PROVENANCE: readonly string[] = [
+  'f0', 'voltage.lv', 'voltage.levelsKv', 'voltage.bandsKv', 'voltage.lvBandPct', 'voltage.mvBandPct',
+  'gridcode.standardRangeHz', 'gridcode.maxSteadyDevHz', 'gridcode.maxInstDevHz', 'gridcode.fcrDeadbandHz', 'gridcode.fcrFullActivationS',
+  'gridcode.droopRangePct', 'gridcode.ufls.hz', 'gridcode.ufls.shedPct', 'gridcode.ufls.delayS',
+  'gridcode.genUfTrip.hz', 'gridcode.genUfTrip.s', 'gridcode.genOfTrip.hz', 'gridcode.genOfTrip.s',
+  'gridcode.ovStages', 'gridcode.uvLoadTrip', 'gridcode.settlementMin',
+  'economy.energyPricePerMWh', 'economy.vollPerMWh', 'economy.fuelPerGJ', 'climate.latitudeDeg',
+];
+const NULLABLE_PROVENANCE: Record<string, (d: GridRegionData) => unknown> = {
+  'gridcode.maxSteadyDevHz': (d) => d.gridcode?.maxSteadyDevHz, 'gridcode.maxInstDevHz': (d) => d.gridcode?.maxInstDevHz,
+};
+
+const isObj = (v: unknown): boolean => !!v && typeof v === 'object' && !Array.isArray(v);
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const isPos = (v: unknown): v is number => isNum(v) && v > 0;
+const isStr = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
+
+function onlyKeys(o: object, allowed: string[], path: string, e: string[]): void {
+  for (const k of Object.keys(o)) if (!allowed.includes(k)) e.push(`${path}.${k} is not a field of the schema (physics constants do not belong in a region pack)`);
+}
+
+/** Schema + range checks for a pack's `data`. Returns messages (empty = valid). */
+export function validateGridData(d: GridRegionData): string[] {
   const e: string[] = [];
-  if (!d || typeof d !== 'object') return ['must be an object'];
-  if (d.g !== RIG.g) e.push(`g must be ${RIG.g} (physics does not depend on the region; got ${String(d.g)})`);
-  if (typeof d.supplyPricePerM3 !== 'number' || !Number.isFinite(d.supplyPricePerM3) || d.supplyPricePerM3 <= 0) e.push('supplyPricePerM3 must be a positive number');
+  if (!isObj(d)) return ['must be an object'];
+  onlyKeys(d, ['f0', 'voltage', 'gridcode', 'economy', 'climate', 'catalogues', 'provenance'], 'data', e);
+  if (d.f0 !== 50 && d.f0 !== 60) e.push(`f0 must be 50 or 60 Hz (got ${String(d.f0)})`);
+  const f0 = d.f0 === 60 ? 60 : 50;
+
+  // voltage
+  const v: any = d.voltage;
+  if (!isObj(v)) e.push('voltage must be an object');
+  else {
+    onlyKeys(v, ['lvPhaseV', 'lvLineV', 'levelsKv', 'bandsKv', 'pctBandLevelsKv', 'lvBandPct', 'mvBandPct', 'emergencyMinKv'], 'voltage', e);
+    if (!isPos(v.lvPhaseV)) e.push('voltage.lvPhaseV must be a positive number of volts');
+    if (!isPos(v.lvLineV)) e.push('voltage.lvLineV must be a positive number of volts');
+    if (isPos(v.lvPhaseV) && isPos(v.lvLineV) && v.lvLineV <= v.lvPhaseV) e.push('voltage.lvLineV must exceed lvPhaseV');
+    const lv = v.levelsKv;
+    if (!Array.isArray(lv) || lv.length === 0 || lv.some((x: unknown) => !isPos(x))) e.push('voltage.levelsKv must be a non-empty array of positive kV values');
+    else {
+      for (let i = 1; i < lv.length; i++) if (!(lv[i] > lv[i - 1])) e.push('voltage.levelsKv must be strictly ascending');
+      const pct: unknown[] = Array.isArray(v.pctBandLevelsKv) ? v.pctBandLevelsKv : [];
+      if (!Array.isArray(v.pctBandLevelsKv) || pct.some((x) => !lv.includes(x))) e.push('voltage.pctBandLevelsKv must be an array of levels from levelsKv');
+      if (!isObj(v.bandsKv)) e.push('voltage.bandsKv must be an object keyed by kV level');
+      else {
+        for (const k of Object.keys(v.bandsKv)) if (!lv.includes(Number(k))) e.push(`voltage.bandsKv.${k}: ${k} kV is not in levelsKv`);
+        for (const k of lv as number[]) {
+          const b: any = (v.bandsKv as any)[String(k)];
+          if (b === undefined) { if (!pct.includes(k)) e.push(`voltage.bandsKv: the ${k} kV level has no band (list it in pctBandLevelsKv or give minKv/maxKv)`); continue; }
+          if (!isObj(b) || !isPos(b.minKv) || !isPos(b.maxKv) || !(b.minKv < b.maxKv)) e.push(`voltage.bandsKv.${k} needs 0 < minKv < maxKv`);
+          else if (b.minKv > k || b.maxKv < k) e.push(`voltage.bandsKv.${k}: the band [${b.minKv}, ${b.maxKv}] kV must contain the nominal ${k} kV`);
+        }
+      }
+    }
+    if (!isPos(v.lvBandPct) || v.lvBandPct > 20) e.push('voltage.lvBandPct must be a percentage in (0, 20]');
+    if (!isObj(v.mvBandPct) || !isPos(v.mvBandPct.learner) || !isPos(v.mvBandPct.engineer) || v.mvBandPct.learner > 20 || v.mvBandPct.engineer > v.mvBandPct.learner) e.push('voltage.mvBandPct needs 0 < engineer <= learner <= 20 (percent)');
+    if (!isObj(v.emergencyMinKv) || Object.values(v.emergencyMinKv).some((x) => !isPos(x))) e.push('voltage.emergencyMinKv must be an object of positive kV values');
+  }
+
+  // grid code
+  const g: any = d.gridcode;
+  if (!isObj(g)) e.push('gridcode must be an object');
+  else {
+    onlyKeys(g, ['standardRangeHz', 'maxSteadyDevHz', 'maxInstDevHz', 'fcrDeadbandHz', 'fcrFullActivationS', 'droopRangePct', 'ufls', 'genUfTrip', 'genOfTrip', 'ovStages', 'uvLoadTrip', 'settlementMin'], 'gridcode', e);
+    const r = g.standardRangeHz;
+    if (!Array.isArray(r) || r.length !== 2 || !isPos(r[0]) || !isPos(r[1]) || !(r[0] < f0 && f0 < r[1])) e.push(`gridcode.standardRangeHz must be [low, high] around ${f0} Hz`);
+    for (const k of ['maxSteadyDevHz', 'maxInstDevHz']) if (g[k] !== null && !isPos(g[k])) e.push(`gridcode.${k} must be a positive number of Hz or null`);
+    if (!isNum(g.fcrDeadbandHz) || g.fcrDeadbandHz < 0) e.push('gridcode.fcrDeadbandHz must be >= 0 (Hz)');
+    if (!isPos(g.fcrFullActivationS)) e.push('gridcode.fcrFullActivationS must be a positive number of seconds');
+    const dr = g.droopRangePct;
+    if (!Array.isArray(dr) || dr.length !== 2 || !isPos(dr[0]) || !isPos(dr[1]) || !(dr[0] <= dr[1]) || dr[1] > 100) e.push('gridcode.droopRangePct must be [min, max] with 0 < min <= max <= 100 (percent)');
+    const u = g.ufls;
+    if (!Array.isArray(u) || u.length === 0) e.push('gridcode.ufls must be a non-empty list of stages');
+    else {
+      let total = 0;
+      u.forEach((s: any, i: number) => {
+        if (!isObj(s)) { e.push(`gridcode.ufls[${i}] must be an object`); return; }
+        onlyKeys(s, ['hz', 'shedPct', 'delayS'], `gridcode.ufls[${i}]`, e);
+        if (!isPos(s.hz) || s.hz >= f0) e.push(`gridcode.ufls[${i}].hz must be a positive frequency below ${f0} Hz`);
+        if (!isPos(s.shedPct) || s.shedPct > 100) e.push(`gridcode.ufls[${i}].shedPct must be positive (percent, at most 100)`); else total += s.shedPct;
+        if (!isNum(s.delayS) || s.delayS < 0) e.push(`gridcode.ufls[${i}].delayS must be >= 0 (s)`);
+        if (i > 0 && isNum(u[i - 1]?.hz) && !(s.hz < u[i - 1].hz)) e.push(`gridcode.ufls stages must be strictly descending in Hz (stage ${i + 1} at ${String(s.hz)} Hz follows ${String(u[i - 1].hz)} Hz)`);
+      });
+      if (total > 100) e.push(`gridcode.ufls sheds ${total} % in total; it cannot exceed 100 %`);
+    }
+    const trip = (name: string, t: any, dir: 'below' | 'above') => {
+      if (!isObj(t)) { e.push(`gridcode.${name} must be {hz, s}`); return; }
+      onlyKeys(t, ['hz', 's'], `gridcode.${name}`, e);
+      if (!isPos(t.hz) || (dir === 'below' ? t.hz >= f0 : t.hz <= f0)) e.push(`gridcode.${name}.hz must be ${dir} ${f0} Hz`);
+      if (!isNum(t.s) || t.s < 0) e.push(`gridcode.${name}.s must be >= 0 (s)`);
+    };
+    trip('genUfTrip', g.genUfTrip, 'below'); trip('genOfTrip', g.genOfTrip, 'above');
+    if (!Array.isArray(g.ovStages) || g.ovStages.length === 0 || g.ovStages.some((s: any) => !isObj(s) || !(isNum(s.pu) && s.pu > 1) || !isNum(s.s) || s.s < 0)) e.push('gridcode.ovStages must be a non-empty list of {pu > 1, s >= 0}');
+    if (!isObj(g.uvLoadTrip) || !(isNum(g.uvLoadTrip.pu) && g.uvLoadTrip.pu > 0 && g.uvLoadTrip.pu < 1) || !isNum(g.uvLoadTrip.s) || g.uvLoadTrip.s < 0) e.push('gridcode.uvLoadTrip must be {pu in (0,1), s >= 0}');
+    if (!isPos(g.settlementMin) || !Number.isInteger(g.settlementMin)) e.push('gridcode.settlementMin must be a positive whole number of minutes');
+  }
+
+  // economy
+  const ec: any = d.economy;
+  if (!isObj(ec)) e.push('economy must be an object');
+  else {
+    onlyKeys(ec, ['energyPricePerMWh', 'vollPerMWh', 'fuelPerGJ', 'nuclearPerMWhe'], 'economy', e);
+    if (!isPos(ec.energyPricePerMWh)) e.push('economy.energyPricePerMWh must be a positive number');
+    if (!isPos(ec.vollPerMWh)) e.push('economy.vollPerMWh must be a positive number');
+    if (isPos(ec.energyPricePerMWh) && isPos(ec.vollPerMWh) && ec.vollPerMWh <= ec.energyPricePerMWh) e.push('economy.vollPerMWh must exceed the energy price (unserved energy must cost more than energy)');
+    if (!isObj(ec.fuelPerGJ)) e.push('economy.fuelPerGJ must be an object');
+    else {
+      onlyKeys(ec.fuelPerGJ, ['coal', 'gas', 'diesel', 'biomass'], 'economy.fuelPerGJ', e);
+      for (const k of ['coal', 'gas', 'diesel', 'biomass']) if (!isPos((ec.fuelPerGJ as any)[k])) e.push(`economy.fuelPerGJ.${k} must be a positive number`);
+    }
+    if (ec.nuclearPerMWhe !== null && !isPos(ec.nuclearPerMWhe)) e.push('economy.nuclearPerMWhe must be a positive number or null');
+  }
+
+  // climate
+  const c: any = d.climate;
+  if (!isObj(c)) e.push('climate must be an object');
+  else { onlyKeys(c, ['latitudeDeg'], 'climate', e); if (!isNum(c.latitudeDeg) || c.latitudeDeg < -90 || c.latitudeDeg > 90) e.push('climate.latitudeDeg must be between -90 and 90'); }
+
+  // catalogues
+  const cat: any = d.catalogues;
+  if (!isObj(cat)) e.push('catalogues must be an object');
+  else {
+    onlyKeys(cat, Object.keys(ROW_KEYS), 'catalogues', e);
+    for (const name of Object.keys(ROW_KEYS) as (keyof Catalogues)[]) {
+      const rows = cat[name];
+      if (!Array.isArray(rows)) { e.push(`catalogues.${name} must be an array`); continue; }
+      const seen = new Set<string>();
+      rows.forEach((r: any, i: number) => {
+        const at = `catalogues.${name}[${i}]${isObj(r) && isStr(r.id) ? ` ('${r.id}')` : ''}`;
+        if (!isObj(r)) { e.push(`${at} must be an object`); return; }
+        onlyKeys(r, ROW_KEYS[name], at, e);
+        if (!isStr(r.id)) e.push(`${at}.id must be a non-empty string`); else if (seen.has(r.id)) e.push(`${at}: duplicate id '${r.id}'`); else seen.add(r.id);
+        if (!isStr(r.source)) e.push(`${at} has no source (every catalogue row needs a source string)`);
+        if (!CONFIDENCES.includes(r.confidence)) e.push(`${at}.confidence must be one of ${CONFIDENCES.join(', ')} (got ${JSON.stringify(r.confidence)})`);
+        for (const k of ROW_NUMS[name]) if (!isPos(r[k])) e.push(`${at}.${k} must be a positive number`);
+        if ((name === 'generators' || name === 'protection') && !isStr(r.kind)) e.push(`${at}.kind must be a non-empty string`);
+      });
+    }
+  }
+
+  // provenance
+  const p: any = d.provenance;
+  if (!isObj(p)) e.push('provenance must be an object');
+  else {
+    for (const [k, s] of Object.entries(p) as [string, any][]) {
+      if (!isObj(s) || !isStr(s['source'])) e.push(`provenance.${k} needs a non-empty source`);
+      else { onlyKeys(s, ['source', 'confidence'], `provenance.${k}`, e); if (!CONFIDENCES.includes((s as any).confidence as Confidence)) e.push(`provenance.${k}.confidence must be one of ${CONFIDENCES.join(', ')}`); }
+    }
+    for (const k of REQUIRED_PROVENANCE) {
+      const nullable = NULLABLE_PROVENANCE[k];
+      if (nullable && nullable(d) === null) continue;
+      if (!(k in p)) e.push(`provenance.${k} is missing (tag every grid-code and price value with source + confidence)`);
+    }
+  }
   return e;
+}
+
+/**
+ * Data release gate: a pack that ships may contain no `recall` value (provenance entry or catalogue row). A draft pack may.
+ * Returns one message per offending entry.
+ */
+export function releaseGateProblems(pack: Pick<RegionPack<GridRegionData>, 'id' | 'status' | 'data'>): string[] {
+  if (pack.status === 'draft') return [];
+  const out: string[] = [];
+  for (const [path, s] of Object.entries(pack.data.provenance ?? {})) if (s.confidence === 'recall') out.push(`${pack.id}: provenance '${path}' is recall (${s.source})`);
+  for (const [name, rows] of Object.entries(pack.data.catalogues ?? {}) as [string, CatalogueRow[]][]) {
+    for (const r of rows) if (r.confidence === 'recall') out.push(`${pack.id}: catalogues.${name} row '${r.id}' is recall (${r.source})`);
+  }
+  return out;
+}
+
+/**
+ * Deterministic hash of everything in a pack's `data` that can change a score: limits, prices, catalogue values. NOT the pack's
+ * names or `strings`, and not source/confidence tags (provenance is metadata: relabelling a value as verified changes no rule;
+ * if the value itself changes, the hash changes).
+ */
+export function packDataHash(pack: Pick<RegionPack<GridRegionData>, 'data'>): string {
+  const { provenance: _p, catalogues, ...rules } = pack.data;
+  const stripped: Record<string, unknown[]> = {};
+  for (const [name, rows] of Object.entries(catalogues) as [string, Record<string, unknown>[]][]) {
+    stripped[name] = rows.map(({ source: _s, confidence: _c, ...row }) => row);
+  }
+  return hashOf({ ...rules, catalogues: stripped });
+}
+
+/** What the committed pin table records per pack. */
+export interface RulesetPin { rulesetVersion: number; dataHash: string }
+
+/** Compare a pack with its pin; messages say what to do. Empty = consistent. */
+export function checkPin(pack: Pick<RegionPack<GridRegionData>, 'id' | 'rulesetVersion' | 'data'>, pin: RulesetPin | undefined): string[] {
+  if (!pin) return [`${pack.id}: no pin in src/regions/pins.ts (add { rulesetVersion: ${pack.rulesetVersion}, dataHash: '${packDataHash(pack)}' })`];
+  const h = packDataHash(pack);
+  if (h === pin.dataHash && pack.rulesetVersion === pin.rulesetVersion) return [];
+  if (h !== pin.dataHash && pack.rulesetVersion === pin.rulesetVersion) return [`${pack.id}: rule-relevant data changed (hash ${pin.dataHash} -> ${h}) but rulesetVersion is still ${pin.rulesetVersion}: bump the pack's rulesetVersion (old scores are not comparable) and update pins.ts`];
+  return [`${pack.id}: pins.ts is stale (pinned @${pin.rulesetVersion} ${pin.dataHash}, pack is @${pack.rulesetVersion} ${h}): update pins.ts in the same change`];
 }

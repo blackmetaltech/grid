@@ -1,24 +1,21 @@
-// Levels: a setup, a goal, a failure rule and a solver bot that proves the level can be passed.
+// Levels. The real campaign (P0, L01…L28) is authored in M2; until then there is ONE placeholder so core's solvability,
+// solution-code, verify and region tests stay meaningful.
 import type { Level } from '@core/kit';
-import { RIG, type TankState } from './state';
-import { valveFor } from './sim/hydraulics';
+import type { GridState } from './types';
 import { t } from './i18n';
 
-/** Expert: fill at full flow until near the band, then set the exact valve that balances Torricelli outflow at mid-band. */
-const expert = () => (s: Readonly<TankState>) => {
-  const mid = (s.band[0] + s.band[1]) / 2;
-  const want = s.h < mid - 0.05 ? 100 : Math.round(valveFor(mid) * 1000) / 10;
-  return Math.abs(want - s.valve * 100) > 0.05 ? [{ name: 'setValve', args: [want] }] : [];
-};
+/** Placeholder level: not idle-winnable (needs setSpeed), not a 2-move cheese (needs 8 blocks), solvable by its solver. */
+const T00_BLOCKS = 8;
 
-export const LEVELS: Level<TankState>[] = [
+export const LEVELS: Level<GridState>[] = [
+  // M2 replaces this: T00 is a placeholder until M2 authors P0/L01.
   {
-    id: 'steady', title: t('level.steady.title'), concepts: ['torricelli', 'mass-balance'],
-    brief: t('level.steady.brief'),
-    setup: (s) => { s.band = [1.0, 1.2]; s.holdTicks = 10; s.valve = 0; },
-    goal: (s) => s.held >= s.holdTicks,
-    fail: (s) => (s.h >= RIG.H ? t('level.steady.overflow') : null),
-    maxTicks: 120,
-    solver: expert,
+    id: 'T00', title: t('level.T00.title'), brief: t('level.T00.brief'),
+    setup: (s) => { s.clock.speed = 1; },
+    goal: (s) => s.clock.day === 0 && s.clock.block === T00_BLOCKS && s.clock.speed === 4,
+    fail: (s) => (s.clock.day > 0 || s.clock.block > T00_BLOCKS ? t('level.T00.late') : null),
+    maxTicks: 12,
+    // M2 replaces this solver together with the level.
+    solver: () => (s) => (s.clock.speed !== 4 ? [{ name: 'setSpeed', args: [4] }] : []),
   },
 ];

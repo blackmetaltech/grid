@@ -6,6 +6,7 @@
   "scripts": {
     "bridge": "vite build -c vite.bridge.config.ts",
     "typecheck": "tsc --noEmit",
+    "lint:strings": "node scripts/lint-strings.mjs",
     "test": "vitest run",
     "smoke": "vite build -c vite.bridge.config.ts && godot --headless --path godot --import >/dev/null 2>&1; CB_SMOKE=1 godot --headless --path godot"
   },
