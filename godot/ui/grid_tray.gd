@@ -806,6 +806,8 @@ func _selected(it: Dictionary) -> bool:
 # ---- drawing --------------------------------------------------------------------------------------------------------------------------
 func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, centre_w := -1.0) -> void:
 	var tw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	var floor_fs := maxi(9, fsz - 3)   # a caption first gets a size or three smaller ("ICT 400/220", "Cap bank"), and is elided only below that
+	while centre_w > 0.0 and tw > centre_w and fsz > floor_fs: fsz -= 1; tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while centre_w > 0.0 and tw > centre_w and s.length() > 2:
 		s = s.left(s.length() - 2) + "…"; tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var x := at.x if centre_w < 0.0 else at.x + (centre_w - tw) * 0.5
