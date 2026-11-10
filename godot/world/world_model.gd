@@ -93,7 +93,7 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 		m.map = L03_MAP; hut_p = L03_HUT; m["tile_m"] = L03_TILE_M
 		targets.append([L03_SCHOOL, 2, "school"])
 		runs.append(["main", l03_route(), bn.mainMm2]); routes.append(l03_route())
-		m["island"] = {"beach_y": L03_BEACH_Y, "mangrove": L03_MANGROVE, "hill": {"pos": L03_SCHOOL, "r": 13.0, "h": 90.0}, "routes": routes}
+		m["island"] = {"beach_y": L03_BEACH_Y, "mangrove": L03_MANGROVE, "hill": {"pos": L03_SCHOOL, "r": 13.0, "h": 48.0}, "routes": routes}
 	m.units.append({"id": "hut", "pos": hut_p, "kind": "hut", "online": powered, "level": 1.0 if powered else 0.0, "rotor": 0.0})
 	if sc == "l01" and hut == null: m.units.clear()
 	for i in targets.size():

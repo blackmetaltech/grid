@@ -122,7 +122,7 @@ func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> vo
 			if kind == "grass": z = clampf((1.0 - f) * 9.0 - 1.5, 0.0, 8.0) + WorldMath.hash2(i, j, 5) * 1.5
 			if kind == "grass" and not hill.is_empty():   # a hill: the cable climbs it
 				var hd := q.distance_to(hill.pos + Vector2(0.5, 0.5)) / float(hill.r)
-				if hd < 1.0: z += float(hill.h) * pow(1.0 - hd, 1.4) * clampf((0.8 - f) / 0.3, 0.0, 1.0)   # eases to the shore: no cliff into the sea
+				if hd < 1.0: z += floorf(float(hill.h) * pow(1.0 - hd, 1.2) * clampf((0.8 - f) / 0.3, 0.0, 1.0) / 8.0) * 8.0   # terraces, 8 px a step (paddy-like); eases to the shore
 			if kind == "water": z = -6.0 if not lagoon.has_point(q) else -2.5
 			elif kind == "mangrove": z = 0.5
 			elif kind == "sand": z = 1.0
