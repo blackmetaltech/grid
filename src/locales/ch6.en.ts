@@ -44,7 +44,7 @@ export const EN_CH6: Record<string, string> = {
 
   // ---- L20 Sun Goes Down
   'level.L20.title': 'Sun Goes Down',
-  'level.L20.brief': 'A desert region with 3 GW of solar and nine coal units. Serve a whole day with the frequency inside the standard range in nearly every block. At noon the sun is too much; at dusk the sun leaves just as the evening peak climbs.',
+  'level.L20.brief': 'A desert region with 3 GW of solar and nine coal units. Serve a whole day with the frequency inside the standard range in nearly every block. At noon the sun is too much; at dusk the sun leaves just as the evening peak climbs. A gas peaker helps only once it is committed: tap it and press Start.',
   'level.L20.place': 'The desert region · one clear day',
   'level.L20.story1': 'ADA: Clear sky all day. By noon the sun carries the town. By seven it carries nothing.',
   'level.L20.story2': 'TOBI: A coal unit takes two and a half hours to get on the grid, and it cannot go below its technical minimum. That is the whole problem.',
@@ -55,7 +55,7 @@ export const EN_CH6: Record<string, string> = {
   'level.L20.tryBudget': 'The stores cost more than the budget. Peakers and moving the pumps are the cheaper flexibility; a pumped-hydro unit is the dearest.',
   'coach.L20.watch': 'Press Run and watch the net load: demand minus the sun. Find the ramp at dusk.',
   'coach.L20.watch.why': 'The coal units hold the base; the sun takes the middle of the day away from them and then leaves in two hours while the town is still switching its lights on.',
-  'coach.L20.flex': 'Add flexibility: peakers (they start in one block), a store, or move the irrigation pumps to noon.',
+  'coach.L20.flex': 'Add flexibility: peakers, a store, or move the irrigation pumps to noon. A peaker only helps once committed: tap it and press Start at about 14:00.',
   'coach.L20.flex.why': 'A peaker is a fast gas turbine, a store holds the noon surplus for dusk, and a pump moved to noon turns a dusk load into a noon one for free.',
   'coach.L20.clock': 'Set a store to charge in the sun and discharge at dusk, or shift the pumps. Then run the day.',
   'coach.L20.clock.why': 'Charge while the sun is surplus (it would be curtailed) and discharge when the net load climbs.',

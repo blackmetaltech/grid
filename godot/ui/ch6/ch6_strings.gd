@@ -7,6 +7,12 @@ const S := {
 	"C6_SPIN": "Keep the spare coal unit spinning", "C6_FFR": "Battery %s (%d MW): frequency response", "C6_CLOCK": "Store %s (%d MW): charge 10-14, discharge 15-21",
 	"C6_PUMP_NOON": "Move the irrigation pumps to noon", "C6_PUMP_NIGHT": "Put the pumps back on the night blocks",
 	"C6_COAL": "Hold coal unit %s hot", "C6_COND": "Spin condenser %s (%d MVA)", "C6_RIDE": "Fit the rooftops with ride-through",
-	"C6_P_ROCOF": "Predict the RoCoF at the trip", "C6_P_A": "A: RoCoF of 500 MVA, H 5 s, 60 Hz, loses 0.2 pu", "C6_P_B": "B: df for R 0.05, D 0.8, dP 0.01 pu",
+	"C6_P_A": "A: RoCoF (Hz/s) of a 500 MVA machine, H = 5 s (inertia constant), at 60 Hz, that loses 0.2 pu of power", "C6_P_B": "B: frequency change df (Hz, at 50 Hz) for droop R = 0.05 (5 %), load damping D = 0.8, power step dP = 0.01 pu",
 	"C6_P_C": "C: G1 MW of a 100 MW step (500 MVA at 4 %, 300 MVA at 5 %)",
+	"C6_P_ROCOF": "Predict the RoCoF at the trip (RoCoF = how fast the frequency starts to fall, Hz per second)",
+	"C6_FORMULAS": "Formulas (try first, then peek)", "C6_FORMULAS_HIDE": "Hide the formula card",
+	"C6_FORM_TEXT": "RoCoF [Hz/s] = dP [MW] x f0 [Hz] / (2 x H [s] x S [MVA])   (dP = power lost, H = inertia constant, S = machine rating)\nDroop: df [Hz] = -dP / (S1/R1 + S2/R2 + ...) x f0   with R as a fraction (4 % = 0.04), S in MW, dP in MW\nWith load damping D (per unit): df = -dP / (1/R + D) x f0.  A machine's share = (S/R) / sum of (S/R)",
+	"C6_DROOP": "%s droop: %.1f %%", "C6_NET": "Net load = demand - sun (MW)", "C6_RAMP": "steepest climb %d MW/min at %02d:%02d",
+	"C6_RIDE_GLOSS": "Ride-through: the inverter stays connected through a fast frequency change instead of tripping.", "C6_BARS": "Cyan bars on the plants: that unit's output against its rating.",
+	"C6_PEAKERS": "Peakers: place a gas unit, then tap it and press Start (commit) at about 14:00. A peaker earns nothing until it is committed.",
 }
