@@ -2,7 +2,7 @@ class_name Ch7Strings
 extends RefCounted
 ## Chapter 7 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C7_.
 const S := {
-	"C7_SPENT": "%s of %s", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
+	"C7_SPENT": "%s of %s", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
 	"C7_FN_ps17": "formula: I = V / Z_th, then kA = pu x base MVA / (1.732 x kV)", "C7_FN_ps18": "formula: I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "formula: equal lambda, no limits (sum P = demand)", "C7_FN_ps21": "formula: equal lambda, then fix units at their limits", "C7_FN_ps24": "formula: equal-area, t = sqrt(4H (d_cr - d_0) / (w P_m))",
 	"C7_G24_PICK": "Pickup (I_s): the current at which the relay starts timing; keep it above 1.25 x the load.", "C7_G24_TMS": "TMS: the time multiplier, a dial that slides the whole curve up (slower) or down (faster).", "C7_G24_CT": "CT: the current transformer that feeds the relay; pickup is a % of its rating.",
 	"C7_G24_CURVE": "SI (standard inverse): gentle, good for grading many relays. VI/EI (very/extremely inverse): faster at big currents, good for burn limits.",

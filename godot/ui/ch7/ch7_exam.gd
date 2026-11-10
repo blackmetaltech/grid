@@ -54,7 +54,7 @@ func _draw_panel_body() -> void:
 
 func _draw_stage() -> void:
 	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 240.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(minf(w - 60.0, 760.0), 250.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	var r := Rect2(Vector2(30.0, top), Vector2(minf(w - 60.0, 1000.0), 250.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	_text(_semi(), 12, r.position + Vector2(14, 22), T("C7_EXAM"), Color(GridTheme.TEXT, 0.75))
 	var y := r.position.y + 46.0; var i := 0
 	for qq in q.questions:
@@ -63,11 +63,11 @@ func _draw_stage() -> void:
 		if edits.has(id):
 			var e: LineEdit = edits[id]; e.position = Vector2(r.position.x + 330, y + 2); e.size = Vector2(90, 30)
 		if _revealed() and qq.get("actual") != null:
-			var ok := bool(qq.get("within", false)); _text(_mono(), 13, Vector2(r.position.x + 480, y + 20), (T("C7_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗"), _good(ok))
+			var ok := bool(qq.get("within", false)); _text(_mono(), 13, Vector2(r.position.x + 500, y + 17), (T("C7_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗"), _good(ok))
 		_text(_mono(), 12, Vector2(r.position.x + 428, y + 20), str(UNITS[id]) if false else T("C7_UNIT_" + ("kA" if id in ["ps17", "ps18"] else "s" if id == "ps24" else "usd")), Color(GridTheme.TEXT, 0.7))
-		_text(_mono(), 9, Vector2(r.position.x + 14, y + 33), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
+		_text(_mono(), 9, Vector2(r.position.x + 500, y + 34), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
 		y += 40.0; i += 1
-	var cr := Rect2(Vector2(30.0, 412.0), Vector2(minf(w - 60.0, 760.0), maxf(panel.position.y - 412.0 - 12.0, 60.0)))
+	var cr := Rect2(Vector2(30.0, 412.0), Vector2(minf(w - 60.0, 1000.0), maxf(panel.position.y - 412.0 - 12.0, 60.0)))
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), cr); _text(_semi(), 11, cr.position + Vector2(200.0, 26.0), T("C7_FORMULA_CAP"), Color(GridTheme.TEXT, 0.7))
 	if show_card:
 		var fy := cr.position.y + 58.0

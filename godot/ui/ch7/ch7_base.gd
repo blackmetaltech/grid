@@ -92,3 +92,21 @@ func _chip_row(x: float, y: float, w: float, h: float, gap: float, labels: Array
 func _draw_panel() -> void:
 	super._draw_panel()
 	for c in rows: _chip(c.r, c.label, "", c.on, c.id, c.arg)
+
+## The price tag, with a caption that says what the number is: the starting kit (the build the level begins with) is already on the bill.
+func _draw_price_tag(pn: Rect2) -> void:
+	var spent := float(q.get("cost", 0.0)); var budget := float(q.get("budget", 0.0))
+	var over := budget > 0.0 and spent > budget + 0.0001
+	var txt := T("C4_SPENT") % [_money(spent), _money(budget)] if budget > 0.0 else _money(spent)
+	var mono := _mono(); var semi := _semi()
+	var w := 176.0; var h := 44.0
+	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _narrow() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
+	draw_set_transform(org + Vector2(w, h) * 0.5, deg_to_rad(-1.4), Vector2.ONE)
+	var rect := Rect2(Vector2(-w * 0.5, -h * 0.5), Vector2(w, h))
+	draw_style_box(GridTheme.paper_sb(3, 0.0), rect)
+	draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
+	var fsz := GridTheme.fs(13); var tw2 := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	while tw2 > w - 16.0 and fsz > 9: fsz -= 1; tw2 = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	draw_string(semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
+	draw_string(mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

@@ -118,7 +118,7 @@ export const EN_CH7: Record<string, string> = {
   'ch7.mode.corridor.ok': 'Equal incremental cost with the corridor in the model: if the flow would pass the corridor\'s limit, each area is dispatched on its own.',
 
   // ---- L27 Exam Bridge
-  'level.L27.title': 'Exam Bridge: Faults & λ',
+  'level.L27.title': 'Exam: Faults & λ',
   'level.L27.brief': 'Exam day. Predict five numbers by hand, then use what you know: the substation has grown, so rate its breakers for the fault level and set tonight\'s 3-unit dispatch at the least cost.',
   'level.L27.place': 'The State · The exam hall, 20:00',
   'level.L27.story1': 'NIA: My exam is a week away, and these are the same questions. Show me how you would work them.',

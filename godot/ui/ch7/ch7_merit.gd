@@ -18,7 +18,7 @@ func _layout_panel() -> void:
 	_chip_row(inner.position.x, inner.position.y + 20.0, 150.0, 40.0, 6.0, [T("C7_MODE_merit"), T("C7_MODE_lambda"), T("C7_MODE_corridor")], "mode", ["merit", "lambda", "corridor"], str(q.design.mode))
 	var x := inner.position.x
 	for p in q.plants:
-		_add_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(104, 46)), "win", str(p.id)); x += 110.0
+		_add_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(112, 46)), "win", str(p.id)); x += 118.0
 	var e: LineEdit = edits["lambda20"]; e.position = Vector2(inner.position.x + 520.0, inner.position.y + 24.0); e.size = Vector2(84, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
@@ -36,14 +36,14 @@ func _draw_panel_body() -> void:
 	var x := inner.position.x
 	for p in q.plants:
 		var w: Array = p.window; var on: bool = int(w[0]) != int(w[1])
-		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(104, 46)), T("C7_PLANT_" + str(p.id)), ("%d-%d  " % [int(w[0]), int(w[1])] + T("C7_MWH") % WorkOrder.num(float(p.b))) if on else T("C7_OFF"), on, "win", str(p.id)); x += 110.0
+		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(112, 46)), T("C7_PLANT_" + str(p.id)), ("%d-%d  " % [int(w[0]), int(w[1])] + T("C7_MWH") % WorkOrder.num(float(p.b))) if on else T("C7_OFF"), on, "win", str(p.id)); x += 118.0
 	if _revealed():
 		var ok := str(q.get("kind", "")) == "" or q.get("kind") == null
-		_text(_mono(), 12, inner.position + Vector2(450, 84), T("C7_COST") % str(q.costText), _good(ok))
-		if q.get("trip") != null: _text(_mono(), 12, inner.position + Vector2(450, 104), T("C7_TRIP") % str(q.trip.time), GridTheme.BAD)
+		_text(_mono(), 12, inner.position + Vector2(480, 84), T("C7_COST") % str(q.costText), _good(ok))
+		if q.get("trip") != null: _text(_mono(), 12, inner.position + Vector2(480, 104), T("C7_TRIP") % str(q.trip.time), GridTheme.BAD)
 		else:
 			var l: Dictionary = q.lambda20
-			_text(_mono(), 12, inner.position + Vector2(450, 104), "20:00  %s %s  %s %s" % [T("C7_LAM_G"), str(l.g), T("C7_LAM_S"), str(l.s)], GridTheme.TEXT)
+			_text(_mono(), 12, inner.position + Vector2(480, 104), "20:00 %s %s / %s %s" % [T("C7_LAM_G"), str(l.g), T("C7_LAM_S"), str(l.s)], GridTheme.TEXT)
 
 func _draw_stage() -> void:
 	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 240.0)
@@ -66,7 +66,7 @@ func _draw_stage() -> void:
 	var lgx: float = pr.position.x + 10.0
 	for k in ORDER:
 		var nm := T("C7_HYDRO") if k == "hydro" else T("C7_SOLAR") if k == "solar" else T("C7_PLANT_" + k)
-		draw_rect(Rect2(Vector2(lgx, pr.position.y + 6.0), Vector2(12, 12)), PCOL[k]); _text(_mono(), 10, Vector2(lgx + 16.0, pr.position.y + 16.0), nm, GridTheme.TEXT); lgx += 24.0 + 7.0 * nm.length()
+		draw_rect(Rect2(Vector2(lgx, pr.position.y + 6.0), Vector2(12, 12)), PCOL[k]); _text(_mono(), 10, Vector2(lgx + 16.0, pr.position.y + 16.0), nm, GridTheme.TEXT); lgx += 36.0 + 8.0 * nm.length()
 	draw_line(Vector2(lgx + 6.0, pr.position.y + 12.0), Vector2(lgx + 26.0, pr.position.y + 12.0), GridTheme.TEXT, 2.0); _text(_mono(), 10, Vector2(lgx + 30.0, pr.position.y + 16.0), T("C7_DEMAND"), GridTheme.TEXT)
 	var dem := []
 	for h in 24: dem.append([float(h) + 0.5, float(rev if false else q.demandMW[h])])
