@@ -22,11 +22,14 @@ const S := {
 	"C4_PD_KEY": "the rotor must turn back before δu", "C4_SWING": "Rotor angle through the swing", "C4_STAR70": "★ 70°", "C4_SW_OK": "in step, peak %s°", "C4_SW_NOEQ": "no balance after the trip", "C4_SW_SLIP": "slips a pole past %s°",
 	"C4_AVR_CAP": "AVR SET-POINT", "C4_SERIES_CAP": "SERIES CAPACITORS (both circuits)", "C4_THIRD": "3rd circuit", "C4_PEAKS": "CHECKS", "C4_CHK_SYNC": "stays in step (peak %s°)", "C4_CHK_70": "peak under 70° (★)",
 	# L13 the exam
-	"C4_RATED_CASE": "Rated case: V = 1 pu, I = 1 pu, pf 0.8 lagging, X_s = 1.2 pu", "C4_E_HIDDEN": "E = V + jX_s I: predict it", "C4_RATED_NOTE": "I lags V by 36.9°; jX_s I is ⟂ I.",
+	"C4_RATED_CASE": "Rated case: V = 1 pu, I = 1 pu, pf 0.8 lagging, X_s = 1.2 pu", "C4_E_HIDDEN": "E = V + jX_s I: close the triangle, predict E", "C4_RATED_NOTE": "I lags V by 36.9°; jX_s I is ⟂ I.",
 	"C4_NIGHT": "Night, P = %s pu: the excitation sets E, the governor holds P", "C4_SET_EXC": "Set the excitation", "C4_NO_STEADY": "E too small: no steady angle", "C4_P_Q": "P = %s pu, Q = %s pu",
 	"C4_QRULE": "Q = (E V cos δ − V²) ÷ X_s; Q < 0 is absorbed", "C4_QGAUGE": "Reactive power Q, pu (target −0.2 ± 0.02)", "C4_ABSORBS": "absorbs", "C4_SUPPLIES": "supplies",
 	"C4_DELTA_LIM": "δ = %s° (limit %d°)", "C4_ANS_E": "excitation that does it: E = %s pu", "C4_PRED_ERR": "worst prediction error %s %%", "C4_PRED_CAP": "PREDICT THE RATED CASE, BEFORE YOU RUN | NIGHT EXCITATION",
-	"C4_EXC_CAP": "NIGHT EXCITATION E", "C4_UNSET": "not set", "C4_CHK_PRED": "predictions (worst error %s %%)", "C4_CHK_TASK": "night: Q −0.2, δ < 60°",
-	"C4_HINT_DOL": "DOL: direct on line, 6× running current. Cheapest, biggest dip.", "C4_HINT_YD": "Y-Δ: starts in star on a third of the DOL current.", "C4_HINT_SOFT": "Soft: electronics hold the current to 3.5×. Dearest.",
+	"C4_EXC_CAP": "NIGHT EXCITATION E", "C4_UNSET": "not set", "C4_CHK_PRED": "predictions off by %s %%", "C4_CHK_TASK": "night: Q −0.2, δ < 60°",
+	"C4_HINT_DOL": "DOL: direct on line, 6× current. Cheapest, biggest dip.", "C4_HINT_YD": "Y-Δ: starts in star on a third of the DOL current.", "C4_HINT_SOFT": "Soft: electronics hold the current to 3.5×. Dearest.",
 	"C4_NIGHT_HINT1": "No angle yet: set E with the slider.", "C4_GAUGE_HINT1": "Q > 0: the unit sends reactive power out.", "C4_GAUGE_HINT2": "Q < 0: it absorbs it (under-excited).",
+	"C4_J_HINT": "j = turn 90°", "C4_GLOSS_PU": "pu = per unit: 1.0 is the rated value.", "C4_GLOSS_XS": "X_s = the generator's internal reactance.",
+	"C4_CANS_FORMULA": "= 3 × %d cans × %s kVAr = %s kVAr", "C4_CANS_GLOSS": "can = one capacitor; Y: 231 V each, Δ: 400 V each", "C4_AVR_CAP2": "AVR SET-POINT (1.00 = nominal, 0.90 is low)", "C4_PEAKS2": "More excitation = bigger E′ = taller curve",
+	"C4_CUT": "Balance the phases to cut it: spread the kVA evenly.",
 }

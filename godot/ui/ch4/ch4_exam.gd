@@ -74,7 +74,12 @@ func _draw_rated(r: Rect2) -> void:
 		draw_arc(o, 40.0, -deg_to_rad(float(ans.delta)), 0.0, 16, GridTheme.GOOD, 2.0); _text(_mono(), 12, o + Vector2(46, -10), "δ = %s°" % _f(float(ans.delta), 2), GridTheme.GOOD)
 		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), "P_max = %s pu" % _f(float(ans.pmax), 3), GridTheme.GOOD)
 	else:
-		_text(_semi(), 14, o + V + Vector2(-70.0, -70.0), T("C4_E_HIDDEN"), Color(GridTheme.TEXT, 0.55))
+		var jx2 := Vector2(cos(-deg_to_rad(53.13)), sin(-deg_to_rad(53.13))) * s * 1.2
+		_arrow(o + V, o + V + jx2, Color("#FF9A3E", 0.8), 3.0); _text(_mono(), 12, o + V + jx2 * 0.5 + Vector2(8, 0), "jX_s I", Color("#FF9A3E"))
+		draw_arc(o + V, 22.0, -deg_to_rad(53.13), deg_to_rad(36.87) if false else 0.0, 12, Color("#FF9A3E", 0.6), 1.5)
+		_text(_mono(), 11, o + V + Vector2(26.0, -24.0), T("C4_J_HINT"), Color("#FF9A3E", 0.85))
+		_text(_semi(), 14, o + Vector2(0.0, -r.size.y * 0.32), T("C4_E_HIDDEN"), Color(GridTheme.TEXT, 0.7))
+		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 52.0), T("C4_GLOSS_PU"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 34.0), T("C4_GLOSS_XS"), Color(GridTheme.TEXT, 0.6))
 		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.7))
 
 func _draw_night(r: Rect2) -> void:
@@ -133,4 +138,4 @@ func _draw_panel_body() -> void:
 			var v := _exc(); _stepper(h.rect, T("C4_EXC_CAP"), "E = %s pu" % _f(v, 3) if q.night.excitation != null else T("C4_UNSET"), (v - 0.5) / 1.5, "exc")
 	var checks := [[T("C4_CHK_PRED") % _pe(), float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
 	var x := inner.position.x
-	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 168.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 230.0
+	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 168.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 210.0

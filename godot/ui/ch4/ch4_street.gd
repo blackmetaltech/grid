@@ -148,7 +148,7 @@ func _draw_instruments() -> void:
 	_text(_mono(), 12, c + Vector2(-R - 14.0, R + 16.0), T("C4_IN_SUM") % _f(inn, 1), _good(bool(q.pass.neutral)))
 	# phase currents and the neutral
 	var bx := 300.0; var by := 120.0; var bh := 160.0; var bw := 38.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 78.0)))
+	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 96.0)))
 	_text(_semi(), 11, Vector2(bx, by - 12.0), T("C4_CURRENTS"), Color(GridTheme.TEXT, 0.7))
 	var scale_a := maxf(180.0, float(q.iMax) * 1.1)
 	var ip: Dictionary = q.iPhase
@@ -165,9 +165,10 @@ func _draw_instruments() -> void:
 	draw_line(Vector2(bx + (bw + 10.0) * 3 - 6.0, rat_y), Vector2(bx + (bw + 10.0) * 3 + bw + 6.0, rat_y), GridTheme.BAD, 2.0)
 	_text(_mono(), 10, Vector2(bx + (bw + 10.0) * 3 + bw + 10.0, lim_y + 4.0), T("C4_LIM_PCT") % WorkOrder.num(float(q.iNmaxPct)), GridTheme.GOOD)
 	_text(_mono(), 10, Vector2(bx + (bw + 10.0) * 3 + bw + 10.0, rat_y + 4.0), T("C4_RATED") % int(q.neutral.ampacityA), GridTheme.BAD)
+	_text(_mono(), 11, Vector2(bx - 4.0, by + bh + 52.0), T("C4_CUT"), Color(GridTheme.SODIUM, 0.9))
 	_text(_mono(), 12, Vector2(bx - 4.0, by + bh + 34.0), T("C4_IN_PCT") % [_f(float(q.iNpct), 1)], _good(bool(q.pass.neutral)))
 	# far-pole voltages against the supply band
-	var vx := 800.0; var vy := 122.0; var vw := 330.0
+	var vx := 810.0; var vy := 150.0; var vw := 330.0
 	if w < 1250.0: vx = 640.0; vw = w - vx - 20.0
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
 	_text(_semi(), 11, Vector2(vx, vy - 12.0), T("C4_VFAR"), Color(GridTheme.TEXT, 0.7))

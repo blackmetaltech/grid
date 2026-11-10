@@ -131,7 +131,7 @@ func _draw_swing(r: Rect2) -> void:
 	draw_polyline(pts, _good(bool(sw.stable)), 2.5, true)
 	_text(_mono(), 10, Vector2(plot.position.x, plot.end.y + 14.0), "0", Color(GridTheme.TEXT, 0.5)); _text(_mono(), 10, Vector2(plot.end.x - 40.0, plot.end.y + 14.0), "%s s" % _f(tmax, 1), Color(GridTheme.TEXT, 0.5))
 	var txt := T("C4_SW_OK") % _f(float(sw.peak), 0) if bool(sw.stable) else (T("C4_SW_NOEQ") if bool(sw.noEquilibrium) else T("C4_SW_SLIP") % _f(float(sw.peak), 0))
-	_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 10.0), txt, _good(bool(sw.stable)))
+	_text(_mono(), 12, r.position + Vector2(0.0, 17.0), txt, _good(bool(sw.stable)), r.size.x - 12.0, 2)
 
 func _draw_numbers(r: Rect2) -> void:
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
@@ -143,7 +143,7 @@ func _draw_numbers(r: Rect2) -> void:
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var lock := _locked(); var b: Dictionary = q.build
-	_text(_semi(), 11, inner.position + Vector2(0, 14.0), T("C4_AVR_CAP"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 11, inner.position + Vector2(298.0, 14.0), T("C4_SERIES_CAP"), Color(GridTheme.TEXT, 0.7))
+	_text(_semi(), 11, inner.position + Vector2(0, 14.0), T("C4_AVR_CAP2"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 11, inner.position + Vector2(298.0, 14.0), T("C4_SERIES_CAP"), Color(GridTheme.TEXT, 0.7))
 	var l12: Dictionary = kit.get("l12", {})
 	for h in hits:
 		var id := str(h.id); var arg = h.arg
@@ -156,6 +156,6 @@ func _draw_panel_body() -> void:
 			"redispatch":
 				var pr2 := ""; for s in l12.get("redispatch", []): if int(s.mw) == int(arg): pr2 = str(s.price)
 				_chip(h.rect, ("−%d MW" % int(arg)) if int(arg) > 0 else "0 MW", pr2 if int(arg) > 0 else "", int(b.reduceMW) == int(arg), id, arg, not lock)
-	_text(_semi(), 11, inner.position + Vector2(0, 150.0), T("C4_PEAKS"), Color(GridTheme.TEXT, 0.7))
+	_text(_semi(), 11, inner.position + Vector2(0, 150.0), T("C4_PEAKS2"), Color(GridTheme.TEXT, 0.7))
 	var sw: Dictionary = q.swing; var ok := bool(sw.stable)
 	_text(_mono(), 11, inner.position + Vector2(0, 168.0), ("✓ " if ok else "✗ ") + T("C4_CHK_SYNC") % _f(float(sw.peak), 0) + "   " + ("✓ " if bool(q.ok) and float(sw.peak) <= 70.0 and ok else "· ") + T("C4_CHK_70"), _good(ok))
