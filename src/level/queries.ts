@@ -3,7 +3,7 @@
 import type { QueryFn } from '@core/kit';
 import { t } from '../i18n';
 import type { GridState } from '../types';
-import { benchCost, solveBench, type BenchParams } from './bench';
+import { benchCost, benchDetail, previewBench, solveBench, type BenchParams } from './bench';
 import { currentCoachStep, resolveThresholds, type GridLevelSpec } from './spec';
 import type { SimParams } from '../sim/params';
 
@@ -41,6 +41,19 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       if (!s.bench) return { active: false };
       const p = d.getBench(s), r = solveBench(s.bench, p);
       return { active: true, scenario: s.bench.scenario, powered: r.powered, vMinV: r3(r.vMinV), vLoadV: r.vLoadV.map(r3), lossPct: r3(r.lossPct), ampFracMax: r3(r.ampFracMax), cost: r3(benchCost(s.bench, p)), reason: r.reason ? t(r.reason) : null, bench: s.bench };
+    },
+    /** Per-run numbers of the bench as laid (SI, unrounded): runs with their equation data, and the totals. */
+    benchDetail: (s) => {
+      if (!s.bench) return { active: false, reason: 'bench.none' };
+      const r = solveBench(s.bench, d.getBench(s)), det = benchDetail(s.bench, d.getBench(s));
+      if (!det) return { active: false, reason: r.reason ?? 'bench.noSolution' };
+      return { active: true, scenario: s.bench.scenario, powered: true, runs: det.runs, totals: det.totals, reason: null };
+    },
+    /** What-if on a copy: args [{ hutM?, mm2?, run? }]. Never mutates; illegal input gives ok:false and a locale key. */
+    benchPreview: (s, arg?: unknown) => {
+      const spec = s.level ? d.specOf(s.level) : undefined;
+      const rules = spec ? { actions: spec.allowed.actions, sizes: (spec.allowed.parts.layCable ?? null) as readonly number[] | null } : null;
+      return previewBench(s.bench ?? null, d.getBench(s), arg, rules);
     },
   };
 }
