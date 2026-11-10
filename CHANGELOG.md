@@ -12,6 +12,10 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **The salt is visible**: the coast is whitened by how much salt the wind lays there, sea fog rolls in from 02:00 and is thickest
   at 04:00, and an insulator short of its creepage crackles violet in the fog before it flashes over.
 - The harbour gets its own houses, dark until you bring the power.
+- **WO-30 Bring the Island Home** (chapter 2 finale). Saltmarsh Island lies 4 km off the harbour. Lay a submarine XLPE cable
+  (70 / 120 / 185 mm²; it charges like a capacitor: Q = V²ωCℓ, about 46 kvar), put a transformer on the island, and size the
+  island battery. At 21:00 a trawler drags its anchor across the cable: the island must stay lit until 23:00 on the battery alone
+  (inverter kW against the peak, kWh against two hours of evening load). The island, the seabed cable, the trawler and the cut are drawn.
 ### Fixed
 - The shift report no longer contradicts the clearance gauge: it names your longest span and your tightest one (the gauge's number);
   after a flashover it names the span that flashed, and "What to try" tells you how to lift it (or, at 0.42 kV, to go to 11 kV).
