@@ -1,5 +1,8 @@
 import { insulatorWord, kindWord } from '../route-words';
 import { SPECIFIC_CREEPAGE, umKv } from '../sim/route/insulation';
+import { islandDark } from '../sim/flashover';
+import { offshoreBus, SOC_MAX, SOC_MIN } from '../sim/islandStorage';
+import { chargingKvar, submarineCable } from '../data/submarine';
 // Read-only queries of the level framework: what the level is (for the brief and result card), the coach's current step, the bench's
 // numbers (what the Inspector shows: voltage, current, loss share, cost) and the population stub's histogram.
 import type { QueryFn } from '@core/kit';
@@ -48,6 +51,8 @@ export function routeLesson(s: GridState, spec: GridLevelSpec, lessonKey: string
 /** The incident report's "what to try" for a chapter 2 loss: the span that flashed over and what lifts it, the 0.42 kV brownout, or the budget. '' when none fits. */
 export function routeTryHint(s: GridState): string {
   if (s.status !== 'lost' || s.routes.length === 0) return '';
+  if ((s.metrics.track.saltFlashover ?? 0) > 0) return t('level.L29.trySalt');   // the fog found a support short of its creepage
+  if (s.rules.cableCutBlock != null) return islandTryHint(s);
   const r = s.routes.reduce((best, x) => (x.worstMarginM < best.worstMarginM ? x : best)), w = r.worst;
   if (w.clearanceM < w.requiredM) return t('level.L05.tryFlash', { span: w.span + 1, short: (w.requiredM - w.clearanceM).toFixed(2), over: kindWord(w.over) });
   if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit) return t('level.L05.tryBudget');
@@ -68,6 +73,40 @@ export function saltLesson(s: GridState, lessonKey: string): string {
   return base + ' ' + (has < need ? t('level.L29.lessonShort', { gap: need - has }) : t('level.L29.lessonOk', { gap: has - need }));
 }
 
+const hhmm = (block: number): string => `${String(Math.floor((block % 96) / 4)).padStart(2, '0')}:${String((block % 4) * 15).padStart(2, '0')}`;
+/** The loads that stand on the offshore island's buses. */
+const islandLoads = (s: GridState) => s.loads.filter((l) => { const b = s.buses.find((x) => x.id === l.bus); return !!b && offshoreBus(s, b); });
+
+/** L30's shift-report lesson in the player's own numbers: the cable (cost per km against the district's overhead line, charging Q = V^2 w C l recomputed from its C and length, charging amps), then the battery after the cut:
+ *  kWh drawn from the cells against kWh installed, the window left, and inverter kW against the island's peak. Empty until a cable is laid. */
+export function islandLesson(s: GridState, lessonKey: string): string {
+  const c = s.cables?.[s.cables.length - 1];
+  const sc = c ? submarineCable(c.cableId) : undefined;
+  if (!c || !sc) return '';
+  const pack = REGIONS.get(s.region), money = (x: number): string => formatMoney(x, pack, { decimals: 0 });
+  const overhead = s.routes[s.routes.length - 1]!, overPerKm = overhead.cost / (overhead.lengthM / 1000), perKm = c.cost / c.lengthKm;
+  const f0 = Number(pack.data.f0), kv = sc.kv, kvar = chargingKvar(sc.cUfKm, c.lengthKm, kv, f0);
+  const amps = (kvar * 1000) / (Math.sqrt(3) * kv * 1000);
+  let out = t(lessonKey, { mm2: sc.mm2, km: c.lengthKm.toFixed(1), perKm: money(perKm), ratio: (perKm / overPerKm).toFixed(1), over: money(overPerKm), kvar: kvar.toFixed(1), kv, amps: amps.toFixed(1) });
+  const loads = islandLoads(s), peak = Math.round(loads.reduce((a, l) => a + l.Ppeak, 0) * 1000);
+  if ((s.metrics.track.cableCut ?? 0) === 0) return out + ' ' + t('level.L30.lessonWait');
+  const bats = s.storage.filter((b) => { const bus = s.buses.find((x) => x.id === b.bus); return !!bus && offshoreBus(s, bus); });
+  if (bats.length === 0) return out + ' ' + t('level.L30.lessonNoBattery', { peak });
+  const kwh = bats.reduce((a, b) => a + b.mwh * 1000, 0), inv = bats.reduce((a, b) => a + b.mw * 1000, 0);
+  const left = Math.min(...bats.map((b) => Math.max(0, Math.min(1, (b.soc - SOC_MIN) / (SOC_MAX - SOC_MIN)))));
+  const end = s.status === 'won' ? '23:00' : hhmm(s.clock.block);
+  return out + ' ' + t('level.L30.lessonBattery', { cut: hhmm(s.rules.cableCutBlock ?? 0), used: Math.round(s.metrics.track.islandKWh ?? 0), end, kwh: Math.round(kwh), margin: Math.round(left * 100), inv: Math.round(inv), peak });
+}
+
+/** What to try after an L30 loss: the budget, or what carrying the island from the cut to 23:00 takes (kW and kWh), from the same numbers the verdict used. */
+export function islandTryHint(s: GridState): string {
+  if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit) return t('level.L30.tryBudget');
+  const d = islandDark(s);
+  if (!d) return '';
+  const p = d.params;
+  return t('level.L30.tryNeeds', { kw: p.kw, cut: p.cut, needKw: p.needKw!, needKwh: p.needKwh! });
+}
+
 export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<GridState>> {
   return {
     /** The running level's card: kind, thresholds resolved for this region and mode, allowed parts, star targets. */
@@ -79,6 +118,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, startBlock: spec.startBlock, flashoverBlock: spec.flashoverBlock ?? null, fogBlock: spec.fogBlock ?? null, fogTime: spec.fogBlock === undefined ? null : `${String(Math.floor(spec.fogBlock / 4)).padStart(2, '0')}:${String((spec.fogBlock % 4) * 15).padStart(2, '0')}`, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
+          if (spec.story?.lessonKind === 'island' && !s.bench) return islandLesson(s, spec.story.lessonKey);   // L30: the cable's charging Q and cost, then the battery's kWh and kW
           if (spec.story?.lessonKind === 'salt' && !s.bench) return saltLesson(s, spec.story.lessonKey);   // L29: creepage of the most exposed coastal support
           if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
           if (!spec.story || !s.bench) return '';

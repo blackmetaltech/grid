@@ -264,6 +264,7 @@ export const en: Record<string, string> = {
   'level.L05.story2': 'VANCE: Brightwater has a cold store and forty stalls. Every pole you plant is a pole I pay for.',
   'level.L05.lessonTight': 'The clearance gauge watches your tightest span instead: span {span}, {len} m over the {over}, clears it by {clr} m against a {req} m rule, {margin} m to spare.',
   'level.L05.lessonTightBad': 'But span {span}, {len} m over the {over}, came down to {clr} m where the rule asks {req} m: {margin} m too low, and that is the span that flashed over.',
+  'level.L29.trySalt': 'Give the coast more creepage: a fog disc (430 mm) or a two-disc string (590 mm) on the supports by the sea, where the salt needs 12 kV × 31 mm/kV = 372 mm. Inland a pin is still enough.',
   'level.L05.tryFlash': 'Lift span {span}: it sat {short} m too low over the {over}. A taller pole family there, a shorter span spacing (sag grows with the square of the span), or a bend that keeps the line off the {over}.',
   'level.L05.tryBudget': 'The survey chip shows where the money goes: poles, footings, wire, forest cut. Fewer, cheaper poles (concrete instead of steel, longer spans where clearance allows) and the thinnest wire that holds the voltage usually win.',
   'level.L05.tryKv': 'At 0.42 kV the market pulls about 300 A through 4 km of wire. Switch the line voltage to 11 kV and put a transformer at each end.',

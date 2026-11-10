@@ -115,3 +115,15 @@ describe('map', () => {
   });
 });
 void harbourXfmr;
+
+describe('L29 incident advice', () => {
+  it('a salt flashover: what to try names the coast insulators and 372 mm', () => {
+    const e = fresh();
+    for (const a of NAIVE) expect(e.step(a).info.ok).toBe(true);
+    for (let i = 0; i < 80 && e.state.status === 'playing'; i++) e.step(TICK);
+    expect(e.state.status).toBe('lost');
+    const li = e.engine.q('levelInfo') as { tryHint: string };
+    expect(li.tryHint).toContain('372 mm');
+    expect(li.tryHint).toContain('fog disc');
+  });
+});
