@@ -371,6 +371,10 @@ func _rebuild_objects() -> void:
 	_objs_s.clear(); _objs_d.clear()
 	for o in _objs: (_objs_s if STATIC_T.has(o.t) else _objs_d).append(o)
 
+func _line_by_id(id: String) -> Dictionary:
+	for l in model.lines: if str(l.id) == id: return l
+	return {}
+
 func _route_of(id: String) -> Dictionary:
 	for r in model.routes: if str(r.id) == id: return r
 	return {}
@@ -412,6 +416,7 @@ func _view_rect() -> Rect2:
 		l = 14.0 + ins.x + (app.RAIL_W if CbLayout.phone else 0.0); t = app._bar_h + 12.0 + ins.y   # the world itself is full-bleed; only the framed island keeps clear of the notch
 		bt = size.y - (6.0 if CbLayout.phone else app._dock_h + 12.0) - ins.w
 		if CbLayout.phone and _has_terrain(): bt = minf(bt, size.y * 0.74)   # a long terrain map on a phone: keep both ends above the tray and the budget tag (the market sat under them)
+		elif _has_terrain(): bt = minf(bt, size.y - 128.0)   # desktop too: the harbour on the south coast sat under the tray and the budget tag
 		r = size.x - cover - 14.0 - ins.z
 	return Rect2(l, t, maxf(60.0, r - l), maxf(60.0, bt - t))
 
@@ -660,6 +665,7 @@ func _paint_dynamic() -> void:
 	_draw_lineman()
 	_draw_ghost()
 	if cute and _night > 0.35: _draw_fireflies()
+	_draw_corona()
 	_draw_fog()
 	perf.dyn_us += Time.get_ticks_usec() - t0
 
@@ -670,6 +676,25 @@ func fog_level() -> float:
 	if d < -120.0 or d > 120.0: return 0.0
 	if d < 0.0: return clampf((d + 120.0) / 120.0, 0.0, 1.0)
 	return 1.0 if d <= 60.0 else clampf(1.0 - (d - 60.0) / 60.0, 0.0, 1.0)
+
+## Corona on salt-short insulators: as the fog thickens, a support whose creepage is below its tile's need (the engine's numbers) crackles violet at the
+## crossarm, harder as the fog nears its hour; the leakage that ends in the flashover. Only while the line stands.
+func _draw_corona() -> void:
+	var f := fog_level()
+	if f < 0.25: return
+	for r in model.routes:
+		var l := _line_by_id(str(r.id))
+		if not l.is_empty() and not bool(l.in_service): continue
+		for i in r.supports.size():
+			var s: Dictionary = r.supports[i]
+			if float(s.get("need", 0.0)) <= 0.0 or float(s.creep) >= float(s.need): continue
+			var p: Vector2 = s.p
+			var top := _iso(p.x, p.y, _zat(p) + float(s.attach_m) * PXM)
+			var k := f * (0.5 + 0.5 * WorldMath.hash2(i, int(_t * 9.0), 150))
+			_ci.draw_circle(top, 7.0 + 8.0 * k, Color(0.72, 0.6, 1.0, 0.22 * k)); _ci.draw_circle(top, 3.0 + 2.0 * k, Color(0.85, 0.8, 1.0, 0.55 * k))
+			for q in 3:
+				var a := TAU * WorldMath.hash2(i, int(_t * 12.0) + q, 151)
+				_ci.draw_line(top, top + Vector2(cos(a), sin(a)) * (4.0 + 7.0 * k), Color(0.85, 0.8, 1.0, 0.7 * k), 1.2)
 
 ## Sea fog banks drifting along the coast (a few dozen soft ellipses; they carry the salt that the insulators must shed).
 func _draw_fog() -> void:

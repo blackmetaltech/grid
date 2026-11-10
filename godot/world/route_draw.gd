@@ -57,7 +57,8 @@ static func plan_to_route(plan: Dictionary, id: String, tile_m: float) -> Dictio
 		var m := Vector2(float(s.x), float(s.y))
 		var fam := str(s.familyId)
 		sup.append({"m": m, "p": m / tile_m, "family": fam, "angle_deg": float(s.angleDeg), "angle_class": str(s.angleClass), "foundation": str(s.foundation),
-			"attach_m": attach_m(fam), "pole_m": pole_m(fam), "dir": Vector2.RIGHT, "guys": []})
+			"attach_m": attach_m(fam), "pole_m": pole_m(fam), "dir": Vector2.RIGHT, "guys": [],
+			"creep": float(s.get("creepageMm", 0.0)) if s.get("creepageMm") != null else 0.0, "need": float(s.get("needMm", 0.0)) if s.get("needMm") != null else 0.0})   # insulation (Salt Wind): what the string offers vs what the salt asks
 	for i in sup.size():
 		var s: Dictionary = sup[i]
 		var has_in := i > 0; var has_out := i + 1 < sup.size()
