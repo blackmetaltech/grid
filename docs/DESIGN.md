@@ -116,6 +116,12 @@ The world never leaves the screen: Build, Inspector, Timeline and Codex are draw
 | N-1 | Shown as a test, not required for ★★★ except Ch 5+ | Required for ★★★ in Ch 5+ | Optional test button |
 | Failure | Level fails; explanation, retry | Same, stricter tolerances (e.g. voltage band 0.95-1.05 instead of 0.94-1.06) | Never "fails"; logs ENS, cost |
 
+> **Depth amendment (2026-11-10, user direction): see DEPTH.md.** Chapter 2 becomes *The Mainland Line* (district map with
+> terrain that needs special equipment: supports, spans, sag/clearance, pile foundations, river crossings, insulator creepage,
+> submarine cable); new jobs L29-L33 (Salt Wind, Bring the Island Home, The First Substation, Ring the Substations, Eyes on the
+> Grid); networks persist across a chapter's jobs; service quality (SAIDI/SAIFI, unserved energy) joins cost in the score; the
+> learning ladder runs from Class 9 (R1) to junior planning engineer (R6). DEPTH.md §7 is the authoritative chapter map.
+
 ### 2.5 Campaign: chapters mapped to syllabus
 | Ch | Title (region) | Syllabus | Levels | Engine features introduced |
 |---|---|---|---|---|
