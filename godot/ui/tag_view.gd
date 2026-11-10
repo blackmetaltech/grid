@@ -91,6 +91,11 @@ func describe(k: String, oid: String) -> Dictionary:
 			d["good"] = lim == null or v >= float(lim)
 			var ref := float(kt.homeV)
 			d["lamp"] = clampf((v / ref) * (v / ref), 0.0, 1.0)   # the lamps burn as (V / 48)^2, the same law the windows use
+			if scen == "l03":   # judged on line losses: the dot and the second line follow the losses; V and I are the 380 V link at the school end
+				var lp := float(det.totals.get("lossPct", 100.0)); var lm = wb.get("lossMaxPct")
+				d["good"] = lm == null or lp <= float(lm)
+				d["limit_text"] = tx("TAG_LOSS_LIMIT") % [lp, float(lm) if lm != null else 5.0]
+				d["lamp"] = 1.0   # the far converter holds the school's lamps at full voltage
 			d["lamp_text"] = "%d %%" % int(round(float(d.lamp) * 100.0))
 			return d
 		"cable":

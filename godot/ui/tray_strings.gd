@@ -14,7 +14,7 @@ const S := {
 	"RUN_MAIN_L01": "Cable", "RUN_H1": "Hamlet 1 cable", "RUN_H2": "Hamlet 2 cable", "RUN_TRUNK": "Trunk", "RUN_BRANCHES": "Branches", "RUN_LINK": "The long run",
 	"PEG_M": "%s m",
 	"TAG_HAMLET": "Hamlet", "TAG_HAMLET_N": "Hamlet %s", "TAG_SCHOOL": "School and health post", "TAG_CABLE": "%s mm² Cu · %s m run", "TAG_HUT": "Battery hut",
-	"TAG_V": "V", "TAG_V_LIMIT": "limit %s V", "TAG_I": "I", "TAG_LAMPS": "Lamps", "TAG_HOMES": "%s homes · %s W each", "TAG_LOAD": "School and health post · %s", "TAG_DELIVERED": "%s W delivered", "TAG_NOT_CONNECTED": "not connected",
+	"TAG_V": "V", "TAG_V_LIMIT": "limit %s V", "TAG_LOSS_LIMIT": "line loss %.1f %% · limit %.0f %%", "TAG_I": "I", "TAG_LAMPS": "Lamps", "TAG_HOMES": "%s homes · %s W each", "TAG_LOAD": "School and health post · %s", "TAG_DELIVERED": "%s W delivered", "TAG_NOT_CONNECTED": "not connected",
 	"TAG_DARK": "Dark: no cable connected yet", "TAG_NO_CABLE": "No cable laid yet",
 	"TAG_RLOOP": "R loop", "TAG_DROP": "drop", "TAG_LOSS": "loss", "TAG_RATED": "rated", "TAG_CIRCUIT_LOSS": "whole circuit",
 	"TAG_EQ": "V = %s − I·R = %s − %s × %s = %s V", "TAG_SRC": "source", "TAG_OUT": "power out", "TAG_DIST": "from the hamlet", "TAG_CLOSE": "Close",

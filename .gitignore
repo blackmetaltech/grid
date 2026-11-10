@@ -11,3 +11,4 @@ godot/android/.build_version
 dist/
 __pycache__/
 *.translation
+.qa/
