@@ -203,3 +203,35 @@ describe('L05 budget message shows money', () => {
     expect(ruleFail(s)).toBe('Spent $452,353 but the budget is $260,000.');
   });
 });
+
+describe('L05 report agrees with the gauge, and the incident report says what to try (panel/re-test 2026-11-10)', () => {
+  const play = (actions: ReturnType<typeof route>[]): Env<GridState> => {
+    const e = fresh();
+    for (const a of actions) expect(e.step(a).info.ok).toBe(true);
+    for (let i = 0; i < 60 && e.state.status === 'playing'; i++) e.step(TICK);
+    return e;
+  };
+  it('a flashover: the lesson names the span that flashed over and the hint says how to lift it', () => {
+    const e = play([wood70(), ...xfmrPair('dt-250')]);
+    expect(e.state.status).toBe('lost');
+    const li = e.engine.q('levelInfo') as { lesson: string; tryHint: string };
+    const w = e.state.routes[0]!.worst;
+    expect(li.lesson).toContain(`span ${w.span + 1}`);
+    expect(li.lesson).toContain('flashed over');
+    expect(li.lesson).not.toContain('1/26');
+    expect(li.tryHint).toContain(`Lift span ${w.span + 1}`);
+    expect(li.tryHint).toContain((w.requiredM - w.clearanceM).toFixed(2));
+  });
+  it('a pass: the tightest span sentence carries the gauge\'s margin', () => {
+    const e = play([...spec.reference]);
+    const li = e.engine.q('levelInfo') as { lesson: string; tryHint: string };
+    const w = e.state.routes[0]!.worst;
+    if (w.span !== e.state.routes[0]!.longest?.span) expect(li.lesson).toContain((w.clearanceM - w.requiredM).toFixed(2));
+    expect(li.tryHint).toBe('');
+  });
+  it('the naive 0.42 kV run: the hint says 11 kV and transformers', () => {
+    const e = play([NAIVE]);
+    expect(e.state.status).toBe('lost');
+    expect((e.engine.q('levelInfo') as { tryHint: string }).tryHint).toContain('11 kV');
+  });
+});

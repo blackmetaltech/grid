@@ -28,6 +28,9 @@ export function routeLesson(s: GridState, spec: GridLevelSpec, lessonKey: string
   const f1 = (x: number): string => x.toFixed(1), f2 = (x: number): string => x.toFixed(2);
   const L = Math.round(w.lengthM), wN = Number(f2(w.wNPerM)), H = Math.round(w.hN);
   let out = t(lessonKey, { kv: r.request.kv, km: f1(r.lengthM / 1000), n: r.supports, span: L, over: kindWord(w.over), sag: f2(wN * L * L / (8 * H)), w: f2(wN), h: H, clr: f2(w.clearanceM), req: f1(w.requiredM) });
+  const tw = r.worst, tm = tw.clearanceM - tw.requiredM;   // the tightest span is the clearance gauge's number: say it, or the card contradicts the gauge (panel 2026-11-10)
+  if (tw !== w && (tw.span !== w.span)) out += ' ' + t(tm < 0 ? 'level.L05.lessonTightBad' : 'level.L05.lessonTight', { span: tw.span + 1, len: Math.round(tw.lengthM), over: kindWord(tw.over), clr: f2(tw.clearanceM), req: f1(tw.requiredM), margin: f2(Math.abs(tm)) });
+  if (tm < 0) return out;   // it flashed over: the voltage sentence would only distract
   const loads = s.loads, pMw = loads.reduce((a, l) => a + l.Ppeak, 0), sMva = loads.reduce((a, l) => a + l.Ppeak / (l.pf > 0 ? l.pf : 1), 0);
   const lv = s.buses.find((b) => b.id === loads[0]?.bus)?.kvNom ?? 0;
   if (pMw <= 0 || lv <= 0) return out;
@@ -40,6 +43,17 @@ export function routeLesson(s: GridState, spec: GridLevelSpec, lessonKey: string
     if (v !== undefined && lo !== undefined && v < lo) out += ' ' + t('level.L05.lessonLv', { lv, v: f2(v), drop: f1((1 - v) * 100), mw: f2(pMw) });
   }
   return out;
+}
+
+/** The incident report's "what to try" for a chapter 2 loss: the span that flashed over and what lifts it, the 0.42 kV brownout, or the budget. '' when none fits. */
+export function routeTryHint(s: GridState): string {
+  if (s.status !== 'lost' || s.routes.length === 0) return '';
+  const r = s.routes.reduce((best, x) => (x.worstMarginM < best.worstMarginM ? x : best)), w = r.worst;
+  if (w.clearanceM < w.requiredM) return t('level.L05.tryFlash', { span: w.span + 1, short: (w.requiredM - w.clearanceM).toFixed(2), over: kindWord(w.over) });
+  if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit) return t('level.L05.tryBudget');
+  const lvLine = s.routes.some((x) => x.request.kv < 1);
+  if (lvLine) return t('level.L05.tryKv');
+  return '';
 }
 
 /** L29's shift-report lesson: creepage = Um x mm/kV in the player's own numbers for the most exposed coastal support of the harbour line, and whether it was enough.
@@ -72,7 +86,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
           if (!run) return '';
           return t(spec.id === 'L02' && s.bench.topology === 'trunk' ? 'level.L02.lessonTrunk' : spec.story.lessonKey, { mm2: run.mm2, m: run.lengthM, r: run.rLoopOhm.toFixed(3), i: run.iA.toFixed(1), drop: run.dropV.toFixed(1), v: run.vRecvV.toFixed(1), loss: det!.totals.lossPct.toFixed(1),
             i48: (L03_LOAD_W / SOURCE_V).toFixed(0), k: (L03_LOAD_W / SOURCE_V / run.iA).toFixed(1), k2: ((L03_LOAD_W / SOURCE_V / run.iA) * (L03_LOAD_W / SOURCE_V / run.iA)).toFixed(0) });
-        })(), sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
+        })(), tryHint: spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
       };
     },
     /** The coach's current step (never advances on a timer: it reads the state), or done. */
