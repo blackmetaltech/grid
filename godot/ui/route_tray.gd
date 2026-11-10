@@ -100,6 +100,8 @@ func refresh() -> void:
 		_clear_all(); level = str(li.id); _scroll = 0.0; focus = -1; engaged = false
 		kit = {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}
 		_read_yards(w); kit.kv = kvs()[0] if not kvs().is_empty() else 0.42
+		var rs: Array = b.g.get("routes", [])
+		if not rs.is_empty(): kit.kv = float(rs[0].request.kv)   # a kept design (Retry): the cell shows the line's own voltage
 	_read_yards(w); _build_items()
 	visible = true
 	if mode != "": _show_pegs()
@@ -189,6 +191,12 @@ func site_bus(id: String) -> String:
 		if str(p.hv) == id: other = str(p.lv)
 		elif str(p.lv) == id: other = str(p.hv)
 		if other != "" and is_equal_approx(_kv_of(other), float(kit.kv)): return other
+	return id
+
+## The site a yard belongs to (its low-voltage yard id stands for the pair), so lines of either voltage between the same two sites are one line.
+func site_of(id: String) -> String:
+	for p in pairs:
+		if str(p.hv) == id or str(p.lv) == id: return str(p.lv)
 	return id
 
 ## Does the survey use this yard (its voltage is the kit's)? In transformer mode the low-voltage yard stands for its pair.
@@ -315,7 +323,9 @@ func step_kv(d: int) -> void:
 	var i := a.find(float(kit.kv))
 	kit.kv = a[posmod((0 if i < 0 else i) + d, a.size())]
 	if from_id != "": from_id = site_bus(from_id)
-	_show_pegs(); _survey_dirty()
+	if mode != "": _show_pegs()
+	_survey_dirty()
+	_restring_kv()
 	_hint(tx("RT_HINT_KV_HI") if float(kit.kv) >= 1.0 else tx("RT_HINT_KV_LO"))
 	if radio != null and float(kit.kv) >= 1.0 and not pairs.all(func(p): return _has_xfmr(str(p.hv), str(p.lv))): radio.say("TOBI", tx("RT_KV_NEEDS_XF"))
 	queue_redraw()
@@ -349,6 +359,26 @@ func _refuse(ref: Dictionary, say := true) -> void:
 	chip_text = msg; chip_dot = GridTheme.BAD
 	if say and radio != null and key != last_refusal_key: radio.say("SYS", msg, "warn")
 	last_refusal_key = key
+
+## The line voltage changed: every surveyed line moves to the same sites' yards at the new voltage (same bends, same kit). A refusal leaves it as it was.
+func _restring_kv() -> void:
+	if is_locked(): return
+	for r in (b.g.get("routes", []) as Array).duplicate(true):
+		var br := _branch(str(r.branchId))
+		if br.is_empty(): continue
+		var nf := site_bus(str(br.from)); var nt := site_bus(str(br.to))
+		if nf == str(br.from) and nt == str(br.to): continue
+		var all: Array = r.request.waypoints; var wps: Array = []
+		for k in range(1, all.size() - 1): wps.append(Vector2(float(all[k][0]), float(all[k][1])))
+		var args := _args(nf, nt, wps)
+		var pv = b.q("routePreview", args)
+		if not (pv is Dictionary) or not pv.get("ok", false): _refuse(pv.get("refusal", {}) if pv is Dictionary else {}); continue
+		var xf := _xfmrs()
+		if not _act("demolish", [str(r.branchId)]).get("ok", false): continue
+		if not _act("buildRoute", args).get("ok", false):
+			var req: Dictionary = r.request
+			b.act("buildRoute", [str(br.from), str(br.to), str(req.conductorId).trim_prefix("acsr-"), str(req.familyId), req.crossingFamilyId, float(req.spanM), all.slice(1, all.size() - 1)])
+		_restore_xfmrs(xf)
 
 ## Re-string every line laid with the kit (same yards, same waypoints). A refusal leaves the line as it was.
 func restring() -> Dictionary:
@@ -460,8 +490,11 @@ func remove_last() -> bool:
 	return true
 
 func _line_between(a: String, c: String) -> String:
+	var sa := site_of(a); var sc := site_of(c)
 	for br in b.g.get("branches", []):
-		if str(br.kind) == "line" and ((str(br.from) == a and str(br.to) == c) or (str(br.from) == c and str(br.to) == a)): return str(br.id)
+		if str(br.kind) != "line": continue
+		var f := site_of(str(br.from)); var t2 := site_of(str(br.to))
+		if (f == sa and t2 == sc) or (f == sc and t2 == sa): return str(br.id)   # same two sites at either voltage: a new survey replaces it (never two lines, never two bills)
 	return ""
 
 ## Close the survey at yard `to_id`: preview, replace a line between the same yards (after the radio says so), buildRoute.

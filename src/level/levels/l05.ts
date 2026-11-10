@@ -90,13 +90,14 @@ export const L05: GridLevelSpec = {
   reference: [route('saddle', 'pcc-11', 'crossing-h', 100, 'weasel'), ...xfmrPair('dt-250')],
   // frozen from the bot population (src/level/population.ts: budget = 1.1 x the dearer of lesson and reference, rounded up; A = median passing cost; B = 15th percentile of the passing
   // designs with >= 0.5 m margin); level.test.ts regenerates them and fails on drift > 2 %
-  frozen: { global: { budget: 260000, starA: 212450, starB: 148420 }, in: { budget: 3200000, starA: 2710080, starB: 2260960 } },
+  // regenerated 2026-11-10 for L29: the plain pin insulators ($25 per phase per support) are now on the bill, +3 % on every route
+  frozen: { global: { budget: 270000, starA: 216145.82, starB: 152770.24 }, in: { budget: 3300000, starA: 2796479.8, starB: 2367845.65 } },
   coach: [
     { id: 'survey', textKey: 'coach.L05.survey', whyKey: 'coach.L05.survey.why', done: (s) => s.routes.length > 0 },
     // shown only once a line has been surveyed that ends at a 0.42 kV bus and no transformer stands yet
     { id: 'voltage', textKey: 'coach.L05.voltage', whyKey: 'coach.L05.voltage.why', done: (s) => !s.routes.some((r) => r.request.kv < 1) || s.branches.some((b) => b.kind === 'xfmr') },
     { id: 'transformers', textKey: 'coach.L05.xfmr', whyKey: 'coach.L05.xfmr.why', done: (s) => s.routes.every((r) => r.request.kv < 1) || s.branches.filter((b) => b.kind === 'xfmr').length >= 2 },
-    { id: 'run', textKey: 'coach.L05.run', whyKey: 'coach.L05.run.why', done: (s) => s.status !== 'playing' },
+    { id: 'run', textKey: 'coach.L05.run', whyKey: 'coach.L05.run.why', done: (s) => s.tick > s.levelStart || s.status !== 'playing' },   // done once the evening runs (it said 'pull the breaker' all night)
   ],
   place: (s, sc) => {
     const A = (name: string, ...a: unknown[]): void => place(sc, s, name, ...a);
