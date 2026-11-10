@@ -32,3 +32,16 @@ describe('purchases and refunds', () => {
     expect(e.act('demolish', [pre.id]).ok).toBe(true); expect(spent(e)).toBe(0);
   });
 });
+
+describe('actionCost', () => {
+  it('prices a build on a copy: the cost equals what the real action charges, and the state is untouched', () => {
+    const e = l30();
+    const q = e.q('actionCost', ['placeStorage', ['B8', 'isl-50kw-150kwh']]) as { ok: boolean; cost: number };
+    expect(q.ok).toBe(true); expect(e.state.storage.length).toBe(0); expect(e.state.budget.spent).toBe(0);
+    e.act('placeStorage', ['B8', 'isl-50kw-150kwh']); expect(e.state.budget.spent).toBeCloseTo(q.cost, 2);
+    const bad = e.q('actionCost', ['placeStorage', ['B1', 'nope']]) as { ok: boolean; message: string };
+    expect(bad.ok).toBe(false); expect(bad.message.length).toBeGreaterThan(0);
+    const cab = e.q('actionCost', ['layCableRoute', ['B5', 'B7', 'sub-11-120']]) as { ok: boolean; cost: number };
+    expect(cab.ok).toBe(true); expect(cab.cost).toBeGreaterThan(0);
+  });
+});

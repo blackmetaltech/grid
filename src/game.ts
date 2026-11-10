@@ -16,6 +16,7 @@ import type { GridRegionData } from './regions/data';
 import { buildPipeline, emptyBlock } from './sim/tick';
 import { findNonFinite } from './sim/finite';
 import type { SimParams } from './sim/params';
+import { buildCostQueries } from './cost-query';
 import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from './catalogue';
 import { buildRouteActions, buildRouteQueries, type RouteParams } from './route-actions';
 import type { BenchParams } from './level/bench';
@@ -119,6 +120,7 @@ export const GAME: GameDef<GridState> = {
     ...buildWorldQueries({ getBench, getRoute }),
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
+    ...buildCostQueries(() => GAME),   // actionCost: what a build would cost, run on a copy
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },
   systems: SYSTEMS,
