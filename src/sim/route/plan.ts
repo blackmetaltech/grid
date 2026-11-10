@@ -47,10 +47,15 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
   for (const f of crossing ? [main, crossing] : [main]) if (req.kv > f.kvMax) return refuse({ key: 'route.kvTooHigh', kv: req.kv, kvMax: f.kvMax, familyId: f.id });
   if (req.spanM > main.maxSpanM) return refuse({ key: 'route.spanTooLong', spanM: req.spanM, maxSpanM: main.maxSpanM });
   const wps: [number, number][] = [];
-  for (const p of req.waypoints) {
-    if (tileIndexAt(terrain, p[0], p[1]) === null) return refuse({ key: 'route.offMap', at: p });
-    if (!wps.length || dist(wps[wps.length - 1]!, p) > 1e-9) wps.push(p);
-  }
+  const MERGE_M = 5;   // bend points closer than this are one point (a stray double click must not plant two angle towers 1.5 m apart; review 2026-11-10)
+  req.waypoints.forEach((p, k) => {
+    if (tileIndexAt(terrain, p[0], p[1]) === null) return;
+    const last = wps[wps.length - 1];
+    if (!last || dist(last, p) > MERGE_M) wps.push(p);
+    else if (k === req.waypoints.length - 1 && wps.length > 1) wps[wps.length - 1] = p;   // the end point is the yard: keep it, drop the bend it nearly sits on
+  });
+  const off = req.waypoints.find((p) => tileIndexAt(terrain, p[0], p[1]) === null);
+  if (off) return refuse({ key: 'route.offMap', at: off });
   if (wps.length < 2) return refuse({ key: 'route.tooShort' });
   const kindOf = (x: number, y: number): TileKind => terrain.kinds[tileIndexAt(terrain, x, y)!]!;
   const noSup = (k: TileKind): boolean => rules.noSupport.includes(k);

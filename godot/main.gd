@@ -108,13 +108,18 @@ func game_title_demo() -> void:   # backdrop of the title: the first job, solved
 	game_on_changed()
 
 # --- paper screens (ui/work_order.gd, shift_report.gd, title_screen.gd, pause_menu.gd) ---
-func game_title(r: Control) -> bool: return TitleScreen.build(self, r)
+func game_title(r: Control) -> bool:
+	if OS.is_debug_build() and FileAccess.file_exists("user://qa_level.txt"):   # device QA (debug APK only): `adb shell run-as <app> sh -c 'echo L05 > files/qa_level.txt'` jumps to a job once, since a phone launch cannot pass CB_LEVEL
+		var lv := FileAccess.get_file_as_string("user://qa_level.txt").strip_edges(); DirAccess.remove_absolute("user://qa_level.txt")
+		if lv != "": get_tree().create_timer(0.3).timeout.connect(func(): new_game(_mode_pref()); start_level(lv, true))
+	return TitleScreen.build(self, r)
 func game_end_screen() -> bool: return ShiftReport.open(self)
 func game_menu() -> bool: return PauseMenu.toggle(self)
 
 ## A job starts (new game, level start, load): the work order slides in unless the job is already under way.
 func _begin() -> void:
 	super()
+	if chrome != null and chrome.rtray != null: chrome.rtray.level = ""   # a restart or retry of the same job must not resume the old survey (review 2026-11-10)
 	WorkOrder.close_now()
 	if WorkOrder.auto: WorkOrder.open_fresh(self)
 

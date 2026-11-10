@@ -109,6 +109,14 @@ describe('demolish and determinism', () => {
     expect(e.engine.act('demolish', [id]).ok).toBe(true); expect(e.state.routes).toEqual([]);
     const f = fresh(); f.step(spec.reference[0]!); f.engine.act('demolish', ['B2']); expect(f.state.routes).toEqual([]);
   });
+  it('a demolished route is refunded, so re-stringing with another kit costs only the difference (review 2026-11-10)', () => {
+    const e = fresh(); const before = e.state.budget.spent;
+    for (const a of spec.reference) expect(e.step(a).info.ok).toBe(true);
+    const rec = e.state.routes[0]!, paid = e.state.budget.spent;
+    expect(paid - before).toBeGreaterThanOrEqual(rec.cost);
+    expect(e.engine.act('demolish', [rec.branchId]).ok).toBe(true);
+    expect(e.state.budget.spent).toBeCloseTo(paid - rec.cost, 6);
+  });
   it('the same actions give the same state hash', () => {
     const run = (): string => { const e = fresh(); for (const a of spec.lesson) e.step(a); for (let i = 0; i < 20; i++) e.step(TICK); return hashOf(e.state); };
     expect(run()).toBe(run());

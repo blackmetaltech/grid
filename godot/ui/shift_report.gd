@@ -144,11 +144,11 @@ static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	var design := design_of(app)
 	WorkOrder.skip_once = not design.is_empty()
 	app.start_level(lid, true)
-	replay(app, design)
+	var refused := replay(app, design)
 	app.game_on_changed()
 	var ch = app.get("chrome")
 	var grid_job: bool = design.any(func(a): return str(a[0]) == "buildRoute")
-	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_KEPT_GRID" if grid_job else "REP_RETRY_KEPT"))
+	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_PARTIAL") % refused if refused > 0 else T("REP_RETRY_KEPT_GRID" if grid_job else "REP_RETRY_KEPT"))
 
 ## The bench design now on the table as a list of [action, args] (empty on grid levels or before anything is built).
 static func design_of(app: CbApp) -> Array:
@@ -178,8 +178,13 @@ static func _grid_design(app: CbApp) -> Array:
 			out.append(["buildRoute", [str(br.from), str(br.to), str(rq.conductorId).trim_prefix("acsr-"), str(rq.familyId), rq.crossingFamilyId, float(rq.spanM), wp]])
 	return out
 
-static func replay(app: CbApp, design: Array) -> void:
-	for a in design: app.b.act(str(a[0]), a[1])
+## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
+static func replay(app: CbApp, design: Array) -> int:
+	var bad := 0
+	for a in design:
+		var r = app.b.act(str(a[0]), a[1])
+		if not (r is Dictionary and bool(r.get("ok", false))): bad += 1
+	return bad
 
 static func _copy_code(app: CbApp, btn: Button) -> void:
 	var code = app.b.q("solutionCode")

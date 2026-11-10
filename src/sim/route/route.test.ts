@@ -200,4 +200,13 @@ describe('review fixes (2026-11-10)', () => {
     expect(at.length).toBe(2);
     for (const s of at) expect(s.angleClass).toBe('large');
   });
+  it('bend points closer than 5 m merge: a double click plants no extra towers, and the end point stays at the yard', () => {
+    const t = field(30, 30), rad = (25 * Math.PI) / 180, c: [number, number] = [600 + 400 * Math.cos(rad), 500 + 400 * Math.sin(rad)];
+    const a = plan(t, req({ waypoints: [[100, 500], [600, 500], [c[0] + 1, c[1]]], spanM: 100 }));
+    const b = plan(t, req({ waypoints: [[100, 500], [600, 500], [601.5, 500], c, [c[0] + 1, c[1]]], spanM: 100 }));
+    if (!a.ok || !b.ok) throw new Error('x');
+    expect(b.supports.length).toBe(a.supports.length);
+    const end = b.supports[b.supports.length - 1]!;
+    expect(end.x).toBeCloseTo(c[0] + 1, 6);
+  });
 });
