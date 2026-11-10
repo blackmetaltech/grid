@@ -22,8 +22,8 @@ export interface BotPopulation {
   labelKey: 'hist.bot';
   levelId: string;
   region: string;
-  metric: 'capex' | 'lossPct';
-  metricKey: 'hist.metric.capex' | 'hist.metric.lossPct';
+  metric: 'capex' | 'lossPct' | 'score';
+  metricKey: 'hist.metric.capex' | 'hist.metric.lossPct' | 'hist.metric.score';
   /** Designs simulated, designs that pass within the budget, and their metric values (ascending). */
   designs: number;
   passing: number;
@@ -58,7 +58,7 @@ export function percentile(sorted: number[], p: number): number {
 
 /** Does an outcome meet the level's third-star conditions (tracked metrics against the thresholds)? */
 function meetsStar3(spec: GridLevelSpec, th: Record<string, number>, o: Outcome): boolean {
-  return spec.star3.every((c) => { const v = o.track[c.key]; return v !== undefined && (c.min === undefined || v >= th[c.min]! - 1e-12) && (c.max === undefined || v <= th[c.max]! + 1e-12); });
+  return spec.star3.filter((c) => !spec.botIgnoreStar3?.includes(c.key)).every((c) => { const v = o.track[c.key]; return v !== undefined && (c.min === undefined || v >= th[c.min]! - 1e-12) && (c.max === undefined || v <= th[c.max]! + 1e-12); });
 }
 
 /** The bot population of a level in a region (exhaustive over the site list; <= a few seconds per level). */
@@ -69,16 +69,17 @@ export function botPopulation(spec: GridLevelSpec, region: string): BotPopulatio
   const id = (pick: number[]): string => pick.map((p, i) => spec.sites[i]!.options[p]!.id).join('+');
   for (const d of designs(spec)) {
     const o = runDesign(spec, region, d.actions, { frozen: null });
-    all.push({ id: id(d.pick), capex: o.capex, status: o.status, stars3: o.status === 'won' && meetsStar3(spec, th, o), metric: spec.histogram === 'lossPct' ? o.track.lossPct ?? 100 : o.capex });
+    all.push({ id: id(d.pick), capex: o.capex, status: o.status, stars3: o.status === 'won' && meetsStar3(spec, th, o), metric: spec.histogram === 'lossPct' ? o.track.lossPct ?? 100 : spec.histogram === 'score' ? o.track.score ?? 1e9 : o.capex });
   }
   const costOf = (actions: GridLevelSpec['lesson']): number => runDesign(spec, region, actions, { frozen: null }).capex;
   const cheapest = Math.min(...all.filter((d) => d.status === 'won').map((d) => d.capex));
   const budget = niceUp(Math.max(BUDGET_HEADROOM * Math.max(costOf(spec.lesson), costOf(spec.reference)), MIN_BUDGET_OVER_CHEAPEST * cheapest));
   const pass = all.filter((d) => d.status === 'won' && d.capex <= budget + 1e-9);
-  const costs = pass.map((d) => d.capex).sort((a, b) => a - b);
-  const star3 = pass.filter((d) => d.stars3).map((d) => d.capex).sort((a, b) => a - b);
+  const starVal = (d: BotDesign): number => (spec.histogram === 'score' ? d.metric : d.capex);   // chapter 7's score levels: the stars measure the score, the budget stays the build cost
+  const costs = pass.map(starVal).sort((a, b) => a - b);
+  const star3 = pass.filter((d) => d.stars3).map(starVal).sort((a, b) => a - b);
   return {
-    label: 'bot', labelKey: 'hist.bot', levelId: spec.id, region, metric: spec.histogram, metricKey: spec.histogram === 'lossPct' ? 'hist.metric.lossPct' : 'hist.metric.capex',
+    label: 'bot', labelKey: 'hist.bot', levelId: spec.id, region, metric: spec.histogram, metricKey: spec.histogram === 'lossPct' ? 'hist.metric.lossPct' : spec.histogram === 'score' ? 'hist.metric.score' : 'hist.metric.capex',
     designs: all.length, passing: pass.length, cheapestPass: cheapest, scores: pass.map((d) => d.metric).sort((a, b) => a - b),
     // A >= B always: when the only three-star designs cost more than the median (L03: lower losses need more copper), the two-star
     // target rises to B, so a lamp never rewards spending more while missing the cheaper target (found by a play-tester, 2026-11-10).

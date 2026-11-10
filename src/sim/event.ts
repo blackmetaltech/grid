@@ -13,6 +13,7 @@ import { fin } from './finite';
 import { ch3Verdict } from './ch3/systems';
 import { finaleVerdict } from './finale';
 import { ch4Verdict, ch4Stars } from './ch4/systems';
+import { ch7Verdict } from './ch7/study';
 import type { GridState, ReplayLog, Rules, Unit } from '../types';
 import { flashoverParams, saltFlashoverParams, islandDark } from './flashover';
 import { bessFreqMode, derInput, afterDer, freqWindowTrack, predictionsWithin } from './freqtrack';
@@ -134,6 +135,7 @@ export interface LevelResult { status: 'playing' | 'won' | 'lost'; /** locale ke
 export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, ticksUsed: number): LevelResult {
   const lost = (key: string, params: Record<string, string | number> = {}): LevelResult => ({ status: 'lost', key, params, stars: 0 });
   const m = s.metrics;
+  const c7 = ch7Verdict(s, rules, ticksUsed); if (c7) return c7;   // chapter 7 (L23-L27): one-block studies, their own incident reports and score-based stars
   if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit + 1e-9) return lost('level.lost.budget', { spent: Math.round(s.budget.spent), max: Math.round(s.budget.capexLimit) });
   if (rules.flashoverBlock !== null && (m.track.flashover ?? 0) > 0) return lost('level.lost.flashover', flashoverParams(s));
   if ((rules.fogBlock ?? null) !== null && (m.track.saltFlashover ?? 0) > 0) return lost('level.lost.saltFlashover', saltFlashoverParams(s));

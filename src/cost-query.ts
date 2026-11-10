@@ -8,7 +8,7 @@ export function buildCostQueries(game: () => GameDef<GridState>): Record<string,
     /** actionCost(name, args): {ok, cost, message}. cost = budget.spent after - before (negative for a refund); the real state is never touched. */
     actionCost: (s, name: unknown, args: unknown) => {
       const f = typeof name === 'string' ? game().actions?.[name] : undefined;
-      if (!f) return { ok: false, cost: 0, message: `unknown action ${String(name)}` };
+      if (!f) return { ok: false, cost: 0, message: '', unknown: String(name) };   // not an action of this game: no price
       const draft = structuredClone(s) as GridState;
       try {
         const r = f(draft, ...(Array.isArray(args) ? args : []));

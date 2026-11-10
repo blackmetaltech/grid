@@ -19,6 +19,7 @@ import { fin } from './finite';
 import { stepBench, type BenchParams } from '../level/bench';
 import { ch3Step } from './ch3/systems';
 import { ch4Step } from './ch4/systems';
+import { ch7Step } from './ch7/study';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 import { freqBlockTrack } from './freqtrack';
@@ -436,6 +437,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
     // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).
     { id: 'levelRules', run: (s) => {
       if (s.bench && getBench) stepBench(s, getBench(s));   // a bench level's circuit is solved here, once per block, before the verdict
+      if (s.ch7) ch7Step(s);   // chapter 7: the study of the player's design (cost, tracked numbers, predictions' answers) before the verdict
       const r = levelResult(s, s.rules, s.tick + 1 - s.levelStart);
       s.block.verdict = r.status; s.block.verdictKey = r.key; s.block.verdictParams = r.params;
       if (r.status === 'won') s.stars = r.stars;

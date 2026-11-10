@@ -81,10 +81,10 @@ export function buildUiQueries(d: UiDeps): Record<string, QueryFn<GridState>> {
       const spec = s.level ? d.specOf(s.level) : undefined;
       if (!spec || !spec.histogram) return { active: false };
       const bot = cachedBot(spec, s.region);
-      const mine = spec.histogram === 'lossPct' ? (s.metrics.track.lossPct ?? null) : s.budget.spent;
+      const mine = spec.histogram === 'lossPct' ? (s.metrics.track.lossPct ?? null) : spec.histogram === 'score' ? (s.metrics.track.score ?? null) : s.budget.spent;
       const h = resultHistogram(bot, [], mine, 10);
       const fz = spec.frozen ? spec.frozen[s.region] ?? null : null;
-      return { active: true, level: spec.id, source: h.source, labelKey: h.labelKey, label: h.labelKey ? t(h.labelKey) : '', metricKey: h.metricKey, metric: t(h.metricKey), histogram: spec.histogram, bins: h.bins.map((b) => ({ from: r3(b.from), to: r3(b.to), count: b.count })), n: h.n, percentile: h.percentile === null ? null : r3(h.percentile), mine: mine === null ? null : r3(mine), mineText: mine === null ? '' : spec.histogram === 'lossPct' ? `${mine.toFixed(1)} %` : formatMoney(mine, REGIONS.get(s.region), { decimals: 0 }), starA: fz ? fz.starA : null, starB: fz ? fz.starB : null, stars: s.stars, status: s.status };
+      return { active: true, level: spec.id, source: h.source, labelKey: h.labelKey, label: h.labelKey ? t(h.labelKey) : '', metricKey: h.metricKey, metric: t(h.metricKey), histogram: spec.histogram, bins: h.bins.map((b) => ({ from: r3(b.from), to: r3(b.to), count: b.count })), n: h.n, percentile: h.percentile === null ? null : r3(h.percentile), mine: mine === null ? null : r3(mine), mineText: mine === null ? '' : spec.histogram === 'lossPct' ? `${mine.toFixed(1)} %` : spec.histogram === 'score' && spec.scoreUnit === 's' ? `${mine.toFixed(2)} s` : formatMoney(mine, REGIONS.get(s.region), { decimals: 0 }), starA: fz ? fz.starA : null, starB: fz ? fz.starB : null, stars: s.stars, status: s.status };
     },
   };
 }

@@ -5,7 +5,7 @@ import { GAME } from '../game';
 import type { GridState } from '../types';
 import { makeLevel, type Frozen, type GridLevelSpec } from './spec';
 
-export type FailKind = 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail';
+export type FailKind = 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}`;
 
 export interface Outcome {
   status: 'won' | 'lost' | 'playing';
@@ -44,6 +44,7 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (key === 'level.lost.pfPeak') return 'pfPeak';
   if (key === 'level.lost.breakerFail') return 'breakerFail';
   if (key === 'level.lost.saltFlashover') return 'saltFlashover';
+  if (key.startsWith('level.lost.ch7.')) return key.slice('level.lost.'.length) as FailKind;   // chapter 7's incident reports (src/sim/ch7/study.ts)
   if (key.startsWith('level.lost.island')) return 'islandDark';
   return (s.metrics.track.overloadTrips ?? 0) > 0 || s.events.log.some((e) => e.causeKey === 'cascade.overload-trip') ? 'overload' : 'blackout';
 }

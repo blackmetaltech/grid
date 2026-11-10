@@ -35,7 +35,7 @@ export interface Frozen { budget: number; starA: number; starB: number }
 export interface CoachStep { id: string; textKey: string; whyKey: string; done: (s: Readonly<GridState>) => boolean }
 
 /** Which metric the result card's histogram plots. */
-export type HistogramMetric = 'capex' | 'lossPct';
+export type HistogramMetric = 'capex' | 'lossPct' | 'score';
 
 export interface ScaffoldCtx {
   /** Actions bound to the region's catalogue (the same ones the player uses), including buildRoute so a later job can rebuild the district its player already built. */
@@ -70,7 +70,7 @@ export interface GridLevelSpec {
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
   /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
@@ -91,8 +91,12 @@ export interface GridLevelSpec {
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
+  /** Chapter 7: what the 'score' histogram and the two star targets measure (lower is better): pack currency (default) or seconds (L24). */
+  scoreUnit?: 'money' | 's';
+  /** Chapter 7: third-star tracked keys the bot population never earns (bots do not predict), so they are left out of its third-star set. */
+  botIgnoreStar3?: string[];
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' };
+  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -134,7 +138,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     ...(spec.fogBlock !== undefined ? { fogBlock: spec.fogBlock, darkLoadsLose: true } : {}),   // absent keys elsewhere: the other levels' states and goldens stay as they were
     ...(spec.extraRules ? spec.extraRules(th) : {}),
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
-    starBasis: 'capex',
+    starBasis: spec.histogram === 'score' ? 'score' : 'capex',
     star3: spec.star3.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })),
   };
 }

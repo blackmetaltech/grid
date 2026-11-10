@@ -1,0 +1,88 @@
+class_name Ch7Board
+extends Ch7Base
+## L23 Fault Level: the 33 kV industrial board as a single-line diagram (grid, two transformers, two sections, the coupler or its reactor, the captive generators,
+## feeder F1 with its breaker). The player predicts the fault current, then picks breaker rating, coupler, reactor and transformer impedance. After the run the
+## fault current, the duty of every breaker and the breaker-failure sequence appear; a breaker rated under its duty goes red. Cute mode: the estate's windows go dark.
+func _init() -> void:
+	super._init(); scenario = "L23"; name = "Ch7Board"
+	_edit("faultKA")
+
+func _submit(key: String) -> void: _predict_submit(key, "faultKA", "kA")
+
+func _after_refresh() -> void: _sync_predict("faultKA", "faultKA")
+
+func _layout_panel() -> void:
+	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var x := inner.position.x; var y := inner.position.y + 22.0
+	var rs := []; var ra := []
+	for r in kit.get("ratings", []): rs.append(WorkOrder.num(float(r.kA))); ra.append(float(r.kA))
+	_chip_row(x, y, 52.0, 40.0, 5.0, rs, "rating", ra, q.get("ratingKA", 25.0))
+	x += 57.0 * rs.size() + 12.0
+	_chip_row(x, y, 62.0, 40.0, 5.0, [T("C7_CLOSED"), T("C7_OPEN")], "coupler", ["closed", "open"], str(q.design.coupler))
+	x += 134.0 + 12.0
+	_chip_row(x, y, 46.0, 40.0, 5.0, ["0", "0.1", "0.2"], "reactor", [0.0, 0.1, 0.2], q.design.reactor)
+	x += 148.0 + 12.0
+	_chip_row(x, y, 46.0, 40.0, 5.0, ["10", "14"], "uk", [10.0, 14.0], q.design.uk)
+	var e: LineEdit = edits["faultKA"]; e.position = Vector2(inner.position.x + 150.0, inner.position.y + 84.0); e.size = Vector2(84, 30)
+
+func _press(h: Dictionary, _p: Vector2) -> void:
+	match str(h.id):
+		"rating": _act("setBreakerRating", [float(h.arg)])
+		"coupler": _act("setBusCoupler", [str(h.arg) == "open"])
+		"reactor": _act("setSeriesReactor", [float(h.arg)])
+		"uk": _act("setTransformerZ", [float(h.arg)])
+
+func _draw_panel_body() -> void:
+	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
+	_text(_semi(), 10, inner.position + Vector2(0, 14), "%s  |  %s  |  %s  |  %s" % [T("C7_BREAKERS"), T("C7_COUPLER_CAP"), T("C7_REACTOR_CAP"), T("C7_XFMR_CAP")], Color(GridTheme.TEXT, 0.65))
+	_text(_semi(), 11, inner.position + Vector2(0, 104), T("C7_PREDICT_KA"), Color(GridTheme.TEXT, 0.8))
+	if _revealed():
+		var ok := bool(q.get("ok", false))
+		_text(_mono(), 14, inner.position + Vector2(260, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
+
+func _draw_stage() -> void:
+	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
+	var r := Rect2(Vector2(30.0, top), Vector2(minf(w * 0.58, 760.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	var cx := r.position.x + r.size.x * 0.5; var gy := r.position.y + 28.0; var by := r.position.y + bh * 0.56
+	var ax := cx - r.size.x * 0.22; var bx := cx + r.size.x * 0.22
+	var dark := _revealed() and not bool(q.get("ok", true)); var wire := GridTheme.LIVE if not dark else Color(GridTheme.DIM, 0.6)
+	# grid and transformers
+	_text(_semi(), 11, Vector2(cx - 60, gy - 8.0), T("C7_GRID"), Color(GridTheme.TEXT, 0.8), 120.0, 1)
+	draw_line(Vector2(ax - 20, gy), Vector2(bx + 20, gy), wire, 3.0)
+	for sx in [ax, bx]:
+		draw_line(Vector2(sx, gy), Vector2(sx, gy + 30), wire, 2.0); draw_arc(Vector2(sx, gy + 42), 12.0, 0, TAU, 20, wire, 2.0); draw_arc(Vector2(sx, gy + 54), 12.0, 0, TAU, 20, wire, 2.0)
+		draw_line(Vector2(sx, gy + 66), Vector2(sx, by), wire, 2.0)
+	# busbars and coupler
+	var open: bool = str(q.design.coupler) == "open"
+	draw_line(Vector2(ax - 70, by), Vector2(cx - 24, by), wire, 5.0); draw_line(Vector2(cx + 24, by), Vector2(bx + 70, by), wire, 5.0)
+	if open: draw_line(Vector2(cx - 24, by), Vector2(cx - 8, by - 12), GridTheme.WARN, 3.0)
+	else:
+		draw_line(Vector2(cx - 24, by), Vector2(cx + 24, by), wire, 5.0)
+		if float(q.design.reactor) > 0.0:
+			for i in 4: draw_arc(Vector2(cx - 18 + i * 12, by - 7), 6.0, PI, TAU, 8, GridTheme.COPPER, 3.0)
+	_text(_semi(), 10, Vector2(cx - 50, by + 22), T("C7_COUPLER") + " " + (T("C7_OPEN") if open else T("C7_CLOSED")), Color(GridTheme.TEXT, 0.7), 100.0, 1)
+	_text(_semi(), 10, Vector2(ax - 70, by + 16), T("C7_SEC_A"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 10, Vector2(bx + 20, by + 16), T("C7_SEC_B"), Color(GridTheme.TEXT, 0.7))
+	# generators and the feeder breaker
+	for gx in [ax - 40.0, bx + 40.0]:
+		draw_line(Vector2(gx, by), Vector2(gx, by + 46), wire, 2.0); draw_circle(Vector2(gx, by + 62), 16.0, Color(GridTheme.INK)); draw_arc(Vector2(gx, by + 62), 16.0, 0, TAU, 24, wire, 2.0); _text(_semi(), 13, Vector2(gx - 8, by + 67), "G", GridTheme.TEXT, 16.0, 1)
+	var fx := ax + 40.0; draw_line(Vector2(fx, by), Vector2(fx, by + 40), wire, 2.0)
+	var br := Rect2(Vector2(fx - 11, by + 40), Vector2(22, 22)); var over := _revealed() and not bool(q.get("ok", true))
+	draw_rect(br, Color(GridTheme.BAD, 0.85) if over else Color(GridTheme.GOOD, 0.75) if _revealed() else Color(GridTheme.SODIUM, 0.6))
+	draw_line(Vector2(fx, by + 62), Vector2(fx, by + 90), wire, 2.0)
+	_text(_semi(), 10, Vector2(fx + 16, by + 56), T("C7_FEEDER") + "  " + T("C7_RATED") % WorkOrder.num(float(q.ratingKA)), Color(GridTheme.TEXT, 0.85))
+	if _revealed():
+		# the bolt: the scripted fault just outside the breaker
+		var bp := Vector2(fx, by + 96); var pulse := 0.6 + 0.4 * sin(_t * 9.0)
+		draw_colored_polygon(PackedVector2Array([bp + Vector2(-6, -8), bp + Vector2(4, -8), bp + Vector2(-2, 2), bp + Vector2(8, 2), bp + Vector2(-8, 18), bp + Vector2(-2, 5), bp + Vector2(-8, 5)]), Color(GridTheme.WARN, pulse))
+		if dark: _text(_semi(), 22, Vector2(r.position.x, r.position.y + 24), T("C7_ESTATE_DARK"), GridTheme.BAD, r.size.x, 1)
+	# right: the table of who breaks what, and N-1
+	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), tr)
+	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE"), Color(GridTheme.TEXT, 0.7))
+	if _revealed():
+		_text(_mono(), 11, tr.position + Vector2(12, 38), T("C7_ZTH") % WorkOrder.num(float(q.zthPu)), Color(GridTheme.TEXT, 0.8))
+		var y := tr.position.y + 60.0
+		for d in q.duty:
+			_text(_mono(), 12, Vector2(tr.position.x + 12, y), "%s  %s kA" % [str(d.id), WorkOrder.num(float(d.kA))], GridTheme.BAD if bool(d.over) else GridTheme.TEXT)
+			y += 18.0
+	else: _text(_mono(), 12, tr.position + Vector2(12, 44), T("C7_HIDDEN"), GridTheme.DIM)
+	var n1: Dictionary = q.n1; var sec := bool(n1.secure) and float(n1.vPu) >= 0.94
+	_text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))

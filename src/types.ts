@@ -326,7 +326,7 @@ export interface Rules {
   /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS and every `star3` condition); null = one star. */
   starCost: [number, number] | null;
   /** What `starCost` compares: the operating `metrics.cost` or the build cost `budget.spent`. */
-  starBasis: 'operating' | 'capex';
+  starBasis: 'operating' | 'capex' | 'score';
   /** Block of the day at which every route with a span under its clearance rule flashes over and trips (the hot evening peak); null = never. */
   flashoverBlock: number | null;
   /** Block at which supports short of their tile's creepage flash over in the sea fog (L29); null/absent = never. */
@@ -493,6 +493,8 @@ export interface GridState extends BaseState {
   routes: RouteRecord[];
   /** Chapter 4 (absent elsewhere, so other levels' states and goldens stay as they were): the circuit of L10-L13 as the player built it (src/sim/ch4). */
   ch4?: import('./sim/ch4/state').Ch4State | null;
+  /** Chapter 7 (absent elsewhere, so other levels' states and goldens stay as they were): the player's design of L23-L27 (src/sim/ch7); every result is recomputed from it. */
+  ch7?: import('./sim/ch7/state').Ch7State | null;
   /** Submarine cables laid with `layCableRoute` (L30), in build order; absent until the first one (old states and goldens stay as they were). */
   cables?: SeaCableRecord[];
   /** What the player paid for each transformer, shunt bank and battery placed this level (id -> price), so demolishing it refunds that price; absent until the first purchase (old states and goldens stay as they were). Pre-placed district gear has no entry and refunds nothing. */
