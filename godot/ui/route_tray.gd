@@ -76,6 +76,7 @@ var _dirty := false
 var _last_prev_ms := 0
 var _hover_screen := Vector2.ZERO   ## world-local pointer position
 var _stick_t := 0.0
+var _dpad_t := 0.0
 
 func _init() -> void:
 	name = "RouteTray"; mouse_filter = Control.MOUSE_FILTER_STOP; focus_mode = Control.FOCUS_NONE; visible = false
@@ -693,10 +694,16 @@ func cancel_key() -> bool:
 func _move_cursor(dx: int, dy: int) -> void:
 	if is_nan(cursor_m.x): cursor_m = (_yard(from_id).pos as Vector2)
 	# screen-aligned on the 2:1 map: right = +x -y, down = +x +y (50 m on each axis)
-	var d := Vector2(float(dx + dy), float(dy - dx)) * STEP_M
+	var d := Vector2(float(dx + dy), float(dy - dx)) * STEP_M * float(cursor_step_tiles())
 	var lim := Vector2(float(_wq.terrain.cols), float(_wq.terrain.nrows)) * tile_m
 	cursor_m = Vector2(clampf(cursor_m.x + d.x, 0.0, lim.x), clampf(cursor_m.y + d.y, 0.0, lim.y)); cursor_on = true
 	_update_survey_preview(); queue_redraw()
+
+## Tiles per cursor step: one 50 m tile when zoomed in, more when the map is small on screen (a step is never less than ~22 px, so crossing the map is ~30 presses, not 100).
+func cursor_step_tiles() -> int:
+	if world == null or not world.has_method("world_to_screen"): return 1
+	var px := world.world_to_screen(Vector2(0, 0), 0.0).distance_to(world.world_to_screen(Vector2(1, 0), 0.0))
+	return clampi(int(ceil(22.0 / maxf(px, 1.0))), 1, 4)
 
 ## Pad: LB / RB cycle the cells, A picks / drops a waypoint / finishes near a yard, B removes the last waypoint (else cancels), D-pad moves the survey cursor or walks the yards.
 func pad_button(idx: int) -> bool:
@@ -720,6 +727,11 @@ func pad_button(idx: int) -> bool:
 				if target_hi >= 0: press_yard(str(yards[target_hi].id)); return true
 				walk_target(1); return true
 			if engaged and focus >= 0: activate(focus); return true
+		JOY_BUTTON_Y:
+			if surveying:   # jump the cursor to the other end's yard (then A finishes there); bends are placed on the way with the D-pad
+				var dest := default_dest(from_id)
+				if dest == "": return false
+				cursor_m = (_yard(dest).pos as Vector2); cursor_on = true; _update_survey_preview(); queue_redraw(); return true
 		JOY_BUTTON_B:
 			if surveying and not waypoints.is_empty(): return remove_last()
 			return cancel_key()
@@ -744,6 +756,12 @@ func _process(dt: float) -> void:
 			_stick_t = 0.14
 			if absf(ax) >= absf(ay): _move_cursor(1 if ax > 0.0 else -1, 0)
 			else: _move_cursor(0, 1 if ay > 0.0 else -1)
+		var dx := int(Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_RIGHT)) - int(Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_LEFT))
+		var dy := int(Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_DOWN)) - int(Input.is_joy_button_pressed(0, JOY_BUTTON_DPAD_UP))
+		if dx != 0 or dy != 0:   # a held D-pad repeats after 0.35 s, every 0.09 s (the press itself moved once in pad_button)
+			_dpad_t += dt
+			if _dpad_t >= 0.35: _dpad_t -= 0.09; _move_cursor(dx, dy)
+		else: _dpad_t = 0.0
 	if mode != "" and not CbSettings.reduced_motion: queue_redraw()
 
 # ---- drawing --------------------------------------------------------------------------------------------------------------------------

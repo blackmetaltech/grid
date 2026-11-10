@@ -126,6 +126,8 @@ static func open(app: CbApp) -> void:
 	if instant_next: instant_next = false
 	else: PaperKit.slide_in(d)
 	app.focus_dialog()
+	var host2: PaperHost = d.host   # a pad lands on the one action ("Take the job"), not on the first chip (whose selected option does nothing on A)
+	if CbKit.pad_mode and host2.primary != null: host2.primary.call_deferred("grab_focus")
 
 static func _story(col: VBoxContainer, li: Dictionary, compact: bool) -> void:
 	var story: Array = li.get("story", [])
@@ -189,4 +191,8 @@ static func _footer(app: CbApp, vb: VBoxContainer, li: Dictionary, fresh: bool) 
 			app.start_level(str(li.id), true)))
 	var go := PaperKit.btn(T("WO_TAKE") if fresh else T("WO_BACK"), true, func(): close(app), 22)
 	go.name = "Take"; go.custom_minimum_size.x = 220; foot.add_child(go)
+	var chips: Array = left.find_children("Chip_*", "Button", true, false)
+	if not chips.is_empty():   # explicit pad neighbours along the footer: chips <-> Take the job
+		var last: Button = chips[chips.size() - 1]
+		last.focus_neighbor_right = last.get_path_to(go); go.focus_neighbor_left = go.get_path_to(last)
 	(vb.get_parent().get_parent() as PaperHost).primary = go

@@ -56,6 +56,7 @@ func _build_tools() -> void:
 	rtray = RouteTray.new(); rtray.b = app.b; rtray.world = world; rtray.radio = radio; rtray.instruments = instruments
 	rtray.sfx = func(cue: String): app.sfx(cue)
 	rtray.slot = tray_rect; rtray.locked = _night_locked; add_child(rtray)
+	rtray.mode_changed.connect(_pad_legend)
 	tags = TagView.new(); tags.b = app.b; tags.world = world; tags.instruments = instruments; tags.slot = tray_rect; add_child(tags)
 	tray.tags = tags; rtray.tags = tags
 	if world != null:
@@ -245,3 +246,11 @@ func _process(_dt: float) -> void:
 	if ph != _pad_seen: _pad_seen = ph; layout()
 	radio.position.y = _radio_y()
 	if app.cur == app.home and app.drawer_tab != null and app.drawer_tab.visible: app.drawer_tab.visible = false   # the core re-shows its grip on some paths
+
+## The pad legend strip follows the route tray's mode: surveying with a pad has its own buttons (the shell's default comes back after).
+var _legend_default := ""
+func _pad_legend(m: String) -> void:
+	var hint = app.pad.hint if app.pad != null else null
+	if hint == null: return
+	if _legend_default == "": _legend_default = str(hint.text)
+	hint.text = tr("PAD_LEGEND_SURVEY") if m == "survey" else (tr("PAD_LEGEND_XF") if m == "xfmr" else _legend_default)

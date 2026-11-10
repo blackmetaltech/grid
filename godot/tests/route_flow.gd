@@ -166,7 +166,10 @@ func _initialize() -> void:
 	T.check(tray.pad_button(JOY_BUTTON_A) and tray.from_id == "B2", "A picks the highlighted yard as the start")
 	var c0 := tray.cursor_m
 	tray.pad_button(JOY_BUTTON_DPAD_RIGHT)
-	T.check(tray.cursor_on and tray.cursor_m.distance_to(c0) > 0.0 and absf(tray.cursor_m.x - c0.x) == 50.0 and absf(tray.cursor_m.y - c0.y) == 50.0, "D-pad moves the survey cursor in 50 m steps (%s -> %s)" % [str(c0), str(tray.cursor_m)])
+	T.check(tray.cursor_on and tray.cursor_m.distance_to(c0) > 0.0 and absf(tray.cursor_m.x - c0.x) == 50.0 * tray.cursor_step_tiles() and absf(tray.cursor_m.y - c0.y) == 50.0 * tray.cursor_step_tiles(), "D-pad moves the survey cursor in whole tiles, more per press when zoomed out (%s -> %s, %d tiles)" % [str(c0), str(tray.cursor_m), tray.cursor_step_tiles()])
+	var keep := tray.cursor_m
+	T.check(tray.pad_button(JOY_BUTTON_Y) and tray.cursor_m == (tray._yard(tray.default_dest(tray.from_id)).pos as Vector2), "Y jumps the cursor to the far yard")
+	tray.cursor_m = keep
 	T.check(tray.pad_button(JOY_BUTTON_A) and tray.waypoints.size() == 1, "A drops a waypoint at the cursor")
 	T.check(tray.pad_button(JOY_BUTTON_B) and tray.waypoints.is_empty() and tray.mode == "survey", "B removes the last waypoint")
 	T.check(tray.pad_button(JOY_BUTTON_B) and tray.from_id == "" and tray.mode == "", "B again cancels the survey")
