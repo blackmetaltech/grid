@@ -585,6 +585,12 @@ func _show_preview(args: Array, chip_key: String, say := true):
 		var m := float(pv.worstMarginM)
 		chip_text = tx(chip_key) % [tx("RT_KM") % (float(pv.lengthM) / 1000.0), (pv.supports as Array).size(), "%+.1f" % m, CbRegion.money(float(pv.cost.total), false, 0)]
 		chip_dot = GridTheme.GOOD if m > 0.5 else (GridTheme.WARN if m >= 0.0 else GridTheme.BAD)
+		var c: Dictionary = pv.cost   # where the money goes: the player can see which choice to change for a cheaper line
+		var M := func(k: String) -> String: return CbRegion.money(float(c.get(k, 0.0)), false, 0)
+		var parts: Array = [tx("RT_COST_POLES") % M.call("supports"), tx("RT_COST_FOOT") % M.call("foundations"), tx("RT_COST_WIRE") % M.call("conductor")]
+		if float(c.get("clearing", 0.0)) > 0.0: parts.append(tx("RT_COST_CLEAR") % M.call("clearing"))
+		if float(c.get("insulators", 0.0)) > 0.0: parts.append(tx("RT_COST_INS") % M.call("insulators"))
+		chip_text += "\n" + " · ".join(parts)
 		if instruments != null: instruments.set_clear_ghost(m)
 	else:
 		_refuse(pv.get("refusal", {}), say)
@@ -862,7 +868,7 @@ func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 	var one := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var maxw := minf(620.0, vw - 60.0)
 	var tw := one.x; var lines := 1
-	if one.x > maxw:
+	if one.x > maxw or s.contains("\n"):
 		var ml := f.get_multiline_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, maxw, fsz); tw = minf(ml.x, maxw); lines = maxi(1, int(round(ml.y / f.get_height(fsz))))
 	var dw := 18.0 if dot.a > 0.0 else 0.0
 	var gx := clampf(global_position.x + at.x, tw * 0.5 + dw * 0.5 + 18.0, vw - tw * 0.5 - dw * 0.5 - 18.0)

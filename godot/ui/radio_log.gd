@@ -56,11 +56,16 @@ func make_row(l: Dictionary, alpha := 1.0, full := false) -> Control:
 	var live: bool = l.kind == "coach" and l.step != "" and l.step == _current
 	var tick := ColorRect.new(); tick.custom_minimum_size = Vector2(3, 0); tick.color = GridTheme.SODIUM if live else Color(0, 0, 0, 0); tick.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(tick)
 	var sz := 15
-	var pre := GridTheme.label(_prefix(l), sz, _color(l), "mono"); pre.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; row.add_child(pre)
+	var pre := GridTheme.label(_prefix(l), sz, _color(l), "mono"); pre.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var stack := narrow() and not full   # a narrow panel (small window): time and speaker above the line, or the text column shrinks to a word per row
+	var col: Container = row
+	if stack:
+		col = VBoxContainer.new(); col.add_theme_constant_override("separation", 0); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL; col.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(col)
+	col.add_child(pre)
 	var tx := GridTheme.label(str(l.text), sz, GridTheme.WARN if l.kind == "warn" else GridTheme.TEXT, "mono")
 	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tx.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING   # never "…": a line wraps in full
-	row.add_child(tx)
+	col.add_child(tx)
 	if live and str(l.why) != "" and not l.get("why_said", false) and not full:
 		var b := Button.new(); b.text = TranslationServer.translate("RADIO_WHY"); b.flat = true; b.focus_mode = CbKit.focus_mode(); b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		b.add_theme_color_override("font_color", GridTheme.SODIUM); b.add_theme_font_size_override("font_size", GridTheme.fs(14)); b.name = "Why"
@@ -72,13 +77,15 @@ func ask_why(l: Dictionary) -> void:
 	l["why_said"] = true
 	say("ADA", str(l.why), "why", str(l.step)); why_said.emit(str(l.step)); _rebuild()
 
+func narrow() -> bool: return width < 440.0
+
 ## Estimated height of one row at the current width (wrapped in full), so the panel can be capped without waiting for a layout pass.
 func _row_h(l: Dictionary) -> float:
 	var f := GridTheme.font("mono"); var sz := GridTheme.fs(15)
-	var pw := f.get_string_size(_prefix(l), HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+	var pw := 0.0 if narrow() else f.get_string_size(_prefix(l), HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
 	var tw := maxf(80.0, width - 24.0 - 3.0 - 16.0 - pw - (46.0 if str(l.get("why", "")) != "" and not l.get("why_said", false) else 0.0))
 	var h := f.get_multiline_string_size(str(l.text), HORIZONTAL_ALIGNMENT_LEFT, tw, sz, -1, TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE).y
-	return maxf(h, f.get_height(sz)) + 4.0
+	return maxf(h, f.get_height(sz)) + 4.0 + (f.get_height(sz) if narrow() else 0.0)
 
 func _rebuild() -> void:
 	if _box == null: return

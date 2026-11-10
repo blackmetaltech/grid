@@ -56,7 +56,9 @@ func _initialize() -> void:
 	var pv: Dictionary = T.b.q("routePreview", args)
 	T.check(pv.ok and tray.preview.ok and tray.preview.cost.total == pv.cost.total, "the hover preview is the engine's routePreview")
 	var chip := "%.1f km · %d poles · worst clearance %+.1f m · %s" % [float(pv.lengthM) / 1000.0, (pv.supports as Array).size(), float(pv.worstMarginM), CbRegion.money(float(pv.cost.total), false, 0)]
-	T.check(tray.chip_text == chip, "chip text: '%s' (want '%s')" % [tray.chip_text, chip])
+	T.check(tray.chip_text.get_slice("\n", 0) == chip, "chip text: '%s' (want '%s')" % [tray.chip_text, chip])
+	var cst: Dictionary = T.b.q("routePreview", args).cost
+	T.check(tray.chip_text.get_slice("\n", 1).begins_with("poles " + CbRegion.money(float(cst.supports), false, 0)) and tray.chip_text.contains("wire " + CbRegion.money(float(cst.conductor), false, 0)), "the chip's second line is the engine's cost breakdown (%s)" % tray.chip_text.get_slice("\n", 1))
 	T.check(tray.chip_dot == (GridTheme.GOOD if float(pv.worstMarginM) > 0.5 else (GridTheme.WARN if float(pv.worstMarginM) >= 0.0 else GridTheme.BAD)), "chip dot follows the margin")
 	T.check(absf(ins.clear.ghost - float(pv.worstMarginM)) < 1e-9, "the clearance gauge's ghost needle is the previewed margin (%f)" % ins.clear.ghost)
 	T.check(tray.last_ghost.plan.supports.size() == (pv.supports as Array).size(), "the ghost plan has the engine's supports")

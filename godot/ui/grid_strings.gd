@@ -70,7 +70,7 @@ const S := {
 	"RT_COND_weasel": "Weasel", "RT_COND_rabbit": "Rabbit", "RT_COND_dog": "Dog", "RT_COND_SUB": "%s mm²",
 	"RT_XF": "%s kVA", "RT_XF_SUB": "on pole", "RT_XF_PLACED": "placed",
 	"RT_KV_SUB": "volts", "RT_TIP_KV": "Line voltage: tap to switch. 0.42 kV runs straight from the powerhouse; 11 kV needs a transformer at each end but carries the same power on 1/26 of the current.", "RT_HINT_KV_HI": "11 kV: the line joins the high-voltage yards. Put a transformer at each end.", "RT_HINT_KV_LO": "0.42 kV: the line runs straight from the powerhouse to the market.", "RT_KV_NEEDS_XF": "An 11 kV line needs a transformer at each end: up at the powerhouse, down at the market. Pick a size in the tray, then pick a yard.", "RT_PEG_XF": "%s · transformer", "RT_HINT_START": "Pick a yard to start the line", "RT_HINT_WP": "Click the ground to bend the line, a yard to finish", "RT_HINT_XF": "Pick a yard pair for the %s kVA transformer",
-	"RT_CHIP": "%s km · %d poles · worst clearance %s m · %s", "RT_CHIP_RESTRING": "re-strung: %s km · %d poles · worst clearance %s m · %s",
+	"RT_COST_POLES": "poles %s", "RT_COST_FOOT": "footings %s", "RT_COST_WIRE": "wire %s", "RT_COST_CLEAR": "forest cut %s", "RT_COST_INS": "insulators %s", "RT_CHIP": "%s km · %d poles · worst clearance %s m · %s", "RT_CHIP_RESTRING": "re-strung: %s km · %d poles · worst clearance %s m · %s",
 	"RT_REPLACE": "A line already joins %s and %s; replacing %s.", "RT_KM": "%.1f",
 	"RT_YARD_HYDRO_HV": "Hydro yard", "RT_YARD_HYDRO_LV": "Powerhouse", "RT_YARD_VILLAGE_HV": "Village yard", "RT_YARD_VILLAGE_LV": "Village", "RT_YARD_OTHER": "Yard %s",
 	"RT_SAME_PAIR": "Pick a yard of the other voltage pair", "RT_NO_PAIR": "No yard pair for that transformer",
