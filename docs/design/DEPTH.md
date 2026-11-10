@@ -82,6 +82,9 @@ AAAC (all-aluminium alloy) rows for coastal corrosion (no steel core) come in M-
   over roads +1 m; over navigable water 20 m above HWL. `in` draft pack: CEA (Measures relating to Safety and Electric Supply)
   Regulations 2010 reg. 58 / old IE Rule 77: LV/11 kV across street 5.8 m, along street 5.5 m, elsewhere 4.6 m; 33 kV 5.2 m;
   above 33 kV 5.2 m + 0.3 m per 33 kV (`recall`, verify against the gazette before `in` ships).
+- **v0.3 decision (honest note S38):** L05 checks clearance at the *design* temperature (75 °C) at the evening peak, for every line,
+  whatever its current: real practice designs for the worst night, and the game makes the evening peak that night. The current-driven
+  conductor temperature (`conductorTempC`) arrives with dynamic line rating in a later chapter.
 - A span that violates clearance at the **actual** conductor temperature during the run **flashes over**: the line trips
   (protection clears it), the incident shows the span, its sag and the equation.
 

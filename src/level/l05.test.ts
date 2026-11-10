@@ -118,3 +118,20 @@ describe('demolish and determinism', () => {
     expect(e.state.rules.flashoverBlock).toBeNull();
   });
 });
+
+describe('L05 review fixes (2026-11-10)', () => {
+  it('a span shorter than 20 m or more than 40 waypoints is refused as a bad argument (no million-pole plans)', async () => {
+    const { parseArgs, MIN_SPAN_M, MAX_WAYPOINTS } = await import('../route-actions');
+    expect('bad' in parseArgs(['B2', 'B3', 'acsr-rabbit', 'pcc-11', null, MIN_SPAN_M - 1, []])).toBe(true);
+    expect('bad' in parseArgs(['B2', 'B3', 'acsr-rabbit', 'pcc-11', null, MIN_SPAN_M, []])).toBe(false);
+    const many = Array.from({ length: MAX_WAYPOINTS + 1 }, (_, i) => [100 + i, 100]);
+    expect('bad' in parseArgs(['B2', 'B3', 'acsr-rabbit', 'pcc-11', null, 90, many])).toBe(true);
+  });
+  it('the foundation is a share of the support price, not on top of it', async () => {
+    const { priceRoute } = await import('../route-actions');
+    const plan = { supports: [{ x: 0, y: 0, tile: 0, familyId: 'pcc-11', angleDeg: 0, angleClass: 'suspension', foundation: 'earth' }], spans: [], lengthM: 0, worstMarginM: 0, worstSpan: 0, ok: true,
+      bom: { supports: {}, foundations: { earth: 1, pile: 0, rock: 0 }, conductorM: 0, clearedForestM: 0 } } as never;
+    const prices = { support: { 'pcc-11': 1000 }, angleMultiplier: { suspension: 1 }, foundationShare: 0.4, foundationMultiplier: { earth: 1, pile: 2.5, rock: 1.8 }, phaseWires: { lv: 4, mv: 3 }, conductorPerM: {}, clearingPerM: 0 } as never;
+    expect(priceRoute(plan, 11, 'rabbit', prices).total).toBeCloseTo(1000, 6);
+  });
+});

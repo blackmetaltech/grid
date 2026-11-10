@@ -189,3 +189,15 @@ describe('planRoute', () => {
     expect(a).toEqual(b);
   });
 });
+
+describe('review fixes (2026-11-10)', () => {
+  it('a waypoint visited twice keeps the angle of each visit (priced as an angle support both times)', () => {
+    const t = field(30, 30);
+    const r = plan(t, req({ waypoints: [[25, 25], [500, 25], [500, 500], [500, 25], [1000, 25]], spanM: 100 }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const at = r.supports.filter((s) => Math.abs(s.x - 500) < 1e-6 && Math.abs(s.y - 25) < 1e-6);
+    expect(at.length).toBe(2);
+    for (const s of at) expect(s.angleClass).toBe('large');
+  });
+});

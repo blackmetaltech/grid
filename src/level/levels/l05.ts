@@ -89,7 +89,7 @@ export const L05: GridLevelSpec = {
   reference: [route('saddle', 'pcc-11', 'crossing-h', 100, 'weasel'), ...xfmrPair('dt-250')],
   // frozen from the bot population (src/level/population.ts: budget = 1.1 x the dearer of lesson and reference, rounded up; A = median passing cost; B = 15th percentile of the passing
   // designs with >= 0.5 m margin); level.test.ts regenerates them and fails on drift > 2 %
-  frozen: { global: { budget: 340000, starA: 284650, starB: 197050 }, in: { budget: 3900000, starA: 3294320, starB: 2727040 } },
+  frozen: { global: { budget: 260000, starA: 212450, starB: 148420 }, in: { budget: 3200000, starA: 2710080, starB: 2260960 } },
   coach: [
     { id: 'survey', textKey: 'coach.L05.survey', whyKey: 'coach.L05.survey.why', done: (s) => s.routes.length > 0 },
     // shown only once a line has been surveyed that ends at a 0.42 kV bus and no transformer stands yet

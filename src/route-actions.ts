@@ -59,13 +59,13 @@ const refusal = (key: string, params: Params = {}): { ok: false; refusal: Refusa
 
 // ---- pricing -------------------------------------------------------------------------------------------------------------------------
 export interface RouteCost { supports: number; foundations: number; conductor: number; clearing: number; total: number }
-/** Bill of materials of a plan at the pack's prices (to the cent). The foundation is `foundationShare` of the angle-adjusted support price times the
- *  foundation kind's multiplier; wires are 4 below 1 kV, 3 above; right-of-way clearing is charged per metre of route over forest. */
+/** Bill of materials of a plan at the pack's prices (to the cent). The foundation is `foundationShare` OF the angle-adjusted support price (the rest is the
+ *  support itself), times the foundation kind's multiplier; wires are 4 below 1 kV, 3 above; right-of-way clearing is charged per metre of route over forest. */
 export function priceRoute(plan: RoutePlan, kv: number, conductorShort: string, prices: RouteData['prices']): RouteCost {
   let supports = 0, foundations = 0;
   for (const sp of plan.supports) {
     const base = (prices.support[sp.familyId] ?? 0) * (prices.angleMultiplier[sp.angleClass] ?? 1);
-    supports += base;
+    supports += base * (1 - prices.foundationShare);   // the foundation is a share OF the support's price (DEPTH 4.3), scaled by the soil's kind
     foundations += base * prices.foundationShare * (prices.foundationMultiplier[sp.foundation] ?? 1);
   }
   const wires = kv < 1 ? prices.phaseWires.lv : prices.phaseWires.mv;
@@ -95,14 +95,16 @@ function planCached(s: GridState, terrain: Terrain, req: RouteRequest, rp: Route
   return r;
 }
 
+export const MIN_SPAN_M = 20, MAX_WAYPOINTS = 40;
 export function parseArgs(a: unknown[]): RouteArgs | { bad: string } {
   const [from, to, conductor, family, crossing, spanM, wps] = a;
   if (!isStr(from) || !isStr(to)) return { bad: 'exp.bus_ids' };
   if (!isStr(conductor)) return { bad: 'exp.a_conductor_id' };
   if (!isStr(family)) return { bad: 'exp.a_support_family_id' };
   if (crossing !== null && crossing !== undefined && !isStr(crossing)) return { bad: 'exp.a_support_family_id_or_null' };
-  if (!isNum(spanM) || spanM <= 0) return { bad: 'exp.a_span_length_in_metres' };
+  if (!isNum(spanM) || spanM < MIN_SPAN_M) return { bad: 'exp.a_span_length_in_metres' };   // a lower bound keeps a hostile action log from planting millions of poles
   const w = wps === undefined ? [] : wps;
+  if (Array.isArray(w) && w.length > MAX_WAYPOINTS) return { bad: 'exp.a_list_of_points_in_metres' };
   if (!Array.isArray(w) || w.some((p) => !Array.isArray(p) || p.length !== 2 || !isNum(p[0]) || !isNum(p[1]))) return { bad: 'exp.a_list_of_points_in_metres' };
   return { from, to, conductor, family, crossing: crossing ?? null, spanM, waypointsM: (w as [number, number][]).map((p) => [p[0], p[1]] as [number, number]) };
 }

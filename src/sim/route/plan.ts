@@ -57,6 +57,7 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
 
   // 2-3. legs -> support nodes
   const nodes: Node[] = [];
+  const wpNode: number[] = [];   // node index of each waypoint (a waypoint visited twice keeps both visits' angles)
   const push = (n: Node): void => {
     const last = nodes[nodes.length - 1];
     if (last && Math.abs(last.x - n.x) < 1e-9 && Math.abs(last.y - n.y) < 1e-9) { last.bank = last.bank || n.bank; last.gapNext = last.gapNext || n.gapNext; return; }
@@ -89,6 +90,7 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
     for (let q = 0; q < fixed.length; q++) {
       const f = fixed[q]!, p = at(f.s);
       push({ x: p[0], y: p[1], bank: f.bank, angleDeg: 0, terminal: false, gapNext: f.gapNext });
+      if (q === 0) wpNode[l] = nodes.length - 1;
       const nx = fixed[q + 1];
       if (nx && !f.gapNext && nx.s > f.s) {
         const len = ((nx.s - f.s) * Ld) / ns, n = Math.ceil(len / req.spanM - 1e-9);
@@ -99,7 +101,7 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
   // 4. angles at waypoints
   nodes[0]!.terminal = true; nodes[nodes.length - 1]!.terminal = true;
   for (let w = 1; w + 1 < wps.length; w++) {
-    const n = nodes.find((m) => Math.abs(m.x - wps[w]![0]) < 1e-9 && Math.abs(m.y - wps[w]![1]) < 1e-9)!;
+    const n = nodes[wpNode[w]!]!;
     const a = wps[w - 1]!, b = wps[w]!, c = wps[w + 1]!;
     const ux = b[0] - a[0], uy = b[1] - a[1], vx = c[0] - b[0], vy = c[1] - b[1];
     n.angleDeg = (dmath.atan2(Math.abs(ux * vy - uy * vx), ux * vx + uy * vy) * 180) / Math.PI;
@@ -110,6 +112,7 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
   for (const n of nodes) {
     const ti = tileIndexAt(terrain, n.x, n.y)!, kind = terrain.kinds[ti]!;
     const fam = n.bank && crossing ? crossing : main;
+    if (noSup(kind)) return refuse({ key: 'route.noFoundation', tile: ti, kind, familyId: fam.id, needs: 'pile' });   // an evenly split support that lands in water
     const foundation: Foundation = kind === 'swamp' ? 'pile' : kind === 'rock' ? 'rock' : 'earth';
     if (!fam.foundations.includes(foundation)) return refuse({ key: 'route.noFoundation', tile: ti, kind, familyId: fam.id, needs: foundation });
     let cls: AngleClass = n.terminal ? 'terminal' : angleClassOf(n.angleDeg);
