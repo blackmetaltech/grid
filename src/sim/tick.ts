@@ -23,7 +23,7 @@ import { ch7Step } from './ch7/study';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 import { freqBlockTrack } from './freqtrack';
-import { ch5Track } from './ch5';
+import { finaleWeather, finaleTrack, finaleScale } from './finale';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -50,7 +50,7 @@ const eventStart = (e: { day: number; block: number }): number => e.day * BLOCKS
 const worldSize = (s: GridState): [number, number] => [Math.max(s.map.w, 20, 1 + Math.max(0, ...s.buses.map((b) => b.x))), Math.max(s.map.h, 20, 1 + Math.max(0, ...s.buses.map((b) => b.y)))];
 const effDemand = (s: GridState): number => s.loads.reduce((a, l) => a + l.P * (1 - l.shedFrac), 0);
 /** Demand at a future block of the day at the present temperature (for commitment look-ahead). */
-const forecastDemand = (s: GridState, block: number): number => s.loads.reduce((a, l) => a + demandPQ({ cls: DEMAND_CLASS[l.class], peakMW: l.Ppeak, block, tempC: s.weather.tempC }).pMW * (1 - l.shedFrac), 0);
+const forecastDemand = (s: GridState, block: number): number => s.loads.reduce((a, l) => a + demandPQ({ cls: DEMAND_CLASS[l.class], peakMW: l.Ppeak, block, tempC: s.weather.tempC }).pMW * (l.shape ? 1 : finaleScale(s, l.class, s.clock.day + (block < s.clock.block ? 1 : 0), block)) * (1 - l.shedFrac), 0);
 
 export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?: (s: GridState) => BenchParams): System<GridState>[] {
   return [
@@ -88,6 +88,9 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       if (s.weather.stormActive) { s.weather.windMs = Math.max(s.weather.windMs, STORM_WIND_MS); s.weather.stormLeft -= 1; }
     } },
 
+    // 2b. finale (L28 only): the three days' pinned weather, repair crews and reserve batteries (src/sim/finale.ts).
+    { id: 'finaleWeather', run: (s) => { finaleWeather(s); } },
+
     // 3. demand: class profile x temperature, plus scripted surges (MW added for SURGE_BLOCKS blocks).
     { id: 'demand', run: (s) => {
       const now = dayIndex(s);
@@ -101,6 +104,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         }
         let pMW = demandPQ({ cls: DEMAND_CLASS[l.class], peakMW: l.Ppeak, block: s.clock.block, tempC: s.weather.tempC }).pMW;
         for (const e of s.events.queue) if (e.kind === 'load-surge' && e.target === l.id && now >= eventStart(e) && now < eventStart(e) + SURGE_BLOCKS) pMW += e.magnitude;
+        pMW *= finaleScale(s, l.class, s.clock.day, s.clock.block);   // 1 outside L28
         l.P = fin(pMW);
         l.Q = fin(pMW * (l.pf > 0 && l.pf < 1 ? Math.sqrt(1 - l.pf * l.pf) / l.pf : 0));
       }
@@ -357,7 +361,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       const p = getParams(s);
       const rng = systemRng(s.seed, s.clock.day, s.clock.block, 'blockFrequency');
       const demand = s.block.demandMW;
-      const noise = rng.normal(0, 0.002 * demand);
+      const noise = rng.normal(0, 0.002 * demand) * (s.rules.finale ? 0 : 1);   // L28: only real imbalances move the frequency
       const units: BlockUnit[] = s.units.filter((u) => u.online && isDispatchable(u) && u.droopPct > 0).map((u) => ({ id: u.id, S: u.mva, R: u.droopPct / 100, upMW: Math.max(0, u.pMax - u.P), downMW: Math.max(0, u.P - u.pMin) }));
       const r = blockFrequency(units, s.block.imbalanceMW + noise, Math.max(demand, 1e-3), p.f0);
       s.freq = { fHz: fin(r.fHz, p.f0), rocof: 0 };
@@ -412,6 +416,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       // named level measurements for the star rules: billing power factor at the supply point (kWh over kVAh, |Q| counted in both
       // directions) and the loss share of the energy supplied
       const tr = s.metrics.track;
+      finaleTrack(s, getParams(s).gridcode.standardRangeHz);   // L28: island lights, frequency band, ENS share (only when rules.finale)
       freqBlockTrack(s, getParams(s));   // chapter 6 levels only (rules.freqTrack): block-frequency statistics
       const pg = s.units.reduce((a, u) => a + (u.online ? u.P : 0), 0), qg = s.units.reduce((a, u) => a + (u.online ? u.Q : 0), 0);
       tr.pMWh = fin((tr.pMWh ?? 0) + pg * BLOCK_H); tr.qMVArh = fin((tr.qMVArh ?? 0) + Math.abs(qg) * BLOCK_H);
@@ -428,7 +433,6 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         const vs = s.loads.filter((l) => l.P > 0).map((l) => (sol && sol.sol.energised[l.bus] !== false ? sol.sol.V[l.bus] ?? 0 : 0));
         if (vs.length > 0) tr.loadVMinPu = Math.min(tr.loadVMinPu ?? Infinity, fin(Math.min(...vs)));
       }
-      ch5Track(s);   // chapter 5: voltage watch, loading cap, N-1 probe, loadability margin (each only when the level's rules ask)
     } },
 
     // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).

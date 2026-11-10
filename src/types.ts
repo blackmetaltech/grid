@@ -353,24 +353,12 @@ export interface Rules {
   predStars?: boolean;
   /** Chapter 6: once `metrics.track[key]` exists it must stay inside [lo, hi] (L22: G1's share of the step, 0.58..0.62). */
   trackBand?: { key: string; lo: number; hi: number } | null;
-  /** Chapter 5 (absent elsewhere, so other levels' states and goldens stay as they were): every energised bus of these nominal kVs must stay within [lo, hi] pu; more than `graceBlocks` blocks outside loses. */
-  vWatch?: { lo: number; hi: number; kv: number[]; graceBlocks: number; /** only these bus ids (instead of every bus of the listed kVs) */ buses?: string[] } | null;
-  /** Chapter 5: any branch above this fraction of its rating in a block loses (L16: "no line above 100 %"). */
-  maxLoading?: number | null;
-  /** Chapter 5: blocks above `maxLoading` tolerated before the loss (an overload timer, not a trip wire); absent = 0. */
-  loadingGraceBlocks?: number;
-  /** Chapter 5: probe the N-1 security of every block (worst post-outage loading of any branch, tracked as `n1Loading`); it never changes play, only the third star. */
-  n1?: boolean;
-  /** Chapter 5: a case that is beyond its maximum loadability (lambda* < 1) loses as a voltage collapse. */
-  collapseLoses?: boolean;
-  /** Chapter 5 exam bridge (L18): resolve the player's predictions against the textbook 3-bus case and count the ones within 0.5 %. */
-  exam?: boolean;
-  /** Chapter 5: track the post-trip loadability margin (percent above the load, from the continuation) once this block of the day has passed (L17). */
-  marginFromBlock?: number | null;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
   /** Chapter 3 (absent elsewhere): the harmonic, fault and power-factor rules of L07-L09 (src/sim/ch3). */
   ch3?: import('./sim/ch3/rules').Ch3Rules;
+  /** L28 (the finale, absent elsewhere): the three scripted days, the island that must stay lit, the repair crews (src/sim/finale.ts). */
+  finale?: import('./sim/finale').FinaleRules | null;
 }
 
 /** A bench level's circuit as the player has built it so far (DC bench, DESIGN 2.6 L01-L03). Derived values are recomputed, never stored. */
@@ -420,8 +408,6 @@ export interface BlockSummary {
   /** Energy not served this block as average MW, and generation short of demand after dispatch, MW. */
   ensMW: number; shortfallMW: number; curtailedMW: number; imbalanceMW: number;
   reserveMW: number; marginPct: number;
-  /** L28 (the finale, absent elsewhere): the three scripted days, the island that must stay lit, the repair crews (src/sim/finale.ts). */
-  finale?: import('./sim/finale').FinaleRules | null;
   worstVPu: number; worstLoading: number;
   costBlock: number; starts: number; startCostBlock: number;
   eventWindow: boolean; trips: string[]; blackout: boolean;

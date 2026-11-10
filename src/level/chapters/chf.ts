@@ -1,5 +1,5 @@
 // Chapter F levels in campaign order, owned by the chapter-F builder (one file per chapter so parallel builders never edit index.ts).
 import type { GridLevelSpec } from '../spec';
+import { L28 } from '../levels/l28';
 
-
-export const CHF: GridLevelSpec[] = [];
+export const CHF: GridLevelSpec[] = [L28];

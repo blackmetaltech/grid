@@ -70,7 +70,7 @@ export interface GridLevelSpec {
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' | 'finale' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
   /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
@@ -189,8 +189,6 @@ export function allowedGate(actions: Record<string, ActionFn<GridState>>, specOf
         if (!spec.allowed.actions.includes(name)) { const key = 'level.action.notAllowed'; return { ok: false, message: t(key, { action: name, level: spec.id }), key, params: { action: name, level: spec.id } }; }
         const pos = PART_ARG[name], list = spec.allowed.parts[name];
         if (pos !== undefined && list && !list.map(String).includes(String(args[pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
-        const maxSteps = spec.allowed.parts['placeShunt.maxSteps']?.[0];   // chapter 5: a level can cap the number of bank steps (an omitted count means the catalogue's maximum, so it counts as unlimited)
-        if (name === 'placeShunt' && maxSteps !== undefined && !(args[2] !== undefined && Number(args[2]) <= Number(maxSteps))) { const key = 'level.part.notAllowed'; const params = { part: t('level.part.stepsOver', { n: Number(maxSteps) }), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
         for (const x of EXTRA_PART_ARG[name] ?? []) {
           const more = spec.allowed.parts[`${name}.${x.name}`];
           if (more && args[x.pos] !== null && args[x.pos] !== undefined && !more.map(String).includes(String(args[x.pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[x.pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }

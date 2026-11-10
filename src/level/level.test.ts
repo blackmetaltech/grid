@@ -33,8 +33,14 @@ const near = (a: number, b: number, rel: number): void => { expect(Math.abs(a - 
 const MARGIN = 0.02;
 
 describe('level list', () => {
-  it('the campaign so far: the T00 clock fixture, then P0, L01, L02, L03, L05, L29, L30, L07 in order', () => {
-    expect(LEVELS.map((l) => l.id)).toEqual(['T00', 'P0', 'L01', 'L02', 'L03', 'L05', 'L29', 'L30', 'L07']);
+  it('the campaign order: the T00 clock fixture, the prologue and chapter 1, chapter 2 (L04 L05 L06 L29 L30), then chapters 3-7 in level order and the finale last', () => {
+    const ids = LEVELS.map((l) => l.id);
+    expect(ids.slice(0, 5)).toEqual(['T00', 'P0', 'L01', 'L02', 'L03']);
+    expect(new Set(ids).size).toBe(ids.length);
+    const order = ['L04', 'L05', 'L06', 'L29', 'L30', 'L07', 'L08', 'L09', 'L10', 'L11', 'L12', 'L13', 'L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20', 'L21', 'L22', 'L23', 'L24', 'L25', 'L26', 'L27', 'L28'].filter((x) => ids.includes(x));
+    expect(ids.filter((x) => order.includes(x))).toEqual(order);
+    for (const must of ['L05', 'L29', 'L30', 'L07']) expect(ids).toContain(must);
+    if (ids.includes('L28')) expect(ids.at(-1)).toBe('L28');
     expect(CAMPAIGN_LEVELS.map((l) => l.id)).toEqual(LEVEL_SPECS.map((l) => l.id));
     expect(new Set(LEVEL_SPECS.map((l) => l.id)).size).toBe(LEVEL_SPECS.length);
     expect(specOf('L07')?.chapter).toBe(3); expect(specOf('nope')).toBeUndefined();
