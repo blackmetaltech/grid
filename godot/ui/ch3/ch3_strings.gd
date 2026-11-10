@@ -3,7 +3,7 @@ extends RefCounted
 ## Chapter 3 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C3_ (the tray's GT_ keys for chapter 3 parts are the only exception: the tray looks them up by that name).
 const S := {
 	# tray: the parts of L08 and L09
-	"C3_PLAIN": "plain", "GT_K_detune": "Reactor", "GT_KS_detune": "% of Xc", "GT_TIP_detune": "Series reactor as a share of the capacitor's reactance: plain, 4.53 % (a filter tuned at 4.7), 7 % or 14 % (detuned banks)",
+	"C3_PLAIN": "plain", "C3_FILTER": "filter 4.7", "C3_TAG_IN": "IN %s of %s steps", "C3_TAG_OUT": "OUT: 0 of %s steps, the bank does nothing", "C3_TAG_AUTO": "Automatic control costs 60 % more than a fixed bank; the price is paid when you press Set.", "GT_K_detune": "Reactor", "GT_KS_detune": "% of Xc", "GT_TIP_detune": "Series reactor as a share of the capacitor's reactance: plain, 4.53 % (a filter tuned at 4.7), 7 % or 14 % (detuned banks)",
 	"GT_TIP_placeBank": "%s with a series reactor: the Steps knob sets the size, the Reactor knob the detuning. Plain banks can resonate with the supply; detuned means a reactor in series, so the bank resonates below the 5th",
 	"GT_ICON_series": "Series cap", "GT_UNIT_pct": "%s %%",
 	"GT_TIP_placeSeriesCap": "%s of the line's reactance: a series capacitor in the feeder. Click the line",

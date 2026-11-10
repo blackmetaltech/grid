@@ -34,6 +34,8 @@ export function buildCh3Actions(d: Ch3ActionDeps): Record<string, ActionFn<GridS
       const p = detunePct === undefined || detunePct === null ? 0 : detunePct;
       if (!isNum(p) || !(String(p) in DETUNE_COST)) return reject('ch3.bank.detune', { p: String(p) });
       if (!s.buses.some((b) => b.id === bus)) return reject('act.unknownId', { what: t('what.bus'), id: bus });
+      const there = s.shunts.find((h) => h.bus === bus && h.kind === 'cap');
+      if (there) return reject('ch3.bank.exists', { bus, id: there.id });
       const spec = d.cat(s).shunt(catalogId);
       if (!spec || spec.kind !== 'cap') return reject('act.unknownCatalog', { what: t('what.compensation'), id: catalogId });
       const n = isNum(steps) && Number.isInteger(steps) && steps >= 1 ? Math.min(steps, spec.maxSteps) : spec.maxSteps;
@@ -44,7 +46,7 @@ export function buildCh3Actions(d: Ch3ActionDeps): Record<string, ActionFn<GridS
       const kvar = Math.abs(spec.mvarStep) * 1000 * n, cost = spec.pricePerKvar * kvar * DETUNE_COST[String(p)]!;
       s.budget.spent += cost;
       const h = p > 0 ? Math.round(100 / Math.sqrt(p / 100)) / 100 : 0;
-      return accept(s, 'placeBank', p > 0 ? 'ch3.bank.ok.detuned' : 'ch3.bank.ok', { id, bus, kvar: Math.round(kvar), p, h, qeff: Math.round(kvar / (1 - p / 100)) });
+      return accept(s, 'placeBank', p > 0 ? 'ch3.bank.ok.detuned' : 'ch3.bank.ok', { id, bus, steps: n, kvar: Math.round(kvar), p, h, qeff: Math.round(kvar / (1 - p / 100)) });
     },
     placeSeriesCap: (s, branchId: unknown, pct: unknown) => {
       if (!isStr(branchId)) return bad('branchId', 'exp.a_branch_id');

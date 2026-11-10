@@ -68,7 +68,7 @@ func _draw_pf() -> void:
 	_txt(tx("C3_P_PHASOR"), Vector2(14, 22), 12, _ink(0.7))
 	if d.is_empty() or d.get("error", false): return
 	var word := tx("C3_P_LEAD") if str(d.get("lead", "")) == "leading" else tx("C3_P_LAG")
-	var amps := int(round(float(d.get("iKA", 0.0)) * 1000.0))
+	var amps := int(d.get("iA", round(float(d.get("iKA", 0.0)) * 1000.0)))
 	_txt(tx("C3_P_PF") % [("%.2f" % float(d.get("pf", 0.0))), word, str(amps)], Vector2(14, 250), 14, _ink())
 	_txt("P %.2f MW · Q %.2f MVAr" % [float(d.get("pMW", 0.0)), float(d.get("qMVAr", 0.0))], Vector2(14, 268), 12, _ink(0.7))
 	_txt(tx("C3_P_AMPS") % [str(int(d.get("iA", 0))), str(int(d.get("ratedA", 0)))], Vector2(14, 288), 14, GridTheme.BAD if float(d.get("iA", 0)) > float(d.get("ratedA", 1)) else _ink())

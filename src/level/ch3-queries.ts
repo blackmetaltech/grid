@@ -24,7 +24,7 @@ export function pfLesson(s: GridState, lessonKey: string): string {
   const banks = s.shunts.filter((h) => h.kind === 'cap'), qc = tr.peakBankMVAr ?? 0;
   if (banks.length > 0 && qc > 1e-9) {
     const kvar = Math.round(banks.reduce((a, h) => a + h.mvarStep * h.steps, 0) * 1000), qf = ql - qc, sf = dmath.hypot(pl, qf);
-    out += ' ' + t('level.L07.lessonBank', { kvar, qc: f2(qc), qf: f2(qf), sf: f2(sf), pf: f2(tr.pfAtPeak ?? 0), amps: Math.round(tr.peakAmps ?? 0), t1: f2(tan(pl / sl)), t2: f2(tan(0.95)) });
+    out += ' ' + t('level.L07.lessonBank', { kvar, qc: f2(qc), qf: f2(qf), sf: f2(sf), pf: f2(pl / sf), amps: Math.round(sf * 1000 / (Math.sqrt(3) * kv * v)), v: f3(v), t1: f2(tan(pl / sl)), t2: f2(tan(0.95)) });
   } else out += ' ' + t('level.L07.lessonNoBank', { amps: Math.round(tr.peakAmps ?? 0), pf: f2(tr.pfAtPeak ?? 0) });
   if (tr.noonAmps !== undefined && tr.noonMW !== undefined) out += ' ' + t('level.L07.lessonNoon', { nkw: Math.round(tr.noonMW * 1000), nam: Math.round(tr.noonAmps), npf: f2(tr.noonPf ?? 0) });
   return out;
@@ -77,6 +77,9 @@ export function ch3TryHint(s: GridState): string {
   // L07
   if (over) return t('level.L07.tryBudget');
   const pct = Math.round(Math.max(tr.peakLoading ?? 0, 0) * 100);
+  const banks = s.shunts.filter((h) => h.kind === 'cap'), load = s.loads[0]?.bus;
+  const whyBank = banks.length === 0 ? t('level.L07.tryNoBank') + ' ' : banks.every((h) => h.bus !== load) ? t('level.L07.tryBankWrong', { bus: banks[0]!.bus }) + ' ' : (tr.peakBankMVAr ?? 0) <= 1e-9 ? t('level.L07.tryBankOut') + ' ' : '';
+  if (whyBank && (key === 'level.lost.blackout' || (tr.overloadTrips ?? 0) > 0 || key.startsWith('level.lost.poorSupply'))) return whyBank + t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2((tr.peakLoadMW ?? 1.7) * (tan((tr.peakLoadMW ?? 1.7) / Math.hypot(tr.peakLoadMW ?? 1.7, tr.peakLoadMVAr ?? 1.4)) - tan(0.95))) });
   if ((tr.overloadTrips ?? 0) > 0 || key === 'level.lost.blackout') {
     const pl = tr.peakLoadMW ?? 1.7, pf = tr.peakLoadMW ? pl / dmath.hypot(pl, tr.peakLoadMVAr ?? 0) : 0.77;
     return t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2(pl * (tan(pf) - tan(0.95))) });

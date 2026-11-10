@@ -280,7 +280,7 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 			var h := PaperKit.PaperHist.new(); h.name = "PaperHist"; h.custom_minimum_size = Vector2(240, 70 if compact else 120); h.set_data(rc); col.add_child(h)
 			if str(rc.get("source", "")) == "bot": col.add_child(PaperKit.lbl(str(rc.label), 14, "sans", Color(PaperKit.INK, 0.6), true))
 			if rc.get("mine") != null and rc.get("percentile") != null:
-				col.add_child(PaperKit.lbl(T("RESULT_MINE_FMT") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(round(float(rc.percentile) * 100.0)), int(rc.n)] if int(round(float(rc.percentile) * 100.0)) > 0 else T("C4_MATCHED_BEST") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(rc.n)], 15, "sans", PaperKit.INK, true))
+				col.add_child(PaperKit.lbl(T("RESULT_MINE_FMT") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(round(float(rc.percentile) * 100.0)), int(rc.n)], 15, "sans", PaperKit.INK, true))
 	var lesson := str(li.get("lesson", ""))
 	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE, "", compact))
 	return lamps

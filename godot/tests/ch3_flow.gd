@@ -21,7 +21,7 @@ func _initialize() -> void:
 	T.check(tray.items.filter(func(i): return i.kind == "knob").map(func(i): return i.id) == ["steps", "detune"], "knob cells: steps and the reactor share")
 	var seen: Array = [tray.knob_text("detune")]
 	for k in 3: tray.step_knob("detune", 1); seen.append(tray.knob_text("detune"))
-	T.check(seen == ["plain", "4.53 %", "7 %", "14 %"], "the reactor knob steps along the allowed shares: %s" % str(seen))
+	T.check(seen == ["plain", "filter 4.7", "7 %", "14 %"], "the reactor knob steps along the allowed shares: %s" % str(seen))
 	tray.step_knob("detune", 1); T.check(tray.knob_text("detune") == "14 %", "and stops at the end")
 	for k in 2: tray.step_knob("detune", -1)
 	tray.knobs.steps = 3
@@ -31,7 +31,7 @@ func _initialize() -> void:
 	T.check(sh.size() == 1 and int(sh[0].steps) == 3 and absf(float(sh[0].detunePct) - 4.53) < 1e-9 and str(sh[0].bus) == "B2", "the engine has C1: 900 kVAr with a 4.53 %% reactor at B2: %s" % str(sh))
 	var h = T.b.q("harmonics")
 	T.check(h is Dictionary and bool(h.get("ready", false)) and (h.bars as Array).size() == 4 and (h.sweep as Array).size() > 50, "the harmonics query has four bars and the impedance sweep")
-	T.check(bool(h.asIf) and (h.banks as Array).size() == 1 and float(h.banks[0].ratio) < 1.3 and float(h.thdPct) < 5.0, "the filter bank (switched in as if) passes the what-if: THD %.2f, ratio %.2f" % [float(h.thdPct), float(h.banks[0].ratio)])
+	T.check(not bool(h.asIf) and (h.banks as Array).size() == 1 and float(h.banks[0].ratio) < 1.3 and float(h.thdPct) < 5.0, "the filter bank (switched in as if) passes the what-if: THD %.2f, ratio %.2f" % [float(h.thdPct), float(h.banks[0].ratio)])
 	var panel := Ch3Panel.new(); panel.app = null; root.add_child(panel)
 	panel.mode = "harm"; panel.d = h; panel.size = Vector2(300, 392); panel.visible = true
 	T.check(Ch3Panel.mode_of("L07") == "pf" and Ch3Panel.mode_of("L08") == "harm" and Ch3Panel.mode_of("L09") == "series" and Ch3Panel.mode_of("L05") == "", "the card's mode follows the level")

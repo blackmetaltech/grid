@@ -6,6 +6,7 @@ import type { Action } from '@core/kit';
 import type { GridLevelSpec } from '../spec';
 import { place } from '../spec';
 import { BLOCKS_PER_DAY } from '../../types';
+import { t } from '../../i18n';
 import { MILL, millShape } from './l07';
 import { FILTER_PCT } from '../../ch3-actions';
 
@@ -72,6 +73,7 @@ export const L08: GridLevelSpec = {
     A('stringLine', 'B1', 'B2', 'l11-rabbit', 1, 4);   // the council reconductored the feeder after the L07 summer
     A('placeUnit', 'ccgt-418', 'B1', 20);
     A('placeLoad', 'B2', 'industrial', MILL.peakMW, MILL.pf); A('placeLoad', 'B2', 'residential', 0.5, 0.95); A('placeLoad', 'B2', 'industrial', FACTORY.peakMW, FACTORY.pf);
+    s.buses[0]!.name = t('place.ch3.substation'); s.buses[1]!.name = t('place.ch3.millbus');   // the map says which bus the bank goes on
     for (const l of s.loads) l.zip = [0, 0, 1];
     s.loads[0]!.shape = millShape();
     s.loads[2]!.shape = factoryShape(); s.loads[2]!.vfd = true;

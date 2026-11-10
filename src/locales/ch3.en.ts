@@ -1,13 +1,18 @@
 // Chapter 3 strings (merged into en by ./en.ts). Same rules as en.ts: every player-facing string keyed, {name} variables.
 // Cast: ADA (the engineer who trains you), TOBI (the lineman), VANCE (the budget), NIA (the student whose exam is tomorrow).
 export const EN_CH3: Record<string, string> = {
+  'place.ch3.substation': 'Substation (B1)', 'place.ch3.millbus': 'Mill bus (B2): banks go here',
+  'ch3.bank.exists': 'Bus {bus} already has bank {id}: click it and Remove it first, then place the new one.',
+  'level.L07.tryNoBank': 'No capacitor stood on the mill bus (B2): the feeder carried all the reactive current.',
+  'level.L07.tryBankOut': 'Your bank was switched out at the peak (0 steps in): a bank only helps while its steps are in.',
+  'level.L07.tryBankWrong': 'Your bank stood at {bus}, the substation end: the motors\' reactive current still ran the whole feeder. Put it on the mill bus (B2).',
   // ---- L07 The Lagging Mill (title, brief and coach live in en.ts) ----
   'level.L07.place': 'Mill Town · Sarn rice mill, 06:00',
   'level.L07.story1': 'ADA: Year four. Mill Town grew up around one rice mill, and a mill is a field of motors.',
   'level.L07.story2': 'TOBI: A motor is a coil. Building its magnetic field takes current that does no work, and the feeder carries every amp of it.',
   'level.L07.story3': 'VANCE: The feeder is rated 115 amps. A fatter wire costs a fortune; a capacitor bank is pocket change. But a bank left on at night with the mill off pushes current back up the line.',
   'level.L07.lesson': 'At {time} the loads asked for P = {pl} MW of real power and Q = {ql} MVAr of reactive power. S = √(P² + Q²) = {sl} MVA and the power factor cos φ = P ÷ S = {pfl}, so the current is I = S ÷ (√3 · V) = {i0} A at {v} pu, against {rated} A of rating.',
-  'level.L07.lessonBank': 'Your {kvar} kVAr of capacitors supplied {qc} MVAr of that Q right at the mill, so the feeder carried only Q = {qf} MVAr: S = {sf} MVA, power factor {pf}, {amps} A at the supply. Q_c = P (tan φ₁ − tan φ₂) is the sizing rule: tan φ₁ = {t1}, aiming at tan φ₂ = {t2}.',
+  'level.L07.lessonBank': 'Your {kvar} kVAr of capacitors supplied {qc} MVAr of that Q right at the mill, so the feeder carried only Q = {qf} MVAr: S = {sf} MVA, power factor {pf}, so I = S ÷ (√3 · V) = {amps} A at {v} pu. Q_c = P (tan φ₁ − tan φ₂) is the sizing rule: tan φ₁ = {t1}, aiming at tan φ₂ = {t2}.',
   'level.L07.lessonNoBank': 'No capacitor stood at the mill, so the feeder carried all of it: {amps} A at power factor {pf}, with the motors\' magnetising current going the whole 4 km and back.',
   'level.L07.lessonNoon': 'At 13:00 the motors idled and the feeder carried only P = {nkw} kW, but still {nam} A at power factor {npf}. Amps do not follow kilowatts: this is the wattless current, and it lags the voltage by nearly 90°.',
   'level.L07.tryOverload': 'The feeder ran at {pct} % of its rating at {time}. A capacitor bank at the mill bus supplies the motors\' Q locally: Q_c = P (tan φ₁ − tan φ₂) is about {qc} MVAr for the evening peak.',

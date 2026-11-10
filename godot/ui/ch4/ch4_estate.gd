@@ -40,8 +40,8 @@ func _press(h: Dictionary, p: Vector2) -> void:
 	elif id == "starter": _act("setStarter", [str(h.arg)])
 	elif id == "count":
 		var pt := stepper_parts(h.rect)
-		if (pt.minus as Rect2).grow(6.0).has_point(p): _send_bank(_count() - (1 if bool(h.get("right", false)) else 5))
-		elif (pt.plus as Rect2).grow(6.0).has_point(p): _send_bank(_count() + (1 if bool(h.get("right", false)) else 5))
+		if (pt.minus as Rect2).grow(6.0).has_point(p): _send_bank(_count() - (10 if bool(h.get("right", false)) else 1))
+		elif (pt.plus as Rect2).grow(6.0).has_point(p): _send_bank(_count() + (10 if bool(h.get("right", false)) else 1))
 		else: _drag(h, p)
 
 func _drag(h: Dictionary, p: Vector2) -> void:

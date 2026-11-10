@@ -5,6 +5,7 @@ import type { Action } from '@core/kit';
 import type { GridLevelSpec } from '../spec';
 import { place } from '../spec';
 import { BLOCKS_PER_DAY } from '../../types';
+import { t } from '../../i18n';
 
 /** Mill daily shape as fractions of its 1.2 MW peak: P and Q per block (DESIGN L07). */
 export const MILL = { peakMW: 1.2, pf: 0.7, lunchMW: 0.15, lunchMVAr: 0.9, onHour: 6, offHour: 22, lunchFrom: 13, lunchTo: 14 } as const;
@@ -67,6 +68,7 @@ export const L07: GridLevelSpec = {
     A('stringLine', 'B1', 'B2', 'l11-weasel', 1, 4);
     A('placeUnit', 'ccgt-418', 'B1', 20);
     A('placeLoad', 'B2', 'industrial', MILL.peakMW, MILL.pf); A('placeLoad', 'B2', 'residential', 0.5, 0.95);
+    s.buses[0]!.name = t('place.ch3.substation'); s.buses[1]!.name = t('place.ch3.millbus');   // the map says which bus the bank goes on
     // constant P and Q (the oracle's load model), and the mill's own daily shape
     for (const l of s.loads) l.zip = [0, 0, 1];
     s.loads[0]!.shape = millShape();

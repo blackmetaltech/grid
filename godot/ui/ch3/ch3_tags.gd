@@ -5,9 +5,13 @@ static func op_info(b, kind: String, id: String) -> String:
 	if b == null: return ""
 	if kind == "shunt":
 		for h in b.g.get("shunts", []):
-			if str(h.id) == id and float(h.get("detunePct", 0.0)) > 0.0:
+			if str(h.id) != id: continue
+			var st: String = (TranslationServer.translate("C3_TAG_IN") % [str(int(h.on)), str(int(h.steps))]) if int(h.on) > 0 else (TranslationServer.translate("C3_TAG_OUT") % str(int(h.steps)))
+			st += "\n" + TranslationServer.translate("C3_TAG_AUTO")
+			if float(h.get("detunePct", 0.0)) <= 0.0: return st
+			if float(h.get("detunePct", 0.0)) > 0.0:
 				var p := float(h.detunePct)
-				return TranslationServer.translate("C3_TAG_DETUNED") % [("%.2f" % p).rstrip("0").rstrip("."), "%.2f" % (1.0 / sqrt(p / 100.0))]
+				return st + "\n" + TranslationServer.translate("C3_TAG_DETUNED") % [("%.2f" % p).rstrip("0").rstrip("."), "%.2f" % (1.0 / sqrt(p / 100.0))]
 	if kind == "branch":
 		for br in b.g.get("branches", []):
 			if str(br.id) == id and br.get("seriesCap") != null:

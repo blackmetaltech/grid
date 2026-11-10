@@ -89,10 +89,10 @@ describe('L07 The Lagging Mill: the power triangle', () => {
     const e = run(play('L07', specOf('L07')!.lesson));
     expect(e.state.status).toBe('won');
     const l = info(e).lesson as string;
-    const m = l.match(/Your (\d+) kVAr of capacitors supplied ([\d.]+) MVAr of that Q right at the mill, so the feeder carried only Q = ([\d.]+) MVAr: S = ([\d.]+) MVA, power factor ([\d.]+), (\d+) A at the supply/)!;
+    const m = l.match(/Your (\d+) kVAr of capacitors supplied ([\d.]+) MVAr of that Q right at the mill, so the feeder carried only Q = ([\d.]+) MVAr: S = ([\d.]+) MVA, power factor ([\d.]+), so I = S ÷ \(√3 · V\) = (\d+) A at ([\d.]+) pu/)!;
     expect(m, l).not.toBeNull();
     expect(Number(m[1])).toBe(900); near(Number(m[2]), 0.9 * 0.96 ** 2 * 1.0, 0.08); expect(Number(m[6])).toBeLessThan(115); expect(Number(m[5])).toBeGreaterThan(0.94);
-    near(Number(m[4]), Math.hypot(e.state.metrics.track.peakLoadMW!, Number(m[3])), 0.01);
+    near(Number(m[4]), Math.hypot(e.state.metrics.track.peakLoadMW!, Number(m[3])), 0.01); near(Number(m[6]), Number(m[4]) * 1000 / (Math.sqrt(3) * 11 * Number(m[7])), 0.01);
     expect(info(e).tryHint).toBe('');
   });
   it('a fixed bank earns two stars (leading at night), the switched reference three', () => {
@@ -213,6 +213,22 @@ describe('L08 placeBank, prices and the fuse', () => {
     expect(e.state.status).toBe('lost'); expect(e.state.shunts[0]!.blown).toBe(true);
     const set = e.engine.act('setShuntSteps', ['C1', 3]); void set;
     expect(e.state.status).toBe('lost');
+  });
+});
+
+describe('review fixes: stacking refused, hints say what the bank did', () => {
+  it('a second bank on a bus that has one is refused with the way out', () => {
+    const e = fresh('L08'); expect(e.engine.act('placeBank', ['B2', 'cap-11-300', 2, 0]).ok).toBe(true);
+    const r = e.engine.act('placeBank', ['B2', 'cap-11-300', 3, 7]); expect(r.ok).toBe(false); expect(r.key).toBe('ch3.bank.exists'); expect(r.message).toMatch(/already has bank C1/);
+    expect(e.state.shunts.length).toBe(1);
+  });
+  it('L07: a bank at the substation end, or left switched out, is named in the what-to-try; the buses carry names', () => {
+    const wrong = run(play('L07', [{ name: 'placeShunt', args: ['B1', 'cap-11-900', 1] }, { name: 'setShuntSteps', args: ['C1', 1] }]));
+    expect(wrong.state.status).toBe('lost'); expect(info(wrong).tryHint).toMatch(/stood at B1, the substation end/);
+    const out = run(play('L07', [{ name: 'placeShunt', args: ['B2', 'cap-11-900', 1] }]));
+    expect(info(out).tryHint).toMatch(/switched out at the peak/);
+    expect(info(run(play('L07', []))).tryHint).toMatch(/No capacitor stood on the mill bus/);
+    expect(out.state.buses[1]!.name).toBe('Mill bus (B2): banks go here');
   });
 });
 

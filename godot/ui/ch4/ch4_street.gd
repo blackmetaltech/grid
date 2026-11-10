@@ -114,8 +114,8 @@ func _draw_house(i: int, g: Dictionary) -> void:
 		draw_polyline(z, Color("#FFF27A"), 2.0, true)
 	if GridSettings.cute: _face(r.position + Vector2(r.size.x * 0.5 - 2.0, 30.0), 8.0, okv, 0.8)
 	_text(_mono(), 10, Vector2(r.position.x - 8.0, r.end.y + 13.0), "H%d" % (i + 1), Color(GridTheme.TEXT, 0.75), r.size.x + 16.0, 1)
-	_text(_mono(), 10, Vector2(r.position.x - 8.0, r.end.y + 25.0), "%s kVA" % _f(float(q.houses[i].kva), 1), Color(GridTheme.SODIUM, 0.9), r.size.x + 16.0, 1)
-	_text(_mono(), 9, Vector2(r.position.x - 8.0, r.end.y + 36.0), "%s kW" % WorkOrder.num(float(q.houses[i].kw)), Color(GridTheme.TEXT, 0.45), r.size.x + 16.0, 1)
+	_text(_mono(), 10, Vector2(r.position.x - 8.0, r.end.y + 25.0), "%s kW" % WorkOrder.num(float(q.houses[i].kw)), Color(GridTheme.TEXT, 0.55), r.size.x + 16.0, 1)
+	_text(_mono(), 9, Vector2(r.position.x - 8.0, r.end.y + 36.0), "pf %s" % WorkOrder.num(float(q.houses[i].pf)), Color(GridTheme.TEXT, 0.45), r.size.x + 16.0, 1)
 
 func _draw_far_voltage(g: Dictionary) -> void:
 	var xe := float(g.x0) + float(g.sp) * 5.0
@@ -203,5 +203,5 @@ func _draw_panel_body() -> void:
 	var x := inner.position.x
 	for c in checks:
 		_text(mono, 11, Vector2(x, y), ("✓ " if c[1] else "✗ ") + str(c[0]), _good(bool(c[1])))
-		x += 172.0
+		x += 152.0
 	if q.fail != null and not bool(q.done): pass

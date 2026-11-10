@@ -36,7 +36,7 @@ func _layout_panel() -> void:
 
 func _pe() -> String:
 	var p: Dictionary = q.predictions
-	return "—" if not bool(q.running) or p.E == null or p.delta == null or p.pmax == null else _f(float(q.predErrPct), 1)
+	return "—" if p.E == null or p.delta == null or p.pmax == null else _f(float(q.predErrPct), 1)
 
 func _exc() -> float: return float(q.night.excitation) if q.night.excitation != null else 1.0
 
@@ -44,8 +44,8 @@ func _set_exc(v: float) -> void: _act("setExcitation", [snappedf(clampf(v, 0.5, 
 
 func _press(h: Dictionary, p: Vector2) -> void:
 	var pt := stepper_parts(h.rect)
-	if (pt.minus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() - (0.01 if bool(h.get("right", false)) else 0.001))
-	elif (pt.plus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() + (0.01 if bool(h.get("right", false)) else 0.001))
+	if (pt.minus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() - (0.001 if bool(h.get("right", false)) else 0.01))
+	elif (pt.plus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() + (0.001 if bool(h.get("right", false)) else 0.01))
 	else: _drag(h, p)
 
 func _drag(h: Dictionary, p: Vector2) -> void:

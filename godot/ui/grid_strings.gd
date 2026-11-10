@@ -105,7 +105,7 @@ const S := {
 	"GT_ICON_breaker": "Breaker", "GT_ICON_demolish": "Remove", "GT_ICON_dispatch": "Dispatch", "GT_ICON_part": "Part",
 	"GT_UNIT_kvar": "%skVAr", "GT_UNIT_mw": "%sMW", "GT_UNIT_kv": "%skV", "GT_FROM_MAP": "from map",
 	"GT_K_steps": "Steps", "GT_K_mw": "Size", "GT_K_circuits": "Circuits", "GT_K_km": "Length", "GT_K_on": "Steps in", "GT_K_droop": "Droop", "GT_K_vlow": "In below (pu)", "GT_K_vhigh": "Out above (pu)",
-	"GT_K_delay": "Delay (blocks)", "GT_K_vset": "Set-point (pu)", "GT_K_band": "Deadband (pu)", "GT_K_dmw": "MW", "GT_K_shed": "Shed share",
+	"GT_K_delay": "Delay (15-min blocks)", "GT_K_vset": "Set-point (pu)", "GT_K_band": "Deadband (pu)", "GT_K_dmw": "MW", "GT_K_shed": "Shed share",
 	"GT_KS_steps": "/ bank", "GT_KS_mw": "MW", "GT_KS_circuits": "/ line", "GT_KS_km": "km", "GT_KS_on": "to set", "GT_KS_droop": "%", "GT_KS_vlow": "pu", "GT_KS_vhigh": "pu", "GT_KS_delay": "blocks", "GT_KS_vset": "pu", "GT_KS_band": "pu", "GT_KS_dmw": "MW", "GT_KS_shed": "share",
 	"GT_TIP_part": "A part for the grid: pick it, then click where it goes", "GT_TIP_placeShunt": "%s: reactive power next to the load. Steps times the step size is the bank",
 	"GT_TIP_placeUnit": "%s: a generator at a bus, set to the size on the Size knob", "GT_TIP_placeStorage": "%s: a battery at a bus", "GT_TIP_placeTransformer": "%s: joins two buses of different voltages",

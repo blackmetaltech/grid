@@ -28,7 +28,9 @@ export function buildCh3Queries(d: { getParams: (s: GridState) => SimParams }): 
       if (!br || !f || !from) return { active: false };
       const v = sol.sol.V[br.from] ?? 1, th = (sol.sol.theta[br.from] ?? 0) * 180 / Math.PI, rated = br.ratingMVA * 1000 / (Math.sqrt(3) * from.kvNom);
       const ph = phasorOf(v, v * from.kvNom, th, sol.flows.branch[br.id]!.pFrom * S_BASE_MVA, f.qFrom * S_BASE_MVA, f.iKA, rated / 1000);
-      return { active: true, ...ph, iA: Math.round(f.iKA * 1000), ratedA: Math.round(rated), blockText: '20:00' };
+      const tr = s.metrics.track, ran = tr.peakAmps !== undefined && tr.pfAtPeak !== undefined;   // after a run: what the supply really carried at its peak
+      const hh = (b: number): string => `${String(Math.floor(b / 4)).padStart(2, '0')}:${String((b % 4) * 15).padStart(2, '0')}`;
+      return { active: true, ...ph, ...(ran ? { pf: r3(tr.pfAtPeak!) } : {}), iA: Math.round(ran ? tr.peakAmps! : f.iKA * 1000), ratedA: Math.round(rated), blockText: ran ? `${hh(tr.peakBlock ?? 80)}, last run` : '20:00' };
     },
     harmonics: (s) => {
       const r = s.rules.ch3?.harmonics;

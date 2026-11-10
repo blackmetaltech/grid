@@ -234,6 +234,7 @@ func _item_at(p: Vector2) -> int:
 func knob_text(id: String, v = null) -> String:
 	var k: Dictionary = KNOBS.get(id, {}); var x := float(knobs.get(id, 0.0) if v == null else v)
 	if id == "km" and x <= 0.0: return tx("GT_FROM_MAP")
+	if k.has("vals") and is_equal_approx(x, 4.53): return tx("C3_FILTER")
 	if k.has("vals"): return tx("C3_PLAIN") if x <= 0.0 else ("%.2f" % x).rstrip("0").rstrip(".") + " %"
 	if k.get("int", false): return str(int(round(x)))
 	if k.has("fmt"): return str(k.fmt) % x
@@ -417,6 +418,8 @@ func press_target(id: String) -> Dictionary:
 	var it: Dictionary = items[armed]
 	var r := run_armed()
 	picks = []; target_hi = -1
+	if r.get("ok", false) and str(it.action) in ["placeShunt", "placeBank"] and r.get("params") is Dictionary:   # a new bank starts switched IN (its tag steps it out): a bank left at 0 steps does nothing
+		var bid := str((r.params as Dictionary).get("id", "")); if bid != "": b.act("setShuntSteps", [bid, int((r.params as Dictionary).get("steps", 1))])
 	if r.get("ok", false):   # the part stays armed (place several), the chip says what the engine did
 		chip_text = str(r.get("message", "")); chip_dot = GridTheme.GOOD; chip_cell = -1; chip_at = Vector2(size.x * 0.5, -10.0); _chip_until = Time.get_ticks_msec() + 4000
 		_show_pegs()
