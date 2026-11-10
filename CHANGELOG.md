@@ -2,6 +2,17 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.0.0-rc] - unreleased: "Keep the Lights On" (the finale; every chapter playable)
+### Added
+- **WO-28 Keep the Lights On**: the whole state for three days (26 buses at 400/220/132 kV, nine plants, a 300 MW datacentre).
+  Day 1 a heatwave peak, Day 2 a storm that trips a 400 kV line, the largest unit and a transformer, then lightning on the island's
+  causeway at 23:30, Day 3 a holiday full of sun and little demand. Saltmarsh Island must not go dark on the night before Nia's exam.
+  A day card with the threat, the island lamp and an event ticker; the game-end card.
+- Ruleset 6 for both region packs (pins and goldens regenerated).
+### Known gaps
+- In the `in` pack the third lamp of WO-28 is out of reach (cheap coal ramps too slowly at the Day 3 dawn).
+- Day 2's lightning opens the causeway by protection; it is not a sequence-network fault.
+
 ## [0.9.0] - unreleased: "Protection and Markets" (chapter 7)
 ### Added
 - **WO-23 Fault Level**: the short-circuit current at each feeder against its breaker rating (30.2 kA at F1 once the generators join);
@@ -22,7 +33,15 @@ All notable changes to GRID. The release workflow publishes the section whose he
 
 ## [0.7.0] - unreleased: "Load Flow and Voltage" (chapter 5)
 ### Added
-- Chapter 5 (WO-14 to WO-18): per-unit, load flow on the state ring, taps, reactors and the nose of the P-V curve.
+- **WO-14 Per Unit**: tap changers on a 132/33/11 kV chain; staggered automatic delays beat equal ones (about 28 tap moves instead of 140).
+- **WO-15 Long Line**: a 300 km line at light load lifts its far end (Ferranti, 1.089 pu); reactors, capacitors or an SVC at the receiving end.
+- **WO-16 Loop Flow**: power splits by impedance around a ring; reconductor with HTLS, add a line, open a ring line or run the plant at B4,
+  and survive the loss of any one line (N-1).
+- **WO-17 Nose**: the P-V curve and the loadability margin; capacitor steps, STATCOM, SVC or a peaker against voltage collapse.
+- **WO-18 Exam Bridge**: a PV bus set-point and Gauss-Seidel against Newton, three predictions.
+### Fixed
+- Shunt-reactor catalogue rows were read as capacitors.
+
 
 ## [0.6.0] - unreleased: "Three-Phase and Machines" (chapter 4)
 ### Added
