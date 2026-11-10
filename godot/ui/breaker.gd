@@ -21,7 +21,10 @@ func _init() -> void:
 	mouse_exited.connect(func(): _hover = false; queue_redraw())
 
 func running() -> bool: return app != null and app.speed > 0
+## After a lost job the handle restarts it (play-testers were stranded with a "Run the night" lever that did nothing).
+func lost() -> bool: return app != null and app.b != null and str(app.b.g.get("status", "")) == "lost"
 func label_text() -> String:
+	if lost(): return TranslationServer.translate("BREAKER_RETRY")
 	if running(): return TranslationServer.translate("BREAKER_PAUSE")
 	return TranslationServer.translate("BREAKER_RUN_NIGHT" if is_night_shift() else "BREAKER_RUN_DAY")
 
@@ -37,6 +40,10 @@ func rate_text() -> String: return RATES[clampi(rate, 1, 3) - 1]
 ## Pull the handle: run at the chosen rate, or pause.
 func toggle() -> void:
 	if app == null or not app.started: return
+	if lost():
+		var lid := str((app.b.q("levelInfo") as Dictionary).get("id", ""))
+		if lid != "": app.start_level(lid, true)
+		return
 	if running(): app.set_speed(0)
 	else: app.set_speed(rate)
 	app.sfx("breaker_close" if running() else "breaker_open")

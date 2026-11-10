@@ -43,7 +43,7 @@ const S := {
 	"HUD_FREQ": "Frequency", "HUD_HZ": "%s Hz", "HUD_ROCOF": "%s Hz/s", "HUD_BUDGET": "Budget", "HUD_BUDGET_FMT": "%s of %s",
 	"DIAL_NORMAL": "normal", "DIAL_OFF_RANGE": "outside the standard range", "DIAL_SHED": "danger: load shedding range",
 	"RESULT_HIST_TITLE": "How your design compares", "RESULT_MINE_FMT": "Your design: %s. %d%% of the %d designs did as well or better (lower is better).", "HIST_YOU": "you", "HIST_STAR_A": "A", "HIST_STAR_B": "B",
-	"BREAKER_RUN_NIGHT": "Run the night", "BREAKER_RUN_DAY": "Run the day", "METER_BLANK": "—", "METER_OFF": "not connected", "BREAKER_PAUSE": "Pause", "RADIO_WHY": "why?", "RADIO_LOG_TITLE": "Radio log", "RADIO_CLOSE": "Close", "RADIO_EMPTY": "Nothing on the radio yet.",
+	"BREAKER_RUN_NIGHT": "Run the night", "BREAKER_RUN_DAY": "Run the day", "METER_BLANK": "—", "METER_OFF": "not connected", "BREAKER_PAUSE": "Pause", "BREAKER_RETRY": "Retry the job", "RADIO_WHY": "why?", "RADIO_LOG_TITLE": "Radio log", "RADIO_CLOSE": "Close", "RADIO_EMPTY": "Nothing on the radio yet.",
 	"WO_TITLE": "WORK ORDER %s · %s", "WO_RADIO": "On the radio", "WO_GOAL": "Goal", "WO_PASS": "To pass", "WO_STARS": "Lamps to earn", "WO_TAKE": "Take the job", "WO_BACK": "Back to the job",
 	"WO_MODE": "How hard", "WO_COND_LIGHTS": "Lights on", "WO_COND_BUDGET": "Spend ≤ %s", "WO_WINDOW": "%s–%s", "WO_FREE_PLAY": "Free play: no work order.",
 	"TH_vLoadMinV": "Every home ≥\u00a0%s V", "TH_lossMaxPct": "Line losses ≤\u00a0%s\u00a0%%", "TH_loadBusMinPu": "Mill bus ≥\u00a0%s pu", "TH_loadingMax": "No line above %s %% of its rating",
