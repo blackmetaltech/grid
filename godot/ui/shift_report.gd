@@ -7,7 +7,7 @@ extends RefCounted
 ## benchStatus, coach, solutionCode (queries only).
 
 const STAMP_DELAY := 0.42
-const CHAPTER_END := {"L03": "L07"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order)
+const CHAPTER_END := {"L03": "L05"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order)
 const HIST_MIN_N := 10                ## fewer designs than this and the histogram says so instead of drawing a lonely bar
 static var _d: Dictionary = {}
 

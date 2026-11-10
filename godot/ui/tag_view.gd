@@ -28,7 +28,7 @@ var _cand := -1
 func _init() -> void:
 	name = "TagView"; mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	TrayStrings.load_strings()
+	TrayStrings.load_strings(); GridUi.load_strings()
 	panel = PanelContainer.new(); panel.mouse_filter = Control.MOUSE_FILTER_STOP; panel.visible = false
 	panel.add_theme_stylebox_override("panel", GridTheme.paper_sb(4, 14.0))
 	_vb = VBoxContainer.new(); _vb.add_theme_constant_override("separation", 3); _vb.mouse_filter = Control.MOUSE_FILTER_IGNORE; panel.add_child(_vb)
@@ -65,6 +65,7 @@ static func _run(det: Dictionary, run_id: String) -> Dictionary:
 ## What the tag for (kind, id) shows, from the engine only. kind: hamlet | cable | hut. {} when there is nothing to show.
 func describe(k: String, oid: String) -> Dictionary:
 	if b == null: return {}
+	if k == "support" or k == "span" or k == "yard": return describe_route(k, oid)
 	var det = b.q("benchDetail"); var kt = b.q("benchKit"); var wb := _bench_world()
 	var has: bool = det is Dictionary and det.get("active", false)
 	if wb.is_empty() or not (kt is Dictionary): return {}
@@ -124,6 +125,128 @@ func describe(k: String, oid: String) -> Dictionary:
 			d3["rows"] = rows3
 			return d3
 	return {}
+
+
+# ---- chapter 2: support, span and yard tags (engine: world.routes / buses, snapshot routes[].worst) ---------------------------------------
+static func _thou(x: float) -> String:
+	var s := str(int(round(absf(x)))); var out := ""
+	for i in s.length(): out += s[i]; if (s.length() - 1 - i) % 3 == 0 and i < s.length() - 1: out += ","
+	return ("-" if x < 0.0 else "") + out
+static func _g1(x: float) -> String: return str(int(round(x))) if absf(x - round(x)) < 1e-6 else "%.1f" % x
+static func route_id(branch: String, idx: int) -> String: return "%s|%d" % [branch, idx]
+static func route_split(oid: String) -> Array: return [oid.get_slice("|", 0), int(oid.get_slice("|", 1))]
+
+## The re-planned route of a branch from the world query, and its record (request, worst span) from the snapshot; {} when gone.
+func route_of(branch: String) -> Dictionary:
+	var w = b.q("world"); var rec := {}; var plan := {}
+	for r in b.g.get("routes", []): if str(r.branchId) == branch: rec = r
+	if w is Dictionary: for r in w.get("routes", []): if str(r.branchId) == branch: plan = r
+	if rec.is_empty() or plan.is_empty(): return {}
+	return {"rec": rec, "plan": plan, "terrain": w.get("terrain")}
+
+func _soil_at(terr, x: float, y: float) -> String:
+	if not (terr is Dictionary): return ""
+	var tm := float(terr.tileM); var i := int(floor(x / tm)); var j := int(floor(y / tm)); var rows: Array = terr.rows
+	if j < 0 or j >= rows.size() or i < 0 or i >= str(rows[j]).length(): return ""
+	var kinds := {"f": "field", "s": "swamp", "r": "river", "w": "forest", "k": "rock", "a": "sand", "e": "sea", "t": "town", "d": "road"}
+	return str(kinds.get(str(rows[j])[i], ""))
+
+## What a support, span or yard tag shows, from the engine only. support / span ids are "branch|index" (route_id()); yard id is the bus id.
+func describe_route(k: String, oid: String) -> Dictionary:
+	if k == "yard": return _describe_yard(oid)
+	var sp := route_split(oid); var ctx := route_of(str(sp[0]))
+	if ctx.is_empty(): return {}
+	var plan: Dictionary = ctx.plan; var idx: int = sp[1]
+	if k == "support":
+		var sups: Array = plan.supports
+		if idx < 0 or idx >= sups.size(): return {}
+		var s: Dictionary = sups[idx]
+		var soil := _soil_at(ctx.terrain, float(s.x), float(s.y))
+		var fam := tx("TAG_FAM_" + str(s.familyId)) if TranslationServer.translate("TAG_FAM_" + str(s.familyId)) != "TAG_FAM_" + str(s.familyId) else str(s.familyId)
+		var found := tx("TAG_FOUND_" + str(s.foundation))
+		if soil != "": found = tx("TAG_FOUND") % [found, tx("TAG_SOIL_" + soil)]
+		var rows: Array = [[tx("TAG_ANGLE") % [tx("TAG_ANG_" + str(s.angleClass)), int(round(float(s.angleDeg)))], ""], [found, ""]]
+		return {"kind": "support", "id": oid, "title": tx("TAG_SUPPORT_OF") % [fam, idx + 1], "lines": [rows[0][0], rows[1][0]], "angle_class": str(s.angleClass), "angle_deg": float(s.angleDeg), "foundation": str(s.foundation), "soil": soil, "family": str(s.familyId)}
+	var spans: Array = plan.spans
+	if idx < 0 or idx >= spans.size(): return {}
+	var sn: Dictionary = spans[idx]; var rec: Dictionary = ctx.rec
+	var over: Array = []
+	for o in sn.over: over.append(tx("TAG_SOIL_" + str(o)))
+	var d := {"kind": "span", "id": oid, "title": tx("TAG_SPAN_TITLE") % [idx + 1, _g1(float(sn.lengthM)), ", ".join(over)]}
+	d["rows"] = [[tx("TAG_SAG"), "%.2f m" % float(sn.sagM)]]
+	d["dot_good"] = bool(sn.ok)
+	d["dot_label"] = tx("TAG_CLEARANCE")
+	d["dot_text"] = tx("TAG_CLEARANCE_V") % ["%.1f" % float(sn.clearanceM), "%.1f" % float(sn.requiredM)]
+	var wst: Dictionary = rec.worst
+	if int(wst.span) == idx:   # the engine exposes w and H for the worst span only
+		d["eq"] = tx("TAG_SPAN_EQ") % ["%.2f" % float(wst.wNPerM), _g1(float(wst.lengthM)), _thou(float(wst.hN)), "%.2f" % float(wst.sagM)]
+		d["eq_raw"] = wst
+	else:
+		d["eq"] = tx("TAG_SPAN_EQ_SHORT") % [_g1(float(sn.lengthM)), "%.2f" % float(sn.sagM)]
+	return d
+
+func _describe_yard(bus_id: String) -> Dictionary:
+	var w = b.q("world")
+	if not (w is Dictionary): return {}
+	var bus := {}
+	for x in w.get("buses", []): if str(x.id) == bus_id: bus = x
+	if bus.is_empty(): return {}
+	var title := yard_name(w, bus_id)
+	var kv := float(bus.kv)
+	var d := {"kind": "yard", "id": bus_id, "title": tx("TAG_YARD") % [title, _g1(kv)] if kv >= 1.0 else tx("TAG_YARD") % [title, "%.2f" % kv]}
+	var rows: Array = [[tx("TAG_YARD_VOLT"), tx("TAG_YARD_VOLT_V") % ["%.2f" % kv if kv < 1.0 else _g1(kv), _thou(kv * 1000.0)]]]
+	var xf := ""
+	for br in b.g.get("branches", []):
+		if str(br.kind) != "xfmr": continue
+		var other := ""
+		if str(br.from) == bus_id: other = str(br.to)
+		elif str(br.to) == bus_id: other = str(br.from)
+		if other != "": xf = tx("TAG_YARD_XF_V") % [str(int(round(float(br.ratingMVA) * 1000.0))), yard_name(w, other)]
+	rows.append([tx("TAG_YARD_XF"), xf if xf != "" else tx("TAG_YARD_XF_NONE")])
+	var bi = b.q("busInfo", [bus_id])
+	if bi is Dictionary and bool(bi.get("energised", false)) and bi.get("vPu") != null:
+		rows.append([tx("TAG_YARD_LIVE"), tx("TAG_YARD_LIVE_V") % [_thou(float(bi.vPu) * float(bi.kvNom) * 1000.0), "%.3f" % float(bi.vPu)]])
+	d["rows"] = rows
+	return d
+
+## Yard names by role: the pair that holds the generator is the hydro side, the other the village; high-voltage side "yard", low side "powerhouse" / "village".
+static func yard_name(w: Dictionary, bus_id: String) -> String:
+	var buses: Array = w.get("buses", []); var me := {}
+	for x in buses: if str(x.id) == bus_id: me = x
+	if me.is_empty(): return TranslationServer.translate("RT_YARD_OTHER") % bus_id
+	var hydro := str(me.kind) == "gen"
+	if not hydro and float(me.kv) >= 1.0:   # the high-voltage yard nearest to the generator bus
+		var gen := {}
+		for x in buses: if str(x.kind) == "gen": gen = x
+		if not gen.is_empty():
+			var g2 := Vector2(float(gen.x), float(gen.y)); var dmin := 1e9; var near := ""
+			for x in buses:
+				var dd := Vector2(float(x.x), float(x.y)).distance_to(g2)
+				if float(x.kv) >= 1.0 and dd < dmin: dmin = dd; near = str(x.id)
+			hydro = near == bus_id
+	var hv := float(me.kv) >= 1.0
+	return TranslationServer.translate("RT_YARD_" + ("HYDRO" if hydro else "VILLAGE") + "_" + ("HV" if hv else "LV"))
+
+## Screen anchor (this control's local coordinates) of a route tag: the support's top, the span's middle, the yard's pole.
+func route_anchor(k: String, oid: String) -> Vector2:
+	var w = b.q("world")
+	if not (w is Dictionary) or not (w.get("terrain") is Dictionary): return Vector2(NAN, NAN)
+	var tm := float(w.terrain.tileM)
+	var at := func(m: Vector2, z_m: float) -> Vector2:
+		if world.has_method("metres_to_screen"): return world.metres_to_screen(m, z_m)
+		return world.world_to_screen(Vector2(m.x / tm - 0.5, m.y / tm - 0.5), z_m * 3.0)
+	if k == "yard":
+		for x in w.buses: if str(x.id) == oid: return at.call(Vector2((float(x.x) + 0.5) * tm, (float(x.y) + 0.5) * tm), 9.0)
+		return Vector2(NAN, NAN)
+	var sp := route_split(oid); var ctx := route_of(str(sp[0]))
+	if ctx.is_empty(): return Vector2(NAN, NAN)
+	var sups: Array = ctx.plan.supports; var i: int = sp[1]
+	if i < 0 or i >= sups.size(): return Vector2(NAN, NAN)
+	var a := Vector2(float(sups[i].x), float(sups[i].y))
+	if k == "support": return at.call(a, 10.0)
+	if i + 1 >= sups.size(): return Vector2(NAN, NAN)
+	var c := Vector2(float(sups[i + 1].x), float(sups[i + 1].y))
+	return at.call((a + c) * 0.5, 8.0)
 
 # ---- open / close ---------------------------------------------------------------------------------------------------------------------
 func open(k: String, oid: String) -> bool:
@@ -195,6 +318,22 @@ func _build(d: Dictionary) -> void:
 				_vb.add_child(box)
 		"hut":
 			for r in d.rows: _row(str(r[0]), str(r[1]))
+		"support":
+			for ln in d.lines: _lbl(str(ln), 16, GridTheme.PAPER_INK, "sans")
+		"yard":
+			for r in d.rows: _row(str(r[0]), str(r[1]))
+		"span":
+			for r in d.rows: _row(str(r[0]), str(r[1]))
+			var dr := HBoxContainer.new(); dr.add_theme_constant_override("separation", 8); dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var dot := _Dot.new(); dot.col = GridTheme.GOOD if bool(d.dot_good) else GridTheme.BAD; dr.add_child(dot)
+			var dl := GridTheme.label(str(d.dot_label), 15, Color(GridTheme.PAPER_INK, 0.75), "sans"); dr.add_child(dl); lines.append(dl)
+			var dv := GridTheme.label(str(d.dot_text), 16, GridTheme.PAPER_INK, "mono"); dr.add_child(dv); lines.append(dv)
+			_vb.add_child(dr)
+			var box2 := PanelContainer.new(); box2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sb2 := StyleBoxFlat.new(); sb2.bg_color = Color(GridTheme.PAPER_INK, 0.09); sb2.set_corner_radius_all(3); sb2.content_margin_left = 8; sb2.content_margin_right = 8; sb2.content_margin_top = 5; sb2.content_margin_bottom = 5
+			box2.add_theme_stylebox_override("panel", sb2)
+			eq_label = GridTheme.label(str(d.eq), 15, GridTheme.PAPER_INK, "mono"); eq_label.autowrap_mode = TextServer.AUTOWRAP_OFF; box2.add_child(eq_label); lines.append(eq_label)
+			_vb.add_child(box2)
 
 # ---- placement: the tag hangs off its object and follows the camera ---------------------------------------------------------------------
 func _chrome_pos(local_world: Vector2) -> Vector2:
@@ -208,7 +347,7 @@ func _clear_rects() -> Array:
 
 func _place(_snap: bool) -> void:
 	if not panel.visible or world == null or not is_inside_tree() or not world.is_inside_tree(): return
-	var a := world.anchor(kind, id)
+	var a := route_anchor(kind, id) if kind == "support" or kind == "span" or kind == "yard" else world.anchor(kind, id)
 	if is_nan(a.x): return
 	a = _chrome_pos(a); _anchor = a
 	var sz := panel.size; var vp := get_viewport_rect().size
@@ -297,6 +436,10 @@ func objects() -> Array:
 	for t in world.model.towns: if t.kind == "hamlet" or t.kind == "school": out.append(["hamlet", str(t.id)])
 	for u in world.model.units: if str(u.kind) == "hut": out.append(["hut", str(u.id)])
 	for l in world.model.lines: if str(l.kind) == "cable": out.append(["cable", str(l.id)])
+	var w = b.q("world")
+	if w is Dictionary and w.get("terrain") != null:   # chapter 2: the yards, then every span of every line
+		for x in w.buses: out.append(["yard", str(x.id)])
+		for r in w.get("routes", []): for i in (r.spans as Array).size(): out.append(["span", route_id(str(r.branchId), i)])
 	return out
 
 ## Pad Y: open the tag of the next object (wraps); on the last one it closes.

@@ -16,7 +16,9 @@ var _pin_title: Label
 var _pin_sub: Label
 var menu_btn: Button
 var tray: KitTray                ## the kit tray (bench levels): hut, reels, price tag
+var rtray: RouteTray             ## the route tray (chapter 2 levels with a terrain): survey, supports, conductors, transformers
 var tags: TagView                ## in-world paper tags
+var _route_item_ms := -1000      ## when the world last reported a pressed support / span (its tap must not close the tag it opened)
 var _level := ""
 var _coach_id := "<unset>"
 var _on := false
@@ -51,16 +53,31 @@ func _build_tools() -> void:
 	tray = KitTray.new(); tray.b = app.b; tray.world = world; tray.radio = radio; tray.instruments = instruments
 	tray.sfx = func(cue: String): app.sfx(cue)
 	tray.slot = tray_rect; tray.locked = _night_locked; add_child(tray)
+	rtray = RouteTray.new(); rtray.b = app.b; rtray.world = world; rtray.radio = radio; rtray.instruments = instruments
+	rtray.sfx = func(cue: String): app.sfx(cue)
+	rtray.slot = tray_rect; rtray.locked = _night_locked; add_child(rtray)
 	tags = TagView.new(); tags.b = app.b; tags.world = world; tags.instruments = instruments; tags.slot = tray_rect; add_child(tags)
-	tray.tags = tags
+	tray.tags = tags; rtray.tags = tags
 	if world != null:
-		world.tapped.connect(on_world_tap); world.long_pressed.connect(on_world_long); world.hovered.connect(func(p): tray.on_hover(p))
+		world.tapped.connect(on_world_tap); world.long_pressed.connect(on_world_long); world.hovered.connect(func(p): tray.on_hover(p); rtray.on_hover(p))
+		if world.has_signal("route_item_pressed"): world.connect("route_item_pressed", _on_route_item)
+		if world.has_signal("ground_pressed"): world.connect("ground_pressed", func(m, button): rtray.on_ground_pressed(m, int(button)))
 	var relay := KitTray.Relay.new(); relay.chrome = self; relay.name = "TrayRelay"
 	app.add_child.call_deferred(relay)
 
 ## The cable cannot change while the night runs or once the level is over.
 func _night_locked() -> bool:
 	return app.speed > 0 or str(app.b.g.get("status", "playing")) != "playing"
+
+## A support or span of a surveyed line was pressed in the world (C1): its paper tag. Not while a survey or a transformer is being placed.
+func _on_route_item(k: String, branch_id: String, index: int) -> void:
+	if not _on or rtray == null or not rtray.visible or rtray.mode != "" or app.modal() != null: return
+	_route_item_ms = Time.get_ticks_msec()
+	if k == "support" or k == "span": tags.open(k, TagView.route_id(branch_id, index))
+
+## The tray that is up: the route tray on chapter 2 levels, else the kit tray.
+func _tray():
+	return rtray if rtray != null and rtray.visible else tray
 
 ## Tap on the world: the tray first (a pick in progress), then the tags.
 func on_world_tap(p: Vector2) -> void:
@@ -71,28 +88,35 @@ func on_world_tap(p: Vector2) -> void:
 		app.sfx("breaker_close" if r.get("ok", false) else "bad"); app.toast(str(r.get("message", "")), "good" if r.get("ok", false) else "bad")
 		app.game_on_changed(); return
 	if not _on or tray == null: return
+	if rtray != null and rtray.visible:
+		if rtray.on_tap(p): return
+		if Time.get_ticks_msec() - _route_item_ms > 300: tags.close()   # a tap on bare ground puts the tag away (a pressed support / span has just opened one)
+		return
 	if tray.visible and tray.on_tap(p): return
 	if tray.visible or tags.is_open(): tags.on_tap(p)
 
 func on_world_long(p: Vector2) -> void:
+	if rtray != null and rtray.visible: rtray.on_long(p); return
 	if _on and tray != null and tags.on_long_press(p): tray.cancel()
 
 ## Pad buttons and Esc, before the shell: tray first, then the open tag. True when used.
 func handle_input(e: InputEvent) -> bool:
 	if not _on or tray == null or app.modal() != null: return false
+	var tr = _tray()
 	if e is InputEventKey:
-		if e.pressed and not e.echo and e.keycode == KEY_ESCAPE: return tray.cancel_key() or tags.close()
+		if e.pressed and not e.echo and e.keycode == KEY_ESCAPE: return tr.cancel_key() or tags.close()
+		if e.pressed and not e.echo and e.keycode == KEY_BACKSPACE and tr == rtray: return rtray.remove_last()
 		if e.pressed and not e.echo and e.keycode == KEY_X and tags.is_open(): return tags.close()
 		return false
 	if e is InputEventJoypadButton and e.pressed and CbPad.enabled:
 		var jb := e as InputEventJoypadButton
 		if jb.button_index == JOY_BUTTON_B:   # B: undo the pick, else step out of the tray, else close the tag, else leave it to the shell
-			if tray.mode != "" or tray.engaged: return tray.pad_button(jb.button_index)
+			if tr.mode != "" or tr.engaged: return tr.pad_button(jb.button_index)
 			return tags.close()
 		if jb.button_index == JOY_BUTTON_X and not tags.is_open():   # X: the breaker (X also closes an open tag, as on the keyboard)
 			breaker.toggle(); return true
 		if jb.button_index == JOY_BUTTON_X: return tags.close()
-		return tray.pad_button(jb.button_index)
+		return tr.pad_button(jb.button_index)
 	return false
 
 ## QA screenshots (CB_CAM "ui=..."): hut | reel/2.5 | hover/2.5 | peg/2 | run/0 | tag/cable/main | tag/hamlet/h1
@@ -112,7 +136,7 @@ func qa_ui(spec: String) -> void:
 		"say": for ln in f.slice(1): radio.say("TOBI", ln.replace("_", " "), "coach", "qa%d" % radio.lines.size(), "Because copper resists.")
 		"why": for l in radio.lines: if l.kind == "coach" and l.step != "" and str(l.get("why", "")) != "": radio.ask_why(l); break
 
-func tray_active() -> bool: return tray != null and tray.visible
+func tray_active() -> bool: return (tray != null and tray.visible) or (rtray != null and rtray.visible)
 
 func set_chrome_visible(v: bool) -> void:
 	_on = v
@@ -130,7 +154,7 @@ func refresh() -> void:
 	var id: String = str(li.id) if act else ""
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
 	instruments.refresh(); breaker.sync()
-	if tray != null: tray.refresh(); tags.refresh()
+	if tray != null: tray.refresh(); rtray.refresh(); tags.refresh()
 	_poll_coach(act)
 	_home_drawer()
 	_update_pin(li if act else {})
@@ -169,7 +193,7 @@ func coach(step: Dictionary, index: int, _total: int) -> void:
 
 ## Space toggles the breaker, "." steps once. Returns true when the key was used.
 func key(e: InputEventKey) -> bool:
-	if tray != null and tray.key(e): return true
+	if tray != null and (rtray.key(e) if rtray.visible else tray.key(e)): return true
 	match e.keycode:
 		KEY_SPACE:
 			if space_steps: return false   # core then ticks once
@@ -199,7 +223,7 @@ func layout() -> void:
 	if app == null or instruments == null: return
 	var w := app.vw(); var h := app.vs_h(); var kind := CbLayout.kind
 	instruments.layout()
-	if tray != null: tray.layout()
+	if tray != null: tray.layout(); rtray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
 	var left: float = M + (app.world_tools_w() if CbLayout.touch and app.has_method("world_tools_w") else 0.0)
 	var nl := 1 if kind == "phone" else 4; var nw := clampf(w * (0.30 if kind == "desktop" else 0.34), 300.0, 560.0)

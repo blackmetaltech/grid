@@ -20,6 +20,10 @@ var model: Dictionary = WorldModel.empty()
 signal tapped(pos: Vector2)         ## a click / tap that did not drag (local coordinates)
 signal long_pressed(pos: Vector2)   ## a press held in place for LONG_S (touch: opens a tag)
 signal hovered(pos: Vector2)        ## mouse moved over the world with no button held
+signal ground_pressed(m: Vector2, button: int)   ## a tap / left or right click on the map (no drag): the map point in metres (terrain maps), button = MOUSE_BUTTON_*
+signal route_item_pressed(kind: String, branch_id: String, index: int)   ## a tap on a support ("support") or a span ("span") of a BUILT route (within ROUTE_HIT_PX)
+const ROUTE_HIT_PX := 12.0
+const PXM := RouteDraw.PX_PER_M
 const TAP_PX := 10.0
 const LONG_S := 0.55
 var _pegs: Array = []               # [{tile: Vector2, label: String}] glowing site pegs (the kit tray's legal sites)
@@ -47,6 +51,19 @@ var _pinch_d := 0.0
 var _nl := Color.WHITE        # night multiplier for colours
 var _night := 1.0
 var _gain := 1.0
+var _ga := 1.0                # alpha multiplier of _c(): 0.55 while the ghost route is drawn
+var _zmax := 0.0              # highest terrain z (px): the camera frame leaves room above it
+var _route_poly := {}         # built route (branch id) -> PackedVector2Array: the middle phase wire in world px, raised a little (flow pulses ride on it)
+var _objs_s: Array = []       # _objs split by layer (static / animated), same depth order
+var _objs_d: Array = []
+var _ghost := {}              # the not-yet-built plan being previewed (RouteDraw record) or {}
+var _ghost_pending: Array = []   # waypoints (metres) the player has already clicked
+var _town_rect := Rect2()     # tiles of the terrain's town area (the market's roofs stand on it)
+var _known_routes := {}       # branch id -> true: a route that was not here before makes a lineman climb
+var _known_level := ""
+var _lineman := {"t0": -100.0, "rid": "", "i": 0}
+var _rpress := false
+var _rpress_moved := 0.0
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_PASS
@@ -69,7 +86,8 @@ func refresh(b) -> void:
 
 func set_model(m: Dictionary) -> void:
 	model = m
-	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.get("ghosts", []), m.shunts.map(func(h): return [h.id, h.pos])])
+	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.get("ghosts", []), m.shunts.map(func(h): return [h.id, h.pos]), m.get("terrain", {}).get("id", ""), m.routes.map(func(r): return [r.id, r.supports.size(), r.spans.map(func(sp): return sp.band)])])
+	_track_new_routes(m)
 	if sg != _sig:
 		var first := _sig == ""
 		_sig = sg
@@ -83,12 +101,26 @@ func set_model(m: Dictionary) -> void:
 
 func _tc(p: Vector2) -> Vector2: return p + Vector2(0.5, 0.5)
 
+## Cute: a lineman climbs the newest support for 2 s when a route appears that was not in the previous model (not on a level's first model).
+func _track_new_routes(m: Dictionary) -> void:
+	var lv := str(m.level)
+	var fresh := lv != _known_level or _sig == ""
+	_known_level = lv
+	var ids := {}
+	for r in m.routes:
+		ids[r.id] = true
+		if not fresh and not _known_routes.has(r.id) and r.supports.size() > 0:
+			_lineman = {"t0": _t, "rid": str(r.id), "i": r.supports.size() - 1}
+	_known_routes = ids
+
 func _infra_points() -> Array:
 	var pts: Array = []
 	for t in model.towns: pts.append(_tc(t.pos))
 	for s in model.subs: pts.append(_tc(s.pos))
 	for u in model.units: pts.append(_tc(u.pos))
 	return pts
+
+func _has_terrain() -> bool: return model.has("terrain") and not (model.terrain as Dictionary).is_empty()
 
 func _rebuild() -> void:
 	var W := int(model.map.x); var H := int(model.map.y)
@@ -107,6 +139,7 @@ func _rebuild() -> void:
 	if model.kind == "bench":
 		_rebuild_island(W, H, infra, line_tiles)
 		if cute: _rebuild_cute(W, H)
+	elif _has_terrain(): _rebuild_terrain()
 	else: _rebuild_land(W, H, infra, line_tiles)
 	_rebuild_objects()
 
@@ -197,19 +230,86 @@ func _rebuild_land(W: int, H: int, infra: Array, line_tiles: Dictionary) -> void
 			elif kind == "grass" and near > 2.4 and WorldMath.hash2(i, j, 7) > 0.93:
 				_objs.append({"t": "tree", "p": Vector2(i + 0.5, j + 0.5), "h": 14.0, "v": WorldMath.hash2(i, j, 8)})
 
+## Terrain maps (grid levels with world.terrain, e.g. L05): one iso tile per terrain tile at z = elevation m x 0.9, so the ridge reads as a ridge and rivers
+## and sea sit low. Forest tiles carry trees except where a built route's spans over forest clear the right of way; swamp carries mangrove, rock boulders.
+func _rebuild_terrain() -> void:
+	var T: Dictionary = model.terrain
+	var W := int(T.cols); var H := int(T.rows)
+	var kinds: PackedStringArray = T.kinds; var elev: PackedFloat32Array = T.elev
+	var cleared := {}
+	for r in model.routes:   # the right of way a line has paid for: tiles under its spans over forest
+		for sp in r.spans:
+			if not (sp.over as Array).has("forest"): continue
+			var a: Vector2 = r.supports[sp.a].p; var c: Vector2 = r.supports[sp.b].p
+			var n := int(maxf(2.0, a.distance_to(c) * 4.0))
+			for q in n + 1: cleared[Vector2i(a.lerp(c, float(q) / float(n)).floor())] = true
+	_zmax = 0.0
+	var tx0 := 1e9; var ty0 := 1e9; var tx1 := -1.0; var ty1 := -1.0
+	for j in H:
+		for i in W:
+			var idx := j * W + i
+			var kind := kinds[idx]
+			var z := elev[idx] * PXM
+			_zgrid[Vector2i(i, j)] = z
+			_zmax = maxf(_zmax, z)
+			_tiles.append({"i": i, "j": j, "kind": kind, "var": WorldMath.hash2(i, j, 1)})
+			match kind:
+				"forest":
+					if cleared.has(Vector2i(i, j)): continue
+					var nt := 2 + (1 if WorldMath.hash2(i, j, 6) > 0.55 else 0)
+					for k in nt: _objs.append({"t": "tree", "p": Vector2(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 10 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 20 + k)), "h": 17.0 + 11.0 * WorldMath.hash2(i, j, 30 + k), "v": WorldMath.hash2(i, j, 40 + k)})
+				"swamp":
+					if WorldMath.hash2(i, j, 7) > 0.3: _objs.append({"t": "mangrove", "p": Vector2(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 10), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 20)), "h": 9.0 + 6.0 * WorldMath.hash2(i, j, 30), "v": WorldMath.hash2(i, j, 40)})
+				"rock":
+					for k in 2: _objs.append({"t": "boulder", "p": Vector2(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 50 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 60 + k)), "w": 0.14 + 0.12 * WorldMath.hash2(i, j, 70 + k), "h": 3.0 + 4.0 * WorldMath.hash2(i, j, 80 + k), "v": WorldMath.hash2(i, j, 90 + k)})
+				"town":
+					tx0 = minf(tx0, i); ty0 = minf(ty0, j); tx1 = maxf(tx1, i + 1); ty1 = maxf(ty1, j + 1)
+	_town_rect = Rect2(tx0, ty0, tx1 - tx0, ty1 - ty0) if tx1 > 0.0 else Rect2()
+	_rebuild_terrain_cute()
+
+## Cute mode on a terrain map: crocodiles by the pile foundations in the swamp, market stalls on the town square (lamps follow the town's energies).
+func _rebuild_terrain_cute() -> void:
+	for r in model.routes:
+		var last := -99
+		for i in r.supports.size():
+			var s: Dictionary = r.supports[i]
+			if str(s.foundation) != "pile": continue
+			if i - last >= 3:   # one crocodile per three piled supports, lazing on the nearest swamp tile beside the line
+				var d: Vector2 = s.dir
+				var side := Vector2(-d.y, d.x) * (0.55 if (i % 2) == 0 else -0.55)
+				_objs.append({"t": "croc", "p": (s.p as Vector2) + side, "rid": str(r.id), "i": i, "v": WorldMath.hash2(i, 3, 95)})
+				last = i
+	var sw: Array = []; var sc := Vector2.ZERO   # the swamp's resident crocodile: sulks until a line stands on piles
+	for t in _tiles: if t.kind == "swamp": sw.append(Vector2(t.i + 0.5, t.j + 0.5)); sc += Vector2(t.i + 0.5, t.j + 0.5)
+	if not sw.is_empty():
+		sc /= float(sw.size()); var best: Vector2 = sw[0]
+		for q in sw: if q.distance_to(sc) < best.distance_to(sc) and WorldMath.hash2(int(q.x), int(q.y), 97) > 0.5: best = q
+		_objs.append({"t": "croc", "p": best, "res": true, "rid": "", "i": 0, "v": 0.37})
+	if _town_rect.size.x > 0.0:
+		var c := _town_rect.get_center()
+		for ti in model.towns.size():
+			if (model.towns[ti].pos as Vector2).distance_to(c) > 14.0: continue
+			for k in 5:
+				var a := TAU * (float(k) / 5.0) + 0.4
+				_objs.append({"t": "stall", "ti": ti, "k": k, "p": c + Vector2(cos(a) * 2.6, sin(a) * 2.6), "v": WorldMath.hash2(ti, k, 96)})
+
 func _rebuild_objects() -> void:
 	for ti in model.towns.size():
 		var t: Dictionary = model.towns[ti]
 		var cols := int(ceil(sqrt(float(t.count) * 1.3)))
 		var rows := int(ceil(float(t.count) / float(cols)))
 		var kinds_big: bool = t.kind != "hamlet"
+		var ctr := _tc(t.pos); var tstep := 0.0; var tw_scale := 1.0
+		if _has_terrain() and t.kind == "town":   # a market town on the 50 m map: the roofs stand on the paved square, ~65 m apart
+			if _town_rect.size.x > 0.0 and ctr.distance_to(_town_rect.get_center()) < 14.0: ctr = _town_rect.get_center()
+			tstep = 1.3; tw_scale = 2.0
 		for k in int(t.count):
 			var cx := k % cols; var cy := k / cols
-			var step := 0.5 if t.kind == "town" else ((1.7 if t.kind == "school" else 1.05) if model.kind == "bench" else 0.46)   # bench: 10 m tiles, homes ~10 m apart
-			var p := _tc(t.pos) + Vector2((float(cx) - float(cols - 1) * 0.5) * step, (float(cy) - float(rows - 1) * 0.5) * step)
+			var step := tstep if tstep > 0.0 else 0.5 if t.kind == "town" else ((1.7 if t.kind == "school" else 1.05) if model.kind == "bench" else 0.46)   # bench: 10 m tiles, homes ~10 m apart
+			var p := ctr + Vector2((float(cx) - float(cols - 1) * 0.5) * step, (float(cy) - float(rows - 1) * 0.5) * step)
 			var cdist := Vector2(float(cx) - float(cols - 1) * 0.5, float(cy) - float(rows - 1) * 0.5).length()
 			var h := (12.0 + 18.0 * WorldMath.hash2(cx, cy, 50 + ti)) * (1.4 - 0.1 * cdist) if t.kind == "town" else (9.0 + 4.0 * WorldMath.hash2(cx, cy, 60)) * (2.0 if t.kind == "school" else 1.0)
-			var role := ""; var bw := (0.3 if model.kind != "bench" else 0.55) if t.kind != "school" else 0.6
+			var role := ""; var bw := ((0.3 * tw_scale) if model.kind != "bench" else 0.55) if t.kind != "school" else 0.6
 			if t.kind == "school" and model.kind == "bench":   # L03: the school (tall, brick) and the health post (low, white, red cross)
 				role = "school" if k == 0 else "health"; h = 28.0 if k == 0 else 15.0; bw = 0.95 if k == 0 else 0.72
 			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": bw, "role": role, "hamlet": t.kind == "hamlet", "v": WorldMath.hash2(cx, cy, 70 + ti)})
@@ -222,9 +322,29 @@ func _rebuild_objects() -> void:
 	for h in model.shunts: _objs.append({"t": "shunt", "p": _tc(h.pos) + Vector2(0.9, 0.4), "h": h})
 	for li in model.lines.size():
 		var l: Dictionary = model.lines[li]
+		if not _route_of(str(l.id)).is_empty(): continue   # a routed line stands on its planned supports, not on the generic tower rhythm
 		for tp in _tower_points(l): _objs.append({"t": "tower", "p": tp, "kv": l.kv})
-	for o in _objs: o["d"] = o.p.x + o.p.y + (0.2 if o.t == "bld" else 0.0)
+	_route_poly.clear()
+	for r in model.routes:
+		for i in r.supports.size(): _objs.append({"t": "support", "p": r.supports[i].p, "s": r.supports[i]})
+		for sp in r.spans: _objs.append({"t": "span", "p": ((r.supports[sp.a].p as Vector2) + (r.supports[sp.b].p as Vector2)) * 0.5, "dd": maxf((r.supports[sp.a].p as Vector2).x + (r.supports[sp.a].p as Vector2).y, (r.supports[sp.b].p as Vector2).x + (r.supports[sp.b].p as Vector2).y) + 0.02, "r": r, "sp": sp})
+		_route_poly[str(r.id)] = _route_line(r)
+	for o in _objs: o["d"] = float(o.get("dd", o.p.x + o.p.y + (0.2 if o.t == "bld" else 0.0)))
 	_objs.sort_custom(func(a, b): return a.d < b.d)
+	_objs_s.clear(); _objs_d.clear()
+	for o in _objs: (_objs_s if STATIC_T.has(o.t) else _objs_d).append(o)
+
+func _route_of(id: String) -> Dictionary:
+	for r in model.routes: if str(r.id) == id: return r
+	return {}
+
+## The middle phase wire of a whole route as one polyline in world px (flow pulses ride on it, 5 px above the copper).
+func _route_line(r: Dictionary) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for sp in r.spans:
+		var w := _span_wire(r, sp, 0)
+		for q in w.size(): out.append(w[q] + Vector2(0.0, -5.0))
+	return out
 
 func _tower_points(l: Dictionary) -> Array:
 	var out: Array = []
@@ -260,7 +380,7 @@ func _view_rect() -> Rect2:
 func _bounds() -> Rect2:
 	var W: float = model.map.x; var H: float = model.map.y
 	var x0 := _iso(0, H).x; var x1 := _iso(W, 0).x
-	return Rect2(x0, -60.0, x1 - x0, (W + H) * TH * 0.5 + 60.0 + SLAB + 20.0)
+	return Rect2(x0, -60.0 - _zmax, x1 - x0, (W + H) * TH * 0.5 + 60.0 + _zmax + SLAB + 20.0)
 
 func _refit() -> void:
 	var v := _view_rect(); var b := _bounds()
@@ -334,11 +454,18 @@ func _gui_input(e: InputEvent) -> void:
 			if mb.button_index == MOUSE_BUTTON_LEFT:
 				if mb.pressed: _press = true; _press_pos = mb.position; _press_moved = 0.0; _press_t = 0.0; _press_long = false
 				else:
-					if _press and not _press_long and _press_moved < TAP_PX and _touches.size() < 2: tapped.emit(mb.position)
+					if _press and not _press_long and _press_moved < TAP_PX and _touches.size() < 2:
+						tapped.emit(mb.position); _tap_extras(mb.position, MOUSE_BUTTON_LEFT)
 					_press = false
+			elif mb.button_index == MOUSE_BUTTON_RIGHT:   # a right click that did not pan is a tap too (the route tool: finish / undo)
+				if mb.pressed: _rpress = true; _rpress_moved = 0.0
+				else:
+					if _rpress and _rpress_moved < TAP_PX: _tap_extras(mb.position, MOUSE_BUTTON_RIGHT)
+					_rpress = false
 	elif e is InputEventMouseMotion:
 		var mm := e as InputEventMouseMotion
 		if _drag: _pan += mm.relative; _clamp_pan(); queue_redraw()
+		if _rpress: _rpress_moved += mm.relative.length()
 		if _press: _press_moved += mm.relative.length()
 		else: hovered.emit(mm.position)
 	elif e is InputEventMagnifyGesture:
@@ -361,6 +488,14 @@ func _gui_input(e: InputEvent) -> void:
 			_pinch_d = d
 			_pan += sd.relative * 0.5; _clamp_pan(); queue_redraw()
 
+## A tap: a built route's support or span under it (route_item_pressed, left only) and the map point (ground_pressed). Both fire when both apply.
+func _tap_extras(pos: Vector2, button: int) -> void:
+	if button == MOUSE_BUTTON_LEFT:
+		var h := route_hit(pos)
+		if not h.is_empty(): route_item_pressed.emit(str(h.kind), str(h.branch), int(h.index))
+	var m := map_metres_at(pos)
+	if not is_nan(m.x): ground_pressed.emit(m, button)
+
 func _process(dt: float) -> void:
 	if not is_visible_in_tree() or size.x < 4.0: return
 	_t += dt; _rot += dt
@@ -377,7 +512,7 @@ func _process(dt: float) -> void:
 # --------------------------------------------------------------------------------------------------------------------
 # Drawing helpers
 # --------------------------------------------------------------------------------------------------------------------
-func _c(col: Color) -> Color: return Color(col.r * _nl.r, col.g * _nl.g, col.b * _nl.b, col.a)
+func _c(col: Color) -> Color: return Color(col.r * _nl.r, col.g * _nl.g, col.b * _nl.b, col.a * _ga)
 func _shade(col: Color, k: float) -> Color: return Color(col.r * k, col.g * k, col.b * k, col.a)
 
 func _ell(c: Vector2, rx: float, ry: float, col: Color) -> void:
@@ -422,7 +557,7 @@ func _glow(p: Vector2, r: float, col: Color, a: float) -> void:
 ## Layers (perf, Pixel 9a): the sky is drawn here; the static island (slab, tiles, wires, trees, palms, mangrove, towers) is painted once
 ## into `_static_layer` and only re-painted when the model or the light changes; pan/zoom just move the layer's transform. Animated things
 ## (buildings, units, villagers, pulses, fireflies) go in `_dyn_layer` every frame; screen-space labels and pegs in `_top_layer`.
-const STATIC_T := ["tree", "palm", "mangrove", "tower"]
+const STATIC_T := ["tree", "palm", "mangrove", "tower", "boulder", "support", "span"]
 var _ci: CanvasItem = self
 var _static_layer: Node2D
 var _dyn_layer: Node2D
@@ -454,14 +589,17 @@ func _paint_static() -> void:
 	_draw_slab()
 	for t in _tiles: _draw_tile(t)
 	_draw_wires()
-	for ob in _objs: if STATIC_T.has(ob.t): _draw_obj(ob)
+	for ob in _objs_s: _draw_obj(ob)
 	perf.static_us += Time.get_ticks_usec() - t0
 
 func _paint_dynamic() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
 	var t0 := Time.get_ticks_usec()
-	for ob in _objs: if not STATIC_T.has(ob.t): _draw_obj(ob)
+	for ob in _objs_d: _draw_obj(ob)
 	_draw_pulses()
+	_draw_route_markers()
+	_draw_lineman()
+	_draw_ghost()
 	if cute and _night > 0.35: _draw_fireflies()
 	perf.dyn_us += Time.get_ticks_usec() - t0
 
@@ -493,7 +631,7 @@ func _draw_sky(mn: float) -> void:
 		_ci.draw_circle(mo, 18.0, Color(0.9, 0.93, 1.0, 0.85 * _night)); _ci.draw_circle(mo, 32.0, Color(0.8, 0.85, 1.0, 0.12 * _night))
 
 func _draw_slab() -> void:
-	if model.kind == "bench": return   # islands sit in the sea: no tabletop shadow
+	if model.kind == "bench" or _has_terrain(): return   # islands sit in the sea, terrain maps run into it: no tabletop shadow
 	var W: float = model.map.x; var H: float = model.map.y
 	var shadow := _iso(W * 0.5, H * 0.5, -SLAB - 6.0)
 	_ell(shadow + Vector2(0, 26), (W + H) * TW * 0.27, (W + H) * TH * 0.2, Color(0, 0, 0, 0.12))
@@ -505,27 +643,65 @@ func _tile_col(t: Dictionary) -> Color:
 		"sand": return Color("#D8C690").lerp(Color("#C9B87F"), v)
 		"forest": return Color("#5E8F58").lerp(Color("#4E7F4E"), v)
 		"mangrove": return Color("#3E5E46").lerp(Color("#35523D"), v)
+		"river": return Color("#6AB0D0").lerp(Color("#4A93BC"), v)
+		"sea": return Color("#3C7FAA").lerp(Color("#2F6E9A"), v)
+		"swamp": return Color("#4E5A34").lerp(Color("#434E2D"), v)
+		"rock": return Color("#8C8174").lerp(Color("#7A7064"), v)
+		"town": return Color("#B7B2A6").lerp(Color("#A9A498"), v)
 	return Color("#86AE6C").lerp(Color("#76A064"), v)
+
+func _is_water(kind: String) -> bool: return kind == "water" or kind == "river" or kind == "sea"
 
 func _draw_tile(t: Dictionary) -> void:
 	var i: int = t.i; var j: int = t.j
 	var z: float = _zgrid[Vector2i(i, j)]
 	var col := _tile_col(t)
 	if t.kind == "grass" and z > 8.0: col = col.lerp(Color("#B8CC8A"), clampf((z - 8.0) / 90.0, 0.0, 0.55))   # the hilltop catches the light
-	if t.kind == "water": col = col.lerp(Color("#0A1A2E"), 0.0)
+	elif (t.kind == "field" or t.kind == "forest" or t.kind == "road") and z > 4.0: col = col.lerp(Color("#C2D294"), clampf((z - 4.0) / 120.0, 0.0, 0.45))
+	elif t.kind == "rock" and z > 4.0: col = col.lerp(Color("#B4AA9C"), clampf((z - 4.0) / 100.0, 0.0, 0.4))
+	var water := _is_water(t.kind)
 	var cc := _c(col)
-	if t.kind == "water": cc = Color(col.r * _nl.r * 0.8, col.g * _nl.g * 0.85, col.b * _nl.b * 0.95)
+	if water: cc = Color(col.r * _nl.r * 0.8, col.g * _nl.g * 0.85, col.b * _nl.b * 0.95)
 	var W := int(model.map.x); var H := int(model.map.y)
 	# side faces: down to the slab base on the front borders, otherwise to a lower neighbour
 	var zr: float = _zgrid.get(Vector2i(i + 1, j), -SLAB) if i + 1 < W else -SLAB
 	var zb: float = _zgrid.get(Vector2i(i, j + 1), -SLAB) if j + 1 < H else -SLAB
-	var side := Color("#7A6A58") if t.kind != "water" else Color("#2E6F94")
-	if zb < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, 0.82)))
-	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, 0.62)))
+	var side := Color("#7A6A58") if not water else Color("#2E6F94")
+	var kb := 0.82; var kr := 0.62   # side-face shading is gentler on terrain turf: terraces read as a slope, not as stripes
+	if _has_terrain() and not water and t.kind != "rock" and t.kind != "swamp": side = col.lerp(Color("#6A5A48"), 0.3); kb = 0.94; kr = 0.86
+	if t.kind == "rock": side = Color("#6A6258")
+	elif t.kind == "swamp": side = Color("#4A4A32")
+	if zb < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, kb)))
+	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, kr)))
 	_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
-	if t.kind == "water":
+	if water:
 		var sh := 0.5 + 0.5 * sin(_t * 1.3 + float(i) * 0.9 + float(j) * 0.6)
 		_ci.draw_line(_iso(i + 0.25, j + 0.5, z), _iso(i + 0.7, j + 0.5, z), Color(1, 1, 1, 0.16 * sh * (1.0 - _night * 0.7)), 1.5)
+		if t.kind == "river" and WorldMath.hash2(i, j, 14) > 0.4:   # a lighter ripple line along the current
+			_ci.draw_line(_iso(i + 0.15, j + 0.3, z), _iso(i + 0.55, j + 0.7, z), _c(Color("#CFE8F4", 0.5)), 1.2)
+	elif t.kind == "road": _draw_road(i, j, z)
+	elif t.kind == "town":
+		var lc := _c(Color("#8F8A80"))
+		_ci.draw_line(_iso(i, j + 0.5, z), _iso(i + 1, j + 0.5, z), lc, 0.8); _ci.draw_line(_iso(i + 0.5, j, z), _iso(i + 0.5, j + 1, z), lc, 0.8)
+
+## A tan strip across a road tile, running along whichever neighbours are road too (a crossing draws both).
+func _draw_road(i: int, j: int, z: float) -> void:
+	var tan_c := _c(Color("#C9AA78"))
+	var hx := _tile_kind(i - 1, j) == "road" or _tile_kind(i + 1, j) == "road"
+	var hy := _tile_kind(i, j - 1) == "road" or _tile_kind(i, j + 1) == "road"
+	if hx or not hy:
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 0.3, z), _iso(i + 1, j + 0.3, z), _iso(i + 1, j + 0.7, z), _iso(i, j + 0.7, z)]), tan_c)
+	if hy:
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(i + 0.3, j, z), _iso(i + 0.7, j, z), _iso(i + 0.7, j + 1, z), _iso(i + 0.3, j + 1, z)]), tan_c)
+
+func _tile_kind(i: int, j: int) -> String:
+	var T: Dictionary = model.get("terrain", {})
+	if T.is_empty() or i < 0 or j < 0 or i >= int(T.cols) or j >= int(T.rows): return ""
+	return str((T.kinds as PackedStringArray)[j * int(T.cols) + i])
+
+func _boulder(o: Dictionary) -> void:
+	var p: Vector2 = o.p; var w: float = o.w
+	_box(p, w, w * 0.8, float(o.h), Color("#8E8578").lerp(Color("#6F675C"), o.v))
 
 func _draw_obj(o: Dictionary) -> void:
 	match o.t:
@@ -537,6 +713,11 @@ func _draw_obj(o: Dictionary) -> void:
 		"bld": _building(o)
 		"flag": _flag(o)
 		"tower": _tower(o)
+		"boulder": _boulder(o)
+		"support": _support(o.s)
+		"span": _span(o.r, o.sp)
+		"croc": _croc(o)
+		"stall": _stall(o)
 		"sub": _substation(o)
 		"unit": _unit(o)
 		"shunt": _shunt(o)
@@ -732,6 +913,8 @@ func _shunt(o: Dictionary) -> void:
 		if on: _glow(c + Vector2(0, -8), 8.0, WorldMath.REACTIVE, 0.22)
 
 func _line_poly(l: Dictionary, off: float) -> PackedVector2Array:
+	var rid := str(l.get("id", ""))
+	if rid != "" and _route_poly.has(rid): return _route_poly[rid]
 	var out := PackedVector2Array()
 	var pts: Array = []
 	var raw: Array = l.pts
@@ -763,6 +946,7 @@ func _draw_wires() -> void:
 		while k + 3 < gp.size():
 			_ci.draw_line(gp[k], gp[k + 3], Color(0.96, 0.92, 0.78, 0.55), 2.0, true); k += 8
 	for l in model.lines:
+		if _route_poly.has(str(l.id)): continue   # a planned route is drawn span by span (copper, amber, red) with its supports
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
 			if poly.size() < 2: continue
@@ -785,8 +969,10 @@ func _poly_at(poly: PackedVector2Array, cum: PackedFloat32Array, f: float) -> Ve
 	return poly[poly.size() - 1]
 
 func _draw_pulses() -> void:
+	if bool(model.get("blackout", false)): return   # a dark province shows no flow
 	for l in model.lines:
 		if not l.in_service or l.dir == 0 or l.speed <= 0.0: continue
+		if _route_poly.has(str(l.id)): _route_pulses(l); continue
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
 			if poly.size() < 2: continue
@@ -806,6 +992,19 @@ func _draw_pulses() -> void:
 			var mid := poly2[poly2.size() / 2]
 			_ci.draw_arc(mid, 17.0, -PI * 0.5, -PI * 0.5 + TAU * clampf(float(l.overload), 0.03, 1.0), 28, WorldMath.RED, 3.0, true)
 			_ci.draw_arc(mid, 17.0, 0.0, TAU, 28, Color(1, 0.23, 0.23, 0.25), 1.5, true)
+
+## Thin sodium-white pulses riding above the wires of a built route (only on an energised, in-service line with flow: the model zeroes dir otherwise).
+func _route_pulses(l: Dictionary) -> void:
+	var poly: PackedVector2Array = _route_poly[str(l.id)]
+	if poly.size() < 2: return
+	var cum := PackedFloat32Array([0.0])
+	for k in range(1, poly.size()): cum.append(cum[k - 1] + poly[k].distance_to(poly[k - 1]))
+	var n := clampi(int(cum[cum.size() - 1] / 90.0), 4, 40)
+	var ph: float = _phase.get(l.id, 0.0)
+	var col: Color = l.color
+	for k in n:
+		var p := _poly_at(poly, cum, fposmod(ph + float(k) / float(n), 1.0))
+		_ci.draw_circle(p, 4.2, Color(col.r, col.g, col.b, 0.2)); _ci.draw_circle(p, 1.7, col.lerp(Color.WHITE, 0.4))
 
 func _draw_labels() -> void:
 	var font := CbKit.font_regular()
@@ -1036,3 +1235,261 @@ func _draw_breakers() -> void:
 		_ci.draw_rect(box, GridTheme.SODIUM, false, 2.0)
 		_ci.draw_line(p + Vector2(0, 9) * sc, p + Vector2(7, -9) * sc, GridTheme.SODIUM, 3.0 * sc)   # the open knife: tap to close
 		_ci.draw_circle(p + Vector2(0, 9) * sc, 2.5 * sc, GridTheme.SODIUM)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Overhead-line routes: supports, spans, ghost preview, picking (DEPTH 4.2-4.3; every number comes from the engine plan, see RouteDraw)
+# --------------------------------------------------------------------------------------------------------------------
+func _tile_m() -> float:
+	if _has_terrain(): return float(model.terrain.tile_m)
+	return float(model.get("tile_m", 50.0))
+
+## Metres on the map at a screen point (the ground under it, terrain heights included); Vector2(NAN, NAN) off the map.
+func map_metres_at(screen_p: Vector2) -> Vector2:
+	if model.kind == "none" or _tiles.is_empty(): return Vector2(NAN, NAN)
+	var w := (screen_p - _view_rect().get_center() - _pan) / _scale() + _bounds_center()
+	var q := Vector2.ZERO; var z := 0.0
+	for it in 6:
+		var u := w.x / (TW * 0.5); var v := (w.y + z) / (TH * 0.5)
+		q = Vector2((u + v) * 0.5, (v - u) * 0.5)
+		z = _zat(q) if q.x >= 0.0 and q.y >= 0.0 else 0.0
+	if q.x < 0.0 or q.y < 0.0 or q.x >= model.map.x or q.y >= model.map.y: return Vector2(NAN, NAN)
+	return q * _tile_m()
+
+## Screen position (local coordinates) of a map point in metres, on the ground (`z_m` metres above it).
+func metres_to_screen(m: Vector2, z_m := 0.0) -> Vector2:
+	var q := m / _tile_m()
+	return to_screen(_iso(q.x, q.y, _zat(q) + z_m * PXM))
+
+## Preview of a not-yet-built line: `plan` = the routePreview result ({} or a refusal clears it), `pending` = waypoints (metres, Vector2 or [x, y]) already clicked.
+func set_route_ghost(plan: Dictionary, pending: Array) -> void:
+	_ghost = RouteDraw.plan_to_route(plan, "ghost", _tile_m()) if (not plan.is_empty() and bool(plan.get("ok", true)) and plan.has("supports")) else {}
+	_ghost_pending = []
+	for q in pending: _ghost_pending.append(Vector2(float(q[0]), float(q[1])) if (q is Array) else Vector2(q))
+	queue_redraw()
+	if _dyn_layer != null: _dyn_layer.queue_redraw()
+
+func _phase_pt(s: Dictionary, k: int) -> Vector2:
+	var p: Vector2 = s.p; var d: Vector2 = s.dir
+	var arm := 0.1 if str(s.family) == "crossing-h" else 0.075
+	return _iso(p.x - d.y * arm * float(k), p.y + d.x * arm * float(k), _zat(p) + float(s.attach_m) * PXM)
+
+## The wire of phase `k` (-1, 0, 1) of a span: a parabola of the engine's sag (m x PXM px) under the chord between the two attachment points.
+func _span_wire(r: Dictionary, sp: Dictionary, k: int) -> PackedVector2Array:
+	return RouteDraw.wire_points(_phase_pt(r.supports[sp.a], k), _phase_pt(r.supports[sp.b], k), float(sp.sag_m) * PXM)
+
+func _span_at(r: Dictionary, sp: Dictionary) -> Array:   # [wire point px, ground point px] at the span's tightest clearance (atM)
+	var a: Dictionary = r.supports[sp.a]; var b: Dictionary = r.supports[sp.b]
+	var t := clampf(float(sp.at_m) / maxf(float(sp.length_m), 0.001), 0.0, 1.0)
+	var pa := _phase_pt(a, 0); var pb := _phase_pt(b, 0)
+	var wire := pa.lerp(pb, t) + Vector2(0.0, 4.0 * float(sp.sag_m) * PXM * t * (1.0 - t))
+	var gp: Vector2 = (a.p as Vector2).lerp(b.p, t)
+	return [wire, _iso(gp.x, gp.y, _zat(gp))]
+
+func _dashed(a: Vector2, b: Vector2, col: Color, w: float, on := 3.0, off := 3.0) -> void:
+	var n := maxi(1, int(a.distance_to(b) / (on + off)))
+	for k in n:
+		var t0 := float(k) / float(n); var t1 := t0 + (on / (on + off)) / float(n)
+		_ci.draw_line(a.lerp(b, t0), a.lerp(b, t1), col, w)
+
+func _span(r: Dictionary, sp: Dictionary, dashed := false) -> void:
+	var col := _c(RouteDraw.band_color(str(sp.band)))
+	for k in [-1, 0, 1]:
+		var w := _span_wire(r, sp, k)
+		if dashed:
+			for q in range(0, w.size() - 1, 2): _ci.draw_line(w[q], w[q + 1], col, 1.3, true)
+		else: _ci.draw_polyline(w, col, 1.3, true)
+	if str(sp.band) == RouteDraw.BAND_BAD:   # the clearance: a dashed drop from the wire to the ground at the tightest point
+		var wg := _span_at(r, sp)
+		_dashed(wg[0], wg[1], _c(RouteDraw.RED), 1.2)
+		_ci.draw_circle(wg[1], 1.6, _c(RouteDraw.RED))
+
+func _bad_marker(r: Dictionary, sp: Dictionary) -> void:
+	var wg := _span_at(r, sp); var at: Vector2 = wg[0] + Vector2(0, -9)
+	var pulse := 0.5 + 0.5 * sin(_t * 5.0)
+	_ci.draw_circle(at, 9.0 + 3.0 * pulse, Color(RouteDraw.RED.r, RouteDraw.RED.g, RouteDraw.RED.b, (0.18 + 0.2 * pulse) * _ga))
+	_ci.draw_circle(at, 6.0, Color(RouteDraw.RED.r, RouteDraw.RED.g, RouteDraw.RED.b, _ga))
+	var font := CbKit.font_regular()
+	_ci.draw_string(font, at + Vector2(-2.2, 4.2), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, _ga))
+
+func _draw_route_markers() -> void:
+	for r in model.routes:
+		for sp in r.spans: if str(sp.band) == RouteDraw.BAND_BAD: _bad_marker(r, sp)
+
+func _draw_ghost() -> void:
+	if not _ghost.is_empty():
+		_ga = 0.55
+		for sp in _ghost.spans: _span(_ghost, sp, true)
+		for sd in _ghost.supports: _support(sd)
+		for sp in _ghost.spans: if str(sp.band) == RouteDraw.BAND_BAD: _bad_marker(_ghost, sp)
+		_ga = 1.0
+	if _ghost_pending.is_empty(): return
+	var tm := _tile_m(); var prev := Vector2(NAN, NAN)
+	for k in _ghost_pending.size():
+		var q: Vector2 = (_ghost_pending[k] as Vector2) / tm
+		var g := _iso(q.x, q.y, _zat(q))
+		if not is_nan(prev.x): _dashed(prev, g, Color(WorldMath.SODIUM, 0.6), 1.4)
+		prev = g
+		_ci.draw_line(g, g + Vector2(0, -9), Color("#8A6A43"), 2.0)
+		_glow(g + Vector2(0, -10), 7.0, WorldMath.SODIUM, 0.5)
+		_ci.draw_circle(g + Vector2(0, -10), 2.4, WorldMath.SODIUM)
+
+func _pole_col(fam: String) -> Color:
+	match fam:
+		"wood-9": return Color("#8A6A45")
+		"pcc-11": return Color("#B9B8B0")
+	return Color("#9AA3B0")
+
+func _taper(base: Vector2, h: float, wb: float, wt: float, col: Color) -> void:
+	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-wb, 0), base + Vector2(wb, 0), base + Vector2(wt, -h), base + Vector2(-wt, -h)]), col)
+
+func _support(s: Dictionary) -> void:
+	var p: Vector2 = s.p; var z0 := _zat(p); var base := _iso(p.x, p.y, z0)
+	var fam := str(s.family); var cls := str(s.angle_class)
+	var big := cls == "large" or cls == "terminal"
+	var d: Vector2 = s.dir; var perp := Vector2(-d.y, d.x)
+	var top_h := float(s.pole_m) * PXM; var att_h := float(s.attach_m) * PXM
+	var col := _c(_pole_col(fam)); var dark := _c(Color("#2A2418"))
+	match str(s.foundation):   # piles in soft ground: a ring of dark pile heads; rock: a pale concrete anchor block
+		"pile":
+			for k in 4:
+				var a := TAU * float(k) / 4.0 + 0.78
+				var q := _iso(p.x + cos(a) * 0.1, p.y + sin(a) * 0.1, z0)
+				_ci.draw_line(q, q + Vector2(0, -2.6), _c(Color("#3A2E22")), 2.2); _ci.draw_circle(q + Vector2(0, -2.6), 1.3, _c(Color("#5A4632")))
+		"rock": _box(p, 0.12, 0.12, 3.2, Color("#D6D0C2"))
+	for g in s.guys:   # stays: one for small / medium angles, two for large angles and dead ends
+		var an: Vector2 = p + (g as Vector2) * 0.13
+		_ci.draw_line(base + Vector2(0, -att_h * 0.9), _iso(an.x, an.y, _zat(an)), _c(Color("#CFC9BA")), 0.9, true)
+		_ci.draw_circle(_iso(an.x, an.y, _zat(an)), 1.1, _c(Color("#CFC9BA")))
+	if fam == "crossing-h":   # H-frame: two tall steel poles joined by a beam, X-braced, with stays along the line
+		var o := perp * 0.11
+		var b1 := _iso(p.x + o.x, p.y + o.y, z0); var b2 := _iso(p.x - o.x, p.y - o.y, z0)
+		var t1 := b1 + Vector2(0, -top_h); var t2 := b2 + Vector2(0, -top_h)
+		var m1 := b1 + Vector2(0, -att_h * 0.8); var m2 := b2 + Vector2(0, -att_h * 0.8)
+		_ci.draw_line(b1, m2, col, 0.9); _ci.draw_line(b2, m1, col, 0.9)
+		_taper(b1, top_h, 2.0, 1.1, col); _taper(b2, top_h, 2.0, 1.1, col)
+		_ci.draw_line(b1 + Vector2(0, -att_h), b2 + Vector2(0, -att_h), col, 2.6)
+		for sd in [-1.0, 1.0]:
+			for pt in [[t1, p + o], [t2, p - o]]:
+				var an2: Vector2 = (pt[1] as Vector2) + d * 0.16 * sd
+				_ci.draw_line(pt[0], _iso(an2.x, an2.y, _zat(an2)), _c(Color("#CFC9BA")), 0.8, true)
+	else:
+		match fam:
+			"wood-9": _ci.draw_line(base, base + Vector2(0, -top_h), col, 2.2)
+			"pcc-11": _ci.draw_line(base, base + Vector2(0, -top_h), col, 3.0); _ci.draw_line(base + Vector2(-0.8, 0), base + Vector2(-0.8, -top_h), _c(_shade(_pole_col(fam), 1.12)), 0.8)
+			_: _taper(base, top_h, 2.3, 1.0, col)
+		var a0 := _phase_pt(s, -1); var a1 := _phase_pt(s, 1); var ctr := (a0 + a1) * 0.5
+		_ci.draw_line(ctr + (a0 - ctr) * 1.3, ctr + (a1 - ctr) * 1.3, dark if fam != "wood-9" else _c(Color("#6A4E30")), 3.4 if big else 1.9)
+	for k in [-1, 0, 1]:   # insulators: a short string under the arm on heavy structures (they hold the wire's full tension)
+		var ap := _phase_pt(s, k)
+		if big or fam == "crossing-h": _ci.draw_line(ap + Vector2(0, -2.2), ap, _c(Color("#C9D6DE")), 1.4)
+		else: _ci.draw_circle(ap + Vector2(0, 0.6), 1.0, _c(Color("#C9D6DE")))
+
+# ---- Cute mode: crocodiles in the swamp, the lineman, market stalls ----------------------------------------------------
+func _croc_state(o: Dictionary) -> String:
+	if bool(o.get("res", false)):
+		for r in model.routes:
+			for sd in r.supports: if str(sd.foundation) == "pile": return "happy"
+		return "sulk"
+	var r := _route_of(str(o.rid))
+	return "worried" if not r.is_empty() and bool(r.any_bad) else "happy"
+
+func _croc(o: Dictionary) -> void:
+	if not cute: return
+	var st := _croc_state(o)
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p))
+	var wag := sin(_t * (3.0 if st == "happy" else 1.2) + float(o.v) * 6.0)
+	var body := _c(Color("#4F9157")); var belly := _c(Color("#A9D08A")); var ink := Color("#2A2418")
+	_ell(base + Vector2(0, 1), 11.0, 3.6, Color(0, 0, 0, 0.22))
+	var tail := PackedVector2Array([base + Vector2(-5, -3.5), base + Vector2(-17, -2.0 + wag * 2.6), base + Vector2(-5, -0.5)])
+	_ci.draw_colored_polygon(tail, _shade(body, 0.85))
+	_ell(base + Vector2(0, -3.2), 8.2, 3.6, body)
+	_ell(base + Vector2(0, -2.4), 6.0, 2.0, belly)
+	for k in 3: _ci.draw_circle(base + Vector2(-4.0 + float(k) * 3.4, -6.4), 0.9, _shade(body, 0.8))   # back ridges
+	var head := base + Vector2(8.0, -4.6)
+	_ell(head, 4.6, 3.2, body)
+	_ci.draw_colored_polygon(PackedVector2Array([head + Vector2(2, -1.8), head + Vector2(9.0, -0.6), head + Vector2(9.0, 1.6), head + Vector2(2, 2.4)]), _shade(body, 1.05))
+	_ci.draw_line(head + Vector2(3.0, 1.4), head + Vector2(9.0, 1.0), ink, 0.8)
+	_ci.draw_circle(head + Vector2(8.2, -0.3), 0.5, ink)
+	var eye := head + Vector2(1.0, -3.6)
+	match st:
+		"happy":   # eyes closed, a little smile: it stands on piles
+			_ci.draw_arc(eye, 1.5, PI + 0.3, TAU - 0.3, 8, ink, 1.1); _ci.draw_arc(eye + Vector2(-3.2, 0.4), 1.2, PI + 0.3, TAU - 0.3, 8, ink, 1.0)
+			_ci.draw_arc(head + Vector2(5.5, 0.2), 2.4, 0.3, PI - 0.5, 8, ink, 0.9)
+		"worried":   # peeks at the red span: eyes wide, pupils looking up the line, a sweat drop
+			var look := Vector2(1.0, -0.6)
+			for ex in [eye, eye + Vector2(-3.2, 0.4)]:
+				_ci.draw_circle(ex, 1.9, Color.WHITE); _ci.draw_circle(ex + look * 0.6, 0.9, ink)
+				_ci.draw_line(ex + Vector2(-1.6, -2.4), ex + Vector2(1.4, -1.8), ink, 0.9)
+			_ci.draw_circle(head + Vector2(-3.4, -4.0 + fposmod(_t * 6.0, 3.0)), 0.9, Color("#7FC8FF"))
+		_:   # sulk: no piles yet, eyes half shut, a frown
+			for ex in [eye, eye + Vector2(-3.2, 0.4)]:
+				_ci.draw_circle(ex, 1.5, Color.WHITE); _ci.draw_circle(ex + Vector2(0, 0.4), 0.8, ink); _ci.draw_line(ex + Vector2(-1.6, -0.9), ex + Vector2(1.6, -0.9), ink, 1.2)
+			_ci.draw_arc(head + Vector2(5.5, 3.0), 2.2, PI + 0.5, TAU - 0.5, 8, ink, 0.9)
+
+func _draw_lineman() -> void:
+	if not cute: return
+	var dt := _t - float(_lineman.t0)
+	if dt < 0.0 or dt > 2.0: return
+	var r := _route_of(str(_lineman.rid))
+	if r.is_empty(): return
+	var i := clampi(int(_lineman.i), 0, r.supports.size() - 1)
+	var s: Dictionary = r.supports[i]
+	var p: Vector2 = s.p; var base := _iso(p.x, p.y, _zat(p))
+	var top_h := float(s.attach_m) * PXM
+	var f := clampf(dt / 1.5, 0.0, 1.0); f = f * f * (3.0 - 2.0 * f)
+	var at := base + Vector2(3.6, -top_h * f - 3.0)
+	var ink := Color("#2A2418"); var step := sin(dt * 14.0)
+	_ci.draw_line(at + Vector2(0, 2.0), at + Vector2(-1.4 + step, 6.5), Color("#3D4A6B"), 1.6); _ci.draw_line(at + Vector2(0, 2.0), at + Vector2(1.4 - step, 6.5), Color("#3D4A6B"), 1.6)   # legs
+	_ci.draw_colored_polygon(PackedVector2Array([at + Vector2(-2.2, 2.6), at + Vector2(2.2, 2.6), at + Vector2(1.8, -3.4), at + Vector2(-1.8, -3.4)]), Color("#FF8A3C"))   # hi-vis vest
+	var wave := f >= 1.0
+	_ci.draw_line(at + Vector2(-1.6, -2.6), at + Vector2(-3.0, -5.2 - step * 0.8), Color("#C8956A"), 1.3)
+	_ci.draw_line(at + Vector2(1.6, -2.6), at + Vector2(3.6, (-6.4 + sin(dt * 12.0) * 1.4) if wave else (-5.2 + step * 0.8)), Color("#C8956A"), 1.3)
+	_ci.draw_circle(at + Vector2(0, -5.6), 2.1, Color("#C8956A"))
+	_ci.draw_arc(at + Vector2(0, -5.8), 2.3, PI, TAU, 8, Color("#FFD23C"), 1.8)   # hard hat
+	_ci.draw_circle(at + Vector2(-0.8, -5.6), 0.35, ink); _ci.draw_circle(at + Vector2(0.8, -5.6), 0.35, ink)
+
+func _stall(o: Dictionary) -> void:
+	if not cute: return
+	var t: Dictionary = model.towns[o.ti]
+	var e := float(t.energy)   # the stalls' lamps follow the town's lit share
+	var p: Vector2 = o.p; var base := _box(p, 0.26, 0.18, 4.0, Color("#9A7A4E"))
+	var a := _iso(p.x - 0.18, p.y + 0.12, base + 9.0); var b := _iso(p.x + 0.18, p.y + 0.12, base + 9.0)
+	var c := _iso(p.x + 0.18, p.y - 0.12, base + 11.0); var dd := _iso(p.x - 0.18, p.y - 0.12, base + 11.0)
+	var s1 := Color("#E5484D") if int(o.k) % 2 == 0 else Color("#5B8CE0")
+	_ci.draw_colored_polygon(PackedVector2Array([a, b, c, dd]), _c(s1))
+	for q in 3: _ci.draw_line(a.lerp(b, (float(q) + 0.5) / 3.0), dd.lerp(c, (float(q) + 0.5) / 3.0), _c(Color("#F3EEDF")), 1.2)
+	var lamp := a.lerp(b, 0.5) + Vector2(0, 2.5)
+	var lit := clampf(e * _gain, 0.0, 1.0)
+	_ci.draw_circle(lamp, 1.3, UNLIT.lerp(WorldMath.SODIUM, lit))
+	if lit > 0.05 and _night > 0.2: _glow(lamp, 8.0, WorldMath.SODIUM, 0.3 * lit * _night)
+
+## What a built route has under a screen point: {kind: "support"|"span", branch, index} or {} (nothing within ROUTE_HIT_PX).
+func route_hit(sp: Vector2) -> Dictionary:
+	var best := {}; var bd := 1e9
+	for r in model.routes:
+		for i in r.supports.size():
+			var s: Dictionary = r.supports[i]; var p: Vector2 = s.p
+			var b := to_screen(_iso(p.x, p.y, _zat(p))); var t := to_screen(_iso(p.x, p.y, _zat(p) + float(s.pole_m) * PXM))
+			var d := _dist_poly(sp, PackedVector2Array([b, t]))
+			if d <= ROUTE_HIT_PX and d < bd: bd = d; best = {"kind": "support", "branch": str(r.id), "index": i}
+	if not best.is_empty(): return best
+	for r in model.routes:
+		for sp2 in r.spans:
+			var w := _span_wire(r, sp2, 0); var scr := PackedVector2Array()
+			for q in w: scr.append(to_screen(q))
+			var d2 := _dist_poly(sp, scr)
+			if d2 <= ROUTE_HIT_PX and d2 < bd: bd = d2; best = {"kind": "span", "branch": str(r.id), "index": int(sp2.i)}
+	return best
+
+## Screen position (local) of a built route's support `index` (top of the pole) or span `index` (its middle wire point); NAN when unknown. For tags.
+func route_anchor(kind: String, branch_id: String, index: int) -> Vector2:
+	var r := _route_of(branch_id)
+	if r.is_empty(): return Vector2(NAN, NAN)
+	if kind == "support" and index >= 0 and index < r.supports.size():
+		var s: Dictionary = r.supports[index]; var p: Vector2 = s.p
+		return to_screen(_iso(p.x, p.y, _zat(p) + float(s.pole_m) * PXM))
+	if kind == "span" and index >= 0 and index < r.spans.size():
+		var w := _span_wire(r, r.spans[index], 0)
+		return to_screen(w[w.size() / 2])
+	return Vector2(NAN, NAN)

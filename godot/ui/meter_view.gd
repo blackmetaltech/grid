@@ -25,6 +25,8 @@ var _glow := 0.0
 var blank := false              ## no real reading (circuit incomplete): needle rests at the scale start, readout "—"
 var ghost := NAN                ## what-if value (kit tray hover): a thin ghost needle, NAN = none
 var live := false               ## breaker is running: backlight a little warmer
+var signed := false             ## readout carries an explicit sign ("+0.7 m"): the clearance gauge
+var blank_key := "METER_BLANK"  ## what the readout says while `blank` (the clearance gauge: "no line")
 
 func _init() -> void:
 	custom_minimum_size = Vector2(160, 132)
@@ -52,8 +54,8 @@ func value_of_angle(deg: float) -> float: return vmin + (vmax - vmin) * clampf((
 func needle_deg() -> float: return angle_deg(_x)
 func needle_value() -> float: return value_of_angle(needle_deg())
 func readout_text() -> String:
-	if blank: return TranslationServer.translate("METER_BLANK")
-	return ("%." + str(decimals) + "f %s") % [target, units]
+	if blank: return TranslationServer.translate(blank_key)
+	return (("%+." if signed else "%.") + str(decimals) + "f %s") % [target, units]
 func settled() -> bool: return _v == 0.0 and _x == clampf(target, vmin, vmax)
 
 ## Advance the spring by dt seconds (the engine of _process, callable from tests).
@@ -110,7 +112,7 @@ func _draw() -> void:
 			draw_string(f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)
 	# caption (top-left, tiny scale label), readout under the pivot
 	var cf := GridTheme.font("semi"); var csz := GridTheme.fs(11)
-	draw_string(cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
+	draw_string(cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank and blank_key == "METER_BLANK" else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
 	var rs := readout_text(); var rsz := GridTheme.fs(17)
 	var rw := f.get_string_size(rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz)
 	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 10.0), Vector2(rw.x + 16.0, rsz + 8.0))

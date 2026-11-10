@@ -18,7 +18,7 @@ static func l01_hut_pos(d: float) -> Vector2:
 	return Vector2(L01_HAMLET.x - (d - vertical) / 10.0, L01_BEACH_Y)
 
 static func empty() -> Dictionary:
-	return {"kind": "none", "level": "", "map": Vector2(26, 16), "minute": 0.0, "night": 1.0, "towns": [], "subs": [], "lines": [], "units": [], "shunts": [], "blackout": false}
+	return {"kind": "none", "level": "", "map": Vector2(26, 16), "minute": 0.0, "night": 1.0, "towns": [], "subs": [], "lines": [], "units": [], "shunts": [], "blackout": false, "terrain": {}, "routes": []}
 
 static func build(b) -> Dictionary:
 	var m := empty()
@@ -34,16 +34,39 @@ static func build(b) -> Dictionary:
 	elif w.kind == "grid": _grid(m, w, b)
 	return m
 
+## Terrain tile characters of the engine (world.terrain.rows) and the tile kinds the diorama draws.
+const TERRAIN_KINDS := {"f": "field", "s": "swamp", "r": "river", "w": "forest", "k": "rock", "a": "sand", "e": "sea", "t": "town", "d": "road"}
+static var _terrain_cache := {}
+
+## world.terrain as flat arrays: kinds[j * cols + i] (kind names) and elev[...] in metres. Cached by terrain id (the map never changes inside a level).
+static func terrain_of(tr: Dictionary) -> Dictionary:
+	var id := str(tr.id)
+	if _terrain_cache.has(id): return _terrain_cache[id]
+	var cols := int(tr.cols); var nrows := int(tr.nrows)
+	var kinds := PackedStringArray(); var elev := PackedFloat32Array()
+	for j in nrows:
+		var row := str(tr.rows[j])
+		for i in cols: kinds.append(str(TERRAIN_KINDS.get(row[i], "field")))
+	for e in tr.elev: elev.append(float(e))
+	var t := {"id": id, "cols": cols, "rows": nrows, "tile_m": float(tr.tileM), "kinds": kinds, "elev": elev}
+	_terrain_cache[id] = t
+	return t
+
 static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 	m.map = Vector2(float(w.map.w), float(w.map.h))
+	var has_terrain: bool = w.get("terrain") is Dictionary and not (w.terrain as Dictionary).is_empty()
+	if has_terrain:
+		m["terrain"] = terrain_of(w.terrain); m["tile_m"] = float(w.terrain.tileM)
+		for r in w.get("routes", []): m.routes.append(RouteDraw.plan_to_route(r, str(r.branchId), float(w.terrain.tileM)))
+	var live := {}   # bus id -> energised: a line between dead buses carries no flow, so it shows no pulses
 	var vv: Dictionary = (b.q("overlay", ["voltage"]) as Dictionary).get("values", {})
 	var ll: Dictionary = (b.q("overlay", ["loading"]) as Dictionary).get("values", {})
 	var pos := {}; var kvs := {}
 	for bus in w.buses:
-		var p := Vector2(float(bus.x), float(bus.y)); pos[bus.id] = p; kvs[bus.id] = float(bus.kv)
+		var p := Vector2(float(bus.x), float(bus.y)); pos[bus.id] = p; kvs[bus.id] = float(bus.kv); live[bus.id] = bool(bus.get("energised", true))
 		var v: float = float(vv[bus.id]) if vv.has(bus.id) else 0.0
 		if float(bus.demandMW) > 0.0 or float(bus.peakMW) > 0.0 or bus.kind == "load":
-			var n := clampi(6 + int(maxf(float(bus.peakMW), float(bus.demandMW)) / 4.0), 6, 40)
+			var n := clampi(6 + int(maxf(float(bus.peakMW), float(bus.demandMW)) / 4.0), 6, 40) if not has_terrain else 14   # a market town on the 50 m map: more roofs
 			m.towns.append(_town(str(bus.id), str(bus.name), p, n, v, float(bus.shed), "town", 0))
 		else:
 			m.subs.append({"id": str(bus.id), "pos": p, "kv": float(bus.kv), "v": v, "energised": v > 0.0})
@@ -53,7 +76,9 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 		for wp in br.waypoints: pts.append(Vector2(float(wp[0]), float(wp[1])))
 		pts.append(c)
 		var load_f: float = float(ll.get(br.id, 0.0))
-		m.lines.append(_line(str(br.id), pts, load_f, WorldMath.flow_dir(float(br.pFromMW)), bool(br.inService), int(br.circuits), float(kvs.get(br["from"], 11.0)), float(br.overloadFrac), str(br.kind)))
+		var fdir := WorldMath.flow_dir(float(br.pFromMW))
+		if m.blackout or not (bool(live.get(br["from"], true)) and bool(live.get(br.to, true))): fdir = 0   # pulses only where the engine reports flow on an energised line
+		m.lines.append(_line(str(br.id), pts, load_f, fdir, bool(br.inService), int(br.circuits), float(kvs.get(br["from"], 11.0)), float(br.overloadFrac), str(br.kind)))
 	for u in w.units:
 		m.units.append({"id": str(u.id), "pos": pos.get(u.bus, Vector2.ZERO), "kind": str(u.kind), "online": bool(u.online), "level": 0.0 if float(u.pMax) <= 0.0 else clampf(float(u.P) / float(u.pMax), 0.0, 1.0), "rotor": WorldMath.rotor_speed(float(u.availMW), float(u.pMax))})
 	for h in w.shunts: m.shunts.append({"id": str(h.id), "pos": pos.get(h.bus, Vector2.ZERO), "on": int(h.on), "steps": int(h.steps), "kind": str(h.kind)})

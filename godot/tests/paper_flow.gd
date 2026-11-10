@@ -200,14 +200,14 @@ static func run(app: CbApp) -> void:
 	ck.call(not ShiftReport.chapter_is_open() and str(app.b.q("levelInfo").get("id", "")) == "L03", "paper flow: Next job after WO-02 just starts WO-03")
 	WorkOrder.close_now()
 	app.b.act("startLevel", ["L03", 1, "learner"]); await _frames(app, 2)
-	ShiftReport._next(app, "L03", "L07"); await _frames(app, 3)
-	ck.call(ShiftReport.chapter_is_open() and app.modal() == ShiftReport.chapter_node() and str(app.b.q("levelInfo").get("id", "")) == "L03", "paper flow: Next job after WO-03 opens the chapter-end card and does not start WO-07")
+	ShiftReport._next(app, "L03", "L05"); await _frames(app, 3)
+	ck.call(ShiftReport.chapter_is_open() and app.modal() == ShiftReport.chapter_node() and str(app.b.q("levelInfo").get("id", "")) == "L03", "paper flow: Next job after WO-03 opens the chapter-end card and does not start WO-05")
 	if ShiftReport.chapter_is_open():
 		var ct := _texts(ShiftReport.chapter_node())
-		ck.call(ct.contains("SALTMARSH IS LIT") and ct.contains("I passed! Well, the exam's tomorrow, but the hall stayed lit all week.") and ct.contains("Chapter 2 · The Mainland") and ct.contains("Coming soon"), "paper flow: the card has the title, Nia's line and 'Chapter 2 · The Mainland, coming soon'")
+		ck.call(ct.contains("SALTMARSH IS LIT") and ct.contains("I passed! Well, the exam's tomorrow, but the hall stayed lit all week.") and ct.contains("Chapter 2 · The Mainland") and ct.contains("Brightwater"), "paper flow: the card has the title, Nia's line and Chapter 2 · The Mainland (Brightwater)")
 		ck.call(_count(ShiftReport.chapter_node(), func(n): return n is ShiftReport.IslandDoodle) == 1 and _button(ShiftReport.chapter_node(), "Preview") != null, "paper flow: the lit island doodle and the Preview job button")
 		_button(ShiftReport.chapter_node(), "Preview").pressed.emit(); await _frames(app, 4)
-		ck.call(not ShiftReport.chapter_is_open() and str(app.b.q("levelInfo").get("id", "")) == "L07" and WorkOrder.is_open(), "paper flow: Preview job opens the WO-07 work order")
+		ck.call(not ShiftReport.chapter_is_open() and str(app.b.q("levelInfo").get("id", "")) == "L05" and WorkOrder.is_open(), "paper flow: the chapter 2 button opens the WO-05 work order")
 		WorkOrder.close_now()
 	# --- no old drawer: the Operator Clock is gone and no key chaos opens Build / Inspect / Timeline on a bench level ---
 	app.b.act("startLevel", ["L01", 1, "learner"]); app.game_on_changed(); await _frames(app, 3); WorkOrder.close_now(); await _frames(app, 2)
