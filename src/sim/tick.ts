@@ -17,6 +17,8 @@ import { voltageBand, type SimParams } from './params';
 import { systemRng } from './rngs';
 import { fin } from './finite';
 import { stepBench, type BenchParams } from '../level/bench';
+import { ch3Step } from './ch3/systems';
+import { ch4Step } from './ch4/systems';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 
@@ -435,6 +437,11 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
     // 15. explain: what needs the player now, and Codex unlocks.
     { id: 'explain', run: (s) => {
       const p = getParams(s);
+    // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).
+    { id: 'ch3', run: (s) => { ch3Step(s, getParams(s).f0); } },
+    // 13c. ch4: the L10-L13 circuits (gated on state.ch4).
+    { id: 'ch4', run: (s) => { ch4Step(s, getParams(s)); } },
+
       const needs: Note[] = [];
       if (s.block.blackout) needs.push(note('needs.blackout'));
       for (const b of s.branches) if (b.inService && b.timer && b.timer.secLeft < 1e6) needs.push(note('needs.overload', { id: b.id, sec: Math.round(b.timer.secLeft) }));

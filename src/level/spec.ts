@@ -69,10 +69,12 @@ export interface GridLevelSpec {
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
   /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
+  /** Chapter 3 rules (src/sim/ch3): harmonic study, scripted fault, supply-point tracking. */
+  ch3?: import('../sim/ch3/rules').Ch3Rules;
   fogBlock?: number;
   /** Block at which a trawler's anchor cuts every submarine cable (L30); absent = never. */
   cableCutBlock?: number;
@@ -84,7 +86,7 @@ export interface GridLevelSpec {
   stars: boolean;
   histogram: HistogramMetric | null;
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' };
+  naive: { actions: Action[]; failKind: 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -127,6 +129,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
 export function makeLevel(spec: GridLevelSpec): Level<GridState> {
   const solver: PersonaFactory<GridState> = () => {
     let done = false;
+    ...(spec.ch3 ? { ch3: structuredClone(spec.ch3) } : {}),   // a copy: the state owns its rules
     return () => { if (done) return []; done = true; return spec.reference; };
   };
   return {
@@ -155,9 +158,9 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
 
 // ---- the allowed-parts gate -----------------------------------------------------------------------------------------------------
 /** Argument position of the catalogue id (or size) of an action the part list can restrict. */
-const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, layCableRoute: 2, switchBranch: 0, buildRoute: 2 };
+const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, layCableRoute: 2, switchBranch: 0, buildRoute: 2, placeBank: 1, placeSeriesCap: 1 };
 /** Further restricted arguments, listed in `allowed.parts` under `<action>.<name>` (a null value, e.g. no crossing family, is always fine). */
-const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }, { pos: 7, name: 'insulator' }, { pos: 8, name: 'coastInsulator' }] };
+const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { placeBank: [{ pos: 3, name: 'detunePct' }], buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }, { pos: 7, name: 'insulator' }, { pos: 8, name: 'coastInsulator' }] };
 const ALWAYS = new Set(['setSpeed', 'predict']);
 
 /** Wrap the game's actions so a running level only accepts what its spec allows. Free play (no level) is untouched. */

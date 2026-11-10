@@ -85,6 +85,8 @@ export interface Branch {
   tapMin: number; tapMax: number;
   /** Running overload timer: seconds left to trip, heat fraction used (0..1) and seconds spent below the reset level; null when not overloaded. */
   timer: { secLeft: number; frac: number; belowS: number } | null;
+  /** Chapter 3 (absent elsewhere): series capacitor on the line, percent of its reactance, and the line's gross reactance before it (pu on 100 MVA); `x` is the working reactance (L09). */
+  seriesCap?: { pct: number; xGross: number };
 }
 
 export type UnitKind = 'coal' | 'gas' | 'diesel' | 'biomass' | 'nuclear' | 'hydro' | 'psp' | 'pv' | 'wind' | 'synccon';
@@ -141,6 +143,8 @@ export interface Load {
   priority: 'hospital' | 'school' | null;
   /** A level-authored daily shape: P and Q per block as a fraction of `Ppeak` (96 each); null = the class profile and `pf`. */
   shape: { p: number[]; q: number[] } | null;
+  /** Chapter 3 (absent elsewhere): a variable-speed drive load, a 6-pulse harmonic current source I1 / h (L08). */
+  vfd?: boolean;
 }
 
 export type ShuntKind = 'cap' | 'reactor' | 'svc' | 'statcom';
@@ -156,6 +160,8 @@ export interface Shunt {
   /** Steps switched in. */
   on: number;
   auto: { vLowPu: number; vHighPu: number; delayBlocks: number; counter: number } | null;
+  /** Chapter 3 (absent elsewhere): reactor share of the capacitor's reactance, percent (a detuned bank or tuned filter), and the fuse of an overloaded bank blown (L08). */
+  detunePct?: number; blown?: boolean;
 }
 
 export interface Storage {
@@ -356,6 +362,10 @@ export interface BlockSummary {
   /** Energy not served this block as average MW, and generation short of demand after dispatch, MW. */
   ensMW: number; shortfallMW: number; curtailedMW: number; imbalanceMW: number;
   reserveMW: number; marginPct: number;
+  /** Chapter 3 (absent elsewhere): the harmonic, fault and power-factor rules of L07-L09 (src/sim/ch3). */
+  ch3?: import('./sim/ch3/rules').Ch3Rules;
+  /** L28 (the finale, absent elsewhere): the three scripted days, the island that must stay lit, the repair crews (src/sim/finale.ts). */
+  finale?: import('./sim/finale').FinaleRules | null;
   worstVPu: number; worstLoading: number;
   costBlock: number; starts: number; startCostBlock: number;
   eventWindow: boolean; trips: string[]; blackout: boolean;

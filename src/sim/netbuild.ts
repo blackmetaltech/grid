@@ -21,7 +21,7 @@ export function toNet(s: Pick<GridState, 'buses' | 'branches' | 'units' | 'loads
   for (const b of s.storage) units.push({ id: b.id, bus: b.bus, kind: 'inverter', online: b.mw > 0, p: pu(b.P), pMax: pu(b.mw), q: 0 });
   const shunts: Net['shunts'] = [];
   for (const h of s.shunts) {
-    const mvar = h.mvarStep * h.on;
+    const mvar = h.mvarStep * h.on / (1 - (h.detunePct ?? 0) / 100);   // a detuned bank (reactor share p of Xc) delivers Q / (1 - p) at the terminals (ch3)
     if (h.kind === 'cap') shunts.push({ id: h.id, bus: h.bus, b: pu(mvar), inService: true });
     else if (h.kind === 'reactor') shunts.push({ id: h.id, bus: h.bus, b: -pu(Math.abs(mvar)), inService: true });
     else if (h.kind === 'statcom') units.push({ id: h.id, bus: h.bus, kind: 'statcom', online: h.on > 0, vSet: vSet.get(h.bus) ?? 1, iMax: pu(h.mvarStep * h.steps) });

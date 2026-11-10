@@ -5,7 +5,7 @@ import { GAME } from '../game';
 import type { GridState } from '../types';
 import { makeLevel, type Frozen, type GridLevelSpec } from './spec';
 
-export type FailKind = 'brownout' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark';
+export type FailKind = 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail';
 
 export interface Outcome {
   status: 'won' | 'lost' | 'playing';
@@ -42,6 +42,12 @@ export function runDesign(spec: GridLevelSpec, region: string, actions: Action[]
   const level = makeLevel(use);
   const env = new Env({ ...GAME, levels: [level] });
   env.reset({ seed: o.seed ?? 1, level: spec.id, region, ...(o.mode ? { mode: o.mode } : {}) });
+  if (key.startsWith('level.lost.b4.')) return 'machine';   // chapter 4's benches (L10-L13)
+  if (key === 'level.lost.capFuse') return 'capFuse';
+  if (key === 'level.lost.thd') return 'thd';
+  if (key === 'level.lost.farVoltage') return 'brownout';
+  if (key === 'level.lost.pfPeak') return 'pfPeak';
+  if (key === 'level.lost.breakerFail') return 'breakerFail';
   let rejected: string | null = null;
   for (const a of actions) { const r = env.step(a); if (!r.info.ok) { rejected = r.info.message; break; } }
   const cap = o.ticks ?? spec.maxTicks + 2;

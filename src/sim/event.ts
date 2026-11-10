@@ -10,6 +10,9 @@ import { remember, toResult } from './solved';
 import { SYNC_KINDS, toNet } from './netbuild';
 import type { SimParams } from './params';
 import { fin } from './finite';
+import { ch3Verdict } from './ch3/systems';
+import { finaleVerdict } from './finale';
+import { ch4Verdict, ch4Stars } from './ch4/systems';
 import type { GridState, ReplayLog, Rules, Unit } from '../types';
 import { flashoverParams, saltFlashoverParams, islandDark } from './flashover';
 
@@ -141,6 +144,9 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin && (m.poorSupplyMin >= (rules.poorSupplyGraceMin ?? 0) || atEnd)) {
     if (s.bench && s.bench.limits.lossMaxPct !== null) {   // a bench judged on line losses (L03): say which way it failed
       const loss = m.track.lossPct ?? 100;
+  const c4 = ch4Verdict(s, rules, ticksUsed); if (c4) return lost(c4.key, c4.params);   // chapter 4: neutral, voltage, power factor, pump start, swing, exam
+  const fv = finaleVerdict(s, rules); if (fv) return lost(fv.key, fv.params);   // L28: Saltmarsh Island went dark
+  const c3 = ch3Verdict(s, rules, ticksUsed); if (c3) return lost(c3.key, c3.params);   // chapter 3: cap fuse, THD, breaker failure, power factor at the peak
       if (loss >= 99.99) return lost('level.lost.unpowered', {});
       return lost('level.lost.lossOver', { loss: Math.round(loss * 10) / 10, max: s.bench.limits.lossMaxPct, min: m.poorSupplyMin });
     }

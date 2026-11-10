@@ -47,6 +47,9 @@ export const L07: GridLevelSpec = {
   decisive: { key: 'peakLoading', limit: 'loadingMax', dir: 'max' },
   star3: [{ key: 'pfDay', min: 'pfStar3' }, { key: 'lossPct', max: 'lossStar3Pct' }],
   brownoutLoses: true, blackoutLoses: true, stars: true, histogram: 'lossPct',
+  // the shift report's S = P + jQ lesson and the lunch-hour wattless current read the supply-point numbers the ch3 system records (src/sim/ch3)
+  ch3: { track: true },
+  story: { placeKey: 'level.L07.place', lineKeys: ['level.L07.story1', 'level.L07.story2', 'level.L07.story3'], lessonKey: 'level.L07.lesson', lessonKind: 'pf' },
   naive: { actions: [], failKind: 'overload' },
   lesson: fixed('cap-11-900', 1, 1),
   reference: auto('cap-11-300', 4, 0.975, 1.005),

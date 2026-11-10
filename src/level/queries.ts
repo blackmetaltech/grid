@@ -12,6 +12,9 @@ import { REGIONS } from '../regions';
 import type { GridState } from '../types';
 import { L03_LOAD_W, SOURCE_V, benchKit, benchCost, benchDetail, previewBench, solveBench, type BenchParams } from './bench';
 import { currentCoachStep, resolveThresholds, type GridLevelSpec } from './spec';
+import { ch2Lesson, ch2TryHint } from './ch2/bench';
+import { ch4Lesson, ch4TryHint } from './ch4/queries';
+import { pfLesson, harmLesson, seriesLesson, ch3TryHint, isCh3 } from './ch3-queries';
 import type { SimParams } from '../sim/params';
 
 export interface LevelQueryDeps {
@@ -120,13 +123,16 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
           if (spec.story?.lessonKind === 'island' && !s.bench) return islandLesson(s, spec.story.lessonKey);   // L30: the cable's charging Q and cost, then the battery's kWh and kW
           if (spec.story?.lessonKind === 'salt' && !s.bench) return saltLesson(s, spec.story.lessonKey);   // L29: creepage of the most exposed coastal support
+          if (spec.story?.lessonKind === 'pf' && !s.bench) return pfLesson(s, spec.story.lessonKey);   // chapter 3: S = P + jQ at the peak (L07), the bank's resonance (L08), the series capacitor (L09)
+          if (spec.story?.lessonKind === 'harm' && !s.bench) return harmLesson(s, spec.story.lessonKey);
+          if (spec.story?.lessonKind === 'series' && !s.bench) return seriesLesson(s, spec.story.lessonKey);
           if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');
           if (!run) return '';
           return t(spec.id === 'L02' && s.bench.topology === 'trunk' ? 'level.L02.lessonTrunk' : spec.story.lessonKey, { mm2: run.mm2, m: run.lengthM, r: run.rLoopOhm.toFixed(3), i: run.iA.toFixed(1), drop: run.dropV.toFixed(1), v: run.vRecvV.toFixed(1), loss: det!.totals.lossPct.toFixed(1),
             i48: (L03_LOAD_W / SOURCE_V).toFixed(0), k: (L03_LOAD_W / SOURCE_V / run.iA).toFixed(1), k2: ((L03_LOAD_W / SOURCE_V / run.iA) * (L03_LOAD_W / SOURCE_V / run.iA)).toFixed(0) });
-        })(), tryHint: spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
+        })(), tryHint: spec.story && s.ch4 ? ch4TryHint(s) : spec.story && isCh3(spec) ? ch3TryHint(s) : spec.story && (s.bench?.machine || s.bench?.town) ? ch2TryHint(s) : spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
       };
     },
     /** The coach's current step (never advances on a timer: it reads the state), or done. */
