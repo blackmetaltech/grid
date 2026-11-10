@@ -16,7 +16,7 @@ export interface BankStudy { /** short-circuit level seen at the bank's bus, MVA
 export interface HarmonicResult { /** fundamental current of all the drives, A */ i1A: number; bus: string; v1PhV: number; vhV: Record<number, number>; thdPct: number; banks: BankStudy[] }
 
 /** Buses joined to `start` through in-service lines (a transformer ends the 11 kV group). */
-function group(s: GridState, start: string): Set<string> {
+function group(s: StudyState, start: string): Set<string> {
   const g = new Set([start]); let grew = true;
   while (grew) {
     grew = false;
@@ -26,7 +26,8 @@ function group(s: GridState, start: string): Set<string> {
 }
 
 /** The study at the bus of the first drive. null when there is no drive running or no solution yet. */
-export function harmonicStudy(s: GridState, r: HarmonicRules, f0: number, vPu: (bus: string) => number | undefined): HarmonicResult | null {
+export type StudyState = Pick<GridState, 'buses' | 'branches' | 'units' | 'loads' | 'shunts'>;
+export function harmonicStudy(s: StudyState, r: HarmonicRules, f0: number, vPu: (bus: string) => number | undefined): HarmonicResult | null {
   const drives = s.loads.filter((l) => l.vfd && l.P * (1 - l.shedFrac) > 1e-9);
   if (drives.length === 0) return null;
   const bus = drives[0]!.bus, bb = s.buses.find((x) => x.id === bus);
@@ -80,7 +81,7 @@ export function harmonicStudy(s: GridState, r: HarmonicRules, f0: number, vPu: (
 }
 
 /** Reactance seen from `bus` back to the supply: the supply's X_s plus the line X between (radial case: the nearest supply bus, the lines of the group in series along the path). Used for the printed resonance order only. */
-function xBus(s: GridState, bus: string, kv: number, r: HarmonicRules, zOhm: number, grp: Set<string>): number {
+function xBus(s: StudyState, bus: string, kv: number, r: HarmonicRules, zOhm: number, grp: Set<string>): number {
   const src = s.units.find((u) => u.online && grp.has(u.bus));
   let x = kv * kv / r.sscMVA;
   if (!src || src.bus === bus) return x;
@@ -91,4 +92,24 @@ function xBus(s: GridState, bus: string, kv: number, r: HarmonicRules, zOhm: num
     x += b.x * zOhm; at = b.from === at ? b.to : b.from; seen.add(at);
   }
   return x;
+}
+
+/** Driving-point impedance |Z(h)| at the drives' bus, ohm, for the orders `hs` (any real h): the same network with the drives replaced by a 1 A probe. The parallel resonance is the peak. */
+export function impedanceSweep(s: StudyState, r: HarmonicRules, f0: number, hs: number[]): { h: number; zOhm: number }[] {
+  const drive = s.loads.find((l) => l.vfd) ?? s.loads[0];
+  const bb = drive && s.buses.find((x) => x.id === drive.bus);
+  if (!drive || !bb) return [];
+  const kv = bb.kvNom, w0 = 2 * Math.PI * f0, grp = group(s, drive.bus), zOhm = kv * kv / S_BASE_MVA;
+  const banks = s.shunts.filter((h) => h.kind === 'cap' && h.on > 0 && !h.blown && grp.has(h.bus));
+  return hs.map((h) => {
+    const e: Elem[] = [];
+    const xs = kv * kv / r.sscMVA, rs = xs / r.xOverR;
+    for (const u of s.units) if (u.online && grp.has(u.bus)) e.push({ kind: 'Z', id: `src-${u.id}`, a: u.bus, b: GROUND, z: cx(rs, h * xs) });
+    for (const b of s.branches) if (b.inService && b.kind !== 'xfmr' && grp.has(b.from) && grp.has(b.to)) e.push({ kind: 'Z', id: `br-${b.id}`, a: b.from, b: b.to, z: cx(b.r * zOhm, h * b.x * zOhm) });
+    for (const id of grp) { const p = s.loads.filter((l) => l.bus === id).reduce((a, l) => a + l.P * (1 - l.shedFrac), 0); if (p > 1e-9) e.push({ kind: 'R', id: `damp-${id}`, a: id, b: GROUND, r: kv * kv / (r.dampingShare * p) }); }
+    for (const k of banks) { const xc = kv * kv / (Math.abs(k.mvarStep) * k.on), p = (k.detunePct ?? 0) / 100; e.push({ kind: 'Z', id: `bank-${k.id}`, a: k.bus, b: GROUND, z: cx(ESR * xc, h * p * xc - xc / h) }); }
+    e.push({ kind: 'I', id: 'probe', a: GROUND, b: drive.bus, i: cx(1) });
+    const res = solveMna(e, w0 * h);
+    return { h, zOhm: res.ok ? abs(res.V[drive.bus] as Complex) : 0 };
+  });
 }

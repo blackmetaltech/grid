@@ -24,6 +24,7 @@ import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import type { CatalogueView } from './sim/build';
 import { buildCh3Actions } from './ch3-actions';
+import { buildCh3Queries } from './ch3-queries';
 import { buildFreqActions } from './freq-actions';
 import { buildQueries } from './queries';
 import { buildUiQueries } from './ui-queries';
@@ -122,6 +123,7 @@ export const GAME: GameDef<GridState> = {
     ...ch2Queries,
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
+    ...buildCh3Queries({ getParams }),
     ...buildCostQueries(() => GAME),   // actionCost: what a build would cost, run on a copy
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },

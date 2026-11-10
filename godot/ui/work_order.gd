@@ -57,6 +57,10 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		var ls = app.b.g.get("levelStart"); var hz = li.get("horizonBlocks")
 		var end_min := (float(ls) + float(hz) + 1.0) * 15.0 if ls != null and hz != null else 1380.0   # the run ends with the last block: 23:00
 		out.append(T("WO_COND_CUT") % [_hm(float(rules.cableCutBlock) * 15.0), _hm(end_min)])
+	if rules is Dictionary and rules.get("ch3") is Dictionary:   # chapter 3: the drives start at a set time (L08), the fault comes at a set time (L09)
+		var c3: Dictionary = rules.ch3
+		if c3.get("harmonics") is Dictionary: out.append(T("C3_WO_DRIVES"))
+		if c3.get("fault") is Dictionary: out.append(T("C3_WO_FAULT") % _hm(float((c3.fault as Dictionary).block) * 15.0))
 	var fz = li.get("frozen")
 	if fz is Dictionary: out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))
 	return out

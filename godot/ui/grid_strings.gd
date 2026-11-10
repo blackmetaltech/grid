@@ -135,4 +135,7 @@ const S := {
 	"CH2_TOBI_TAG": "TOBI ›", "CH2_TOBI": "Island's on the grid. Mind the anchor.",
 	"CH2_LAMPS": "Lamps earned on the mainland: %d of %d", "CH2_NEXT": "Chapter 3 · The Substation", "CH2_SOON": "Mill Town wants a real substation: bays, a bus scheme and protection that trips one feeder instead of the whole town. And the 46 kvar your cable charges comes back as reactive power.",
 	"CH2_PREVIEW": "Take the Mill Town job", "CH2_STAY": "Stay on the mainland",
+	# chapter 3 pass conditions (the work order reads TH_ keys here)
+	"TH_thdMaxPct": "Voltage THD at the 11 kV bus ≤ %s %%", "TH_thdStar3Pct": "Voltage THD ≤ %s %%", "TH_capRmsMax": "Capacitor current ≤ %s × rated (IEC 60871)", "TH_pfPeakMin": "Power factor at the evening peak ≥ %s",
+	"TH_farVMinPu": "Far end of the line ≥ %s pu", "TH_farVStar3Pu": "Far end ≥ %s pu all day", "TH_breakerKA": "The old feeder breaker is rated %s kA",
 }

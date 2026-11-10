@@ -17,6 +17,7 @@ var _pin_sub: Label
 var menu_btn: Button
 var tray: KitTray                ## the kit tray (bench levels): hut, reels, price tag
 var rtray: RouteTray             ## the route tray (chapter 2 levels with a terrain): survey, supports, conductors, transformers
+var ch3: Ch3Panel                ## chapter 3's instrument card (phasor, spectrum, bank current, series capacitor and fault); drawn only on L07-L09
 var gtray: GridTray              ## the grid tray (grid levels without a terrain: chapters 3-7): placeable parts, knobs, operate tags
 var tags: TagView                ## in-world paper tags
 var ch2: Ch2Bench                ## chapter 2's stage and panel for L04 (alternator) and L06 (town line); hidden on every other level
@@ -34,6 +35,7 @@ func _init() -> void:
 func build() -> void:
 	ch2 = Ch2Bench.new(); ch2.app = app; add_child(ch2)   # first child: an opaque stage under the instruments, the radio and the breaker
 	instruments = Instruments.new(); instruments.app = app; add_child(instruments)
+	ch3 = Ch3Panel.new(); ch3.app = app; add_child(ch3)
 	instruments.codex_requested.connect(_codex)
 	radio = RadioLog.new(); radio.app = app; add_child(radio)
 	breaker = Breaker.new(); breaker.app = app; add_child(breaker)
@@ -171,6 +173,7 @@ func refresh() -> void:
 	var id: String = str(li.id) if act else ""
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
 	if ch2 != null: ch2.refresh()
+	if ch3 != null: ch3.refresh()
 	instruments.refresh(); breaker.sync()
 	if tray != null: tray.refresh(); rtray.refresh(); gtray.refresh(); tags.refresh()
 	_poll_coach(act)

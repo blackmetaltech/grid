@@ -36,11 +36,13 @@ const PART_ICONS := [["cap", "capacitor"], ["react", "reactor"], ["shr", "reacto
 	["pv", "pv"], ["wind", "wind"], ["nuclear", "nuclear"], ["biomass", "biomass"], ["synccon", "synccon"], ["bess", "battery"]]
 const ICON_NAMES := {"capacitor": "GT_ICON_capacitor", "reactor": "GT_ICON_reactor", "transformer": "GT_ICON_transformer", "gas": "GT_ICON_gas", "coal": "GT_ICON_coal", "diesel": "GT_ICON_diesel",
 	"hydro": "GT_ICON_hydro", "pv": "GT_ICON_pv", "wind": "GT_ICON_wind", "nuclear": "GT_ICON_nuclear", "biomass": "GT_ICON_biomass", "synccon": "GT_ICON_synccon", "battery": "GT_ICON_battery",
-	"line": "GT_ICON_line", "breaker": "GT_ICON_breaker", "demolish": "GT_ICON_demolish", "dispatch": "GT_ICON_dispatch", "part": "GT_ICON_part"}
-const UNITS := {"capacitor": "GT_UNIT_kvar", "reactor": "GT_UNIT_kvar", "gas": "GT_UNIT_mw", "coal": "GT_UNIT_mw", "diesel": "GT_UNIT_mw", "hydro": "GT_UNIT_mw", "pv": "GT_UNIT_mw", "wind": "GT_UNIT_mw",
+	"line": "GT_ICON_line", "series": "GT_ICON_series", "breaker": "GT_ICON_breaker", "demolish": "GT_ICON_demolish", "dispatch": "GT_ICON_dispatch", "part": "GT_ICON_part"}
+const UNITS := {"series": "GT_UNIT_pct", "capacitor": "GT_UNIT_kvar", "reactor": "GT_UNIT_kvar", "gas": "GT_UNIT_mw", "coal": "GT_UNIT_mw", "diesel": "GT_UNIT_mw", "hydro": "GT_UNIT_mw", "pv": "GT_UNIT_mw", "wind": "GT_UNIT_mw",
 	"nuclear": "GT_UNIT_mw", "biomass": "GT_UNIT_mw", "synccon": "GT_UNIT_mw", "battery": "GT_UNIT_mw"}
 const ACTIONS := {
 	"placeShunt": {"icon": "capacitor", "pick": ["bus"], "args": ["$0", "$part", "$steps"], "knobs": ["steps"]},
+	"placeBank": {"icon": "capacitor", "pick": ["bus"], "args": ["$0", "$part", "$steps", "$detune"], "knobs": ["steps", "detune"]},   # chapter 3 (L08): a bank with a series reactor
+	"placeSeriesCap": {"icon": "series", "pick": ["line"], "args": ["$0", "$part"], "knobs": []},   # chapter 3 (L09): the parts are the shares of the line's reactance to cancel
 	"placeUnit": {"icon": "gas", "pick": ["bus"], "args": ["$0", "$part", "$mw"], "knobs": ["mw"]},
 	"placeStorage": {"icon": "battery", "pick": ["bus"], "args": ["$0", "$part"], "knobs": []},
 	"placeTransformer": {"icon": "transformer", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part"], "knobs": []},
@@ -57,6 +59,7 @@ const KNOBS := {
 	"delay": {"min": 1, "max": 8, "step": 1, "def": 1, "int": true}, "vset": {"min": 0.9, "max": 1.1, "step": 0.005, "def": 1.0, "fmt": "%.3f"},
 	"band": {"min": 0.005, "max": 0.05, "step": 0.0025, "def": 0.0125, "fmt": "%.4f"}, "dmw": {"min": 0, "max": 1000, "step": 1, "def": 10},
 	"shed": {"min": 0, "max": 1, "step": 0.1, "def": 0.5, "fmt": "%.1f"},
+	"detune": {"min": 0, "max": 14, "step": 1, "def": 0, "vals": [0, 4.53, 7, 14]},   # a knob with a list of values steps along the list (chapter 3: the reactor share of the bank)
 }
 const OPS := {
 	"switchBranch": {"elem": "branch", "row": "toggle", "field": "inService", "live": true},
@@ -231,6 +234,7 @@ func _item_at(p: Vector2) -> int:
 func knob_text(id: String, v = null) -> String:
 	var k: Dictionary = KNOBS.get(id, {}); var x := float(knobs.get(id, 0.0) if v == null else v)
 	if id == "km" and x <= 0.0: return tx("GT_FROM_MAP")
+	if k.has("vals"): return tx("C3_PLAIN") if x <= 0.0 else ("%.2f" % x).rstrip("0").rstrip(".") + " %"
 	if k.get("int", false): return str(int(round(x)))
 	if k.has("fmt"): return str(k.fmt) % x
 	return str(snappedf(x, 0.01))
@@ -239,6 +243,11 @@ func knob_text(id: String, v = null) -> String:
 func step_knob(id: String, d: int) -> float:
 	var k: Dictionary = KNOBS.get(id, {})
 	if k.is_empty(): return 0.0
+	if k.has("vals"):
+		var vs: Array = k.vals; var vi := 0
+		for j in vs.size(): if is_equal_approx(float(vs[j]), float(knobs[id])): vi = j
+		knobs[id] = float(vs[clampi(vi + d, 0, vs.size() - 1)]); _cell_hover(); queue_redraw()
+		return float(knobs[id])
 	var v := clampf(snappedf(float(knobs[id]) + d * float(k.step), float(k.step) * 0.01 if float(k.step) < 1.0 else 0.0001), float(k.min), float(k.max))
 	knobs[id] = int(round(v)) if k.get("int", false) else v
 	_cell_hover(); queue_redraw()
@@ -763,6 +772,7 @@ func tx_part(it: Dictionary) -> String:
 
 func _unit_sub(it: Dictionary) -> String:
 	var part := str(it.part); var n := _tail_number(part)
+	if str(it.icon) == "series" and n != "": return "%d %%" % int(float(n))
 	if str(it.icon) == "line": return tx("GT_UNIT_kv") % part.get_slice("-", 0).trim_prefix("l")
 	if str(it.icon) in UNITS and n != "": return tx(str(UNITS[str(it.icon)])) % n
 	return part
@@ -887,6 +897,7 @@ func _draw_icon(icon: String, c: Vector2, on: bool) -> void:
 		"transformer": _icon_xfmr(c)
 		"battery": _icon_battery(c)
 		"line": _icon_line(c)
+		"series": Ch3Icons.series(self, c)
 		"breaker": _icon_breaker(c, on)
 		"demolish": _icon_demolish(c)
 		"dispatch": _icon_dispatch(c, on)
