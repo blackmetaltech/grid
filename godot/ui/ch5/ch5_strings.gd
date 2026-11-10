@@ -10,6 +10,7 @@ const S := {
 	"C5_L17_WAIT": "Press Run: the P-V curve of the city appears with the first block.",
 	"C5_L17_NOSE": "nose %.0f MW · load %.0f MW · margin %.1f %%",
 	"C5_L17_CAP": "Voltage on the up axis, power on the right. Past the red nose the voltage has nowhere to go.",
+	"C5_L18_HIDE": "The sweep table appears when the run starts: predict first.",
 	"C5_L18_GS": "Gauss-Seidel needs %d sweeps, Newton %d iterations.",
 	"C5_L18_Q": "bus 3 gives %.0f of %.0f Mvar · set-point %.3f pu",
 	"GT_PART_cap-33-5": "Cap bank", "GT_SUB_cap-33-5": "5 MVAr / step", "GT_PART_cap-220-50": "Cap bank", "GT_SUB_cap-220-50": "50 MVAr / step", "GT_PART_cap-400-50": "Cap bank", "GT_SUB_cap-400-50": "50 MVAr / step",

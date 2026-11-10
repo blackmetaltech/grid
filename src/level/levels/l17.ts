@@ -27,7 +27,7 @@ const combos: Combo[] = [0, 1, 2].flatMap((c) => [false, true].flatMap((st) => [
 }))));
 
 export const L17: GridLevelSpec = {
-  id: 'L17', kind: 'event', chapter: 5, titleKey: 'level.L17.title', briefKey: 'level.L17.brief', concepts: ['pv-curve', 'voltage-collapse', 'statcom', 'loadability'],
+  id: 'L17', kind: 'grid', chapter: 5, titleKey: 'level.L17.title', briefKey: 'level.L17.brief', concepts: ['pv-curve', 'voltage-collapse', 'statcom', 'loadability'],
   startBlock: 48, horizonBlocks: 36, maxTicks: 40,
   allowed: { actions: ['placeShunt', 'setShuntSteps', 'placeUnit'], parts: { placeShunt: ['cap-220-50', 'statcom-100', 'svc-100'], 'placeShunt.maxSteps': [2], placeUnit: ['ocgt-105'] } },
   sites: [{ id: 'support', options: combos }],

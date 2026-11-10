@@ -54,7 +54,7 @@ func refresh() -> void:
 	var sig := _level + str((g.actionLog as Array).size()) + str(g.get("status", "")) + str(g.get("tick", 0)) + str(_pu)
 	if sig != _sig: _sig = sig; _rebuild()
 	var vp := get_viewport_rect().size
-	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0); position = Vector2(vp.x - W - 14.0, 74.0)
+	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0); reset_size(); position = Vector2(vp.x - W - 14.0, 74.0)
 
 func _do(act: String, args: Array) -> bool:
 	var r: Dictionary = app.b.act(act, args)
@@ -66,7 +66,7 @@ func _do(act: String, args: Array) -> bool:
 	return bool(r.get("ok", false))
 
 func _line(text: String, size_px := 14, font := "mono") -> Label:
-	var l := GridTheme.label(text, size_px, GridTheme.PAPER_INK, font); l.autowrap_mode = TextServer.AUTOWRAP_WORD; _box.add_child(l); return l
+	var l := GridTheme.label(text, size_px, GridTheme.PAPER_INK, font); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size = Vector2(W - 28.0, 0); _box.add_child(l); return l
 
 func _button(text: String, nm: String, cb: Callable) -> Button:
 	var b := Button.new(); b.text = text; b.custom_minimum_size = Vector2(0, 28); b.focus_mode = CbKit.focus_mode(); b.name = nm
@@ -120,12 +120,14 @@ func _l17(q: Dictionary) -> void:
 
 func _l18(q: Dictionary, g: Dictionary) -> void:
 	var gs: Dictionary = q.gs
-	_line(tx("C5_L18_GS") % [int(gs.gsIterations), int(gs.nrIterations)], 13, "sans")
-	for i in [1, 2, 3, 5, 8]:
-		var s: Dictionary = gs.sweeps[i]
-		_line("GS %2d  V2 %.5f  err 1e%d" % [int(s.k), float(s.v2), int(floor(log(maxf(float(s.mismatch), 1e-16)) / log(10.0)))], 12)
-	_line("NR %2d  V2 %.5f  err < 1e-8" % [int(gs.nrIterations), float((gs.truth as Dictionary).get("l18.v2", 0.0))], 12)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
+	if not locked: _line(tx("C5_L18_HIDE"), 13, "sans")   # the sweep table holds the answers: it is drawn once the predictions are locked
+	else:
+		_line(tx("C5_L18_GS") % [int(gs.gsIterations), int(gs.nrIterations)], 13, "sans")
+		for i in [1, 2, 3, 5, 8]:
+			var s: Dictionary = gs.sweeps[i]
+			_line("GS %2d  V2 %.5f  err 1e%d" % [int(s.k), float(s.v2), int(floor(log(maxf(float(s.mismatch), 1e-16)) / log(10.0)))], 12)
+		_line("NR %2d  V2 %.5f  err < 1e-8" % [int(gs.nrIterations), float((gs.truth as Dictionary).get("l18.v2", 0.0))], 12)
 	for p in PRED: _predict(str(p[0]), str(p[1]), tx(str(p[2])), locked)
 	var p3 = q.get("pv3")
 	if p3 != null:
