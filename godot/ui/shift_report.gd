@@ -261,7 +261,8 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 		m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(bs.lossPct), 0.1))])
 	else:
 		var tr_: Dictionary = g.get("metrics", {}).get("track", {})
-		if tr_.get("lossPct") != null: m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])
+		var r3_ = g.get("rules", {}).get("ch3"); var no_loss: bool = r3_ is Dictionary and (r3_.has("harmonics") or r3_.has("fault"))   # L08 and L09 are not judged on losses
+		if tr_.get("lossPct") != null and not no_loss: m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])
 	var mr := HBoxContainer.new(); mr.add_theme_constant_override("separation", 20); col.add_child(mr)
 	for it in m:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); mr.add_child(cell)

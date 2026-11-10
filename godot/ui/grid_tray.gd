@@ -580,6 +580,8 @@ func _build_op() -> void:
 	for st in ["normal", "hover", "pressed"]: cl.add_theme_stylebox_override(st, StyleBoxEmpty.new())
 	cl.pressed.connect(func(): close_op()); head.add_child(cl); _op_vb.add_child(head)
 	for r in op_rows(op_kind, op_id): _op_row(r)
+	var ci := Ch3Tags.op_info(b, op_kind, op_id)   # chapter 3: the reactor share of a bank, the X_C of a series capacitor
+	if ci != "": _op_vb.add_child(_tlabel(ci, 13, Color(GridTheme.PAPER_INK, 0.7)))
 	if CbKit.pad_mode:
 		for c in _op_vb.find_children("*", "Button", true, false): if (c as Button).name != "close": (c as Button).call_deferred("grab_focus"); break
 

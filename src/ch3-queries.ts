@@ -8,13 +8,28 @@ import type { SimParams } from './sim/params';
 import { S_BASE_MVA } from './sim/network';
 import { solveState } from './sim/solved';
 import { harmonicStudy, impedanceSweep } from './sim/ch3/harmonics';
-import { pathToSupply } from './sim/ch3/series';
+import { pathToSupply, faultStudy } from './sim/ch3/series';
+import { phasorOf } from './ui-queries';
 
 const PEAK_BLOCK = 80;
 const r3 = (x: number): number => Math.round(x * 1000) / 1000;
 
 export function buildCh3Queries(d: { getParams: (s: GridState) => SimParams }): Record<string, QueryFn<GridState>> {
+  const f0Of = (s: GridState): number => d.getParams(s).f0;
   return {
+    /** L07: the feeder at the evening peak for the design as it stands (a what-if on a copy, so it reads before Run): the phasor fields of the `phasor` query plus the rating in amps. */
+    feederPeak: (s) => {
+      if (!s.rules.ch3?.track) return { active: false };
+      const c = structuredClone({ buses: s.buses, branches: s.branches, units: s.units, loads: s.loads, shunts: s.shunts, storage: s.storage }) as Pick<GridState, 'buses' | 'branches' | 'units' | 'loads' | 'shunts' | 'storage'>;
+      const tanOf = (pf: number): number => (pf > 0 && pf < 1 ? Math.sqrt(1 - pf * pf) / pf : 0);
+      for (const l of c.loads) { l.P = l.shape ? (l.shape.p[PEAK_BLOCK] ?? 0) * l.Ppeak : l.Ppeak; l.Q = l.shape ? (l.shape.q[PEAK_BLOCK] ?? 0) * l.Ppeak : l.Ppeak * tanOf(l.pf); l.shedFrac = 0; }
+      const sol = solveState({ ...c, solution: null });
+      const br = c.branches.find((b) => b.kind === 'line'), f = br && sol.flows.branch[br.id], from = br && c.buses.find((b) => b.id === br.from);
+      if (!br || !f || !from) return { active: false };
+      const v = sol.sol.V[br.from] ?? 1, th = (sol.sol.theta[br.from] ?? 0) * 180 / Math.PI, rated = br.ratingMVA * 1000 / (Math.sqrt(3) * from.kvNom);
+      const ph = phasorOf(v, v * from.kvNom, th, sol.flows.branch[br.id]!.pFrom * S_BASE_MVA, f.qFrom * S_BASE_MVA, f.iKA, rated / 1000);
+      return { active: true, ...ph, iA: Math.round(f.iKA * 1000), ratedA: Math.round(rated), blockText: '20:00' };
+    },
     harmonics: (s) => {
       const r = s.rules.ch3?.harmonics;
       if (!r) return { active: false };
@@ -48,7 +63,7 @@ export function buildCh3Queries(d: { getParams: (s: GridState) => SimParams }): 
       return {
         active: true, lineId: line.id, kv: bb.kvNom, rOhm: r3(line.r * zb), xlOhm: r3(xl), xcOhm: r3(xl * k / 100), pct: k, vFarPu: sol ? r3(sol.vPu) : null, vMinPu: tr.loadVMinPu === undefined ? null : r3(tr.loadVMinPu),
         breakerKA: f.breakerKA, faultBlock: f.block, faultDone: tr.faultKA !== undefined, faultKA: tr.faultKA === undefined ? null : r3(tr.faultKA), faultKA0: tr.faultKA0 === undefined ? null : r3(tr.faultKA0), fResHz: tr.faultFResHz === undefined ? null : r3(tr.faultFResHz),
-        farMinPu: s.rules.ch3?.loadVMinPu ?? null,
+        farMinPu: s.rules.ch3?.loadVMinPu ?? null, predKA: ((): number | null => { const p = faultStudy(s, f, f0Of(s)); return p ? r3(p.kA) : null; })(),
       };
     },
   };
