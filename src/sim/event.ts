@@ -142,6 +142,7 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.minNadirHz !== null && m.nadirHz < rules.minNadirHz) return lost('level.lost.nadir', { nadir: Math.round(m.nadirHz * 100) / 100, min: rules.minNadirHz });
   const atEnd = rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks;
   if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin && (m.poorSupplyMin >= (rules.poorSupplyGraceMin ?? 0) || atEnd)) {
+    if (s.bench?.verdict) return lost(s.bench.verdict.key, s.bench.verdict.params);   // chapter 2's benches (L04, L06) say why themselves
     if (s.bench && s.bench.limits.lossMaxPct !== null) {   // a bench judged on line losses (L03): say which way it failed
       const loss = m.track.lossPct ?? 100;
   const c4 = ch4Verdict(s, rules, ticksUsed); if (c4) return lost(c4.key, c4.params);   // chapter 4: neutral, voltage, power factor, pump start, swing, exam

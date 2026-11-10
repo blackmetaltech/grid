@@ -127,6 +127,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
           if (spec.story?.lessonKind === 'harm' && !s.bench) return harmLesson(s, spec.story.lessonKey);
           if (spec.story?.lessonKind === 'series' && !s.bench) return seriesLesson(s, spec.story.lessonKey);
           if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
+          if (spec.story && (s.bench?.machine || s.bench?.town)) return ch2Lesson(s, spec.story.lessonKey);   // chapter 2's closed-form benches (L04, L06)
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');
           if (!run) return '';
@@ -144,14 +145,14 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
     },
     /** The bench as built: voltages, current fraction, loss share, cost. */
     benchStatus: (s) => {
-      if (!s.bench) return { active: false };
+      if (!s.bench || s.bench.machine || s.bench.town) return { active: false };   // chapter 2's benches draw themselves (ch2Bench)
       const p = d.getBench(s), r = solveBench(s.bench, p);
       return { active: true, scenario: s.bench.scenario, powered: r.powered, vMinV: r3(r.vMinV), vLoadV: r.vLoadV.map(r3), lossPct: r3(r.lossPct), ampFracMax: r3(r.ampFracMax), cost: r3(benchCost(s.bench, p)), reason: r.reason ? t(r.reason) : null, bench: s.bench };
     },
     /** Per-run numbers of the bench as laid (SI, unrounded): runs with their equation data, and the totals. */
     /** Prices and specs the kit tray shows (money already formatted for the region pack). */
     benchKit: (s) => {
-      if (!s.bench) return { active: false };
+      if (!s.bench || s.bench.machine || s.bench.town) return { active: false };
       const k = benchKit(d.getBench(s)), pack = REGIONS.get(s.region);
       return { active: true, ...k, cables: k.cables.map((c) => ({ ...c, perMText: formatMoney(c.perM, pack, { decimals: 2 }) })), budgetText: formatMoney(s.budget.capexLimit, pack, { decimals: 0 }), spentText: formatMoney(s.budget.spent, pack, { decimals: 0 }), budget: s.budget.capexLimit, spent: s.budget.spent };
     },

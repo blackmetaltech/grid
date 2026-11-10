@@ -8,6 +8,7 @@ import { COPPER } from '../data/conductors';
 import { GROUND, cableLoopR, solveMna, solveL03, type Elem } from '../sim/bench';
 import { t } from '../i18n';
 import type { BenchState, GridState } from '../types';
+import { stepCh2 } from './ch2/bench';
 
 /** Region-priced parts of the bench, as plain numbers (src/catalogue.ts maps the pack). */
 export interface BenchParams {
@@ -220,6 +221,7 @@ export function benchBad(b: BenchState, r: BenchSolve): boolean {
 export function stepBench(s: GridState, p: BenchParams): void {
   const b = s.bench;
   if (!b) return;
+  if (b.machine || b.town) { stepCh2(s); return; }   // chapter 2's closed-form benches (L04, L06) judge themselves
   const r = solveBench(b, p);
   const tr = s.metrics.track;
   tr.vLoadMinV = r.vMinV; tr.lossPct = r.lossPct; tr.ampFracMax = r.ampFracMax;

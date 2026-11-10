@@ -8,6 +8,7 @@ import { LEVELS } from './levels';
 import { LEVEL_SPECS, specOf } from './level';
 import { allowedGate } from './level/spec';
 import { buildBenchActions } from './level/bench';
+import { buildCh2Actions, ch2Queries } from './level/ch2/bench';
 import { buildLevelQueries } from './level/queries';
 import { PERSONAS } from './personas';
 import { t } from './i18n';
@@ -118,6 +119,7 @@ export const GAME: GameDef<GridState> = {
   queries: {
     ...buildQueries({ getParams }),
     ...buildWorldQueries({ getBench, getRoute }),
+    ...ch2Queries,
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
     ...buildCostQueries(() => GAME),   // actionCost: what a build would cost, run on a copy

@@ -64,6 +64,9 @@ func on_changed(model: Dictionary) -> void:
 	if kind == "grid":
 		var dq = app.b.q("dial")
 		if dq is Dictionary and not dq.get("error", false) and dq.get("fHz") != null: audio.set_frequency(float(dq.fHz))
+	if kind == "bench":   # L04: the alternator hums at twice the frequency its poles and the water head make, so changing poles is heard (GridAudio: fundamental 2 f)
+		var cb = app.b.q("ch2Bench")
+		if cb is Dictionary and cb.get("active", false) and str(cb.get("kind", "")) == "machine": audio.set_mode("ac"); audio.set_frequency(float(cb.fHz))
 	var sig := "%s|%s|%s" % [CbSettings.music_volume, CbSettings.sfx_volume, CbSettings.music_mode]
 	if sig != _vol_sig:
 		_vol_sig = sig; audio.apply_volumes()

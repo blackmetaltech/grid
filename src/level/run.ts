@@ -29,6 +29,8 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   const key = s.block.verdictKey;
   if (s.block.verdict === 'playing' || key === null) return 'timeout';
   if (key === 'level.lost.poorSupply' || key === 'level.lost.poorSupplyAny' || key === 'level.lost.lossOver' || key === 'level.lost.unpowered') return 'brownout';
+  if (key.startsWith('level.lost.machine') || key === 'level.lost.townLoss') return 'brownout';   // chapter 2's benches
+  if (key === 'level.lost.townOverload') return 'overload';
   if (key === 'level.lost.budget') return 'budget';
   if (key === 'level.lost.flashover') return 'flashover';
   if (key === 'level.lost.saltFlashover') return 'saltFlashover';

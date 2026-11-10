@@ -343,7 +343,7 @@ export interface Rules {
 
 /** A bench level's circuit as the player has built it so far (DC bench, DESIGN 2.6 L01-L03). Derived values are recomputed, never stored. */
 export interface BenchState {
-  scenario: 'l01' | 'l02' | 'l03';
+  scenario: 'l01' | 'l02' | 'l03' | 'l04' | 'l06';
   /** Distance of the battery hut from the first hamlet, m; null until placed. */
   hutM: number | null;
   /** Cable per segment: 'main' (L01, L03; L02 trunk or radial A), 'b' (radial B / trunk branch), cross-section in mm2; null = not laid. */
@@ -354,6 +354,32 @@ export interface BenchState {
   converters: boolean;
   /** Pass limits resolved from the level and region at setup: lowest home voltage, V, and highest line-loss share, percent (null = not enforced). */
   limits: { vMinV: number | null; lossMaxPct: number | null };
+  /** L04 (chapter 2): the alternator as wound; absent on every other bench (src/level/ch2/machine.ts). */
+  machine?: MachineState;
+  /** L06 (chapter 2): the textbook town line as built; absent on every other bench (src/level/ch2/town.ts). */
+  town?: TownState;
+  /** Set by the chapter-2 benches each block while the circuit is failing: the locale key and params of why (the verdict reads it). */
+  verdict?: { key: string; params: Record<string, string | number> };
+}
+
+/** L04's alternator: what the player sets (poles, turns, field, coil area) and what the scenario fixes (shaft speed, targets, copper price). */
+export interface MachineState {
+  poles: number; turns: number; fieldT: number; areaM2: number;
+  /** Shaft speed set by the water head, rpm. */
+  rpm: number;
+  /** The village's needs: rms volts and hertz with their tolerances, percent. */
+  vTargetRms: number; vTolPct: number; fTargetHz: number; fTolPct: number;
+  /** Pack price of copper: per metre per mm2 per core. */
+  copperPerMm2PerM: number;
+}
+/** L06's textbook town line: the step-up/step-down turns ratio, the transformer rating, and what the scenario fixes. */
+export interface TownState {
+  /** Turns ratio N2/N1 of the step-up transformer (the step-down is its mirror); 1 = no transformers. */
+  ratio: number; kva: number;
+  /** Fixed by the scenario: power sent (W), line loop resistance (ohm), generator voltage (V), loss limit (percent). */
+  pW: number; rLoopOhm: number; vGenV: number; lossMaxPct: number;
+  /** Pack price of one kVA of distribution transformer. */
+  pricePerKva: number;
 }
 
 /** Summary of the last operator block (everything the HUD and the explain card need that is not stored elsewhere). */

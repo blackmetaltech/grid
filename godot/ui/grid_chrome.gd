@@ -19,6 +19,7 @@ var tray: KitTray                ## the kit tray (bench levels): hut, reels, pri
 var rtray: RouteTray             ## the route tray (chapter 2 levels with a terrain): survey, supports, conductors, transformers
 var gtray: GridTray              ## the grid tray (grid levels without a terrain: chapters 3-7): placeable parts, knobs, operate tags
 var tags: TagView                ## in-world paper tags
+var ch2: Ch2Bench                ## chapter 2's stage and panel for L04 (alternator) and L06 (town line); hidden on every other level
 var _route_item_ms := -1000      ## when the world last reported a pressed support / span (its tap must not close the tag it opened)
 var _level := ""
 var _coach_id := "<unset>"
@@ -31,6 +32,7 @@ func _init() -> void:
 	GridTheme.apply(self)
 
 func build() -> void:
+	ch2 = Ch2Bench.new(); ch2.app = app; add_child(ch2)   # first child: an opaque stage under the instruments, the radio and the breaker
 	instruments = Instruments.new(); instruments.app = app; add_child(instruments)
 	instruments.codex_requested.connect(_codex)
 	radio = RadioLog.new(); radio.app = app; add_child(radio)
@@ -151,7 +153,7 @@ func qa_ui(spec: String) -> void:
 		"say": for ln in f.slice(1): radio.say("TOBI", ln.replace("_", " "), "coach", "qa%d" % radio.lines.size(), "Because copper resists.")
 		"why": for l in radio.lines: if l.kind == "coach" and l.step != "" and str(l.get("why", "")) != "": radio.ask_why(l); break
 
-func tray_active() -> bool: return (tray != null and tray.visible) or (rtray != null and rtray.visible) or (gtray != null and gtray.visible)
+func tray_active() -> bool: return (ch2 != null and ch2.visible) or (tray != null and tray.visible) or (rtray != null and rtray.visible) or (gtray != null and gtray.visible)
 
 func set_chrome_visible(v: bool) -> void:
 	_on = v
@@ -168,6 +170,7 @@ func refresh() -> void:
 	var li = app.b.q("levelInfo"); var act: bool = li is Dictionary and li.get("active", false)
 	var id: String = str(li.id) if act else ""
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
+	if ch2 != null: ch2.refresh()
 	instruments.refresh(); breaker.sync()
 	if tray != null: tray.refresh(); rtray.refresh(); gtray.refresh(); tags.refresh()
 	_poll_coach(act)
@@ -238,6 +241,7 @@ func layout() -> void:
 	if app == null or instruments == null: return
 	var w := app.vw(); var h := app.vs_h(); var kind := CbLayout.kind
 	instruments.layout()
+	if ch2 != null: ch2.layout()
 	if tray != null: tray.layout(); rtray.layout(); gtray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
 	var left: float = M + (app.world_tools_w() if CbLayout.touch and app.has_method("world_tools_w") else 0.0)

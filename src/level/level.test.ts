@@ -44,7 +44,7 @@ describe('level list', () => {
       expect(spec.sites.length, spec.id).toBeGreaterThan(0);
       for (const site of spec.sites) { expect(site.options.length, `${spec.id}/${site.id}`).toBeGreaterThan(1); expect(new Set(site.options.map((o) => o.id)).size).toBe(site.options.length); }
       const names = [...spec.naive.actions, ...spec.lesson, ...spec.reference, ...[...designs(spec)].flatMap((d) => d.actions)].map((a) => a.name);
-      for (const n of names) expect(spec.allowed.actions, `${spec.id} uses ${n}`).toContain(n);
+      for (const n of names) if (n !== 'predict') expect(spec.allowed.actions, `${spec.id} uses ${n}`).toContain(n);   // predict is always allowed (spec.ts ALWAYS), never on the palette
       expect(spec.coach.length, spec.id).toBeGreaterThanOrEqual(2); expect(spec.coach.length).toBeLessThanOrEqual(6);
       expect(new Set(spec.coach.map((c) => c.id)).size).toBe(spec.coach.length);
       for (const k of [spec.titleKey, spec.briefKey, ...spec.coach.flatMap((c) => [c.textKey, c.whyKey])]) expect(en[k], `${spec.id} string ${k}`).toBeTruthy();
