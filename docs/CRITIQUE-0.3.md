@@ -37,7 +37,7 @@ Neither tester reached a passing 11 kV line. That was the headline failure.
 | 6 | major | e, f | The report's lesson used the least-margin span (a short road span) and never said why 11 kV wins. | **Fixed**: the lesson now covers the longest span (the river) with units and numbers that recompute, plus the current ratio (305 A at 0.42 kV vs 12 A at 11 kV, 1/26 of the current, about 1/690 of the heat), or the voltage drop when 0.42 kV browns out. |
 | 7 | major | e | The mouse wheel over the tray changed values and silently re-strung a built line. | **Fixed**: the wheel only scrolls the tray. |
 | 8 | major | e | The tray's ‹ › scroll marks ignored clicks. | **Fixed**: they page the tray. |
-| 9 | major | Pixel | L05 ran at 18-20 fps (dyn_ms 15 ms). | **Partly fixed**: building windows are cached as meshes (desktop dyn 1.8 → 0.55 ms). The phone re-measure is in the table below. |
+| 9 | major | Pixel | L05 ran at 18-20 fps (dyn_ms 15 ms). | **Improved**: building windows are cached as meshes. On the Pixel 9a, L05 now runs at **29-30 fps** (dyn_ms 3.6-4.2, frame_ms 35-38). That is still below 60 and is likely fill-rate bound; open. |
 | 10 | minor | review | Retry or Start over of the same job resumed the old survey. | **Fixed**: the tray resets at job start. |
 | 11 | minor | review | Retry said "design kept" even when a step was refused. | **Fixed**: Tobi says how many steps did not rebuild. |
 | 12 | minor | review | Bend points 1.5 m apart planted two angle towers. | **Fixed**: points closer than 5 m merge (engine test). |
@@ -52,4 +52,23 @@ Neither tester reached a passing 11 kV line. That was the headline failure.
 | 21 | minor | f | The ghost names only the first violation along the line. | Open. |
 
 ## Device and pad
-_(filled in as runs finish)_
+| Pad finding | Sev | Status |
+|---|---|---|
+| L01's work order could not be passed by pad: focus stuck on the Learner chip (A on the selected chip does nothing). | blocker | **Fixed**: the pad lands on "Take the job", and the footer has explicit neighbours. Verified with the pad. |
+| The survey cursor moved 8-17 px per press, with no repeat and no way to reach a yard. | major | **Fixed**: the step scales with zoom (up to 4 tiles), a held D-pad repeats, and Y jumps to the far yard. Verified with the pad. |
+| Nothing said which pad input does what while surveying. | minor | **Fixed**: the legend strip switches to "D-pad move · A yard / bend · Y jump to the far yard · B undo · LS pan". |
+| Stale or doubled focus rings (tray cell plus HUD). | minor | Open. |
+| B does not close info cards. | minor | Open (core). |
+
+| Monkey finding (Haiku, 3 sessions × 60 random actions) | Sev | Status |
+|---|---|---|
+| No SCRIPT ERROR, crash or freeze in any session. | — | — |
+| At 800×600 the radio text column collapsed to one word per line. | major | **Fixed**: narrow panels stack the time and speaker above the line. |
+| At 800×600 the work order's "more" cue sits over the third lamp. | minor | Open. |
+| At 1920 the tray's › mark touches the inline budget tag. | polish | Open. |
+
+Pixel 9a (touch, 2424×1080), measured by Opus under the phone lock with the debug-APK QA jump (`files/qa_level.txt`):
+- The title runs at 36-43 fps.
+- L05 ran at 18-25 fps before the fix and **29-30 fps after** it.
+- The phone dropped offline once mid-session, and `adb reconnect` under the lock fixed it.
+
