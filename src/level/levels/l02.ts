@@ -20,6 +20,7 @@ export const L02: GridLevelSpec = {
   thresholds: { vLoadMinV: 43.2, vStar3V: 45 },
   decisive: { key: 'vLoadMinV', limit: 'vLoadMinV', dir: 'min' },
   star3: [{ key: 'vLoadMinV', min: 'vStar3V' }],
+  story: { placeKey: 'level.L02.place', lineKeys: ['level.L02.story1', 'level.L02.story2'], lessonKey: 'level.L02.lesson' },
   brownoutLoses: true, blackoutLoses: false, stars: true, histogram: 'capex',
   naive: { actions: [{ name: 'placeJunction' }, { name: 'layCable', args: ['main', 4] }, { name: 'layCable', args: ['b', 4] }], failKind: 'brownout' },
   lesson: [{ name: 'layCable', args: ['main', 25] }, { name: 'layCable', args: ['b', 35] }],

@@ -18,6 +18,7 @@ export const L03: GridLevelSpec = {
   thresholds: { lossMaxPct: 5, lossStar3Pct: 3 },
   decisive: { key: 'lossPct', limit: 'lossMaxPct', dir: 'max' },
   star3: [{ key: 'lossPct', max: 'lossStar3Pct' }],
+  story: { placeKey: 'level.L03.place', lineKeys: ['level.L03.story1', 'level.L03.story2'], lessonKey: 'level.L03.lesson' },
   brownoutLoses: true, blackoutLoses: false, stars: true, histogram: 'lossPct',
   naive: { actions: [{ name: 'layCable', args: ['main', 50] }], failKind: 'brownout' },
   lesson: [{ name: 'placeConverters', args: [true] }, { name: 'layCable', args: ['main', 35] }],
