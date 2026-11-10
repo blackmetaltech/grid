@@ -67,6 +67,8 @@ export const L07: GridLevelSpec = {
     // constant P and Q (the oracle's load model), and the mill's own daily shape
     for (const l of s.loads) l.zip = [0, 0, 1];
     s.loads[0]!.shape = millShape();
-    for (const u of s.units) { u.online = true; u.P = u.pMin; }
+    // the unit stands in for the substation (an infinite bus): it has no 9 MW minimum-stable floor, or dispatch sees an 8.7 MW surplus against a 0.3 MW
+    // night load and block frequency runs away (217 Hz, then > 1 kHz in the HUD dial)
+    for (const u of s.units) { u.online = true; u.pMin = 0; u.P = 0; }
   },
 };

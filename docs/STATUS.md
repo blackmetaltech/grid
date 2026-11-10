@@ -42,3 +42,6 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
 
 ## In flight at handoff
 None (all workers stopped; nothing uncommitted except this handoff).
+
+## HALT (2026-11-10, user order) - M1 done except noted; M2 ~50 %
+M1: 8.x-1.12 done, 71/71 oracles, L17 fixed, 50k fuzz passes, perf in budget, Pixel M0 gate passed. M2 done: 2.1-2.4 (levels P0/L01/L02/L03/L07, world, drawers/HUD). NOT done: 2.5 failure viz, 2.6 coach, 2.7 audio, 2.8 input parity, Pixel 30fps log, M2 gate (Opus critic, testers). WIP in tree: L07 frequency bug fix (stand-in unit pMin=0, src/level/levels/l07.ts + l07-frequency.test.ts) UNVERIFIED; L07 frequency diverged >1 kHz because the 9 MW pMin stand-in unit overshoots the 0.3 MW night load. Verify full vitest + goldens before keeping.
