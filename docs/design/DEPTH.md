@@ -154,7 +154,19 @@ violations). This is the "employable" layer: it is exactly a junior planning eng
 | Ch | Region | Jobs (ids kept; new ids continue at L29) | New depth |
 |---|---|---|---|
 | 1 | The Island (DC) | L01, L02, L03 | ladder R1; unchanged (polish only) |
-| 2 | **The Mainland Line** (district map: waterfall, river, mangrove, ridge, coast, market town) | L04 Spin the Alternator; **L05 The River Line** (first route: supports, spans, sag/clearance, swamp piles, river crossing, step-up/step-down); L06 Exam bridge (Town Line); **L29 Salt Wind** (coastal extension: creepage, fog night, earthing); **L30 Bring the Island Home** (submarine cable to Saltmarsh: cable charging current, the island joins the grid; chapter finale) | R2 + R3 core |
+| 2 | **The Mainland Line** (district map: waterfall, river, mangrove, ridge, coast, market town) | L04 Spin the Alternator; **L05 The River Line** (first route: supports, spans, sag/clearance, swamp piles, river crossing, step-up/step-down); L06 Exam bridge (Town Line); **L29 Salt Wind** (coastal extension: creepage, fog night, earthing); *As built (v0.4, 2026-11-10):*
+- The run is 18:00 → 07:00 so the fog falls before 80 % of the night.
+- The L05 transformers are dt-400, because the harbour adds load.
+- Insulator prices are pin $25, disc2 $70 and fog1 $95 per phase per support. disc2 is the cheaper strong option but hangs 0.30 m lower; fog1 drops 0.15 m.
+- A coast insulator applies on class ≥ III tiles.
+- Pollution classes by distance to the sea: ≤1 tile IV, ≤2 III, ≤6 II.
+- New rule `darkLoadsLose` on fog jobs: an unserved harbour cannot win.
+- Bots exclude wood-9, because its clearance verdict differs by pack.
+- The reference design is Weasel on pcc-11, 90 m spans, disc2 throughout.
+- Frozen global targets: budget $55k, A $49.6k, B $46.4k.
+- UI: salt whitening by class, fog banks from 02:00 to 05:00, and violet corona on salt-short insulators as the fog thickens.
+
+**L30 Bring the Island Home** (submarine cable to Saltmarsh: cable charging current, the island joins the grid; chapter finale) | R2 + R3 core |
 | 3 | Mill Town (district) | L07 Lagging Mill, L08, L09; **L31 The First Substation** (bays, single bus, transformer, fuse/recloser on the feeder, trees on the ROW) | R3-R4 |
 | 4 | Industrial belt + hydro valley | L10-L13 | R4 |
 | 5 | State ring | L14-L18; **L32 Ring the Substations** (bus schemes, switching station, N-1 maintenance outage) | R4-R5 |
