@@ -21,6 +21,7 @@ import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import type { CatalogueView } from './sim/build';
 import { buildQueries } from './queries';
+import { buildWorldQueries } from './world-query';
 import { NO_RULES } from './rules';
 
 export const GAME_ID = 'grid';
@@ -103,6 +104,7 @@ export const GAME: GameDef<GridState> = {
   actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }) }, specOf),
   queries: {
     ...buildQueries({ getParams }),
+    ...buildWorldQueries({ getBench }),
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },
   systems: SYSTEMS,

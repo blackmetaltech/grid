@@ -18,11 +18,11 @@ func game_config() -> Dictionary:
 	}
 
 func game_build_world(parent: Node) -> Node:
-	grid_world = WorldView.new(); parent.add_child(grid_world)
+	grid_world = WorldView.new(); grid_world.app = self; parent.add_child(grid_world)
 	return grid_world
 
 func game_on_changed() -> void:
-	if grid_world != null: grid_world.queue_redraw()
+	if grid_world != null: grid_world.refresh(b)
 
 func game_time_text() -> String:
 	var c = b.q("clock")
@@ -39,13 +39,34 @@ func game_coach_steps() -> Array:
 		{"id": "welcome", "kind": "read", "title": tr("COACH_WELCOME_TITLE"), "body": tr("COACH_WELCOME_BODY"), "why": tr("COACH_WELCOME_WHY")},
 	]
 
+## CB_CAM for screenshots: parts separated by '|'. `act=name/arg/arg` runs an engine action (numbers, true/false or text args), `ff=n` advances n
+## blocks, anything else goes to the world camera ("zoom=2,tx=12,ty=7").
 func game_camera(spec: String) -> void:
-	if grid_world != null: grid_world.set_camera(spec)
+	var cam: PackedStringArray = []
+	for part in spec.split("|"):
+		if part.begins_with("act="):
+			var f := part.substr(4).split("/"); var args: Array = []
+			for a in f.slice(1):
+				if a == "true" or a == "false": args.append(a == "true")
+				elif a.is_valid_float(): args.append(float(a))
+				else: args.append(a)
+			b.act(f[0], args)
+		elif part.begins_with("ff="): b.act("tick", [int(part.substr(3))])
+		else: cam.append(part)
+	game_on_changed()
+	if grid_world != null: grid_world.set_camera(",".join(cam))
+
+func game_unhandled_key(e: InputEventKey) -> bool:
+	return grid_world != null and grid_world.key(e)
 
 func game_title_demo() -> void:
 	pass   # the title backdrop is the static world until M2
 
 func game_smoke() -> void:
+	for id in ["P0", "L01", "L02", "L03", "L07"]:
+		b.act("startLevel", [id, 1, "learner"]); b.act("tick", [1]); game_on_changed(); await get_tree().process_frame
+		CbSmoke._check(grid_world.model.kind != "none" and grid_world.model.towns.size() > 0, "the world builds a diorama for level %s" % id)
+	grid_world.set_camera("zoom=2,tx=10,ty=6"); grid_world.set_camera("reset")
 	CbSmoke._check(tr("GRID_TAGLINE") != "GRID_TAGLINE", "string catalogue locales/strings.csv is loaded (run --import)")
 	var c0: Dictionary = b.q("clock")
 	b.act("tick", [3]); await get_tree().process_frame
