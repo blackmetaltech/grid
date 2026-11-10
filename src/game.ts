@@ -18,6 +18,8 @@ import { findNonFinite } from './sim/finite';
 import type { SimParams } from './sim/params';
 import { buildCostQueries } from './cost-query';
 import { buildCh2Actions, ch2Queries } from './level/ch2/bench';
+import { buildCh4Actions } from './level/ch4/actions';
+import { buildCh4Queries } from './level/ch4/queries';
 import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from './catalogue';
 import { buildRouteActions, buildRouteQueries, type RouteParams } from './route-actions';
 import type { BenchParams } from './level/bench';
@@ -121,6 +123,7 @@ export const GAME: GameDef<GridState> = {
     ...buildQueries({ getParams }),
     ...buildWorldQueries({ getBench, getRoute }),
     ...ch2Queries,
+    ...buildCh4Queries({ getParams }),
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
     ...buildCh3Queries({ getParams }),

@@ -26,7 +26,7 @@ export const L12: GridLevelSpec = {
     { id: 'circuit', options: [{ id: 'two', actions: [] }, { id: 'three', actions: [A('addCircuit', true)] }] },
     { id: 'redispatch', options: REDUCE_STEPS_MW.map((m) => ({ id: `r${m}`, actions: m ? [A('setRedispatch', m)] : [] })) },
   ],
-  thresholds: { oosMax: 0.5, peakDeltaMaxDeg: 70 },
+  thresholds: { oosMax: 0, peakDeltaMaxDeg: 70 },
   decisive: { key: 'outOfStep', limit: 'oosMax', dir: 'max' },
   star3: [{ key: 'peakDeltaDeg', max: 'peakDeltaMaxDeg' }],
   story: { placeKey: 'level.L12.place', lineKeys: ['level.L12.story1', 'level.L12.story2'], lessonKey: 'level.L12.lesson' },

@@ -491,6 +491,8 @@ export interface GridState extends BaseState {
   terrain: string | null;
   /** Lines built with `buildRoute`, in build order. */
   routes: RouteRecord[];
+  /** Chapter 4 (absent elsewhere, so other levels' states and goldens stay as they were): the circuit of L10-L13 as the player built it (src/sim/ch4). */
+  ch4?: import('./sim/ch4/state').Ch4State | null;
   /** Submarine cables laid with `layCableRoute` (L30), in build order; absent until the first one (old states and goldens stay as they were). */
   cables?: SeaCableRecord[];
   /** What the player paid for each transformer, shunt bank and battery placed this level (id -> price), so demolishing it refunds that price; absent until the first purchase (old states and goldens stay as they were). Pre-placed district gear has no entry and refunds nothing. */
