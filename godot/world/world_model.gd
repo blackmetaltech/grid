@@ -48,7 +48,9 @@ static func terrain_of(tr: Dictionary) -> Dictionary:
 		var row := str(tr.rows[j])
 		for i in cols: kinds.append(str(TERRAIN_KINDS.get(row[i], "field")))
 	for e in tr.elev: elev.append(float(e))
-	var t := {"id": id, "cols": cols, "rows": nrows, "tile_m": float(tr.tileM), "kinds": kinds, "elev": elev}
+	var poll := PackedByteArray(); var ps := str(tr.get("pollution", ""))
+	for k in cols * nrows: poll.append(int(ps[k]) if k < ps.length() else 1)   # IEC 60815 class per tile, from the engine's planner
+	var t := {"id": id, "cols": cols, "rows": nrows, "tile_m": float(tr.tileM), "kinds": kinds, "elev": elev, "poll": poll}
 	_terrain_cache[id] = t
 	return t
 
@@ -57,6 +59,9 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 	var has_terrain: bool = w.get("terrain") is Dictionary and not (w.terrain as Dictionary).is_empty()
 	if has_terrain:
 		m["terrain"] = terrain_of(w.terrain); m["tile_m"] = float(w.terrain.tileM)
+		var lif = b.q("levelInfo")   # a sea-fog job: the salt is drawn on the coast and the fog rolls in around its hour
+		if lif is Dictionary and lif.get("fogBlock") != null and str(lif.get("fogTime", "")) != "":
+			var hm := str(lif.fogTime).split(":"); m["fog_min"] = float(int(hm[0]) * 60 + (int(hm[1]) if hm.size() > 1 else 0))
 		for r in w.get("routes", []): m.routes.append(RouteDraw.plan_to_route(r, str(r.branchId), float(w.terrain.tileM)))
 	var live := {}   # bus id -> energised: a line between dead buses carries no flow, so it shows no pulses
 	var vv: Dictionary = (b.q("overlay", ["voltage"]) as Dictionary).get("values", {})

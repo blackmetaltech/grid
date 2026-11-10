@@ -73,7 +73,7 @@ func sync() -> void:
 		var li = app.b.q("levelInfo"); var id: String = str(li.get("id", "")) if li is Dictionary and li.get("active", false) else ""
 		if id != _level:
 			_level = id
-			if id != "": rate = 2 if str(li.get("kind", "")) == "bench" or (li.get("horizonBlocks") != null and int(li.get("horizonBlocks")) <= 40) else 1   # short runs (bench nights, L05's evening) start at 2x
+			if id != "": rate = 2 if str(li.get("kind", "")) == "bench" or (li.get("horizonBlocks") != null and int(li.get("horizonBlocks")) <= 60) else 1   # short runs (bench nights, L05 evening, L29 night) start at 2x
 	if app != null and app.speed > 0: rate = clampi(app.speed, 1, 3)
 	queue_redraw()
 

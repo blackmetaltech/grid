@@ -331,9 +331,10 @@ func _rebuild_objects() -> void:
 			var ar := _area_near(ctr)
 			if not ar.is_empty():
 				var c0 := (ar.rect as Rect2).get_center(); var n := 0
+				var sq := 3.4 if minf((ar.rect as Rect2).size.x, (ar.rect as Rect2).size.y) >= 7.0 else 0.0   # only a big town keeps an open market square
 				for tl in ar.tiles:
 					var tp := Vector2(tl.x + 0.5, tl.y + 0.5)
-					if tp.distance_to(c0) < 3.4 or WorldMath.hash2(tl.x, tl.y, 77) < 0.42: continue
+					if tp.distance_to(c0) < sq or WorldMath.hash2(tl.x, tl.y, 77) < 0.42: continue
 					var off := Vector2(WorldMath.hash2(tl.x, tl.y, 78) - 0.5, WorldMath.hash2(tl.x, tl.y, 79) - 0.5) * 0.3
 					_objs.append({"t": "bld", "ti": ti, "k": n % int(t.count), "p": tp + off, "h": 12.0 + 18.0 * WorldMath.hash2(tl.x, tl.y, 80), "w": 0.55 + 0.2 * WorldMath.hash2(tl.x, tl.y, 81), "role": "", "hamlet": false, "v": WorldMath.hash2(tl.x, tl.y, 82)})
 					n += 1
@@ -659,7 +660,32 @@ func _paint_dynamic() -> void:
 	_draw_lineman()
 	_draw_ghost()
 	if cute and _night > 0.35: _draw_fireflies()
+	_draw_fog()
 	perf.dyn_us += Time.get_ticks_usec() - t0
+
+## How thick the sea fog is now (0..1): it gathers over two hours before the job's fog hour, holds an hour, thins over the next.
+func fog_level() -> float:
+	if not model.has("fog_min"): return 0.0
+	var d := fposmod(float(model.minute) - float(model.fog_min) + 720.0, 1440.0) - 720.0
+	if d < -120.0 or d > 120.0: return 0.0
+	if d < 0.0: return clampf((d + 120.0) / 120.0, 0.0, 1.0)
+	return 1.0 if d <= 60.0 else clampf(1.0 - (d - 60.0) / 60.0, 0.0, 1.0)
+
+## Sea fog banks drifting along the coast (a few dozen soft ellipses; they carry the salt that the insulators must shed).
+func _draw_fog() -> void:
+	var f := fog_level()
+	if f <= 0.01: return
+	var W := float(model.map.x); var H := float(model.map.y)
+	for k in 34:
+		var depth := 7.0 * WorldMath.hash2(k, 1, 140) * (0.5 + 0.5 * f)   # thicker fog reaches further inland
+		var x := fposmod(W * WorldMath.hash2(k, 2, 140) + _t * (0.25 + 0.2 * WorldMath.hash2(k, 3, 140)), W + 8.0) - 4.0
+		var c := _iso(x, H - 1.0 - depth, 8.0 + 10.0 * WorldMath.hash2(k, 4, 140))
+		var rx := (60.0 + 70.0 * WorldMath.hash2(k, 5, 140)) ; var ry := rx * 0.32
+		for layer in 3:   # three nested veils: a soft edge without a shader
+			var kk := 1.0 - 0.28 * float(layer)
+			var pts := PackedVector2Array()
+			for q in 18: pts.append(c + Vector2(cos(TAU * q / 18.0) * rx * kk, sin(TAU * q / 18.0) * ry * kk))
+			_ci.draw_colored_polygon(pts, Color(0.86, 0.9, 0.95, 0.07 * f))
 
 func _paint_top() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
@@ -732,6 +758,11 @@ func _draw_tile(t: Dictionary) -> void:
 	if zb < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, kb)))
 	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, kr)))
 	_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
+	if model.has("fog_min") and not water:   # a sea-fog job: the salt the wind lays on the coast, whiter by pollution class (II faint, IV crusted)
+		var pc := int((model.terrain.poll as PackedByteArray)[j * W + i]) if model.terrain.has("poll") else 1
+		if pc >= 2:
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), _c(Color(0.93, 0.96, 1.0, 0.1 * float(pc - 1))))
+			for k in pc - 1: _ci.draw_circle(_iso(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 120 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 130 + k), z), 1.1, _c(Color(1, 1, 1, 0.55)))
 	if water:
 		var sh := 0.5 + 0.5 * sin(_t * 1.3 + float(i) * 0.9 + float(j) * 0.6)
 		_ci.draw_line(_iso(i + 0.25, j + 0.5, z), _iso(i + 0.7, j + 0.5, z), Color(1, 1, 1, 0.16 * sh * (1.0 - _night * 0.7)), 1.5)

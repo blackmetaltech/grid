@@ -235,3 +235,12 @@ describe('L05 report agrees with the gauge, and the incident report says what to
     expect((e.engine.q('levelInfo') as { tryHint: string }).tryHint).toContain('11 kV');
   });
 });
+
+describe('world terrain pollution', () => {
+  it('the world query carries the planner\'s pollution class per tile (the salt shading draws it)', () => {
+    const e = fresh(); const w = e.engine.q('world') as { terrain: { pollution: string; cols: number; nrows: number } };
+    expect(w.terrain.pollution.length).toBe(w.terrain.cols * w.terrain.nrows);
+    expect(w.terrain.pollution[(w.terrain.nrows - 1) * w.terrain.cols]).toBe('4');   // the sea row's neighbourhood is class IV
+    expect(w.terrain.pollution[0]).toBe('1');
+  });
+});
