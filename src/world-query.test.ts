@@ -25,6 +25,15 @@ describe('world query contract', () => {
       if (w.kind === 'grid') { expect(w.buses.length).toBeGreaterThan(1); expect(w.map.w).toBeGreaterThan(0); }
     }
   });
+  it('a caller that already holds the terrain gets it without its tiles; any other id gets them in full', () => {
+    const e = play('L30', [], 0);
+    const full = e.q('world') as any, lite = e.q('world', [full.terrain.id]) as any, other = e.q('world', ['elsewhere']) as any;
+    expect(full.terrain.rows.length).toBe(full.terrain.nrows); expect(full.terrain.elev.length).toBe(full.terrain.cols * full.terrain.nrows);
+    expect(lite.terrain.rows).toEqual([]); expect(lite.terrain.elev).toEqual([]); expect(lite.terrain.pollution).toBe('');
+    expect({ ...lite, terrain: null }).toEqual({ ...full, terrain: null }); expect(lite.terrain.id).toBe(full.terrain.id);
+    expect(other.terrain.rows).toEqual(full.terrain.rows);
+    expect((e.q('world') as any).storage).toEqual([]);
+  });
   it('every bus has a voltage in overlay(voltage) when energised, and the overlay covers exactly the energised buses', () => {
     const e = play('L07', [], 4);
     const w = e.q('world') as any; const v = (e.q('overlay', ['voltage']) as any).values as Record<string, number>;

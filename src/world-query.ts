@@ -21,7 +21,7 @@ const r1 = (x: number): number => Math.round(fin(x) * 10) / 10;
 export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridState>> {
   return {
     /** Geometry and discrete state of the map. `kind` is 'bench' on the DC bench levels, 'grid' when there are buses, else 'none'. */
-    world: (s) => {
+    world: (s, knownTerrain?: string) => {   // knownTerrain: the caller already holds this terrain id, so its rows/elev/pollution are left out (they never change inside a level)
       const solved = solvedOf(s as GridState);
       const energised = new Set((s.solution?.buses ?? []).map((b) => b.id));
       const buses = s.buses.map((b) => {
@@ -54,7 +54,8 @@ export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridStat
       for (const b of s.branches) for (const p of b.waypoints) { w = Math.max(w, p[0]); h = Math.max(h, p[1]); }
       // the terrain the level stands on (rows as the map's tile characters, elevation per tile to 0.1 m) and the routes built on it, re-planned from their requests
       const tr = terrainOf(s.terrain);
-      const terrain = tr && s.terrain ? { id: s.terrain, cols: tr.cols, nrows: tr.rows, tileM: tr.tileM, rows: [...(mapRows(s.terrain) ?? [])], elev: tr.elevM.map(r1), pollution: tr.pollution.join('') } : null;   // pollution: IEC 60815 class per tile (1-4), one digit each, row-major
+      const known = knownTerrain !== undefined && knownTerrain === s.terrain;
+      const terrain = tr && s.terrain ? { id: s.terrain, cols: tr.cols, nrows: tr.rows, tileM: tr.tileM, rows: known ? [] : [...(mapRows(s.terrain) ?? [])], elev: known ? [] : tr.elevM.map(r1), pollution: known ? '' : tr.pollution.join('') } : null;   // pollution: IEC 60815 class per tile (1-4), one digit each, row-major
       const routes = terrain ? replanRoutes(s as GridState, d.getRoute(s as GridState)) : [];
       const mapSize = tr ? { w: tr.cols, h: tr.rows } : { w: w + 4, h: h + 4 };
       return { kind, level: s.level, map: mapSize, buses, branches, units, shunts, storage, bench, blackout: s.block.blackout, terrain, routes };

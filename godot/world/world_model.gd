@@ -27,8 +27,11 @@ static func build(b) -> Dictionary:
 		m.minute = float(clk.minuteOfDay); m.night = WorldMath.night(m.minute)
 	var qa_min := OS.get_environment("CB_WORLD_MINUTE")   # QA screenshots only: L03 starts at 08:00 and ends before dusk
 	if qa_min != "": m.minute = float(qa_min); m.night = WorldMath.night(m.minute)
-	var w = b.q("world")
+	var w = b.q("world", [_known_terrain]) if _known_terrain != "" else b.q("world")   # the map's tiles travel once per level
 	if not (w is Dictionary) or w.is_empty(): return m
+	var wt = w.get("terrain")
+	if wt is Dictionary and _known_terrain != "" and not _terrain_cache.has(str(wt.id)): _known_terrain = ""; w = b.q("world")   # a stale id: ask again in full
+	elif wt is Dictionary: _known_terrain = str(wt.id)
 	m.kind = str(w.kind); m.level = str(w.get("level", "")); m.blackout = bool(w.get("blackout", false))
 	if w.kind == "bench": _bench(m, w)
 	elif w.kind == "grid": _grid(m, w, b)
@@ -37,6 +40,7 @@ static func build(b) -> Dictionary:
 ## Terrain tile characters of the engine (world.terrain.rows) and the tile kinds the diorama draws.
 const TERRAIN_KINDS := {"f": "field", "s": "swamp", "r": "river", "w": "forest", "k": "rock", "a": "sand", "e": "sea", "t": "town", "d": "road"}
 static var _terrain_cache := {}
+static var _known_terrain := ""
 
 ## world.terrain as flat arrays: kinds[j * cols + i] (kind names) and elev[...] in metres. Cached by terrain id (the map never changes inside a level).
 static func terrain_of(tr: Dictionary) -> Dictionary:
