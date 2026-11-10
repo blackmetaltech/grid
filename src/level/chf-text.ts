@@ -20,7 +20,7 @@ export function finaleLesson(s: GridState): string {
   const fmt = (x: number, d = 0): string => x.toFixed(d);
   const parts: string[] = [];
   parts.push(t('level.L28.lessonA', { peak: fmt(tr.peakDemandMW ?? 0), vmin: fmt(tr.vMinPu ?? 0, 3) }));
-  parts.push(t('level.L28.lessonB', { ens: fmt(s.metrics.ensMWh, 1), ensPct: fmt(tr.ensPct ?? 0, 3), energy: fmt(f.energyMWh), dips: tr.freqDips ?? 0, nadir: fmt(tr.freqNadirHz ?? 50, 2) }));
+  if (s.clock.day >= 1 || s.status === 'won') parts.push(t('level.L28.lessonB', { ens: fmt(s.metrics.ensMWh, 1), ensPct: fmt(tr.ensPct ?? 0, 3), energy: fmt(f.energyMWh), dips: tr.freqDips ?? 0, nadir: fmt(tr.freqNadirHz ?? 50, 2) }));
   if ((tr.islandDarkBlocks ?? 0) === 0 && (tr.lightning ?? 0) > 0) {
     const bats = s.storage.filter((b) => b.bus === f.islandBus);
     const { mwh, needMWh } = islandNeed(s);
