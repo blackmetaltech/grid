@@ -2,7 +2,25 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
-## [0.3.0] - unreleased: "The Mainland Line" (chapter 2 opens; critique pass in docs/CRITIQUE-0.3.md)
+## [0.4.0] - unreleased: "Salt Wind" (insulation: the sea air on the insulators)
+### Added
+- **WO-29 Salt Wind.** Year two on the Mainland: your River Line still stands, and the harbour (fish market and ice plant) on the
+  south coast wants power all night. Extend 11 kV from Brightwater around the town to the beach.
+- **Insulators.** Pin (320 mm of creepage), a two-disc string (590 mm, hangs the wire 0.30 m lower) or one anti-fog disc
+  (430 mm, 0.15 m). The salt needs Um × mm/kV: 12 kV × 31 mm/kV = 372 mm on the beach, 300 mm a little inland. Choose an
+  insulator for the line and another for the coast stretch.
+- **The salt is visible**: the coast is whitened by how much salt the wind lays there, sea fog rolls in from 02:00 and is thickest
+  at 04:00, and an insulator short of its creepage crackles violet in the fog before it flashes over.
+- The harbour gets its own houses, dark until you bring the power.
+### Fixed
+- The shift report no longer contradicts the clearance gauge: it names your longest span and your tightest one (the gauge's number);
+  after a flashover it names the span that flashed, and "What to try" tells you how to lift it (or, at 0.42 kV, to go to 11 kV).
+- Switching the line voltage moves your line to the same towns' yards (one line, one bill); a new survey between the same towns
+  replaces the old line instead of building a second one.
+- On a Steam Deck and in small windows the Mainland map keeps both towns above the tray; the market's houses fill its streets.
+- Pixel 9a: the Mainland runs at 30 fps (was 18-20).
+
+## [0.3.0] - "The Mainland Line" (tag v0.3.0, local; chapter 2 opens; critique pass in docs/CRITIQUE-0.3.md)
 ### Added
 - **Chapter 2, WO-05 The River Line.** Bring a waterfall's power 4 km across a river, a mangrove swamp and a ridge to Brightwater
   market. You survey the line yourself: click a yard, click the ground to bend it, finish at the other yard.
@@ -29,7 +47,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
   zoomed out, repeats when held, and Y jumps to the far yard; the legend strip shows the survey buttons.
 - The radio log stays readable in small windows; Retry says when part of an old design would not rebuild.
 ### Known gaps
-- On the Pixel 9a the Mainland map runs at about 20 fps (being measured after the window-mesh fix).
+- On the Pixel 9a the Mainland map ran at about 20 fps (30 fps from 0.4.0).
 - One cost-optimal design is still easy to find by trying every option; the harbour job (insulation, salt fog) adds the next layer.
 
 ## [0.2.0] - chapter 1 critique pass (tag v0.2.0, local; see docs/CRITIQUE-0.1.md)
