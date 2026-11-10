@@ -18,7 +18,7 @@ for (const t of tests) {
   const r = sh('godot', ['--headless', '--path', 'godot', '--script', `res://tests/${t}.gd`], { timeout: 180000 });
   const out = `${r.stdout}\n${r.stderr}`;
   const lines = out.split('\n').filter((l) => /^FAIL|OK$|FAILED|SCRIPT ERROR|checks=/.test(l));
-  const ok = /^[A-Z-]+ OK$/m.test(out) && !/SCRIPT ERROR/.test(out);
+  const ok = /^[A-Z0-9-]+ OK$/m.test(out) && !/SCRIPT ERROR/.test(out);
   console.log(`${ok ? 'PASS' : 'FAIL'} ${t}\n  ${lines.join('\n  ')}`);
   if (!ok) bad++;
 }
