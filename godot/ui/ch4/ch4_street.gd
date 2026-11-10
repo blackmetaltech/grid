@@ -27,7 +27,7 @@ func _layout_panel() -> void:
 	for i in 18: hits.append({"rect": _house_rect(i, _g).grow(4.0), "kind": "item", "id": "house", "arg": i})
 	var ns: Array = kit.get("l10", {}).get("neutrals", [])
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
-	var cw := 94.0; var x := inner.position.x
+	var cw := 106.0; var x := inner.position.x
 	for k in ns.size():
 		_add_chip(Rect2(Vector2(x + (cw + 6.0) * k, inner.position.y + 22.0), Vector2(cw, 46.0)), "neutral", float(ns[k].mm2))
 
@@ -145,7 +145,7 @@ func _draw_instruments() -> void:
 	if inn > 0.4: _arrow(P.call(pts[0]), P.call(pts[3]), Color.WHITE, 4.0)
 	else: draw_circle(P.call(pts[0]), 4.0, Color.WHITE)
 	draw_circle(P.call(pts[0]), 3.0, Color(GridTheme.INK))
-	_text(_mono(), 12, c + Vector2(-R - 14.0, R + 34.0), T("C4_IN_SUM") % _f(inn, 1), _good(bool(q.pass.neutral)))
+	_text(_mono(), 12, c + Vector2(-R - 14.0, R + 16.0), T("C4_IN_SUM") % _f(inn, 1), _good(bool(q.pass.neutral)))
 	# phase currents and the neutral
 	var bx := 300.0; var by := 120.0; var bh := 160.0; var bw := 38.0
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 78.0)))
@@ -189,15 +189,15 @@ func _draw_panel_body() -> void:
 	var semi := _semi(); var mono := _mono(); var lock := _locked()
 	_text(semi, 11, inner.position + Vector2(0, 15.0), T("C4_NEUTRAL_CAP"), Color(GridTheme.TEXT, 0.7))
 	_text(semi, 12, inner.position + Vector2(0, 86.0), T("C4_TAP_HOUSE"), Color(GridTheme.SODIUM, 0.9))
-	_text(mono, 12, inner.position + Vector2(312.0, 40.0), T("C4_MOVED") % [int(q.moved), str(kit.get("l10", {}).get("moveHouse", ""))], Color(GridTheme.TEXT, 0.8))
-	_text(mono, 12, inner.position + Vector2(312.0, 60.0), T("C4_SPREAD") % [_f(float(q.kvaPh.a), 1), _f(float(q.kvaPh.b), 1), _f(float(q.kvaPh.c), 1)], Color(GridTheme.TEXT, 0.8))
+	_text(mono, 12, inner.position + Vector2(352.0, 40.0), T("C4_MOVED") % [int(q.moved), str(kit.get("l10", {}).get("moveHouse", ""))], Color(GridTheme.TEXT, 0.8))
+	_text(mono, 12, inner.position + Vector2(352.0, 60.0), T("C4_SPREAD") % [_f(float(q.kvaPh.a), 1), _f(float(q.kvaPh.b), 1), _f(float(q.kvaPh.c), 1)], Color(GridTheme.TEXT, 0.8))
 	var ns: Array = kit.get("l10", {}).get("neutrals", [])
 	for h in hits:
 		if str(h.kind) != "chip": continue
 		var mm := float(h.arg); var info: Dictionary = {}
 		for n in ns: if float(n.mm2) == mm: info = n
 		_chip(h.rect, "%s mm²" % WorkOrder.num(mm), "%d A · %s" % [int(info.get("ampacityA", 0)), str(info.get("upgrade", ""))], is_equal_approx(float(q.neutral.mm2), mm), "neutral", mm, not lock)
-	var y := inner.position.y + 118.0
+	var y := inner.position.y + 134.0
 	var checks := [[T("C4_CHK_NEUTRAL") % [_f(float(q.iNpct), 1), WorkOrder.num(float(q.iNmaxPct))], bool(q.pass.neutral)], [T("C4_CHK_VOLTS"), bool(q.pass.volts)], [T("C4_CHK_RATING") % [_f(float(q.iN), 0), int(q.neutral.ampacityA)], bool(q.pass.rating)]]
 	var x := inner.position.x
 	for c in checks:

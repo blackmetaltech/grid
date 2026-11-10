@@ -78,7 +78,7 @@ func _draw_triangle(c: Vector2) -> void:
 		_text(_mono(), 11, o + pv + Vector2(6.0, -(qm - qb * 0.5) * sc), "−%s" % _f(qb, 0), Color(GridTheme.LIVE))
 	_arrow(o, o + pv + Vector2(0.0, -qn * sc), _good(bool(q.pass.pf)), 3.0)
 	_text(_mono(), 14, c + Vector2(-110.0, 104.0), "pf %s" % _f(float(q.pf), 3), _good(bool(q.pass.pf) and bool(q.pass.lead)))
-	_text(_mono(), 11, c + Vector2(-110.0, 118.0), T("C4_NEED") % [_f(float(q.needKvar), 0), int(q.needCY), int(q.needCD)], Color(GridTheme.TEXT, 0.75))
+	_text(_mono(), 11, c + Vector2(-110.0, 118.0), T("C4_NEED") % [_f(float(q.needKvar), 0), WorkOrder.num(float(q.pfMin))], Color(GridTheme.TEXT, 0.75))
 	_text(_mono(), 11, c + Vector2(-110.0, 132.0), T("C4_BANKQ") % _f(qb, 0), _good(bool(q.pass.pf)))
 
 func _draw_motors(r: Rect2) -> void:
@@ -145,7 +145,7 @@ func _draw_bus_trace(r: Rect2) -> void:
 	var lim: float = v0 * (1.0 - float(q.dipMaxPct) / 100.0)
 	draw_rect(Rect2(Vector2(plot.position.x, Y.call(vmax)), Vector2(plot.size.x, Y.call(lim) - Y.call(vmax))), Color(GridTheme.GOOD, 0.10))
 	draw_line(Vector2(plot.position.x, Y.call(lim)), Vector2(plot.end.x, Y.call(lim)), Color(GridTheme.BAD, 0.8), 1.5)
-	_text(_mono(), 10, Vector2(plot.position.x + 4.0, Y.call(lim) + 12.0), T("C4_LIMIT") % WorkOrder.num(float(q.dipMaxPct)), Color(GridTheme.BAD, 0.9))
+	_text(_mono(), 10, Vector2(plot.end.x - 130.0, Y.call(lim) - 5.0), T("C4_LIMIT") % WorkOrder.num(float(q.dipMaxPct)), Color(GridTheme.BAD, 0.9))
 	var xs := plot.position.x + plot.size.x * 0.35; var ok := bool(q.pass.dip)
 	var pts := PackedVector2Array([Vector2(plot.position.x, Y.call(v0)), Vector2(xs, Y.call(v0)), Vector2(xs + 3.0, Y.call(v0 * (1.0 - dip))), Vector2(xs + plot.size.x * 0.40, Y.call(v0 * (1.0 - dip * 0.55))), Vector2(xs + plot.size.x * 0.55, Y.call(v0)), Vector2(plot.end.x, Y.call(v0))])
 	draw_polyline(pts, _good(ok), 3.0, true)
@@ -170,7 +170,9 @@ func _draw_panel_body() -> void:
 					_chip(h.rect, T("C4_ST_" + str(arg).to_upper()), pr, str(q.starter) == str(arg), id, arg, not lock)
 		elif k == "slider":
 			var n := _count(); _stepper(h.rect, T("C4_CANS"), "%d" % n, float(n) / 140.0, "count")
-	var y := inner.position.y + 150.0
+	var y := inner.position.y + 168.0
+	var hv := hover.get_slice("/", 1) if hover.begins_with("starter/") else str(q.starter)
+	_text(mono, 11, inner.position + Vector2(0, 152.0), T("C4_HINT_" + hv.to_upper()), Color(GridTheme.SODIUM, 0.85))
 	var checks := [[T("C4_CHK_PF") % _f(float(q.pf), 3), bool(q.pass.pf) and bool(q.pass.lead)], [T("C4_CHK_CAN"), bool(q.pass.can)], [T("C4_CHK_DIP") % _f(float(q.dipPct), 1), bool(q.pass.dip)]]
 	var x := inner.position.x
 	for c in checks:

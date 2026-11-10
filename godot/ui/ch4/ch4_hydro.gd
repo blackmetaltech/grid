@@ -114,7 +114,6 @@ func _draw_pdelta(r: Rect2) -> void:
 		if float(q.swing.deltaU) > 0.0: var xu: float = X.call(float(q.swing.deltaU)); draw_line(Vector2(xu, plot.position.y), Vector2(xu, plot.end.y), Color(GridTheme.BAD, 0.8), 1.5); _text(_mono(), 10, Vector2(xu - 8.0, plot.position.y + 11.0), "δu", GridTheme.BAD)
 		var pk := float(q.swing.peak); var sw_ok := bool(q.swing.stable)
 		var xp: float = X.call(minf(pk, 180.0)); draw_line(Vector2(xp, plot.position.y), Vector2(xp, plot.end.y), _good(sw_ok), 2.0); _text(_mono(), 10, Vector2(xp - 20.0, plot.end.y - 6.0), "%s°" % _f(pk, 0), _good(sw_ok))
-	_text(_mono(), 10, r.position + Vector2(44.0, r.size.y - 8.0), T("C4_PD_KEY"), Color(GridTheme.TEXT, 0.65))
 
 func _draw_swing(r: Rect2) -> void:
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
@@ -156,7 +155,7 @@ func _draw_panel_body() -> void:
 			"third": _chip(h.rect, T("C4_THIRD"), str(l12.get("circuitPrice", "")), bool(b.third), id, arg, not lock)
 			"redispatch":
 				var pr2 := ""; for s in l12.get("redispatch", []): if int(s.mw) == int(arg): pr2 = str(s.price)
-				_chip(h.rect, "−%d MW" % int(arg), pr2 if int(arg) > 0 else "", int(b.reduceMW) == int(arg), id, arg, not lock)
-	_text(_semi(), 11, inner.position + Vector2(0, 142.0), T("C4_PEAKS"), Color(GridTheme.TEXT, 0.7))
+				_chip(h.rect, ("−%d MW" % int(arg)) if int(arg) > 0 else "0 MW", pr2 if int(arg) > 0 else "", int(b.reduceMW) == int(arg), id, arg, not lock)
+	_text(_semi(), 11, inner.position + Vector2(0, 150.0), T("C4_PEAKS"), Color(GridTheme.TEXT, 0.7))
 	var sw: Dictionary = q.swing; var ok := bool(sw.stable)
-	_text(_mono(), 11, inner.position + Vector2(0, 156.0), ("✓ " if ok else "✗ ") + T("C4_CHK_SYNC") % _f(float(sw.peak), 0) + "   " + ("✓ " if bool(q.ok) and float(sw.peak) <= 70.0 and ok else "· ") + T("C4_CHK_70"), _good(ok))
+	_text(_mono(), 11, inner.position + Vector2(0, 168.0), ("✓ " if ok else "✗ ") + T("C4_CHK_SYNC") % _f(float(sw.peak), 0) + "   " + ("✓ " if bool(q.ok) and float(sw.peak) <= 70.0 and ok else "· ") + T("C4_CHK_70"), _good(ok))

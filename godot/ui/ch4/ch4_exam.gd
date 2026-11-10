@@ -34,6 +34,10 @@ func _layout_panel() -> void:
 		var e: LineEdit = edits[IDS[k]]; e.position = inner.position + Vector2(76.0 + 160.0 * k, 24.0); e.size = Vector2(76, 30)
 	hits.append({"rect": Rect2(Vector2(inner.position.x, inner.position.y + 66.0), Vector2(330, 70)), "kind": "slider", "id": "exc", "arg": ""})
 
+func _pe() -> String:
+	var p: Dictionary = q.predictions
+	return "—" if p.E == null or p.delta == null or p.pmax == null else _f(float(q.predErrPct), 1)
+
 func _exc() -> float: return float(q.night.excitation) if q.night.excitation != null else 1.0
 
 func _set_exc(v: float) -> void: _act("setExcitation", [snappedf(clampf(v, 0.5, 2.0), 0.001)])
@@ -79,7 +83,8 @@ func _draw_night(r: Rect2) -> void:
 	var s := 150.0; var o := r.position + Vector2(48.0, r.size.y * 0.55); var n: Dictionary = q.night
 	var V := Vector2(s, 0.0); _arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V + Vector2(6, 4), "V", Color.WHITE)
 	if n.excitation == null or n.deltaDeg == null:
-		_text(_semi(), 14, o + Vector2(20, -80), T("C4_SET_EXC") if n.excitation == null else T("C4_NO_STEADY"), Color(GridTheme.TEXT, 0.6)); return
+		_text(_semi(), 14, o + Vector2(20, -80), T("C4_SET_EXC") if n.excitation == null else T("C4_NO_STEADY"), Color(GridTheme.TEXT, 0.6))
+		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 30.0), T("C4_NIGHT_HINT1"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6)); return
 	var e := float(n.excitation); var d := deg_to_rad(float(n.deltaDeg))
 	var E := Vector2(cos(-d), sin(-d)) * e * s; _arrow(o, o + E, Color(GridTheme.GOOD) if bool(n.taskDone) else Color(GridTheme.SODIUM), 4.0); _text(_mono(), 12, o + E + Vector2(4, -6), "E = %s" % _f(e, 3), GridTheme.SODIUM)
 	draw_arc(o, 44.0, -d, 0.0, 16, GridTheme.SODIUM, 2.0); _text(_mono(), 12, o + Vector2(50, -12), "δ = %s°" % _f(float(n.deltaDeg), 1), GridTheme.SODIUM)
@@ -109,10 +114,12 @@ func _draw_gauges(r: Rect2) -> void:
 		draw_rect(Rect2(Vector2(x, dy), Vector2(wd * float(n.deltaDeg) / dm, 16.0)), _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
 		draw_line(Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy - 4.0), Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy + 20.0), Color.WHITE, 2.0)
 		_text(_mono(), 12, Vector2(x, dy + 38.0), T("C4_DELTA_LIM") % [_f(float(n.deltaDeg), 1), int(n.deltaMaxDeg)], _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
+	if n.q == null:
+		_text(_mono(), 12, Vector2(x, gy + 74.0), T("C4_GAUGE_HINT1"), Color(GridTheme.TEXT, 0.65)); _text(_mono(), 12, Vector2(x, gy + 94.0), T("C4_GAUGE_HINT2"), Color(GridTheme.TEXT, 0.65))
 	if bool(q.done):
 		var ans = q.get("answers"); var y := r.position.y + r.size.y - 54.0
 		if ans is Dictionary: _text(_mono(), 12, Vector2(x, y), T("C4_ANS_E") % _f(float(n.answerE), 3), Color(GridTheme.SODIUM))
-		_text(_mono(), 12, Vector2(x, y + 18.0), T("C4_PRED_ERR") % _f(float(q.predErrPct), 2), _good(float(q.predErrPct) <= 5.0))
+		_text(_mono(), 12, Vector2(x, y + 18.0), T("C4_PRED_ERR") % _pe(), _good(float(q.predErrPct) <= 5.0))
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var mono := _mono()
@@ -124,6 +131,6 @@ func _draw_panel_body() -> void:
 	for h in hits:
 		if str(h.id) == "exc":
 			var v := _exc(); _stepper(h.rect, T("C4_EXC_CAP"), "E = %s pu" % _f(v, 3) if q.night.excitation != null else T("C4_UNSET"), (v - 0.5) / 1.5, "exc")
-	var checks := [[T("C4_CHK_PRED") % _f(float(q.predErrPct), 1), float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
+	var checks := [[T("C4_CHK_PRED") % _pe(), float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
 	var x := inner.position.x
-	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 154.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 250.0
+	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 168.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 230.0

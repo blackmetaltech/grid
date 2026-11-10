@@ -4,7 +4,7 @@ extends Control
 ## drags on the panel and on stage items, and the lock while the clock runs. Display and input only: every number is the engine's `ch4Status`, every change is an
 ## engine action. Cute mode: the faces are happy exactly when the engine says the numbers are in band.
 const M := 14.0
-const PANEL_H := 168.0
+const PANEL_H := 184.0
 
 var app: CbApp
 var q: Dictionary = {}          ## ch4Status
@@ -34,6 +34,7 @@ func refresh(st: Dictionary, k: Dictionary) -> void:
 func layout() -> void:
 	if app == null or not visible: return
 	var ch = app.get("chrome")
+	if ch != null and (ch.radio == null or ch.breaker == null): return   # the chrome is still being built
 	var slot: Rect2 = ch.tray_rect() if ch != null else Rect2(Vector2(M, size.y - 96 - M), Vector2(size.x - 2 * M, 96))
 	var w := maxf(slot.size.x, 320.0)
 	panel = Rect2(Vector2(slot.position.x, slot.end.y - PANEL_H), Vector2(w, PANEL_H))
@@ -165,6 +166,7 @@ func _arrow(a: Vector2, b: Vector2, col: Color, wd := 3.0) -> void:
 
 func _draw() -> void:
 	if not visible or q.is_empty(): return
+	if panel.size.x < 1.0: layout()   # the first layout came before the chrome was built
 	draw_rect(Rect2(Vector2.ZERO, size), GridTheme.NIGHT, true)   # an opaque stage: the world underneath is not this level's place
 	_sky()
 	_draw_stage()
