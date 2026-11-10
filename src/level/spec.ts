@@ -64,6 +64,8 @@ export interface GridLevelSpec {
   /** Third-star conditions on tracked metrics (limits are threshold names). */
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
+  /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string };
   brownoutLoses: boolean;
   blackoutLoses: boolean;
   /** Stars awarded (false: a scene such as the prologue). */

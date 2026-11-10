@@ -26,7 +26,13 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       return {
         active: true, id: spec.id, kind: spec.kind, chapter: spec.chapter, title: t(spec.titleKey), brief: t(spec.briefKey), stars: spec.stars,
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
-        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
+        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks,
+        place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
+          if (!spec.story || !s.bench) return '';
+          const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');
+          if (!run) return '';
+          return t(spec.story.lessonKey, { mm2: run.mm2, m: run.lengthM, r: run.rLoopOhm.toFixed(3), i: run.iA.toFixed(1), drop: run.dropV.toFixed(1), v: run.vRecvV.toFixed(1) });
+        })(), sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
       };
     },
     /** The coach's current step (never advances on a timer: it reads the state), or done. */
