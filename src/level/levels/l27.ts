@@ -18,6 +18,7 @@ export const L27: GridLevelSpec = {
   allowed: { actions: ['setBreakerRating', 'setDispatch3'], parts: { setBreakerRating: SC.l27.breakerRatingsKA.map(String) } },
   sites: [
     { id: 'breakers', options: SC.l27.breakerRatingsKA.map((k) => ({ id: `r${k}`, actions: rating(k) })) },
+    { id: 'prediction', options: [{ id: 'none', actions: [] }, { id: 'guess', actions: [{ name: 'predict', args: ['ps17', 0.909, 'kA'] }] }] },
     { id: 'dispatch', options: TRIPLES.map((t) => ({ id: t.join('-'), actions: disp(...t) })) },
   ],
   thresholds: { dutyMax: 1, okMin: 4 },
@@ -27,10 +28,10 @@ export const L27: GridLevelSpec = {
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'score',
   story: { placeKey: 'level.L27.place', lineKeys: ['level.L27.story1', 'level.L27.story2'], lessonKey: 'level.L27.lesson', lessonKind: 'ch7' },
   naive: { actions: [], failKind: 'ch7.breakerFail' },
-  lesson: [...rating(50), ...disp(400, 350, 250)],
+  lesson: [...rating(50), ...disp(400, 350, 250), { name: 'predict', args: ['ps17', 0.909, 'kA'] }],
   reference: [...rating(50), ...disp(450, 340, 210), { name: 'predict', args: ['ps17', 0.909, 'kA'] }, { name: 'predict', args: ['ps18', 0.7515, 'kA'] }, { name: 'predict', args: ['ps20', 9.163, '$/MWh'] }, { name: 'predict', args: ['ps21', 9.58, '$/MWh'] }, { name: 'predict', args: ['ps24', 0.26, 's'] }],
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
-  frozen: { global: { budget: 1200000, starA: 1040726, starB: 880129 }, in: { budget: 95000000, starA: 73067556, starB: 73040747 } },
+  frozen: { global: { budget: 1200000, starA: 880332, starB: 880009 }, in: { budget: 95000000, starA: 73067556, starB: 73040747 } },
   coach: [
     { id: 'predict', textKey: 'coach.L27.predict', whyKey: 'coach.L27.predict.why', done: (s) => s.metrics.predictions.length >= 4 || s.tick > s.levelStart },
     { id: 'rating', textKey: 'coach.L27.rating', whyKey: 'coach.L27.rating.why', done: (s) => used(s, 'setBreakerRating') || s.tick > s.levelStart },

@@ -21,6 +21,7 @@ export const L23: GridLevelSpec = {
     { id: 'breakers', options: [{ id: 'r25', actions: [] }, { id: 'r31.5', actions: rating(31.5) }, { id: 'r40', actions: rating(40) }] },
     { id: 'coupler', options: [{ id: 'closed', actions: [] }, { id: 'open', actions: [{ name: 'setBusCoupler', args: [true] }] }] },
     { id: 'reactor', options: [{ id: 'none', actions: [] }, { id: 'x0.10', actions: reactor(0.1) }, { id: 'x0.20', actions: reactor(0.2) }] },
+    { id: 'prediction', options: [{ id: 'none', actions: [] }, { id: 'guess', actions: [{ name: 'predict', args: ['faultKA', 30.19, 'kA'] }] }] },
     { id: 'transformers', options: [{ id: 'uk10', actions: [] }, { id: 'uk14', actions: [{ name: 'setTransformerZ', args: [14] }] }] },
   ],
   thresholds: { dutyMax: 1, n1VMin: { symbol: 'busBandLoPu', kv: 33 }, one: 1, predTolPct: SC.l23.predictTolPct },
@@ -30,7 +31,7 @@ export const L23: GridLevelSpec = {
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'capex',
   story: { placeKey: 'level.L23.place', lineKeys: ['level.L23.story1', 'level.L23.story2'], lessonKey: 'level.L23.lesson', lessonKind: 'ch7' },
   naive: { actions: [], failKind: 'ch7.breakerFail' },
-  lesson: rating(31.5),
+  lesson: [...rating(31.5), { name: 'predict', args: ['faultKA', 30.19, 'kA'] }],
   reference: [...rating(31.5), { name: 'predict', args: ['faultKA', 30.19, 'kA'] }],
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
   frozen: { global: { budget: 490000, starA: 440000, starB: 440000 }, in: { budget: 41000000, starA: 36520000, starB: 36520000 } },

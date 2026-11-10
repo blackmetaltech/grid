@@ -36,7 +36,7 @@ func _draw_panel_body() -> void:
 	var x := inner.position.x
 	for p in q.plants:
 		var w: Array = p.window; var on: bool = int(w[0]) != int(w[1])
-		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(104, 46)), T("C7_PLANT_" + str(p.id)), ("%d-%d" % [int(w[0]), int(w[1])]) if on else T("C7_OFF"), on, "win", str(p.id)); x += 110.0
+		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(104, 46)), T("C7_PLANT_" + str(p.id)), ("%d-%d  " % [int(w[0]), int(w[1])] + T("C7_MWH") % WorkOrder.num(float(p.b))) if on else T("C7_OFF"), on, "win", str(p.id)); x += 110.0
 	if _revealed():
 		var ok := str(q.get("kind", "")) == "" or q.get("kind") == null
 		_text(_mono(), 12, inner.position + Vector2(450, 84), T("C7_COST") % str(q.costText), _good(ok))
@@ -89,3 +89,5 @@ func _draw_stage() -> void:
 		_frame(Rect2(sr.position, Vector2(sr.size.x, bh * 0.5 - 6.0)), 0.0, 24.0, -500.0, 600.0, false, false, "", T("C7_FLOW") + "  (" + T("C7_CORRIDOR") % int(q.corridorMW) + ")")
 		_poly([[0.0, q.corridorMW], [24.0, q.corridorMW]], Color(GridTheme.BAD, 0.7), 1.5); _poly([[0.0, -float(q.corridorMW)], [24.0, -float(q.corridorMW)]], Color(GridTheme.BAD, 0.7), 1.5)
 		_text(_mono(), 12, sr.position + Vector2(14, bh * 0.5 + 30.0), T("C7_HIDDEN"), GridTheme.DIM)
+		draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
+		draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))

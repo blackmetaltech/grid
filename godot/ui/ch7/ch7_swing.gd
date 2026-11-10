@@ -80,7 +80,11 @@ func _draw_stage() -> void:
 		_text(_semi(), 20, Vector2(sr.position.x, sr.end.y - 40.0), T("C7_STABLE") if bool(q.stable) else T("C7_SLIPS"), _good(bool(q.stable)), sr.size.x, 1)
 	else:
 		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), sr); _text(_mono(), 12, sr.position + Vector2(14, 28), T("C7_HIDDEN"), GridTheme.DIM)
-		draw_multiline_string(_mono(), sr.position + Vector2(14, 60), T("C7_GLOSS_PM"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(12), -1, Color(GridTheme.TEXT, 0.75))
+		_text(_mono(), 12, sr.position + Vector2(14, 52), T("C7_G25_TARGET") % int(q.tCrMs), GridTheme.SODIUM)
+		var gy: float = sr.position.y + 80.0
+		for g in ["C7_G25_Z1", "C7_G25_Z2", "C7_G25_IDMT"]:
+			draw_multiline_string(_mono(), Vector2(sr.position.x + 14.0, gy), T(g), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75)); gy += 34.0
+		draw_multiline_string(_mono(), sr.position + Vector2(14, gy + 10.0), T("C7_GLOSS_PM"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(12), -1, Color(GridTheme.TEXT, 0.75))
 
 func _interp(pts: Array, d: float) -> float:
 	for i in range(1, pts.size()):

@@ -36,7 +36,7 @@ export const L24: GridLevelSpec = {
   lesson: graded('SI', 100, [0.35, 0.25, 0.15, 0.05]),
   reference: graded('EI', 150, [0.35, 0.35, 0.25, 0.05]),
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
-  frozen: { global: { budget: 19000, starA: 2.942562071065015, starB: 2.1602033606813 }, in: { budget: 1600000, starA: 2.942562071065015, starB: 2.1602033606813 } },
+  frozen: { global: { budget: 0, starA: 2.942562071065015, starB: 2.1602033606813 }, in: { budget: 0, starA: 2.942562071065015, starB: 2.1602033606813 } },
   coach: [
     { id: 'pickup', textKey: 'coach.L24.pickup', whyKey: 'coach.L24.pickup.why', done: (s) => used(s, 'setRelayPickup') || s.tick > s.levelStart },
     { id: 'grade', textKey: 'coach.L24.grade', whyKey: 'coach.L24.grade.why', done: (s) => used(s, 'setRelayTms') || s.tick > s.levelStart },

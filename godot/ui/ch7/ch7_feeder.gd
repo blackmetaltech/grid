@@ -40,7 +40,7 @@ func _draw_panel_body() -> void:
 		draw_rect(Rect2(r.position + Vector2(r.size.x - 14, 6), Vector2(8, 8)), COLS[k])
 	_text(_semi(), 10, inner.position + Vector2(0, 102), T("C7_CURVE_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(250, 102), T("C7_PICKUP_CAP"), Color(GridTheme.TEXT, 0.65))
 	var tot = q.get("totalS"); var mg := float(q.get("minMarginS", 0.0))
-	if tot != null: _text(_mono(), 12, inner.position + Vector2(470, 130), (T("C7_TOTAL") % WorkOrder.num(snappedf(float(tot), 0.001))) + "   " + (T("C7_MARGIN") % [WorkOrder.num(snappedf(mg, 0.001)), "0.3 (+0)"]).replace(" (+0)", ""), _good(bool(q.get("ok", false))))
+	if tot != null: _text(_mono(), 11, inner.position + Vector2(340, 10), (T("C7_TOTAL") % WorkOrder.num(snappedf(float(tot), 0.001))) + "  |  " + (T("C7_MARGIN2") % WorkOrder.num(snappedf(mg, 0.001))), _good(bool(q.get("ok", false))))
 
 func _draw_stage() -> void:
 	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
@@ -57,6 +57,9 @@ func _draw_stage() -> void:
 		draw_rect(Rect2(Vector2(lx, ly + 16.0 * k - 8.0), Vector2(14, 6)), COLS[k]); _text(_mono(), 10, Vector2(lx + 20.0, ly + 16.0 * k), "R%d  I_s %s A" % [k + 1, str(q.is[k])], GridTheme.TEXT)
 	var by2: float = ly + 16.0 * 4
 	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); _text(_mono(), 10, Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), Color(GridTheme.BAD, 0.85))
+	var gy: float = float((plot.r as Rect2).end.y) - 70.0
+	for g in ["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"]:
+		_text(_mono(), 10, Vector2(lx, gy), T(g), Color(GridTheme.TEXT, 0.65)); gy += 15.0
 	for f in q.faults:
 		var x := _pt(float(f.amps), 0.01).x; var pr: Rect2 = plot.r
 		draw_line(Vector2(x, pr.position.y), Vector2(x, pr.end.y), Color(GridTheme.TEXT, 0.35), 1.0)

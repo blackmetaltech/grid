@@ -17,6 +17,7 @@ export const L26: GridLevelSpec = {
   allowed: { actions: ['setCommitment', 'setDispatchMode'], parts: { setDispatchMode: ['merit', 'lambda', 'corridor'] } },
   sites: [
     { id: 'mode', options: ['merit', 'lambda', 'corridor'].map((m) => ({ id: m, actions: mode(m) })) },
+    { id: 'prediction', options: [{ id: 'none', actions: [] }, { id: 'guess', actions: [{ name: 'predict', args: ['lambda20', 59.2, '$/MWh'] }] }] },
     ...PLANTS.map((p) => ({ id: p, options: SC.l26.windows[p]!.map(([a, b]) => ({ id: `${a}-${b}`, actions: win(p, a, b) })) })),
   ],
   thresholds: { corridorMax: 1, optPct: 1 },
@@ -25,7 +26,7 @@ export const L26: GridLevelSpec = {
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'score',
   story: { placeKey: 'level.L26.place', lineKeys: ['level.L26.story1', 'level.L26.story2'], lessonKey: 'level.L26.lesson', lessonKind: 'ch7' },
   naive: { actions: [], failKind: 'ch7.congestion' },
-  lesson: mode('corridor'),
+  lesson: [...mode('corridor'), { name: 'predict', args: ['lambda20', 59.2, '$/MWh'] }],
   reference: [...mode('corridor'), ...win('ocgt', 17, 23), { name: 'predict', args: ['lambda20', 59.2, '$/MWh'] }],
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
   frozen: { global: { budget: 0, starA: 545212.6661801212, starB: 530447.417508252 }, in: { budget: 0, starA: 45252651.292950064, starB: 44027135.653184906 } },

@@ -10,8 +10,8 @@ import { studyL27, examQuestions } from './exam';
 import type { Ch7Id, Ch7State } from './state';
 
 type Params = Record<string, string | number>;
-export type Ch7Fail = 'breakerFail' | 'miscoordination' | 'nuisance' | 'blind' | 'conductorBurnt' | 'outOfStep' | 'congestion' | 'imbalance' | 'dispatch';
-export const CH7_FAIL_KINDS: Ch7Fail[] = ['breakerFail', 'miscoordination', 'nuisance', 'blind', 'conductorBurnt', 'outOfStep', 'congestion', 'imbalance', 'dispatch'];
+export type Ch7Fail = 'breakerFail' | 'miscoordination' | 'nuisance' | 'blind' | 'conductorBurnt' | 'outOfStep' | 'congestion' | 'imbalance' | 'dispatch' | 'noPrediction';
+export const CH7_FAIL_KINDS: Ch7Fail[] = ['breakerFail', 'miscoordination', 'nuisance', 'blind', 'conductorBurnt', 'outOfStep', 'congestion', 'imbalance', 'dispatch', 'noPrediction'];
 
 export interface Study {
   id: Ch7Id; ok: boolean; kind: Ch7Fail | null; failKey: string | null; failParams: Params;
@@ -108,6 +108,9 @@ export function ch7Verdict(s: Readonly<GridState>, rules: Readonly<Rules>, ticks
   if (s.budget.capexLimit > 0 && st.capex > s.budget.capexLimit + 1e-9) return lostR('level.lost.budget', { spent: Math.round(st.capex), max: Math.round(s.budget.capexLimit) });
   if (ticksUsed < 1) return { status: 'playing', key: null, params: {}, stars: 0 };
   if (!st.ok) return lostR(st.failKey!, st.failParams);
+  // attempt first: L23, L26 and L27 are not passed without writing a prediction (the lesson is the comparison of your number with the engine's)
+  const made = s.ch7!.id === 'L24' ? true : s.ch7!.id === 'L27' ? (st.track.predictionsMade ?? 0) > 0 : PRIMARY_PREDICTION[s.ch7!.id] === undefined || s.metrics.predictions.some((p) => p.id === PRIMARY_PREDICTION[s.ch7!.id]);
+  if (!made) return lostR('level.lost.ch7.noPrediction', {});
   let stars: 1 | 2 | 3 = 1;
   if (rules.starCost) {
     const v = st.score;

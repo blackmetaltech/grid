@@ -126,6 +126,7 @@ export const EN_CH7: Record<string, string> = {
   'level.L27.lesson': 'The grown board gives {three} kA for a 3-phase fault and {slg} kA for a single line-to-ground fault: a breaker must cover the larger one. The 3-unit example runs at an equal lambda of {lam} USD/MWh (the textbook figure). You were within 2 % on {ok} of {n} predictions.',
   'level.L27.tryRating': 'The grown board gives {ka} kA: pick a rating of at least {next} kA.',
   'level.L27.tryDispatch': 'Make the three outputs add up to 1000 MW and keep each unit between its minimum and maximum. The cheapest split puts the same incremental cost on the units that are not at a limit.',
+  'level.lost.ch7.noPrediction': 'The job ran without a prediction. Write your own number first, then run: the report compares it with the engine\'s.',
   'level.lost.ch7.dispatch': 'The dispatch adds up to {sum} MW but tonight needs {need} MW, or a unit is outside its limits. Every unit has to stay between its minimum and maximum.',
   'coach.L27.predict': 'Predict the exam numbers first: 3-phase fault kA, SLG kA, the two lambdas, and the 60 Hz critical clearing time.',
   'coach.L27.predict.why': 'Working them by hand first is how the method sticks; the engine will check you.',

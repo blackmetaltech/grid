@@ -2,8 +2,13 @@ class_name Ch7Strings
 extends RefCounted
 ## Chapter 7 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C7_.
 const S := {
-	"C7_SPENT": "%s of %s", "C7_LAMP_SCORE": "Score ≤ %s", "C7_LAMP_SCORE3": "Score ≤ %s%s",
-	"C7_GLOSS_IF": "I_f: the fault current, the biggest current the breaker has to interrupt.", "C7_GLOSS_PU": "pu: per-unit, a fraction of the 100 MVA base (1 pu = 1.75 kA at 33 kV).", "C7_GLOSS_REACTOR": "Reactor: a coil in the bus section that adds impedance, so a fault pulls less current.",
+	"C7_SPENT": "%s of %s", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
+	"C7_FN_ps17": "formula: I = V / Z_th, then kA = pu x base MVA / (1.732 x kV)", "C7_FN_ps18": "formula: I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "formula: equal lambda, no limits (sum P = demand)", "C7_FN_ps21": "formula: equal lambda, then fix units at their limits", "C7_FN_ps24": "formula: equal-area, t = sqrt(4H (d_cr - d_0) / (w P_m))",
+	"C7_G24_PICK": "Pickup (I_s): the current at which the relay starts timing; keep it above 1.25 x the load.", "C7_G24_TMS": "TMS: the time multiplier, a dial that slides the whole curve up (slower) or down (faster).", "C7_G24_CT": "CT: the current transformer that feeds the relay; pickup is a % of its rating.",
+	"C7_G24_CURVE": "SI (standard inverse): gentle, good for grading many relays. VI/EI (very/extremely inverse): faster at big currents, good for burn limits.",
+	"C7_G25_TARGET": "Target: clear in under %d ms (the critical clearing time).", "C7_G25_Z1": "Zone 1: trips a fault on the first 80 % of the line at once (30 ms).", "C7_G25_Z2": "Zone 2: reaches 120 % of the line but waits 350 ms for the next relay to act first.", "C7_G25_IDMT": "Inverse-time: the bigger the current, the faster it trips; TMS slides the curve.",
+	"C7_G26_LAMBDA": "Lambda: the price of the next MWh, the cost of the plant that would supply it.", "C7_G26_CORR": "Corridor: the one 220 kV wire between north and city; its limit is 450 MW.", "C7_MWH": "$%s/MWh", "C7_LAMP_SCORE": "Score ≤ %s", "C7_LAMP_SCORE3": "Score ≤ %s%s",
+	"C7_GLOSS_IF": "I_f: the fault current, the biggest current the breaker has to interrupt.", "C7_GLOSS_PU": "pu: per-unit, a fraction of the 100 MVA base power (1 pu of current = 1.75 kA at 33 kV).", "C7_GLOSS_REACTOR": "Reactor: a coil in the bus section that adds impedance, so a fault pulls less current.",
 	"C7_GLOSS_PM": "P_m: the push of the turbine (mechanical power). delta: how far the rotor runs ahead of the grid. Faster clearing keeps delta small.", "C7_CLEAR_SUM": "clears at %d ms = relay %d ms + breaker %d ms (%d cycles)",
 	"C7_FORMULA_CAP": "FORMULA CARD (try the numbers first)", "C7_SHOW": "show formulas", "C7_HIDE": "hide formulas",
 	"C7_F1": "3-phase fault: I_f = V / Z_th, then kA = pu x 100 MVA / (1.732 x kV). Z_th = Z_grid + Z_transformer + Z_line, in per-unit.",
@@ -17,7 +22,7 @@ const S := {
 	"C7_GRID": "grid 132 kV", "C7_SEC_A": "section A", "C7_SEC_B": "section B", "C7_COUPLER": "coupler", "C7_OPEN": "open", "C7_CLOSED": "closed", "C7_FEEDER": "feeder F1",
 	"C7_FAULT": "3-phase fault", "C7_RATED": "rated %s kA", "C7_DUTY": "must break %s kA", "C7_HIDDEN": "(run it to see it)", "C7_ESTATE_DARK": "ESTATE DARK",
 	"C7_BREAKERS": "BREAKERS (kA, each)", "C7_COUPLER_CAP": "BUS COUPLER", "C7_REACTOR_CAP": "BUS-SECTION REACTOR (pu)", "C7_XFMR_CAP": "TRANSFORMER IMPEDANCE (%)",
-	"C7_N1_OK": "survives a transformer trip (%s pu)", "C7_N1_BAD": "a transformer trip is not covered", "C7_FAULT_KA": "%s kA  (%s MVA)", "C7_ZTH": "Z_th %s pu", "C7_NONE": "none",
+	"C7_N1_OK": "if a transformer trips, the estate still gets %s pu voltage", "C7_N1_BAD": "a transformer trip is not covered", "C7_FAULT_KA": "%s kA  (%s MVA)", "C7_ZTH": "Z_th %s pu", "C7_NONE": "none",
 	"C7_TABLE": "Who breaks what", "C7_NO_REACTOR": "0",
 	# L24
 	"C7_TC_X": "current, A", "C7_TC_Y": "time, s", "C7_RELAY": "R%d", "C7_IS": "I_s %s A", "C7_TMS": "TMS", "C7_CURVE_CAP": "CURVE (all)", "C7_PICKUP_CAP": "PICKUP, % of CT (all)", "C7_RELAY_CAP": "TIME MULTIPLIER (R1 substation to R4 far end)",

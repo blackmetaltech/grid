@@ -17,7 +17,7 @@
     "faults": [{ "id": "F1", "section": 1, "at": 0.8 }, { "id": "F2", "section": 2, "at": 0.8 }, { "id": "F3", "section": 3, "at": 0.1 }, { "id": "F4", "section": 3, "at": 0.8 }, { "id": "F5", "section": 4, "at": 0.1 }, { "id": "F6", "section": 4, "at": 0.8 }],
     "ctiS": 0.3, "pickupLoadFactor": 1.25, "kAlu": 76, "repairH": 2, "voll": 10000,
     "pickupPct": { "low": 75, "right": 100, "high": 150 },
-    "tmsRange": [0.025, 1.2], "relayPrice": 3500
+    "tmsRange": [0.025, 1.2], "relayPrice": 0
   },
   "l25": {
     "f0": 50, "H": 5, "Pm": 1.0, "PmaxPre": 1.8, "PmaxDuring": 0.3, "PmaxPost": 1.3,
@@ -67,7 +67,7 @@
       "ps24": { "Pm": 0.8, "Pmax": 1.8, "H": 5, "f0": 60 },
       "ps22": { "units": [{ "a": 300, "b": 8, "c": 0.004 }, { "a": 250, "b": 9, "c": 0.005 }], "B": [[0.0001, -0.00002], [-0.00002, 0.00015]], "demandMW": 300 }
     },
-    "breakerPrice": [42000, 55000, 78000, 110000, 150000], "breakerRatingsKA": [25, 31.5, 40, 50, 63],
+    "breakerPrice": [42000, 55000, 78000, 110000, 170000], "breakerRatingsKA": [25, 31.5, 40, 50, 63],
     "predictTolPct": 2
   }
 }

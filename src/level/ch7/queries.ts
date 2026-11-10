@@ -63,7 +63,7 @@ export function buildCh7Queries(): Record<string, QueryFn<GridState>> {
         const clearRad = (st.swing.clearAtDeg * Math.PI) / 180;
         const ea = equalAreas(inp, clearRad, clearRad);
         return {
-          ...base, design: d, f0: SC.l25.f0, Pm: SC.l25.Pm, relayMs: Math.round(st.relayS * 1000), breakerMs: Math.round(st.breakerS * 1000), clearMs: Math.round(st.clearS * 1000),
+          ...base, design: d, f0: SC.l25.f0, Pm: SC.l25.Pm, tCrMs: Math.round(cr.tCrS * 1000), relayMs: Math.round(st.relayS * 1000), breakerMs: Math.round(st.breakerS * 1000), clearMs: Math.round(st.clearS * 1000),
           relays: Object.entries(SC.l25.relays).map(([id, r]) => ({ id, kind: r.kind, price: r.price })), cycles: SC.l25.breakerCycles,
           curves: { deltaDeg: curves.deltaRad.map((x) => r1((x * 180) / Math.PI)), pre: curves.pePre.map(r3), during: curves.peDuring.map(r3), post: curves.pePost.map(r3), pm: curves.pm },
           ...(revealed ? {

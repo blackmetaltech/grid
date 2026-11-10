@@ -20,6 +20,7 @@ export const L25: GridLevelSpec = {
   sites: [
     { id: 'relay', options: RELAYS.map((id) => ({ id, actions: [{ name: 'setRelayType', args: [id] }] })) },
     { id: 'breaker', options: SC.l25.breakerCycles.map((n) => ({ id: `c${n}`, actions: [{ name: 'setBreakerCycles', args: [n] }] })) },
+    { id: 'prediction', options: [{ id: 'none', actions: [] }, { id: 'guess', actions: [{ name: 'predict', args: ['deltaCrDeg', 53.5, 'deg'] }] }] },
     { id: 'reclose', options: [{ id: 'off', actions: [] }, { id: 'on', actions: [{ name: 'setAutoReclose', args: [true] }] }] },
   ],
   thresholds: { marginMin: 0, marginStar3: SC.l25.marginStarMs },
@@ -28,8 +29,8 @@ export const L25: GridLevelSpec = {
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'capex',
   story: { placeKey: 'level.L25.place', lineKeys: ['level.L25.story1', 'level.L25.story2'], lessonKey: 'level.L25.lesson', lessonKind: 'ch7' },
   naive: { actions: [], failKind: 'ch7.outOfStep' },
-  lesson: design('dist-z1', 3, false),
-  reference: design('dist-z1', 3, false),
+  lesson: [...design('dist-z1', 3, false), { name: 'predict', args: ['deltaCrDeg', 53.5, 'deg'] }],
+  reference: [...design('dist-z1', 3, false), { name: 'predict', args: ['deltaCrDeg', 53.5, 'deg'] }],
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
   frozen: { global: { budget: 600000, starA: 551000, starB: 551000 }, in: { budget: 50000000, starA: 45733000, starB: 45733000 } },
   coach: [
