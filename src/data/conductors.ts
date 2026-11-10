@@ -38,3 +38,21 @@ export const COPPER: CopperRow[] = [
   cu(2.5, 7.41, 27), cu(4, 4.61, 36), cu(6, 3.08, 46), cu(10, 1.83, 63), cu(16, 1.15, 85), cu(25, 0.727, 112), cu(35, 0.524, 138), cu(50, 0.387, 168),
 ];
 export type { Confidence };
+
+// DEPTH §4.1 mechanical columns: UTS/mass BS 215-2 (Lumino reprint, `datasheet`); E and alpha by stranding (WBSEDCL ACSR spec §6, `datasheet`);
+// zebra E/alpha for 54/7 are `recall` (DEPTH §4.1, §10). kgPerKm/areaMm2/ampA(amp75)/diaMm come from the ACSR rows above.
+import type { ConductorMech } from '../sim/route/types';
+export type AcsrMech = ConductorMech & SourcedRow;
+const MECH_SRC = 'BS 215-2 table (Lumino Industries reprint) UTS and mass; E/alpha by stranding from WBSEDCL ACSR spec §6; DEPTH §4.1, §10';
+const mech = (id: string, utsKN: number, eGPa: number, alphaE6: number, conf: Confidence = 'datasheet', note?: string): AcsrMech => {
+  const r = ACSR.find((a) => a.id === id)!;
+  return {
+    id, utsN: utsKN * 1000, kgPerKm: r.kgPerKm, areaMm2: r.totalMm2, eGPa, alphaPerC: alphaE6 * 1e-6, ampA: r.amp75, diaMm: r.diaMm,
+    source: MECH_SRC, confidence: conf, ...(note ? { note } : {}),
+  };
+};
+export const ACSR_MECH: AcsrMech[] = [
+  mech('acsr-weasel', 11.5, 79, 19.1), mech('acsr-rabbit', 18.4, 79, 19.1), mech('acsr-dog', 32.7, 75, 19.8),
+  mech('acsr-wolf', 69.2, 80, 17.8), mech('acsr-panther', 92.3, 80, 17.8),
+  mech('acsr-zebra', 131.9, 69, 19.3, 'recall', 'E and alpha for 54/7 stranding are recall (DEPTH §4.1)'),
+];
