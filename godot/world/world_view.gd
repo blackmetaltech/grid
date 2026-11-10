@@ -437,7 +437,7 @@ func _view_rect() -> Rect2:
 		bt = size.y - (6.0 if CbLayout.phone else app._dock_h + 12.0) - ins.w
 		if CbLayout.phone and _has_terrain(): bt = minf(bt, size.y * 0.74)   # a long terrain map on a phone: keep both ends above the tray and the budget tag (the market sat under them)
 		elif _has_terrain(): bt = minf(bt, size.y - 128.0)   # desktop too: the harbour on the south coast sat under the tray and the budget tag
-		elif not CbLayout.phone and model.kind == "grid" and model.map.x * model.map.y > 2000.0: bt = minf(bt, size.y - 175.0)   # big grid maps (L28's state): the map's south tip (Saltmarsh Island) sat under the budget tag
+		elif not CbLayout.phone and model.kind == "grid": bt = minf(bt, size.y - 175.0)   # grid maps: the map's south tip (L28's Saltmarsh Island, L09's quarry at the end of the long line) sat under the budget tag
 		r = size.x - cover - 14.0 - ins.z
 	return Rect2(l, t, maxf(60.0, r - l), maxf(60.0, bt - t))
 
