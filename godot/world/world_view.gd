@@ -542,6 +542,7 @@ func _tap_extras(pos: Vector2, button: int) -> void:
 func _process(dt: float) -> void:
 	if not is_visible_in_tree() or size.x < 4.0: return
 	_t += dt; _rot += dt
+	if _flash > 0.0: _flash = maxf(0.0, _flash - dt / 1.2); _top_layer.queue_redraw()
 	if _press and not _press_long and _press_moved < TAP_PX:
 		_press_t += dt
 		if _press_t >= LONG_S: _press_long = true; long_pressed.emit(_press_pos)
@@ -712,9 +713,17 @@ func _draw_fog() -> void:
 			for q in 18: pts.append(c + Vector2(cos(TAU * q / 18.0) * rx * kk, sin(TAU * q / 18.0) * ry * kk))
 			_ci.draw_colored_polygon(pts, Color(0.86, 0.9, 0.95, 0.07 * f))
 
+## A line just tripped (the prologue's cascade): a white-hot flash that fades over ~1.2 s, drawn over the world.
+var _flash := 0.0
+func flash_trip() -> void:
+	if CbSettings.reduced_motion: return
+	_flash = 1.0; _top_layer.queue_redraw()
+
 func _paint_top() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
 	var t0 := Time.get_ticks_usec()
+	if _flash > 0.0:
+		_ci.draw_rect(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
 	_draw_labels()
 	_draw_pegs()
 	_draw_breakers()

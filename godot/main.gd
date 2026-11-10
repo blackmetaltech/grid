@@ -17,7 +17,7 @@ func game_config() -> Dictionary:
 		"dock": [["home", tr("DOCK_HOME"), Color("#39E1FF"), tr("DOCK_HOME")]],   # the shell wants a home id; it is blank (ui/home_blank.gd), the old Operator Clock drawer is gone
 		"screens": {"home": "res://ui/home_blank.gd"},
 		"overlay": [], "full": [],
-		"tick_label": tr("TICK_BUTTON"), "tick_seconds": [0.0, 2.0, 0.8, 0.3],   # a 5-hour bench night (20 blocks) runs 16 s at 2x, 6 s at 4x: no dead air once the build is right
+		"tick_label": tr("TICK_BUTTON"), "tick_seconds": TICKS_NORMAL.duplicate(),   # a 5-hour bench night (20 blocks) runs 16 s at 2x, 6 s at 4x: no dead air once the build is right
 		"keys": [["Space", tr("KEY_SPACE_DESC")]],
 	})
 
@@ -26,7 +26,24 @@ func game_build_world(parent: Node) -> Node:
 	grid_world = WorldView.new(); grid_world.app = self; grid_world.cute = GridSettings.cute; parent.add_child(grid_world)
 	return grid_world
 
+## The prologue's cascade in bullet time: every new trip slows the clock 4x for 3.5 s and flashes the world, so the player watches each line go.
+var _trips_seen := -1
+var _bullet_until := 0
+const TICKS_NORMAL := [0.0, 2.0, 0.8, 0.3]
+func _bullet_check() -> void:
+	var li = b.q("levelInfo")
+	if not (li is Dictionary and str(li.get("id", "")) == "P0"): _trips_seen = -1; return
+	var out := 0
+	for br in b.g.get("branches", []): if not bool(br.get("inService", true)) and str(br.id) != "T5": out += 1
+	if _trips_seen >= 0 and out > _trips_seen:
+		_bullet_until = Time.get_ticks_msec() + 3500
+		cfg.tick_seconds = TICKS_NORMAL.map(func(x): return x * 4.0)
+		if grid_world != null: grid_world.flash_trip()
+		sfx("breaker_open")   # the relay lets go
+	_trips_seen = out
+
 func game_on_changed() -> void:
+	_bullet_check()
 	if grid_world != null: grid_world.refresh(b)
 	if chrome != null: chrome.refresh(); _skin_pin()
 	if sound != null and grid_world != null: sound.on_changed(grid_world.model)
@@ -168,6 +185,7 @@ func _skin_pin() -> void:
 
 func _process(dt: float) -> void:
 	super(dt)
+	if _bullet_until > 0 and Time.get_ticks_msec() > _bullet_until: _bullet_until = 0; cfg.tick_seconds = TICKS_NORMAL.duplicate()
 	if _pin_kind != "" and chrome != null and chrome.pin != null and started:
 		_skin_pin()   # GridChrome may have rewritten the labels
 		if _pin_kind == "lost": chrome.pin.modulate = Color.WHITE.darkened(0.06 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)))   # a slow breathing so the way back is noticed
