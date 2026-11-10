@@ -30,37 +30,37 @@ function loadability(net: Net, base: number): number {
 
 describe('L17 loadability table (the lesson gate physics)', () => {
   const L = level('L17');
-  /** the reviewer script (tools/oracles/review/l17_catalogue.py) adds the line charging with the wrong sign (S_in = V I* + |V|^2 conj(Ysh)),
-   *  i.e. it treats the pi shunt as an inductive load. flipSign reproduces that model so the solver can be checked against expected.json. */
-  const mk = (n: number, o: { capsMVAr?: number; statcomMVAr?: number; loadPu?: number }, flip: boolean): Net => {
-    const net = l17Net(n, o);
-    if (flip) { const s = net.shunts[0]!; s.g = -(s.g ?? 0); s.b = -s.b; }
-    return net;
-  };
-  const rows: [string, number, { capsMVAr?: number; statcomMVAr?: number; loadPu?: number }, number, number][] = [
-    // name, circuits, options, reference (expected.json, reviewer sign), physically correct charging sign (engine, pinned)
-    ['none, N-1 (one circuit)', 1, {}, L.none_N1.Pmax_MW, 274.32],
-    ['80 MVAr caps, N-1', 1, { capsMVAr: 80 }, L.caps80_N1.Pmax_MW, 300.05],
-    ['STATCOM +-100 MVAr, N-1', 1, { statcomMVAr: 100 }, L.statcom100_N1.Pmax_MW, 325.67],
-    ['STATCOM +-200 MVAr, N-1', 1, { statcomMVAr: 200 }, L.statcom200_N1.Pmax_MW, 379.32],
-    ['none, both circuits', 2, { loadPu: 8 }, L.none_both.Pmax_MW, 473.03],
+  // Physically correct charging sign (DECISIONS #10): the reviewer script was fixed and expected.json regenerated, so the engine is
+  // checked directly against the reference (no sign flip any more).
+  const rows: [string, number, { capsMVAr?: number; statcomMVAr?: number; loadPu?: number }, number][] = [
+    ['none, N-1 (one circuit)', 1, {}, L.none_N1.Pmax_MW],
+    ['80 MVAr caps, N-1', 1, { capsMVAr: 80 }, L.caps80_N1.Pmax_MW],
+    ['STATCOM +-100 MVAr, N-1', 1, { statcomMVAr: 100 }, L.statcom100_N1.Pmax_MW],
+    ['STATCOM +-200 MVAr, N-1', 1, { statcomMVAr: 200 }, L.statcom200_N1.Pmax_MW],
+    ['none, both circuits', 2, { loadPu: 8 }, L.none_both.Pmax_MW],
   ];
-  for (const [name, n, o, ref, phys] of rows) {
-    it(`${name}: engine solver reproduces expected.json (${ref.toFixed(2)} MW) within 1 MW when the reviewer's charging sign is used`, () => {
-      const net = mk(n, o, true);
+  for (const [name, n, o, ref] of rows) {
+    it(`${name}: engine reproduces expected.json (${ref.toFixed(2)} MW) within 0.05 MW`, () => {
+      const net = l17Net(n, o);
       const pm = loadability(net, net.loads[0]!.p);
-      expect(Math.abs(pm - ref), `engine ${pm.toFixed(3)} MW`).toBeLessThan(1);
-    });
-    it(`${name}: physically correct charging (shunt generates Q) gives ${phys} MW`, () => {
-      const net = mk(n, o, false);
-      const pm = loadability(net, net.loads[0]!.p);
-      expect(Math.abs(pm - phys), `engine ${pm.toFixed(3)} MW`).toBeLessThan(0.05);
+      expect(Math.abs(pm - ref), `engine ${pm.toFixed(3)} MW`).toBeLessThan(0.05);
     });
   }
-  it('KNOWN ISSUE: with correct physics the caps-only loadability (300.05 MW) is only 0.05 MW above the 300 MW trip load', () => {
-    const caps = loadability(mk(1, { capsMVAr: 80 }, false), 6);
-    expect(caps).toBeGreaterThan(300); expect(caps).toBeLessThan(300.5);
-    expect(loadability(mk(1, { statcomMVAr: 100 }, false), 6)).toBeGreaterThan(320);
+  it('lesson gate: at the trip load caps-only fail by >= 2 %, STATCOM 100 MVAr passes by >= 5 %, expert options are consistent', () => {
+    const trip = L.tripLoad_MW as number;
+    expect(trip).toBeGreaterThan(300); expect(trip).toBeLessThan(320);
+    const pm = (n: number, o: { capsMVAr?: number; statcomMVAr?: number; loadPu?: number }) => loadability(l17Net(n, o), 6);
+    expect(pm(1, {})).toBeLessThan(trip * 0.98);                       // doing nothing collapses
+    expect(pm(1, { capsMVAr: 80 })).toBeLessThan(trip * 0.98);         // caps-only fails with margin
+    expect(pm(1, { statcomMVAr: 100 })).toBeGreaterThan(trip * 1.05);  // the lesson build passes with margin
+    expect(pm(1, { statcomMVAr: 200 })).toBeGreaterThan(trip * 1.05);  // bigger STATCOM also passes
+    expect(pm(2, { loadPu: 8 })).toBeGreaterThan(trip * 1.05);         // both circuits in service (no N-1) is fine
+  });
+  it('charging sign: a line-charging shunt raises loadability versus the same net with the shunt removed', () => {
+    const net = l17Net(1);
+    const withCharging = loadability(net, 6);
+    net.shunts = [];
+    expect(withCharging).toBeGreaterThan(loadability(net, 6));
   });
 });
 

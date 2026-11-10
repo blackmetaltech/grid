@@ -15,7 +15,7 @@ def maxload(n,l,pf=0.92,qcomp=0.0,xs=0.02,statcom=0.0,r=0.0418,x=0.31,b=3.6e-6):
             V2=u[0]*cmath.exp(1j*u[1]); Vs=1.0
             Zt=Zs+1j*xs
             I=(Vs-V2)/Zt
-            S_in=V2*np.conj(I) + V2*np.conj(V2*Ysh) # charging at load end gives Q
+            S_in=V2*np.conj(I) - V2*np.conj(V2*Ysh) # line delivers load + shunt absorption (shunt generates Q: Ysh=jB)
             Sload=complex(P,P*tan) - 1j*qcomp*abs(V2)**2
             return [ (S_in-Sload).real, (S_in-Sload).imag ]
         u,info,ier,msg=fsolve(F,[1.0 if v is None else v[0], -0.2 if v is None else v[1]],full_output=True)
@@ -31,7 +31,7 @@ def maxload_statcom(n,l,Imax,pf=0.92,xs=0.02,r=0.0418,x=0.31,b=3.6e-6):
     for P in np.arange(0.1,15,0.02):
         def F(u):
             V2=u[0]*cmath.exp(1j*u[1]); I=(1.0-V2)/(Zs+1j*xs)
-            S_in=V2*np.conj(I)+V2*np.conj(V2*Ysh)
+            S_in=V2*np.conj(I)-V2*np.conj(V2*Ysh)
             Sload=complex(P,P*tan)-1j*Imax*abs(V2)
             return [(S_in-Sload).real,(S_in-Sload).imag]
         u,info,ier,msg=fsolve(F,[1.0 if v is None else v[0],-0.2 if v is None else v[1]],full_output=True)

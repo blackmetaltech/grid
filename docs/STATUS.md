@@ -14,7 +14,7 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
 - M1.4 src/sim/dynamics (frequency window, SMIB): PS-23..26, G-12, G-13, L19 table; P16,P17.
 - M1.5 src/sim/protection, src/sim/thermal (faults, relays, breakers, overload, cascade): PS-17/18/19, G-06/07/18; P19,P20.
 - M1.6 src/sim/dispatch: PS-20/21/22, G-09, G-16; P15,P18.  M1.7 src/sim/weather: G-08, G-14, shape tests.
-- Oracle coverage: **62/71** rows have engine tests. Missing: PS-01..05, PS-09, PS-10 (per-unit/3-phase/SIL/loss closed forms) and
+- Oracle coverage: **71/71** rows (PS-01..05/09/10/27/28 added in network.test.ts via src/sim/network/closedForm.ts); was 62/71 have engine tests. Missing: PS-01..05, PS-09, PS-10 (per-unit/3-phase/SIL/loss closed forms) and
   PS-27/28 (generator phasor; L13 stretch). Small task: add them (bench/network helpers) before the M1 exit.
 
 ### Partial (committed as WIP)
@@ -38,7 +38,7 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
 4. M2 vertical slice (P0, L01-L03, L07) per BUILD-PLAN.
 
 ## Open issues
-- **L17 reference sign error** (DECISIONS #10): reviewer script's line-charging sign is wrong; correct physics puts caps-only at
+- ~~L17 reference sign error~~ RESOLVED (DECISIONS #10, trip load 308 MW). Was: (DECISIONS #10): reviewer script's line-charging sign is wrong; correct physics puts caps-only at
   300.05 MW vs 300 MW trip → lesson gate broken. Fix script, regenerate, re-tune L17 trip load before L17 authoring (M3).
 - **Phone gate M0 not done**: APK builds (`core/qa/buildapk.sh` → build/android/GRID-debug.apk). scripts/phone-m0.sh installs +
   screenshots; run it under `flock …/.locks/phone.lock env CB_PHONE_LOCKED=1 zsh scripts/phone-m0.sh` (queue is long: other games).

@@ -73,11 +73,11 @@ describe('oracle expected.json', () => {
     expect(level('L15').A_mag).toBeCloseTo(0.932, 3);
     expect(level('L15').VR0_kV).toBeCloseTo(429.14, 2);
     const l17 = level('L17');
-    expect(Math.round(l17.none_N1.Pmax_grid_MW)).toBe(266);
-    expect(Math.round(l17.caps80_N1.Pmax_grid_MW)).toBe(290);
-    expect(Math.round(l17.statcom100_N1.Pmax_grid_MW)).toBe(316);
-    expect(Math.round(l17.statcom200_N1.Pmax_grid_MW)).toBe(368);
-    expect(Math.round(l17.none_both.Pmax_grid_MW)).toBe(456);
+    expect(Math.round(l17.none_N1.Pmax_grid_MW)).toBe(274);
+    expect(Math.round(l17.caps80_N1.Pmax_grid_MW)).toBe(300);
+    expect(Math.round(l17.statcom100_N1.Pmax_grid_MW)).toBe(324);
+    expect(Math.round(l17.statcom200_N1.Pmax_grid_MW)).toBe(378);
+    expect(Math.round(l17.none_both.Pmax_grid_MW)).toBe(472);
     const l19 = level('L19');
     expect(l19.naive_12coal.nadir_Hz).toBeCloseTo(48.94, 2);
     // DESIGN card says 49.59/49.67: those came from a jump deadband; the §3.6 offset dead-zone gives 49.58/49.66 (docs/DECISIONS.md #5)

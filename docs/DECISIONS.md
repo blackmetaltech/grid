@@ -32,10 +32,11 @@ Newest last. Each entry: what, why, where.
    is 48.939 / 49.580 / 49.660 Hz (BESS-alone 200 MW 49.034; shed 345 MW, RoCoF₀, H_sys, S_sys unchanged).
    `tools/oracles/emit_expected.py` now passes `dband="zone"`; the engine matches within 2 mHz (5 mHz where the nadir is a
    slow, flat window end). The lesson gate is unaffected (naive < 49.0 sheds; 13th unit and FFR stay ≥ 49.2 with margin).
-10. **L17 reference numbers are wrong (open).** `review/l17_catalogue.py` adds the π shunt (line charging) with the wrong
-    sign, so expected.json levels.L17 (266/290/316/368/456 MW) is physics-wrong. With correct charging the engine gives
-    274.3 / 300.05 / 325.7 / 379.3 / 473.0 MW: caps-only passes the 300 MW trip load by 0.05 MW, so the L17 lesson gate breaks.
-    Tests pin both (reviewer sign = expected.json; correct sign = engine) plus a KNOWN ISSUE test. **To do before M3 L17
-    authoring:** fix the script sign, regenerate, re-tune the trip load (e.g. ~310 MW: caps fail ≥ 2 %, STATCOM100 passes ≥ 5 %).
+10. **L17 reference numbers: line-charging sign fixed (resolved).** `review/l17_catalogue.py` had added the pi shunt with the wrong
+    sign; fixed in both copies (and emit_expected.py / l17.py), expected.json regenerated: none 274.32, caps 80 MVAr 300.04,
+    STATCOM100 325.67, STATCOM200 379.32, both circuits 473.03 MW (engine matches within 0.05 MW, no sign flip in tests).
+    The L17 trip load is re-tuned to **308 MW** (`levels.L17.tripLoad_MW`): caps-only fails by 2.6 %, STATCOM100 passes by 5.7 %,
+    STATCOM200 and the no-N-1 case pass, doing nothing fails. Lesson-gate test in src/sim/loadflow/continuation.test.ts.
+    DESIGN section 3 L17 card (285 -> 300 MW, old table) still shows the old numbers; update it at L17 authoring (M3).
 11. **PS-22 outer iterations:** DESIGN says 3 ED↔LF outer iterations; with 3, PS-22 is within 0.2 %; the oracle test runs 8
     and meets 1e-4. Play keeps 3 (good enough for penalty factors); revisit if Engineer-mode cost targets need it.

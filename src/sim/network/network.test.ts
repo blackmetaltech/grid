@@ -4,7 +4,7 @@ import { Rng } from '@core/kit';
 import { level, expectOracle, oracle } from '../../oracles/expected';
 import {
   buildYbus, branchY, findIslands, islandLoadPu, lineABCD, linePi, linePu, lineNominalPu, abcdDet, sendingEnd, noLoadReceiving,
-  losslessBeta, tapTau, transformerPu, transformerElements, changeBase, emptyNet, S_BASE_MVA, type Net, type NetBranch, type NetUnit,
+  losslessBeta, zBaseOhm, iBaseA, deltaLoad, pfCapacitor, surgeImpedance, silMW, lineLoss, excitationEmf, powerAngle, tapTau, transformerPu, transformerElements, changeBase, emptyNet, S_BASE_MVA, type Net, type NetBranch, type NetUnit,
 } from './index';
 
 const N = Number(process.env.GRID_FUZZ_N ?? 2000);
@@ -253,3 +253,50 @@ describe('islands', () => {
   });
 });
 
+
+describe('closed-form oracles PS-01..05, 09, 10, 27, 28', () => {
+  it('PS-01 per-unit bases', () => {
+    const zb = zBaseOhm(100, 132);
+    expectOracle('PS-01', 'Zb_ohm', zb);
+    expectOracle('PS-01', 'Ib_A', iBaseA(100, 132));
+    expectOracle('PS-01', 'z20_pu', 20 / zb);
+    expectOracle('PS-01', 'z50_pu', 50 / zb);
+  });
+  it('PS-02 change of base', () => {
+    expectOracle('PS-02', 'x_pu', changeBase(0.15, 30, 13.8, 100, 13.2));
+  });
+  it('PS-03 impedance diagram (zones 13.8 / 138 / 69 kV, 100 MVA)', () => {
+    expectOracle('PS-03', 'Xg_pu', changeBase(0.20, 30, 13.8, 100, 13.8));
+    expectOracle('PS-03', 'Xt1_pu', changeBase(0.10, 50, 13.8, 100, 13.8));
+    const zb = zBaseOhm(100, 138);
+    expectOracle('PS-03', 'line_r_pu', 40 / zb);
+    expectOracle('PS-03', 'line_x_pu', 100 / zb);
+    expectOracle('PS-03', 'Xt2_pu', changeBase(0.08, 40, 69, 100, 69));
+  });
+  it('PS-04 delta load', () => {
+    const d = deltaLoad(400, 30, 30);
+    expectOracle('PS-04', 'Iph_A', d.Iph); expectOracle('PS-04', 'IL_A', d.IL);
+    expectOracle('PS-04', 'P_kW', d.P_kW); expectOracle('PS-04', 'Q_kvar', d.Q_kvar);
+  });
+  it('PS-05 power-factor capacitor', () => {
+    const c = pfCapacitor(500, 440, 50, 0.7, 0.95);
+    expectOracle('PS-05', 'Qc_kvar', c.Qc_kvar);
+    expectOracle('PS-05', 'CY_uF', c.CY * 1e6); expectOracle('PS-05', 'CD_uF', c.CD * 1e6);
+  });
+  it('PS-09 SIL', () => {
+    const zc = surgeImpedance(1e-3, 11e-9);
+    expectOracle('PS-09', 'Zc_ohm', zc);
+    expectOracle('PS-09', 'SIL400_MW', silMW(400, zc)); expectOracle('PS-09', 'SIL220_MW', silMW(220, zc));
+  });
+  it('PS-10 loss versus voltage', () => {
+    const a = lineLoss(100, 132, 10), b = lineLoss(100, 220, 10);
+    expectOracle('PS-10', 'I132_A', a.I); expectOracle('PS-10', 'loss132_MW', a.lossMW);
+    expectOracle('PS-10', 'I220_A', b.I); expectOracle('PS-10', 'loss220_MW', b.lossMW);
+  });
+  it('PS-27 excitation emf and PS-28 max power (E taken unrounded from PS-27)', () => {
+    const g = excitationEmf(1, 1, 1.2, 0.8);
+    expectOracle('PS-27', 'E_pu', g.Emag); expectOracle('PS-27', 'delta_deg', g.deltaDeg);
+    expectOracle('PS-28', 'Pmax_pu', powerAngle(g.Emag, 1, 1.2, 90));
+    expectOracle('PS-28', 'P_at_delta_pu', powerAngle(g.Emag, 1, 1.2, g.deltaDeg));
+  });
+});

@@ -574,7 +574,7 @@ def l17_solve(P, n, qfun, guess, xs=0.02, pf=0.92, r=0.0418, x=0.302, b=3.72e-6,
 
     def F(u):
         V2 = u[0] * cmath.exp(1j * u[1]); I = (1.0 - V2) / (Zs + 1j * xs)
-        Sin = V2 * np.conj(I) + V2 * np.conj(V2 * Ysh); Sl = complex(P, P * tan) - 1j * qfun(abs(V2))
+        Sin = V2 * np.conj(I) - V2 * np.conj(V2 * Ysh); Sl = complex(P, P * tan) - 1j * qfun(abs(V2))
         return [(Sin - Sl).real, (Sin - Sl).imag]
 
     u, _, ier, _ = fsolve(F, guess, full_output=True, xtol=1e-13)
@@ -602,6 +602,7 @@ l17 = dict(inputs=dict(line="l220-twinzebra r 0.0418 x 0.302 ohm/km b 3.72 uS/km
 for key, n, qf in (("none_N1", 1, lambda v: 0.0), ("caps80_N1", 1, lambda v: 0.8 * v * v), ("statcom100_N1", 1, lambda v: 1.0 * v),
                    ("statcom200_N1", 1, lambda v: 2.0 * v), ("none_both", 2, lambda v: 0.0)):
     gm, fm = l17_max(n, qf); l17[key] = dict(Pmax_grid_MW=gm, Pmax_MW=fm)
+l17["tripLoad_MW"] = 308.0  # DECISIONS #10: re-tuned after the charging-sign fix (caps-only 300.05 fails by 2.6 %, STATCOM100 325.67 passes by 5.7 %)
 LEVELS["L17"] = l17
 # ---- L19
 L = 6900
