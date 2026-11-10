@@ -97,7 +97,7 @@ export function islandDark(s: Readonly<GridState>): { key: string; params: Recor
   let peakKw = 0, wh = 0;
   for (let k = cutAt; k <= lastBlock; k++) { const p = dark.reduce((a, l) => a + (l.shape ? l.shape.p[k % 96] ?? 0 : 1) * l.Ppeak * 1000, 0); peakKw = Math.max(peakKw, p); wh += p * 0.25; }
   const needKw = Math.ceil(peakKw * ISLAND_LOSS_ALLOWANCE - 1e-9), needKwh = Math.ceil((wh * ISLAND_LOSS_ALLOWANCE) / (eta * (SOC_MAX - SOC_MIN)) - 1e-9);
-  const params = { time: hhmm(s.clock.block), cut: hhmm(cutAt), kw: Math.round(loadKw), inv: Math.round(invKw), kwh: Math.round(kwh), used: Math.round(s.metrics.track.islandKWh ?? 0), left: Math.round(left), needKw, needKwh };
+  const params = { time: hhmm(s.clock.block), cut: hhmm(cutAt), kw: Math.round(loadKw), drawKwh: Math.round(wh * ISLAND_LOSS_ALLOWANCE * 10) / 10, peakKw: Math.round(peakKw), eta: Math.round(eta * 100), inv: Math.round(invKw), kwh: Math.round(kwh), used: Math.round(s.metrics.track.islandKWh ?? 0), left: Math.round(left), needKw, needKwh };
   const cut = (s.metrics.track.cableCut ?? 0) > 0;
   if (!cut) return { key: 'level.lost.islandUnlit', params };
   if (bats.length === 0) return { key: 'level.lost.islandNoBattery', params };

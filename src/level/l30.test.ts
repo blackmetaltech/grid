@@ -57,8 +57,10 @@ describe('L30 cable-cut gate', () => {
     expect(e.reason).toMatch(/^At 22:45 the island went dark\..*the cells ran dry: \d+ kWh drawn of 100 kWh installed/);
     const env = play([cable('sub-11-70'), islandXfmr('dt-100'), battery('isl-50kw-100kwh')]); run(env);
     const hint = (env.engine.q('levelInfo') as any).tryHint as string;
-    const m = hint.match(/Carrying (\d+) kW from the cut at 21:00 to 23:00 needs an inverter of at least (\d+) kW and about (\d+) kWh/)!;
-    expect(m).not.toBeNull(); expect(Number(m[1])).toBe(36); expect(Number(m[2])).toBe(48);   // 36 kW the island drew at 22:45 (0.8 x 45); the inverter need is the evening peak, 45 kW x the 5 % allowance, rounded up
+    const m = hint.match(/From the cut at 21:00 to 23:00 the island draws about ([\d.]+) kWh \(its evening peak is (\d+) kW.*at least (\d+) kW.*÷ \(0\.8 × 0\.(\d+)\) ≈ (\d+) kWh/)!;
+    expect(m).not.toBeNull(); expect(Number(m[2])).toBe(45); expect(Number(m[3])).toBe(48);   // the inverter need is the evening peak, 45 kW x the 5 % allowance, rounded up
+    expect(Math.abs(Number(m[1]) / (0.8 * Number(m[4]) / 100) - Number(m[5]))).toBeLessThan(1.5);   // the printed division is the printed answer
+    m[3] = m[5];
     expect(Number(m[3])).toBeGreaterThanOrEqual(Math.ceil(EXP['S-12'].cells_kWh / 0.8)); expect(Number(m[3])).toBeLessThan(Math.ceil(EXP['S-12'].cells_kWh / 0.8 * 1.07));
     // the hint is honest: a battery of that size carries the island
     const kwh = Number(m[3]), sku = kwh <= 125 ? 'isl-50kw-125kwh' : 'isl-50kw-150kwh';

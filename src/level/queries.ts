@@ -107,7 +107,7 @@ export function islandTryHint(s: GridState): string {
   const d = islandDark(s);
   if (!d) return '';
   const p = d.params;
-  return t('level.L30.tryNeeds', { kw: p.kw, cut: p.cut, needKw: p.needKw!, needKwh: p.needKwh! });
+  return t('level.L30.tryNeeds', { kw: p.kw, cut: p.cut, needKw: p.needKw!, needKwh: p.needKwh!, drawKwh: p.drawKwh!, peakKw: p.peakKw!, eta: p.eta! });
 }
 
 export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<GridState>> {
