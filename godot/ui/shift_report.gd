@@ -265,7 +265,9 @@ static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary,
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
 	hv.add_child(PaperKit.lbl(T("REP_LOST").to_upper(), 38 if compact else 60, "title", PaperKit.RED, true))
 	hv.add_child(PaperKit.lbl(T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)] if lid != "" else str(e.title), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
-	if not compact: head.add_child(Stamp.new(T("REP_STAMP_LOST")))
+	var bud = app.b.g.get("budget", {})
+	var over_budget: bool = bud is Dictionary and float(bud.get("capexLimit", 0.0)) > 0.0 and float(bud.get("spent", 0.0)) > float(bud.get("capexLimit", 0.0)) + 1e-6
+	if not compact: head.add_child(Stamp.new(T("REP_STAMP_COST" if over_budget else "REP_STAMP_LOST")))   # an over-budget line may well light the market: the stamp must not say it did not
 	col.add_child(PaperKit.rule())
 	col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
 	col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))

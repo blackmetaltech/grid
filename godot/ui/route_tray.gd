@@ -17,8 +17,8 @@ const GAP := 6.0
 const GGAP := 12.0                  ## extra space between the groups of cells
 const WIDE := 900.0                 ## tray width from which the price tag sits inline at the right end
 const TAG_W := 176.0
-const MIN_CELL := 50.0
-const CELL_W := 62.0
+const MIN_CELL := 66.0                ## wide enough for "Concrete" at a readable size; a narrow screen scrolls the tray instead of crushing names
+const CELL_W := 70.0
 const SPANS := [60, 70, 90, 100, 120]
 const FAMS := ["wood-9", "pcc-11", "tubular-13"]
 const CROSS := ["none", "crossing-h", "tubular-13"]
@@ -41,7 +41,7 @@ var locked := Callable()            ## () -> bool: the night runs or the level i
 var items: Array = []               ## {kind: survey|family|crossing|span|conductor|xfmr, id, rect (local)}
 var mode := ""                      ## "" | "survey" | "xfmr"
 var armed_xf := ""                  ## transformer catalogue id waiting for a yard pair
-var kit := {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel"}
+var kit := {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}   ## kv: the line voltage the survey connects (each site has a yard per voltage)
 var yards: Array = []               ## {id, kv, tile: Vector2, pos: Vector2 (m), label}
 var pairs: Array = []               ## {hv, lv}: the distribution transformer pairs
 var tile_m := 50.0
@@ -97,7 +97,8 @@ func refresh() -> void:
 	_wq = w; tile_m = float(w.terrain.tileM)
 	if str(li.id) != level:
 		_clear_all(); level = str(li.id); _scroll = 0.0; focus = -1; engaged = false
-		kit = {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel"}
+		kit = {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}
+		_read_yards(w); kit.kv = kvs()[0] if not kvs().is_empty() else 0.42
 	_read_yards(w); _build_items()
 	visible = true
 	if mode != "": _show_pegs()
@@ -133,6 +134,7 @@ func _parts(action: String, fallback: Array) -> Array:
 
 func _build_items() -> void:
 	var out: Array = [{"kind": "survey", "id": "survey", "group": 0}]
+	if kvs().size() > 1: out.append({"kind": "kv", "id": "kv", "group": 0})
 	for f in FAMS: out.append({"kind": "family", "id": f, "group": 1})
 	for c in CROSS: out.append({"kind": "crossing", "id": c, "group": 2})
 	out.append({"kind": "span", "id": "span", "group": 3})
@@ -168,6 +170,31 @@ func _yard(id: String) -> Dictionary:
 	return {}
 
 func _kv_of(id: String) -> float: return float(_yard(id).get("kv", 0.0))
+
+## The line voltages the yards offer, lowest first.
+func kvs() -> Array:
+	var out: Array = []
+	for y in yards:
+		var k := float(y.kv)
+		if not out.any(func(x): return is_equal_approx(float(x), k)): out.append(k)
+	out.sort()
+	return out
+
+## The yard at the same site as `id` that has the kit's line voltage (a site has a low-voltage yard and, across its transformer pair, a high-voltage one).
+func site_bus(id: String) -> String:
+	if is_equal_approx(_kv_of(id), float(kit.kv)): return id
+	for p in pairs:
+		var other := ""
+		if str(p.hv) == id: other = str(p.lv)
+		elif str(p.lv) == id: other = str(p.hv)
+		if other != "" and is_equal_approx(_kv_of(other), float(kit.kv)): return other
+	return id
+
+## Does the survey use this yard (its voltage is the kit's)? In transformer mode the low-voltage yard stands for its pair.
+func _peg_shown(y: Dictionary) -> bool:
+	if mode == "survey": return is_equal_approx(float(y.kv), float(kit.kv))
+	if mode == "xfmr": return float(y.kv) < 1.0 and pairs.any(func(p): return str(p.lv) == str(y.id))
+	return true
 
 ## The default other end of a line from `from`: the yard of the same voltage that is not it.
 func default_dest(from: String) -> String:
@@ -209,6 +236,10 @@ func _layout_items() -> void:
 	_max_scroll = maxf(0.0, total - GAP - avail)
 	_scroll = clampf(_scroll, 0.0, _max_scroll)
 
+## Scroll the tray by most of its width (the ‹ › marks).
+func page(d: int) -> void:
+	_scroll = clampf(_scroll + d * maxf(120.0, (_avail_right() - PAD) * 0.7), 0.0, _max_scroll); _layout_items(); queue_redraw()
+
 func _visible_item(i: int) -> bool:
 	var r: Rect2 = items[i].rect
 	return r.position.x >= PAD - 2.0 and r.end.x <= _avail_right() + 2.0
@@ -246,12 +277,15 @@ func activate(i: int) -> void:
 			cancel(); mode = "survey"; _show_pegs(); mode_changed.emit(mode); _hint(tx("RT_HINT_START"))
 		"family", "crossing", "conductor": select_kit(str(it.kind), str(it.id))
 		"span": step_span(1)
+		"kv": step_kv(1)
 		"xfmr":
 			if mode == "xfmr" and armed_xf == str(it.id): cancel(); return
 			cancel(); mode = "xfmr"; armed_xf = str(it.id); _show_pegs(); mode_changed.emit(mode); _hint(tx("RT_HINT_XF") % str(it.kva))
 	queue_redraw()
 
-func _hint(s: String) -> void: chip_text = s; chip_dot = Color.TRANSPARENT; chip_cell = -1; chip_at = Vector2(size.x * 0.5, -10.0)
+func _hint(s: String) -> void:
+	if CbLayout.touch: s = s.replace("Click", "Tap").replace("click", "tap")   # a phone has no mouse
+	chip_text = s; chip_dot = Color.TRANSPARENT; chip_cell = -1; chip_at = Vector2(size.x * 0.5, -10.0)
 
 func refuse_locked() -> void:
 	cancel()
@@ -272,6 +306,18 @@ func select_kit(what: String, id: String) -> Dictionary:
 	if before != kit: r = restring()
 	_cell_hover(); _survey_dirty(); queue_redraw()
 	return r
+
+## Next line voltage. A survey under way moves its start to the same site's yard of the new voltage; lines already laid stay (a new voltage is a new line).
+func step_kv(d: int) -> void:
+	var a := kvs()
+	if a.is_empty(): return
+	var i := a.find(float(kit.kv))
+	kit.kv = a[posmod((0 if i < 0 else i) + d, a.size())]
+	if from_id != "": from_id = site_bus(from_id)
+	_show_pegs(); _survey_dirty()
+	_hint(tx("RT_HINT_KV_HI") if float(kit.kv) >= 1.0 else tx("RT_HINT_KV_LO"))
+	if radio != null and float(kit.kv) >= 1.0 and not pairs.all(func(p): return _has_xfmr(str(p.hv), str(p.lv))): radio.say("TOBI", tx("RT_KV_NEEDS_XF"))
+	queue_redraw()
 
 func step_span(d: int) -> Dictionary:
 	var a := allowed_spans(); var i := a.find(int(kit.span))
@@ -337,13 +383,23 @@ func restring() -> Dictionary:
 # ---- yards, pegs and the survey -----------------------------------------------------------------------------------------------------
 func _show_pegs() -> void:
 	if world == null: return
-	var pegs: Array = []
-	for y in yards: pegs.append({"tile": y.tile, "label": y.label})
-	var hi := target_hi
+	var pegs: Array = []; var at := {}
+	for i in yards.size():
+		if not _peg_shown(yards[i]): continue
+		at[i] = pegs.size(); pegs.append({"tile": yards[i].tile, "label": yards[i].label if mode != "xfmr" else tx("RT_PEG_XF") % TagView.yard_name(_wq, str(yards[i].id))})
+	var hi: int = at.get(target_hi, -1)
 	if mode == "survey" and from_id != "":
 		hi = -1
-		for i in yards.size(): if str(yards[i].id) == from_id: hi = i
+		for i in yards.size(): if str(yards[i].id) == from_id: hi = at.get(i, -1)
 	world.set_site_pegs(pegs, hi)
+
+## Tab / D-pad: the next yard the current mode uses (the survey only walks the yards at the kit's voltage).
+func walk_target(d: int) -> void:
+	var shown: Array = []
+	for i in yards.size(): if _peg_shown(yards[i]): shown.append(i)
+	if shown.is_empty(): return
+	var k := shown.find(target_hi)
+	set_target_hi(shown[(0 if d > 0 else shown.size() - 1) if k < 0 else posmod(k + d, shown.size())])
 
 func set_target_hi(i: int) -> void:
 	target_hi = i if i >= 0 and i < yards.size() else -1
@@ -376,6 +432,7 @@ func press_yard(id: String) -> Dictionary:
 	if is_locked(): refuse_locked(); return {}
 	if mode == "xfmr": return place_xfmr(id)
 	if mode != "survey": return {}
+	id = site_bus(id)   # a click on a site means its yard at the kit's line voltage
 	if from_id == "":
 		from_id = id; waypoints = []; cursor_m = (_yard(id).pos as Vector2); cursor_on = false; hover_m = Vector2(NAN, NAN); hover_yard = ""
 		_show_pegs(); _hint(tx("RT_HINT_WP")); _update_survey_preview(); queue_redraw(); return {"ok": true, "started": id}
@@ -431,6 +488,7 @@ func finish(to_id: String) -> Dictionary:
 	_restore_xfmrs(xf)
 	last_refusal_key = ""
 	cancel()
+	if float(kit.kv) >= 1.0 and radio != null and not pairs.all(func(p): return _has_xfmr(str(p.hv), str(p.lv))): radio.say("TOBI", tx("RT_KV_NEEDS_XF"))
 	return r
 
 ## Place the armed transformer on the pair that has yard `yard_id` (an existing transformer there is replaced after the radio says so).
@@ -512,6 +570,7 @@ func tip(it: Dictionary) -> String:
 		"family": return tx("RT_TIP_FAM") % [tx("RT_FAM_" + str(it.id)), str(it.id).get_slice("-", 1), str(MAX_SPAN[str(it.id)])]
 		"crossing": return tx("RT_TIP_CROSS") % tx("RT_TIP_CROSS_" + str(it.id))
 		"span": return tx("RT_TIP_SPAN") % str(kit.span)
+		"kv": return tx("RT_TIP_KV")
 		"conductor": return tx("RT_TIP_COND") % [tx("RT_COND_" + str(it.id)), str(COND_MM2.get(str(it.id), 0))]
 		"xfmr": return tx("RT_TIP_XF") % str(it.kva)
 	return ""
@@ -587,17 +646,16 @@ func _gui_input(e: InputEvent) -> void:
 			_cell_hover()
 	elif e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed:
-			if _item_at(mb.position) >= 0 and items[_item_at(mb.position)].kind == "span": step_span(-1)
-			elif _max_scroll > 0.0: _scroll = minf(_max_scroll, _scroll + 40.0); _layout_items(); queue_redraw()
-		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
-			if _item_at(mb.position) >= 0 and items[_item_at(mb.position)].kind == "span": step_span(1)
-			elif _max_scroll > 0.0: _scroll = maxf(0.0, _scroll - 40.0); _layout_items(); queue_redraw()
+		if mb.button_index in [MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_UP] and mb.pressed:   # the wheel only scrolls the tray: it never changes a part (a built line would be re-strung and re-priced by accident)
+			if _max_scroll > 0.0: _scroll = clampf(_scroll + (40.0 if mb.button_index == MOUSE_BUTTON_WHEEL_DOWN else -40.0), 0.0, _max_scroll); _layout_items(); queue_redraw()
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed: _press_idx = _item_at(mb.position); _press_x = mb.position.x; _dragged = false
 			else:
 				var i := _item_at(mb.position)
 				if i >= 0 and i == _press_idx and not _dragged: hover = i; activate(i); accept_event()
+				elif i < 0 and not _dragged and _max_scroll > 0.0:   # the ‹ › scroll marks are buttons too
+					if mb.position.x < PAD + 8.0: page(-1)
+					elif mb.position.x > _avail_right() - 6.0 and mb.position.x < _avail_right() + PAD + 10.0: page(1)
 				_press_idx = -1
 		accept_event()
 
@@ -614,7 +672,7 @@ func key(e: InputEventKey) -> bool:
 			if s >= 0: activate(s); return true
 		KEY_BACKSPACE: return remove_last()
 		KEY_TAB:
-			if mode != "" and not (mode == "survey" and from_id != ""): set_target_hi(0 if target_hi < 0 else posmod(target_hi + (-1 if e.shift_pressed else 1), yards.size())); return true
+			if mode != "" and not (mode == "survey" and from_id != ""): walk_target(-1 if e.shift_pressed else 1); return true
 		KEY_ENTER, KEY_KP_ENTER:
 			if mode == "survey" and from_id != "": finish(nearest_end()); return true
 			if mode != "" and target_hi >= 0: press_yard(str(yards[target_hi].id)); return true
@@ -654,7 +712,7 @@ func pad_button(idx: int) -> bool:
 				press_ground(cursor_m); return true
 			if mode != "":
 				if target_hi >= 0: press_yard(str(yards[target_hi].id)); return true
-				set_target_hi(0); return true
+				walk_target(1); return true
 			if engaged and focus >= 0: activate(focus); return true
 		JOY_BUTTON_B:
 			if surveying and not waypoints.is_empty(): return remove_last()
@@ -664,7 +722,7 @@ func pad_button(idx: int) -> bool:
 				_move_cursor(1 if idx == JOY_BUTTON_DPAD_RIGHT else (-1 if idx == JOY_BUTTON_DPAD_LEFT else 0), 1 if idx == JOY_BUTTON_DPAD_DOWN else (-1 if idx == JOY_BUTTON_DPAD_UP else 0)); return true
 			if mode == "" or yards.is_empty(): return false
 			var d2 := -1 if idx == JOY_BUTTON_DPAD_LEFT or idx == JOY_BUTTON_DPAD_UP else 1
-			set_target_hi((0 if d2 > 0 else yards.size() - 1) if target_hi < 0 else posmod(target_hi + d2, yards.size())); return true
+			walk_target(d2); return true
 		JOY_BUTTON_Y:
 			if tags != null: tags.pad_cycle(); return true
 	return false
@@ -685,6 +743,8 @@ func _process(dt: float) -> void:
 # ---- drawing --------------------------------------------------------------------------------------------------------------------------
 func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, centre_w := -1.0) -> void:
 	var tw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	while centre_w > 0.0 and tw > centre_w and s.length() > 2:   # still too wide at the smallest size: trim with an ellipsis rather than run into the next cell
+		s = s.left(s.length() - 2) + "…"; tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var x := at.x if centre_w < 0.0 else at.x + (centre_w - tw) * 0.5
 	draw_string(font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
 
@@ -704,6 +764,7 @@ func caption(it: Dictionary) -> Array:
 		"family": return [tx("RT_FAM_" + str(it.id)), tx("RT_FAM_SUB") % str(it.id).get_slice("-", 1), tx("RT_FAM_SUB2") % str(MAX_SPAN[str(it.id)])]
 		"crossing": return [tx("RT_CROSS_" + str(it.id)), tx("RT_CROSS_NONE_SUB") if str(it.id) == "none" else tx("RT_CROSS_SUB")]
 		"span": return [tx("RT_SPAN"), tx("RT_SPAN_SUB")]
+		"kv": return [_kv_text(float(kit.kv)), tx("RT_KV_SUB")]
 		"conductor": return [tx("RT_COND_" + str(it.id)), tx("RT_COND_SUB") % str(COND_MM2.get(str(it.id), 0))]
 		"xfmr": return [tx("RT_XF") % str(it.kva), tx("RT_XF_PLACED") if _xf_placed(str(it.id)) else tx("RT_XF_SUB")]
 	return ["", ""]
@@ -735,6 +796,7 @@ func _draw() -> void:
 			"family": _icon_pole(c, str(it.id))
 			"crossing": _icon_crossing(c, str(it.id))
 			"span": _icon_span(c, int(kit.span))
+			"kv": _icon_kv(c, float(kit.kv))
 			"conductor": _icon_reel(c, float(COND_MM2.get(str(it.id), 30)))
 			"xfmr": _icon_xfmr(c, _xf_placed(str(it.id)))
 		if sel and str(it.kind) in ["family", "crossing", "conductor"]:
@@ -861,6 +923,12 @@ func _icon_crossing(c: Vector2, id: String) -> void:
 			draw_colored_polygon(PackedVector2Array([Vector2(c.x + s * 12.0 - 1.3, ground - 46.0), Vector2(c.x + s * 12.0 + 1.3, ground - 46.0), Vector2(c.x + s * 12.0 + 3.0, ground), Vector2(c.x + s * 12.0 - 3.0, ground)]), Color("#C5CCD6"))
 		draw_line(Vector2(c.x - 12.0, ground - 44.0), Vector2(c.x + 12.0, ground - 44.0), Color("#9AA3AF"), 2.5)
 	draw_polyline(PackedVector2Array([Vector2(c.x - 21.0, ground - 20.0), Vector2(c.x - 9.0, ground - 31.0), Vector2(c.x + 9.0, ground - 31.0), Vector2(c.x + 21.0, ground - 20.0)]), Color(GridTheme.COPPER, 0.8), 1.5)
+
+func _icon_kv(c: Vector2, kv: float) -> void:   # a lightning bolt: one stroke at low voltage, a doubled one at high
+	var col := GridTheme.SODIUM if kv >= 1.0 else GridTheme.TEXT
+	var bolt := PackedVector2Array([c + Vector2(4, -16), c + Vector2(-6, 1), c + Vector2(1, 1), c + Vector2(-4, 16), c + Vector2(7, -3), c + Vector2(0, -3), c + Vector2(4, -16)])
+	draw_colored_polygon(bolt, Color(col, 0.9))
+	if kv >= 1.0: draw_polyline(PackedVector2Array([c + Vector2(13, -12), c + Vector2(9, -2), c + Vector2(14, -2), c + Vector2(10, 9)]), col, 2.0)
 
 func _icon_span(c: Vector2, m: int) -> void:
 	var mono := GridTheme.font("mono")
