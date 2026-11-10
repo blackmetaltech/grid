@@ -28,7 +28,7 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (s.status !== 'lost') return null;
   const key = s.block.verdictKey;
   if (s.block.verdict === 'playing' || key === null) return 'timeout';
-  if (key === 'level.lost.poorSupply' || key === 'level.lost.poorSupplyAny') return 'brownout';
+  if (key === 'level.lost.poorSupply' || key === 'level.lost.poorSupplyAny' || key === 'level.lost.lossOver' || key === 'level.lost.unpowered') return 'brownout';
   if (key === 'level.lost.budget') return 'budget';
   return (s.metrics.track.overloadTrips ?? 0) > 0 || s.events.log.some((e) => e.causeKey === 'cascade.overload-trip') ? 'overload' : 'blackout';
 }

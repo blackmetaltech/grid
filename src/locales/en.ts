@@ -92,6 +92,8 @@ export const en: Record<string, string> = {
   'level.lost.cost': 'Operating cost reached {cost}; the budget is {max}.',
   'level.lost.nadir': 'Frequency fell to {nadir} Hz; it had to stay above {min} Hz.',
   'level.lost.budget': 'Spent {spent} but the budget is {max}.',
+  'level.lost.lossOver': 'The line wasted {loss} % of the power as heat; the limit is {max} %.',
+  'level.lost.unpowered': 'The school never got power. At 48 V it needs about 104 A, and no cable can carry that across 1 km without the voltage collapsing.',
   'level.lost.poorSupplyAny': 'Homes were below the voltage limit for {min} minutes of the night.',
   'level.lost.poorSupply': 'Poor supply lasted {min} minutes; the limit is {max}.',
   // replay / why-card causes
@@ -159,7 +161,7 @@ export const en: Record<string, string> = {
   'level.L03.place': 'Saltmarsh Island · the school on the hill, 18:00',
   'level.L03.story1': 'NIA: Exam week. The school opens its hall at night so we can study, if it has light.',
   'level.L03.story2': 'VANCE: One kilometre of cable on the island budget. Don\'t waste half the power warming the hillside.',
-  'level.L03.lesson': 'Your line carried {i} A over {m} m of {mm2} mm² copper and lost {loss} % of the power on the way.',
+  'level.L03.lesson': 'At 380 V your line carried {i} A. At 48 V the same 5 kW would need {i48} A: {k}× the current, and since the heat is I²R, about {k2}× the loss. Yours lost {loss} %.',
   'level.L02.title': 'Two Hamlets',
   'level.L02.brief': 'Add a second hamlet of 14 homes 250 m from the hut and keep both at 43.2 V or more. Two cables from the hut, or one trunk and a branch to each?',
   'level.L03.title': 'The Price of Distance',

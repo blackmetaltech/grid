@@ -135,6 +135,11 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.minNadirHz !== null && m.nadirHz < rules.minNadirHz) return lost('level.lost.nadir', { nadir: Math.round(m.nadirHz * 100) / 100, min: rules.minNadirHz });
   const atEnd = rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks;
   if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin && (m.poorSupplyMin >= (rules.poorSupplyGraceMin ?? 0) || atEnd)) {
+    if (s.bench && s.bench.limits.lossMaxPct !== null) {   // a bench judged on line losses (L03): say which way it failed
+      const loss = m.track.lossPct ?? 100;
+      if (loss >= 99.99) return lost('level.lost.unpowered', {});
+      return lost('level.lost.lossOver', { loss: Math.round(loss * 10) / 10, max: s.bench.limits.lossMaxPct, min: m.poorSupplyMin });
+    }
     return rules.maxPoorSupplyMin === 0 ? lost('level.lost.poorSupplyAny', { min: m.poorSupplyMin }) : lost('level.lost.poorSupply', { min: m.poorSupplyMin, max: rules.maxPoorSupplyMin });
   }
   if (atEnd) {
