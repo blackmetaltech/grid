@@ -26,6 +26,8 @@ func _initialize() -> void:
 		for e in m.towns[0].energies: T.near(e, vh * vh, 1e-6, "L01 %d mm2: home window energy = (V/48)^2" % mm2)
 		pairs.append([vh, m.towns[0].energy])
 		T.check(m.towns[0].energy >= last_e - 1e-9, "L01: a thicker cable never darkens the homes"); last_e = m.towns[0].energy
+		var vv := float(bs.vLoadV[0]); var want := "sad" if vv < 43.2 else ("worried" if vv < 45.2 else "happy")
+		T.check(str(m.towns[0].mood) == want and is_equal_approx(float(m.towns[0].limit), 43.2), "L01 %d mm2: cute bulb face '%s' = voltage band of %.2f V vs the engine limit (got '%s', limit %s)" % [mm2, want, vv, m.towns[0].mood, m.towns[0].limit])
 	# 3. shedding: free-play grid, shed half the load in the engine and the far streets go dark in order
 	T.sandbox(); T.b.act("tick", [8]); T.b.act("shedLoad", ["L1", 0.0])   # the shed actions change the engine state at once; no tick in between
 	var base := WorldModel.build(T.b); var tw0: Dictionary = base.towns[0]

@@ -14,9 +14,11 @@ var app                       # the CbApp (for modal(), world_cover(), insets); 
 var cover := 0.0
 var blocked := false
 var title_mode := false
+var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 
 var _sig := ""
+var _flies: Array = []        # cute: firefly anchors (tile centres)
 var _tiles: Array = []        # {i, j, z, kind}
 var _zgrid := {}              # Vector2i -> z px
 var _objs: Array = []         # depth-sorted static objects
@@ -80,7 +82,9 @@ func _rebuild() -> void:
 		for k in range(pts.size() - 1):
 			var a := _tc(pts[k]); var c := _tc(pts[k + 1]); var n := int(maxf(1.0, a.distance_to(c) * 2.0))
 			for q in n + 1: line_tiles[Vector2i((a.lerp(c, float(q) / float(n))).floor())] = true
-	if model.kind == "bench": _rebuild_island(W, H, infra, line_tiles)
+	if model.kind == "bench":
+		_rebuild_island(W, H, infra, line_tiles)
+		if cute: _rebuild_cute(W, H)
 	else: _rebuild_land(W, H, infra, line_tiles)
 	_rebuild_objects()
 
@@ -120,6 +124,27 @@ func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> vo
 				_objs.append({"t": "palm", "p": Vector2(i + 0.5, j + 0.5), "h": 20.0 + 10.0 * WorldMath.hash2(i, j, 8), "v": WorldMath.hash2(i, j, 11)})
 			elif kind == "grass" and free and near > 2.2 and WorldMath.hash2(i, j, 7) > 0.8:
 				_objs.append({"t": "tree", "p": Vector2(i + 0.5, j + 0.5), "h": 13.0 + 6.0 * WorldMath.hash2(i, j, 8), "v": WorldMath.hash2(i, j, 12)})
+
+## Cute mode props: a lighthouse on the far point, villagers around each hamlet, firefly anchors over the mangrove.
+func _rebuild_cute(W: int, H: int) -> void:
+	var best := Vector2i(-1, -1); var bs := -1e9
+	var infra := _infra_points()
+	for l in model.lines: for q in l.pts: infra.append(_tc(q))
+	for t in _tiles:   # a headland: sand next to the sea, as far as possible from the hamlet, the hut and the cable
+		if t.kind != "sand" or _zgrid.get(Vector2i(t.i - 1, t.j), 0.0) > -1.0 and _zgrid.get(Vector2i(t.i, t.j - 1), 0.0) > -1.0: continue
+		var sc := 99.0
+		for q in infra: sc = minf(sc, Vector2(t.i + 0.5, t.j + 0.5).distance_to(q))
+		if sc > bs: bs = sc; best = Vector2i(t.i, t.j)
+	if best.x >= 0: _objs.append({"t": "lighthouse", "p": Vector2(best.x + 0.5, best.y + 0.5)})
+	for ti in model.towns.size():
+		var tw: Dictionary = model.towns[ti]
+		if tw.kind != "hamlet": continue
+		for k in 3:
+			var a := TAU * (float(k) / 3.0 + WorldMath.hash2(ti, k, 91) * 0.2)
+			_objs.append({"t": "villager", "ti": ti, "k": k, "p": _tc(tw.pos) + Vector2(cos(a), sin(a)) * 2.2, "v": WorldMath.hash2(ti, k, 92)})
+	_flies.clear()
+	for t in _tiles:
+		if t.kind == "mangrove" and WorldMath.hash2(t.i, t.j, 93) > 0.7: _flies.append(Vector2(t.i + 0.5, t.j + 0.5))
 
 func _rebuild_land(W: int, H: int, infra: Array, line_tiles: Dictionary) -> void:
 	for j in H:
@@ -361,6 +386,7 @@ func _draw() -> void:
 	_draw_wires()
 	for ob in _objs: _draw_obj(ob)
 	_draw_pulses()
+	if cute and _night > 0.35: _draw_fireflies()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
 
@@ -415,6 +441,8 @@ func _draw_obj(o: Dictionary) -> void:
 	match o.t:
 		"tree": _tree(o)
 		"palm": _palm(o)
+		"lighthouse": _lighthouse(o)
+		"villager": _villager(o)
 		"mangrove": _mangrove(o)
 		"bld": _building(o)
 		"tower": _tower(o)
@@ -439,6 +467,48 @@ func _palm(o: Dictionary) -> void:
 		var a := -PI * 0.5 + (float(k) - 2.0) * 0.62 + float(o.v) * 0.4
 		var tip := top + Vector2(cos(a) * h * 0.55, sin(a) * h * 0.25 + h * 0.18)
 		draw_colored_polygon(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
+
+func _lighthouse(o: Dictionary) -> void:
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h := 46.0
+	for k in 5:
+		var y0 := -h * float(k) / 5.0; var y1 := -h * float(k + 1) / 5.0; var w0 := 7.0 - float(k) * 0.7; var w1 := 7.0 - float(k + 1) * 0.7
+		draw_colored_polygon(PackedVector2Array([base + Vector2(-w0, y0), base + Vector2(w0, y0), base + Vector2(w1, y1), base + Vector2(-w1, y1)]), _c(Color("#F2EEE6") if k % 2 == 0 else Color("#E5484D")))
+	var lamp := base + Vector2(0, -h - 5.0)
+	draw_rect(Rect2(lamp + Vector2(-4, -4), Vector2(8, 8)), _c(Color("#3A3F52")))
+	draw_colored_polygon(PackedVector2Array([lamp + Vector2(-5, -4), lamp + Vector2(5, -4), lamp + Vector2(0, -10)]), _c(Color("#E5484D")))
+	if _night > 0.3:
+		var a := _t * 1.1
+		var d := Vector2(cos(a), sin(a) * 0.5)
+		var beam := PackedVector2Array([lamp, lamp + d * 170.0 + d.orthogonal() * 22.0, lamp + d * 170.0 - d.orthogonal() * 22.0])
+		draw_colored_polygon(beam, Color(1.0, 0.92, 0.65, 0.10 * _night))
+		_glow(lamp, 10.0, WorldMath.SODIUM, 0.5 * _night)
+
+## A tiny round villager. Happy homes: they hop; browned out: they hold a candle; dark: they stay indoors.
+func _villager(o: Dictionary) -> void:
+	var t: Dictionary = model.towns[o.ti]
+	var md := str(t.get("mood", "asleep"))
+	if md == "asleep" and _night > 0.4: return
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p))
+	var hop := absf(sin(_t * 5.0 + float(o.v) * 6.0)) * 5.0 if md == "happy" else 0.0
+	var b := base + Vector2(0, -hop)
+	var shirt: Color = [Color("#E5484D"), Color("#5BD69A"), Color("#6C8CFF")][int(o.k) % 3]
+	_ell(base + Vector2(0, 1.4), 5.6, 2.24, Color(0, 0, 0, 0.25))
+	draw_colored_polygon(PackedVector2Array([b + Vector2(-4.48, 0), b + Vector2(4.48, 0), b + Vector2(3.36, -9.8), b + Vector2(-3.36, -9.8)]), _c(shirt))
+	draw_circle(b + Vector2(0, -14), 5.04, _c(Color("#C8956A").lerp(Color("#8A5A3A"), o.v)))
+	draw_circle(b + Vector2(-1.68, -14.56), 0.84, Color("#2A2418")); draw_circle(b + Vector2(1.68, -14.56), 0.84, Color("#2A2418"))
+	if md == "happy" and fposmod(_t * 5.0 + float(o.v) * 6.0, PI) < 1.2: draw_line(b + Vector2(4.2, -8.4), b + Vector2(8.4, -16.8), _c(Color("#C8956A")), 2.1)   # wave
+	if md == "sad" or md == "worried":
+		var cd := b + Vector2(5.6, -7)
+		draw_line(cd, cd + Vector2(0, -5.6), Color("#F3EEDF"), 2.24); _glow(cd + Vector2(0, -8.4), 8.4, Color("#FF9A3C"), 0.35 * _night + 0.1)
+
+func _draw_fireflies() -> void:
+	for k in _flies.size():
+		var a: Vector2 = _flies[k]
+		var ph := _t * (0.6 + 0.3 * WorldMath.hash2(k, 1, 94)) + float(k)
+		var p := _iso(a.x + 0.4 * sin(ph * 1.3), a.y + 0.4 * cos(ph), 14.0 + 6.0 * sin(ph * 2.1))
+		var on := 0.5 + 0.5 * sin(ph * 3.7)
+		_glow(p, 4.0, Color("#D8FF7A"), 0.5 * on * _night)
+		draw_circle(p, 1.2, Color(0.9, 1.0, 0.6, on * _night))
 
 func _mangrove(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
@@ -617,7 +687,10 @@ func _draw_labels() -> void:
 			if not t.has("volts"): continue
 			var sp := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 56.0))
 			var txt := tr("WORLD_DARK") if float(t.v) <= 0.0 else tr("WORLD_VOLTS_FMT") % float(t.volts)
-			_label(font, fs, sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
+			if cute and t.has("mood"):
+				var r := 15.0 * (fs / 15.0) * clampf(_scale() * 1.4, 0.8, 1.6)
+				_bulb_mascot(sp + Vector2(0, -r - 6.0), r, str(t.mood), clampf(float(t.v) * float(t.v), 0.0, 1.0))
+			_label(font, fs, sp + Vector2(0, fs + 4.0) if cute else sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
 			continue
 		var sp2 := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 70.0))
 		var v: float = t.v
@@ -634,6 +707,38 @@ func _draw_labels() -> void:
 		if l.in_service and float(l.loading) >= 0.9 and str(l.kind) != "cable":
 			var poly := _line_poly(l, 0.0)
 			_label(font, fs, to_screen(poly[poly.size() / 2]) + Vector2(0, -26), tr("WORLD_LOAD_FMT") % int(round(float(l.loading) * 100.0)), l.color)
+
+## A round bulb with a face. `glow` = (V/V0)^2 (brightness of the homes); the face is WorldMath.mood (band vs the level's limit).
+func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
+	var lit := md != "asleep"
+	var glass := Color("#7A6A4E").lerp(Color("#FFF3C4"), glow) if lit else Color("#5B6178")
+	if lit: _glow(c, r * (1.6 + glow), WorldMath.SODIUM, 0.10 + 0.25 * glow)
+	var bob := sin(_t * 4.0) * 2.0 if md == "happy" else (sin(_t * 30.0) * 0.8 if md == "sad" else 0.0)
+	c += Vector2(bob if md == "sad" else 0.0, -absf(bob) if md == "happy" else 0.0)
+	draw_rect(Rect2(c + Vector2(-r * 0.38, r * 0.72), Vector2(r * 0.76, r * 0.42)), Color("#8D93A6"))           # screw base
+	draw_line(c + Vector2(-r * 0.38, r * 0.86), c + Vector2(r * 0.38, r * 0.86), Color("#6C7286"), 1.5)
+	draw_circle(c, r, glass)
+	draw_arc(c, r, 0.0, TAU, 32, Color("#2A2418", 0.55), 1.5)
+	var ink := Color("#2A2418")
+	var ey := c + Vector2(0, -r * 0.12); var ex := r * 0.34
+	match md:
+		"asleep":
+			draw_arc(ey + Vector2(-ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6); draw_arc(ey + Vector2(ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6)
+			var font := CbKit.font_regular(); var zf := int(r * 0.7)
+			draw_string(font, c + Vector2(r * 0.8, -r * 0.6 - fposmod(_t * 6.0, 6.0)), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, zf, Color(1, 1, 1, 0.7))
+		_:
+			var blink := fposmod(_t + float(int(c.x) % 7) * 0.3, 3.6) < 0.12
+			for sx in [-1.0, 1.0]:
+				var e: Vector2 = ey + Vector2(sx * ex, 0)
+				if blink: draw_line(e + Vector2(-r * 0.1, 0), e + Vector2(r * 0.1, 0), ink, 1.6)
+				else: draw_circle(e, r * 0.1, ink)
+				if md == "worried": draw_line(e + Vector2(-sx * r * 0.14, -r * 0.26), e + Vector2(sx * r * 0.12, -r * 0.18), ink, 1.4)
+				if md == "sad": draw_line(e + Vector2(-sx * r * 0.14, -r * 0.18), e + Vector2(sx * r * 0.12, -r * 0.27), ink, 1.4)
+			var m := c + Vector2(0, r * 0.3)
+			match md:
+				"happy": draw_arc(m + Vector2(0, -r * 0.12), r * 0.3, 0.35, PI - 0.35, 12, ink, 1.8); draw_circle(c + Vector2(-r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45)); draw_circle(c + Vector2(r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45))
+				"worried": draw_line(m + Vector2(-r * 0.2, 0), m + Vector2(r * 0.2, -r * 0.04), ink, 1.6); draw_circle(c + Vector2(r * 0.72, -r * 0.45), r * 0.1, Color("#7FC8FF"))
+				"sad": draw_arc(m + Vector2(0, r * 0.18), r * 0.24, PI + 0.4, TAU - 0.4, 12, ink, 1.8); draw_circle(ey + Vector2(ex, r * 0.25 + fposmod(_t * 8.0, r * 0.5)), r * 0.07, Color("#7FC8FF"))
 
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x

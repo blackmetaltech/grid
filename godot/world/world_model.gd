@@ -82,6 +82,9 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 		var v := 0.0
 		if powered and i < vs.size(): v = float(vs[i]) / vsrc
 		var tw := _town("h%d" % (i + 1), "", t[0], int(t[1]), v, 0.0, str(t[2]), i); tw["volts"] = v * vsrc
+		var lim = bn.get("vMinLimitV")
+		tw["limit"] = float(lim) if lim != null else 0.0
+		tw["mood"] = WorldMath.mood(v * vsrc, tw.limit, powered)
 		m.towns.append(tw)
 	var laid: bool = bn.mainMm2 != null and not (sc == "l01" and hut == null)
 	if not laid: return

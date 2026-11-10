@@ -93,3 +93,11 @@ static func hash2(x: int, y: int, salt: int = 0) -> float:
 	var h: int = (x * 374761393 + y * 668265263 + salt * 2147483647) & 0x7fffffff
 	h = ((h ^ (h >> 13)) * 1274126177) & 0x7fffffff
 	return float((h ^ (h >> 16)) & 0xffff) / 65535.0
+
+## Cute mode: the bulb mascot's face is the voltage band (UI.md "Cute mode"). Within MOOD_MARGIN_V above the limit = worried.
+const MOOD_MARGIN_V := 2.0
+static func mood(volts: float, limit_v: float, powered: bool) -> String:
+	if not powered or volts <= 0.0: return "asleep"
+	if volts < limit_v: return "sad"
+	if volts < limit_v + MOOD_MARGIN_V: return "worried"
+	return "happy"
