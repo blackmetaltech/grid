@@ -359,10 +359,22 @@ func _rebuild_objects() -> void:
 			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": bw, "role": role, "hamlet": t.kind == "hamlet", "v": WorldMath.hash2(cx, cy, 70 + ti)})
 		if t.kind == "school" and model.kind == "bench": _objs.append({"t": "flag", "p": _tc(t.pos) + Vector2(0.0, -1.3)})
 	for s in model.subs: _objs.append({"t": "sub", "p": _tc(s.pos), "s": s})
-	var at_bus := {}
+	var at_bus := {}; var taken_u := {}
+	var ring: Array = []   # several units on one bus stand around it, nearest first (a fleet of twelve used to march off the map in a line)
+	for dy in range(-3, 4):
+		for dx in range(-3, 4): ring.append(Vector2(dx, dy))
+	ring.sort_custom(func(a, b): return a.length() < b.length() or (a.length() == b.length() and (a.y < b.y or (a.y == b.y and a.x < b.x))))
 	for u in model.units:
 		var key := Vector2i(_tc(u.pos).floor()); var n: int = at_bus.get(key, 0); at_bus[key] = n + 1
-		_objs.append({"t": "unit", "p": _tc(u.pos) + Vector2(0.0, -float(n) * 1.4 + (0.0 if n == 0 else 0.0)), "u": u})
+		var p := _tc(u.pos)
+		if n > 0:
+			for off in ring:
+				var q: Vector2 = _tc(u.pos) + off * 1.4
+				if off == Vector2.ZERO or taken_u.has(Vector2i((q * 2.0).floor())): continue
+				if q.x < 0.6 or q.y < 0.6 or q.x > float(model.map.x) - 0.6 or q.y > float(model.map.y) - 0.6: continue
+				p = q; break
+		taken_u[Vector2i((p * 2.0).floor())] = true
+		_objs.append({"t": "unit", "p": p, "u": u})
 	for h in model.shunts: _objs.append({"t": "shunt", "p": _tc(h.pos) + Vector2(0.9, 0.4), "h": h})
 	for li in model.lines.size():
 		var l: Dictionary = model.lines[li]
@@ -431,7 +443,10 @@ func _view_rect() -> Rect2:
 func _bounds() -> Rect2:
 	var W: float = model.map.x; var H: float = model.map.y
 	var x0 := _iso(0, H).x; var x1 := _iso(W, 0).x
-	return Rect2(x0, -60.0 - _zmax, x1 - x0, (W + H) * TH * 0.5 + 60.0 + _zmax + SLAB + 20.0)
+	var tall := 0.0; var side := 0.0   # plants stand tall (cooling towers, stacks and their smoke) and wide at the map's corners: keep them on screen
+	if model.kind == "grid" and not _has_terrain():
+		for u in model.units: if str(u.kind) in ["coal", "gas", "nuclear", "biomass", "diesel"]: tall = 150.0; side = 40.0
+	return Rect2(x0 - side, -60.0 - _zmax - tall, x1 - x0 + 2.0 * side, (W + H) * TH * 0.5 + 60.0 + _zmax + SLAB + 20.0 + tall)
 
 func _refit() -> void:
 	var v := _view_rect(); var b := _bounds()
