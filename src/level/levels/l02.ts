@@ -26,7 +26,7 @@ export const L02: GridLevelSpec = {
   lesson: [{ name: 'layCable', args: ['main', 25] }, { name: 'layCable', args: ['b', 35] }],
   reference: [{ name: 'layCable', args: ['main', 16] }, { name: 'layCable', args: ['b', 50] }],
   // frozen from the bot population (src/level/population.ts); level.test.ts regenerates it and fails on drift > 2 %
-  frozen: { global: { budget: 5300, starA: 4185, starB: 4818.8 }, in: { budget: 52000, starA: 41600, starB: 47789.2 } },
+  frozen: { global: { budget: 5300, starA: 4818.8, starB: 4818.8 }, in: { budget: 52000, starA: 47789.2, starB: 47789.2 } },
   coach: [
     { id: 'choose-layout', textKey: 'coach.L02.layout', whyKey: 'coach.L02.layout.why', done: (s) => s.bench?.topology != null },
     { id: 'lay-cables', textKey: 'coach.L02.cables', whyKey: 'coach.L02.cables.why', done: (s) => s.bench?.cableMm2.main != null && s.bench.cableMm2.b != null },

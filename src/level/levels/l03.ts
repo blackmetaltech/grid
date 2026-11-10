@@ -24,7 +24,7 @@ export const L03: GridLevelSpec = {
   lesson: [{ name: 'placeConverters', args: [true] }, { name: 'layCable', args: ['main', 35] }],
   reference: [{ name: 'placeConverters', args: [true] }, { name: 'layCable', args: ['main', 50] }],
   // frozen from the bot population (src/level/population.ts); level.test.ts regenerates it and fails on drift > 2 %
-  frozen: { global: { budget: 18000, starA: 14850, starB: 16350 }, in: { budget: 310000, starA: 251500, starB: 265000 } },
+  frozen: { global: { budget: 18000, starA: 16350, starB: 16350 }, in: { budget: 310000, starA: 265000, starB: 265000 } },
   coach: [
     { id: 'lay-cable', textKey: 'coach.L03.cable', whyKey: 'coach.L03.cable.why', done: (s) => s.bench?.cableMm2.main != null },
     { id: 'raise-voltage', textKey: 'coach.L03.voltage', whyKey: 'coach.L03.voltage.why', done: (s) => s.bench?.converters === true },

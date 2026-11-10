@@ -73,6 +73,10 @@ describe.each(REGION_IDS)('authored levels in region %s', (region) => {
       expect(env.state.status).toBe('lost');
     });
 
+    it('star targets are monotone: the three-lamp cost target is never looser than the two-lamp one (B <= A)', () => {
+      const fz = spec.frozen?.[region as 'global' | 'in'];
+      if (fz) expect(fz.starB).toBeLessThanOrEqual(fz.starA + 1e-9);
+    });
     it('the naive build fails with its declared kind, before 80 % of the run, by >= 2 % of the decisive quantity', () => {
       const o = outcomeOf(spec, region, 'naive');
       expect(o.rejected).toBeNull();

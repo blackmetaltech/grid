@@ -51,7 +51,7 @@ export const L07: GridLevelSpec = {
   lesson: fixed('cap-11-900', 1, 1),
   reference: auto('cap-11-300', 4, 0.975, 1.005),
   // frozen from the bot population (src/level/population.ts); level.test.ts regenerates it and fails on drift > 2 %
-  frozen: { global: { budget: 32000, starA: 16200, starB: 28800 }, in: { budget: 3200000, starA: 1980000, starB: 2880000 } },
+  frozen: { global: { budget: 32000, starA: 28800, starB: 28800 }, in: { budget: 3200000, starA: 2880000, starB: 2880000 } },
   coach: [
     { id: 'read-amps', textKey: 'coach.L07.amps', whyKey: 'coach.L07.amps.why', done: (s) => s.tick > s.levelStart },
     { id: 'add-bank', textKey: 'coach.L07.bank', whyKey: 'coach.L07.bank.why', done: (s) => s.shunts.length > 0 },

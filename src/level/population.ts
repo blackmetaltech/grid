@@ -80,7 +80,9 @@ export function botPopulation(spec: GridLevelSpec, region: string): BotPopulatio
   return {
     label: 'bot', labelKey: 'hist.bot', levelId: spec.id, region, metric: spec.histogram, metricKey: spec.histogram === 'lossPct' ? 'hist.metric.lossPct' : 'hist.metric.capex',
     designs: all.length, passing: pass.length, cheapestPass: cheapest, scores: pass.map((d) => d.metric).sort((a, b) => a - b),
-    budget, starA: percentile(costs, 0.5), starB: percentile(star3.length ? star3 : costs, 0.15),
+    // A >= B always: when the only three-star designs cost more than the median (L03: lower losses need more copper), the two-star
+    // target rises to B, so a lamp never rewards spending more while missing the cheaper target (found by a play-tester, 2026-11-10).
+    budget, starB: percentile(star3.length ? star3 : costs, 0.15), starA: Math.max(percentile(costs, 0.5), percentile(star3.length ? star3 : costs, 0.15)),
   };
 }
 
