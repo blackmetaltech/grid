@@ -53,16 +53,19 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(_refit)
 	set_process(true)
+	_make_layers()
 
 func set_cover(px: float) -> void: cover = px; _refit(); queue_redraw()
 func set_blocked(b: bool) -> void: blocked = b
-func set_title(on: bool) -> void: title_mode = on; queue_redraw()
+func set_title(on: bool) -> void: title_mode = on; repaint_static(); queue_redraw()
 
 # --------------------------------------------------------------------------------------------------------------------
 # Model
 # --------------------------------------------------------------------------------------------------------------------
 func refresh(b) -> void:
+	var t0 := Time.get_ticks_usec()
 	set_model(WorldModel.build(b))
+	perf.model_us += Time.get_ticks_usec() - t0; perf.models += 1
 
 func set_model(m: Dictionary) -> void:
 	model = m
@@ -72,7 +75,10 @@ func set_model(m: Dictionary) -> void:
 		_sig = sg
 		_rebuild(); _refit()
 		if not first: _zoom = 1.0; _pan = Vector2.ZERO
-	_night = float(m.night); _gain = WorldMath.lights_gain(_night)
+	_night = float(m.night); _gain = WorldMath.lights_gain(_night); _nl = WorldMath.ground_light(_night)
+	var key := JSON.stringify([_sig, snappedf(_night, 0.01), cute, m.lines.map(func(l): return [l.band, l.in_service, l.get("mm2")])])
+	if key != _static_key: _static_key = key; repaint_static()
+	_sync_layers()
 	queue_redraw()
 
 func _tc(p: Vector2) -> Vector2: return p + Vector2(0.5, 0.5)
@@ -364,7 +370,9 @@ func _process(dt: float) -> void:
 	for l in model.lines:
 		var ph: float = _phase.get(l.id, 0.0)
 		_phase[l.id] = fposmod(ph + float(l.dir) * float(l.speed) * dt, 1.0)
+	_sync_layers()
 	queue_redraw()
+	if _dyn_layer != null: _dyn_layer.queue_redraw(); _top_layer.queue_redraw()
 
 # --------------------------------------------------------------------------------------------------------------------
 # Drawing helpers
@@ -375,21 +383,21 @@ func _shade(col: Color, k: float) -> Color: return Color(col.r * k, col.g * k, c
 func _ell(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	var pts := PackedVector2Array()
 	for k in 18: var a := TAU * float(k) / 18.0; pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
-	draw_colored_polygon(pts, col)
+	_ci.draw_colored_polygon(pts, col)
 
 func _box(p: Vector2, w: float, d: float, h: float, col: Color, base_add: float = 0.0) -> float:
 	var x0 := p.x - w * 0.5; var y0 := p.y - d * 0.5; var x1 := x0 + w; var y1 := y0 + d
 	var base := _zat(p) + base_add; var top := base + h
-	draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
-	draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
-	draw_colored_polygon(PackedVector2Array([_iso(x0, y0, top), _iso(x1, y0, top), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(col))
+	_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
+	_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
+	_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y0, top), _iso(x1, y0, top), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(col))
 	return base
 
 func _cyl(c: Vector2, r: float, h: float, col: Color, taper: float = 1.0) -> void:
 	var rt := r * taper
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.78)))
+	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.78)))
 	_ell(c, r, r * 0.5, _c(_shade(col, 0.7)))
-	draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.82)))
+	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.82)))
 	_ell(c + Vector2(0, -h), rt, rt * 0.5, _c(col))
 
 func _windows(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, energy: float, seed_v: float, flick: float) -> void:
@@ -402,47 +410,86 @@ func _windows(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, energy: 
 			var v0 := (float(r) + 0.25) / float(rows) * 0.8 + 0.1; var v1 := (float(r) + 0.75) / float(rows) * 0.8 + 0.1
 			var up := Vector2(0, -h)
 			var q := PackedVector2Array([a + dir * u0 + up * v0, a + dir * u1 + up * v0, a + dir * u1 + up * v1, a + dir * u0 + up * v1])
-			draw_colored_polygon(q, lit_col if on else UNLIT)
+			_ci.draw_colored_polygon(q, lit_col if on else UNLIT)
 
 func _glow(p: Vector2, r: float, col: Color, a: float) -> void:
 	if a <= 0.01: return
-	for k in 3: draw_circle(p, r * (1.0 - float(k) * 0.28), Color(col.r, col.g, col.b, a * (0.35 + 0.3 * float(k))))
+	for k in 3: _ci.draw_circle(p, r * (1.0 - float(k) * 0.28), Color(col.r, col.g, col.b, a * (0.35 + 0.3 * float(k))))
 
 # --------------------------------------------------------------------------------------------------------------------
 # Draw
 # --------------------------------------------------------------------------------------------------------------------
-func _draw() -> void:
-	if size.x < 4.0: return
-	var mn: float = float(model.minute)
-	_nl = WorldMath.ground_light(_night)
-	_draw_sky(mn)
-	if _tiles.is_empty(): return
-	var s := _scale()
-	var o := to_screen(Vector2.ZERO)
-	draw_set_transform(o, 0.0, Vector2(s, s))
+## Layers (perf, Pixel 9a): the sky is drawn here; the static island (slab, tiles, wires, trees, palms, mangrove, towers) is painted once
+## into `_static_layer` and only re-painted when the model or the light changes; pan/zoom just move the layer's transform. Animated things
+## (buildings, units, villagers, pulses, fireflies) go in `_dyn_layer` every frame; screen-space labels and pegs in `_top_layer`.
+const STATIC_T := ["tree", "palm", "mangrove", "tower"]
+var _ci: CanvasItem = self
+var _static_layer: Node2D
+var _dyn_layer: Node2D
+var _top_layer: Node2D
+var _static_key := ""
+var static_paints := 0
+var perf := {"static_us": 0, "dyn_us": 0, "top_us": 0, "model_us": 0, "models": 0}   # accumulated since the last CB_FPS line        # how many times the static island was painted (perf test reads it)
+
+func _make_layers() -> void:
+	_static_layer = Node2D.new(); _static_layer.name = "StaticIsland"; add_child(_static_layer)
+	_dyn_layer = Node2D.new(); _dyn_layer.name = "Animated"; add_child(_dyn_layer)
+	_top_layer = Node2D.new(); _top_layer.name = "Labels"; add_child(_top_layer)
+	_static_layer.draw.connect(func(): _ci = _static_layer; _paint_static(); _ci = self)
+	_dyn_layer.draw.connect(func(): _ci = _dyn_layer; _paint_dynamic(); _ci = self)
+	_top_layer.draw.connect(func(): _ci = _top_layer; _paint_top(); _ci = self)
+
+func _sync_layers() -> void:
+	if _static_layer == null: return
+	var s := _scale(); var o := to_screen(Vector2.ZERO)
+	for l in [_static_layer, _dyn_layer]: l.position = o; l.scale = Vector2(s, s)
+
+func repaint_static() -> void:
+	if _static_layer != null: _static_layer.queue_redraw()
+
+func _paint_static() -> void:
+	if _tiles.is_empty() or size.x < 4.0: return
+	static_paints += 1
+	var t0 := Time.get_ticks_usec()
 	_draw_slab()
 	for t in _tiles: _draw_tile(t)
 	_draw_wires()
-	for ob in _objs: _draw_obj(ob)
+	for ob in _objs: if STATIC_T.has(ob.t): _draw_obj(ob)
+	perf.static_us += Time.get_ticks_usec() - t0
+
+func _paint_dynamic() -> void:
+	if _tiles.is_empty() or size.x < 4.0: return
+	var t0 := Time.get_ticks_usec()
+	for ob in _objs: if not STATIC_T.has(ob.t): _draw_obj(ob)
 	_draw_pulses()
 	if cute and _night > 0.35: _draw_fireflies()
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	perf.dyn_us += Time.get_ticks_usec() - t0
+
+func _paint_top() -> void:
+	if _tiles.is_empty() or size.x < 4.0: return
+	var t0 := Time.get_ticks_usec()
 	_draw_labels()
 	_draw_pegs()
+	perf.top_us += Time.get_ticks_usec() - t0
+
+func _draw() -> void:
+	if size.x < 4.0: return
+	_nl = WorldMath.ground_light(_night)
+	_draw_sky(float(model.minute))
 
 func _draw_sky(mn: float) -> void:
 	var top := WorldMath.sky_top(mn); var bot := WorldMath.sky_bottom(mn)
-	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([top, top, bot, bot]))
+	_ci.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([top, top, bot, bot]))
 	if _night > 0.3:
 		for k in 70:
 			var p := Vector2(WorldMath.hash2(k, 1, 77) * size.x, WorldMath.hash2(k, 2, 77) * size.y * 0.7)
-			draw_circle(p, 0.8 + 1.2 * WorldMath.hash2(k, 3, 77), Color(1, 1, 1, (_night - 0.3) * (0.4 + 0.5 * WorldMath.hash2(k, 4, 77))))
+			_ci.draw_circle(p, 0.8 + 1.2 * WorldMath.hash2(k, 3, 77), Color(1, 1, 1, (_night - 0.3) * (0.4 + 0.5 * WorldMath.hash2(k, 4, 77))))
 	var a := (mn - 360.0) / 720.0 * PI      # sun: east at 06:00, west at 18:00
 	var sun := Vector2(size.x * 0.5 - cos(a) * size.x * 0.42, size.y * 0.68 - sin(a) * size.y * 0.6)   # horizon low: the sun sets behind the sea, not mid-sky
-	if sin(a) > -0.1 and sin(a) < 1.01: draw_circle(sun, 26.0, Color(1.0, 0.86, 0.55, 0.9)); draw_circle(sun, 44.0, Color(1.0, 0.8, 0.5, 0.18))
+	if sin(a) > -0.1 and sin(a) < 1.01: _ci.draw_circle(sun, 26.0, Color(1.0, 0.86, 0.55, 0.9)); _ci.draw_circle(sun, 44.0, Color(1.0, 0.8, 0.5, 0.18))
 	else:
 		var mo := Vector2(size.x * 0.5 + cos(a) * size.x * 0.42, size.y * 0.5 + sin(a) * size.y * 0.42)
-		draw_circle(mo, 18.0, Color(0.9, 0.93, 1.0, 0.85 * _night)); draw_circle(mo, 32.0, Color(0.8, 0.85, 1.0, 0.12 * _night))
+		_ci.draw_circle(mo, 18.0, Color(0.9, 0.93, 1.0, 0.85 * _night)); _ci.draw_circle(mo, 32.0, Color(0.8, 0.85, 1.0, 0.12 * _night))
 
 func _draw_slab() -> void:
 	if model.kind == "bench": return   # islands sit in the sea: no tabletop shadow
@@ -472,12 +519,12 @@ func _draw_tile(t: Dictionary) -> void:
 	var zr: float = _zgrid.get(Vector2i(i + 1, j), -SLAB) if i + 1 < W else -SLAB
 	var zb: float = _zgrid.get(Vector2i(i, j + 1), -SLAB) if j + 1 < H else -SLAB
 	var side := Color("#7A6A58") if t.kind != "water" else Color("#2E6F94")
-	if zb < z: draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, 0.82)))
-	if zr < z: draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, 0.62)))
-	draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
+	if zb < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, 0.82)))
+	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, 0.62)))
+	_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
 	if t.kind == "water":
 		var sh := 0.5 + 0.5 * sin(_t * 1.3 + float(i) * 0.9 + float(j) * 0.6)
-		draw_line(_iso(i + 0.25, j + 0.5, z), _iso(i + 0.7, j + 0.5, z), Color(1, 1, 1, 0.16 * sh * (1.0 - _night * 0.7)), 1.5)
+		_ci.draw_line(_iso(i + 0.25, j + 0.5, z), _iso(i + 0.7, j + 0.5, z), Color(1, 1, 1, 0.16 * sh * (1.0 - _night * 0.7)), 1.5)
 
 func _draw_obj(o: Dictionary) -> void:
 	match o.t:
@@ -495,35 +542,35 @@ func _draw_obj(o: Dictionary) -> void:
 
 func _tree(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
-	draw_line(base, base + Vector2(0, -h * 0.35), _c(Color("#5A4632")), 2.0)
+	_ci.draw_line(base, base + Vector2(0, -h * 0.35), _c(Color("#5A4632")), 2.0)
 	var g := Color("#3F7A44").lerp(Color("#5E9A4A"), o.v)
-	draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.3, -h * 0.25), base + Vector2(h * 0.3, -h * 0.25), base + Vector2(0, -h * 0.75)]), _c(_shade(g, 0.8)))
-	draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.24, -h * 0.5), base + Vector2(h * 0.24, -h * 0.5), base + Vector2(0, -h)]), _c(g))
+	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.3, -h * 0.25), base + Vector2(h * 0.3, -h * 0.25), base + Vector2(0, -h * 0.75)]), _c(_shade(g, 0.8)))
+	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.24, -h * 0.5), base + Vector2(h * 0.24, -h * 0.5), base + Vector2(0, -h)]), _c(g))
 
 func _palm(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
 	var lean := (float(o.v) - 0.5) * 10.0
 	var top := base + Vector2(lean, -h)
-	draw_line(base, base + Vector2(lean * 0.4, -h * 0.5), _c(Color("#7A5E3E")), 2.5); draw_line(base + Vector2(lean * 0.4, -h * 0.5), top, _c(Color("#7A5E3E")), 2.0)
+	_ci.draw_line(base, base + Vector2(lean * 0.4, -h * 0.5), _c(Color("#7A5E3E")), 2.5); _ci.draw_line(base + Vector2(lean * 0.4, -h * 0.5), top, _c(Color("#7A5E3E")), 2.0)
 	var g := Color("#4F8A4A").lerp(Color("#6AA25A"), o.v)
 	for k in 5:
 		var a := -PI * 0.5 + (float(k) - 2.0) * 0.62 + float(o.v) * 0.4
 		var tip := top + Vector2(cos(a) * h * 0.55, sin(a) * h * 0.25 + h * 0.18)
-		draw_colored_polygon(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
+		_ci.draw_colored_polygon(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
 
 func _lighthouse(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h := 46.0
 	for k in 5:
 		var y0 := -h * float(k) / 5.0; var y1 := -h * float(k + 1) / 5.0; var w0 := 7.0 - float(k) * 0.7; var w1 := 7.0 - float(k + 1) * 0.7
-		draw_colored_polygon(PackedVector2Array([base + Vector2(-w0, y0), base + Vector2(w0, y0), base + Vector2(w1, y1), base + Vector2(-w1, y1)]), _c(Color("#F2EEE6") if k % 2 == 0 else Color("#E5484D")))
+		_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-w0, y0), base + Vector2(w0, y0), base + Vector2(w1, y1), base + Vector2(-w1, y1)]), _c(Color("#F2EEE6") if k % 2 == 0 else Color("#E5484D")))
 	var lamp := base + Vector2(0, -h - 5.0)
-	draw_rect(Rect2(lamp + Vector2(-4, -4), Vector2(8, 8)), _c(Color("#3A3F52")))
-	draw_colored_polygon(PackedVector2Array([lamp + Vector2(-5, -4), lamp + Vector2(5, -4), lamp + Vector2(0, -10)]), _c(Color("#E5484D")))
+	_ci.draw_rect(Rect2(lamp + Vector2(-4, -4), Vector2(8, 8)), _c(Color("#3A3F52")))
+	_ci.draw_colored_polygon(PackedVector2Array([lamp + Vector2(-5, -4), lamp + Vector2(5, -4), lamp + Vector2(0, -10)]), _c(Color("#E5484D")))
 	if _night > 0.3:
 		var a := _t * 1.1
 		var d := Vector2(cos(a), sin(a) * 0.5)
 		var beam := PackedVector2Array([lamp, lamp + d * 170.0 + d.orthogonal() * 22.0, lamp + d * 170.0 - d.orthogonal() * 22.0])
-		draw_colored_polygon(beam, Color(1.0, 0.92, 0.65, 0.10 * _night))
+		_ci.draw_colored_polygon(beam, Color(1.0, 0.92, 0.65, 0.10 * _night))
 		_glow(lamp, 10.0, WorldMath.SODIUM, 0.5 * _night)
 
 ## A tiny round villager. Happy homes: they hop; browned out: they hold a candle; dark: they stay indoors.
@@ -536,13 +583,13 @@ func _villager(o: Dictionary) -> void:
 	var b := base + Vector2(0, -hop)
 	var shirt: Color = [Color("#E5484D"), Color("#5BD69A"), Color("#6C8CFF")][int(o.k) % 3]
 	_ell(base + Vector2(0, 1.4), 5.6, 2.24, Color(0, 0, 0, 0.25))
-	draw_colored_polygon(PackedVector2Array([b + Vector2(-4.48, 0), b + Vector2(4.48, 0), b + Vector2(3.36, -9.8), b + Vector2(-3.36, -9.8)]), _c(shirt))
-	draw_circle(b + Vector2(0, -14), 5.04, _c(Color("#C8956A").lerp(Color("#8A5A3A"), o.v)))
-	draw_circle(b + Vector2(-1.68, -14.56), 0.84, Color("#2A2418")); draw_circle(b + Vector2(1.68, -14.56), 0.84, Color("#2A2418"))
-	if md == "happy" and fposmod(_t * 5.0 + float(o.v) * 6.0, PI) < 1.2: draw_line(b + Vector2(4.2, -8.4), b + Vector2(8.4, -16.8), _c(Color("#C8956A")), 2.1)   # wave
+	_ci.draw_colored_polygon(PackedVector2Array([b + Vector2(-4.48, 0), b + Vector2(4.48, 0), b + Vector2(3.36, -9.8), b + Vector2(-3.36, -9.8)]), _c(shirt))
+	_ci.draw_circle(b + Vector2(0, -14), 5.04, _c(Color("#C8956A").lerp(Color("#8A5A3A"), o.v)))
+	_ci.draw_circle(b + Vector2(-1.68, -14.56), 0.84, Color("#2A2418")); _ci.draw_circle(b + Vector2(1.68, -14.56), 0.84, Color("#2A2418"))
+	if md == "happy" and fposmod(_t * 5.0 + float(o.v) * 6.0, PI) < 1.2: _ci.draw_line(b + Vector2(4.2, -8.4), b + Vector2(8.4, -16.8), _c(Color("#C8956A")), 2.1)   # wave
 	if md == "sad" or md == "worried":
 		var cd := b + Vector2(5.6, -7)
-		draw_line(cd, cd + Vector2(0, -5.6), Color("#F3EEDF"), 2.24); _glow(cd + Vector2(0, -8.4), 8.4, Color("#FF9A3C"), 0.35 * _night + 0.1)
+		_ci.draw_line(cd, cd + Vector2(0, -5.6), Color("#F3EEDF"), 2.24); _glow(cd + Vector2(0, -8.4), 8.4, Color("#FF9A3C"), 0.35 * _night + 0.1)
 
 func _draw_fireflies() -> void:
 	for k in _flies.size():
@@ -551,12 +598,12 @@ func _draw_fireflies() -> void:
 		var p := _iso(a.x + 0.4 * sin(ph * 1.3), a.y + 0.4 * cos(ph), 14.0 + 6.0 * sin(ph * 2.1))
 		var on := 0.5 + 0.5 * sin(ph * 3.7)
 		_glow(p, 4.0, Color("#D8FF7A"), 0.5 * on * _night)
-		draw_circle(p, 1.2, Color(0.9, 1.0, 0.6, on * _night))
+		_ci.draw_circle(p, 1.2, Color(0.9, 1.0, 0.6, on * _night))
 
 func _mangrove(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
 	var root := _c(Color("#4A3A2A"))
-	for k in 3: draw_line(base + Vector2(-5 + float(k) * 5.0, 0), base + Vector2(-1 + float(k) * 1.0, -h * 0.4), root, 1.2)
+	for k in 3: _ci.draw_line(base + Vector2(-5 + float(k) * 5.0, 0), base + Vector2(-1 + float(k) * 1.0, -h * 0.4), root, 1.2)
 	var g := Color("#2F5536").lerp(Color("#3D6B44"), o.v)
 	_ell(base + Vector2(0, -h * 0.65), h * 0.75, h * 0.45, _c(_shade(g, 0.8)))
 	_ell(base + Vector2(-1, -h * 0.8), h * 0.55, h * 0.33, _c(g))
@@ -578,45 +625,45 @@ func _building(o: Dictionary) -> void:
 	if o.role != "":   # hipped roof; the health post carries a red cross on its front wall
 		var rc := Color("#7E3B32") if o.role == "school" else Color("#4E8C6A")
 		var ap2 := _iso(p.x, p.y, base + h + 8.0)
-		draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap2]), _c(_shade(rc, 1.1)))
-		draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap2]), _c(_shade(rc, 0.8)))
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap2]), _c(_shade(rc, 1.1)))
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap2]), _c(_shade(rc, 0.8)))
 		if o.role == "health":
 			var zc := base + h * 0.5; var cr := Color("#E5484D")
-			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc - 2.0), _iso(p.x - 0.2, y1, zc - 2.0)]), _c(cr))
-			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc - 6.5), _iso(p.x - 0.07, y1, zc - 6.5)]), _c(cr))
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc - 2.0), _iso(p.x - 0.2, y1, zc - 2.0)]), _c(cr))
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc - 6.5), _iso(p.x - 0.07, y1, zc - 6.5)]), _c(cr))
 	if o.hamlet:   # thatch roof
 		var ap := _iso(p.x, p.y, base + h + 6.0)
-		draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap]), _c(Color("#A07D3C")))
-		draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap]), _c(Color("#7E5F2A")))
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap]), _c(Color("#A07D3C")))
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap]), _c(Color("#7E5F2A")))
 	if e > 0.0 and _night > 0.25: _glow(_iso(p.x, p.y, base + h * 0.5), 15.0 * w * 3.0, WorldMath.SODIUM, 0.035 * clampf(e, 0.0, 1.0) * _night)
 
 ## Flag pole by the school: a red pennant that ripples.
 func _flag(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var top := base + Vector2(0, -52)
-	draw_line(base, top, _c(Color("#D8D4CA")), 2.2)
+	_ci.draw_line(base, top, _c(Color("#D8D4CA")), 2.2)
 	var wv := sin(_t * 3.0) * 3.0
-	draw_colored_polygon(PackedVector2Array([top, top + Vector2(18, 3 + wv), top + Vector2(17, 9 + wv * 0.6), top + Vector2(0, 12)]), _c(Color("#E5484D")))
-	draw_circle(top, 2.2, _c(Color("#F2C14E")))
+	_ci.draw_colored_polygon(PackedVector2Array([top, top + Vector2(18, 3 + wv), top + Vector2(17, 9 + wv * 0.6), top + Vector2(0, 12)]), _c(Color("#E5484D")))
+	_ci.draw_circle(top, 2.2, _c(Color("#F2C14E")))
 
 func _tower(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var kv: float = o.kv; var h := _tower_h(kv); var base := _iso(p.x, p.y, _zat(p))
 	var col := Color("#8A6A45") if kv < 1.0 else (Color("#B8B8B0") if kv <= 11.0 else Color("#9AA3B0"))
 	if kv <= 11.0:
-		draw_line(base, base + Vector2(0, -h), _c(col), 2.0); draw_line(base + Vector2(-6, -h + 3), base + Vector2(6, -h + 3), _c(col), 2.0)
+		_ci.draw_line(base, base + Vector2(0, -h), _c(col), 2.0); _ci.draw_line(base + Vector2(-6, -h + 3), base + Vector2(6, -h + 3), _c(col), 2.0)
 	else:
 		var w := 7.0 if kv <= 220.0 else 10.0
-		draw_line(base + Vector2(-w * 0.6, 0), base + Vector2(0, -h), _c(col), 1.6); draw_line(base + Vector2(w * 0.6, 0), base + Vector2(0, -h), _c(col), 1.6)
-		draw_line(base + Vector2(-w * 0.35, -h * 0.45), base + Vector2(w * 0.35, -h * 0.45), _c(col), 1.2)
-		draw_line(base + Vector2(-w, -h * 0.85), base + Vector2(w, -h * 0.85), _c(col), 1.8)
+		_ci.draw_line(base + Vector2(-w * 0.6, 0), base + Vector2(0, -h), _c(col), 1.6); _ci.draw_line(base + Vector2(w * 0.6, 0), base + Vector2(0, -h), _c(col), 1.6)
+		_ci.draw_line(base + Vector2(-w * 0.35, -h * 0.45), base + Vector2(w * 0.35, -h * 0.45), _c(col), 1.2)
+		_ci.draw_line(base + Vector2(-w, -h * 0.85), base + Vector2(w, -h * 0.85), _c(col), 1.8)
 
 func _substation(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var s: Dictionary = o.s
 	var base := _iso(p.x, p.y, _zat(p))
-	draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y + 0.7, _zat(p) + 0.5), _iso(p.x - 0.7, p.y + 0.7, _zat(p) + 0.5)]), _c(Color("#8F959E")))
+	_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y + 0.7, _zat(p) + 0.5), _iso(p.x - 0.7, p.y + 0.7, _zat(p) + 0.5)]), _c(Color("#8F959E")))
 	_box(p + Vector2(-0.2, 0.0), 0.35, 0.35, 9.0, Color("#6C7A8C"))
 	_box(p + Vector2(0.25, 0.1), 0.25, 0.25, 6.0, Color("#7C8A9C"))
 	var lamp := Color("#39D98A") if s.energised else Color("#FF3B3B")
-	draw_circle(base + Vector2(0, -26), 2.5, lamp if _night > 0.2 else _c(lamp))
+	_ci.draw_circle(base + Vector2(0, -26), 2.5, lamp if _night > 0.2 else _c(lamp))
 	if s.energised: _glow(base + Vector2(0, -26), 9.0, lamp, 0.2 * _night)
 
 func _unit(o: Dictionary) -> void:
@@ -626,7 +673,7 @@ func _unit(o: Dictionary) -> void:
 		"coal":
 			_box(p + Vector2(0.45, 0.15), 0.8, 0.5, 12.0, Color("#8C8F96"))
 			_cyl(base + Vector2(-26, 8), 17.0, 42.0, Color("#B9B4A8"), 0.72)
-			draw_line(base + Vector2(18, 0), base + Vector2(18, -54), _c(Color("#7E7A74")), 5.0)
+			_ci.draw_line(base + Vector2(18, 0), base + Vector2(18, -54), _c(Color("#7E7A74")), 5.0)
 			_smoke(base + Vector2(18, -54), lvl, Color(0.55, 0.55, 0.58))
 			_smoke(base + Vector2(-26, -34), lvl * 0.7, Color(0.9, 0.9, 0.95))
 		"gas", "diesel", "biomass":
@@ -637,43 +684,43 @@ func _unit(o: Dictionary) -> void:
 			_ell(base + Vector2(-14, 0), 24.0, 12.0, _c(Color("#C9CED6")))
 			var dome := PackedVector2Array()
 			for k in 13: var a := PI * float(k) / 12.0; dome.append(base + Vector2(-14, 0) + Vector2(-cos(a) * 24.0, -sin(a) * 30.0))
-			draw_colored_polygon(dome, _c(Color("#DADFE6")))
+			_ci.draw_colored_polygon(dome, _c(Color("#DADFE6")))
 		"hydro", "psp":
 			var wa := Color("#5FA8C8")
-			draw_colored_polygon(PackedVector2Array([base + Vector2(-34, -2), base + Vector2(34, -2), base + Vector2(34, -26), base + Vector2(-34, -26)]), _c(Color("#A7A39A")))
-			for k in 4: draw_line(base + Vector2(-30 + float(k) * 18.0, -24 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), base + Vector2(-30 + float(k) * 18.0, -22 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), _c(wa), 2.0)
+			_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-34, -2), base + Vector2(34, -2), base + Vector2(34, -26), base + Vector2(-34, -26)]), _c(Color("#A7A39A")))
+			for k in 4: _ci.draw_line(base + Vector2(-30 + float(k) * 18.0, -24 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), base + Vector2(-30 + float(k) * 18.0, -22 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), _c(wa), 2.0)
 		"pv":
 			for r in 3:
 				var rb := base + Vector2(float(r) * 16.0 - 16.0, float(r) * 8.0 - 8.0)
-				draw_colored_polygon(PackedVector2Array([rb + Vector2(-22, 0), rb + Vector2(18, -6), rb + Vector2(18, -16), rb + Vector2(-22, -10)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.8)))
+				_ci.draw_colored_polygon(PackedVector2Array([rb + Vector2(-22, 0), rb + Vector2(18, -6), rb + Vector2(18, -16), rb + Vector2(-22, -10)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.8)))
 		"wind":
 			var hub := base + Vector2(0, -50)
-			draw_line(base, hub, _c(Color("#E0E4EA")), 3.0)
+			_ci.draw_line(base, hub, _c(Color("#E0E4EA")), 3.0)
 			var ang: float = _rot * (0.4 + 5.0 * float(u.rotor))
 			for k in 3:
 				var a: float = ang + TAU * float(k) / 3.0
-				draw_line(hub, hub + Vector2(cos(a), sin(a)) * 24.0, _c(Color("#F0F3F7")), 2.5)
+				_ci.draw_line(hub, hub + Vector2(cos(a), sin(a)) * 24.0, _c(Color("#F0F3F7")), 2.5)
 		"hut", "bench":
 			var top := _box(p, 0.9, 0.7, 13.0, Color("#D9CBA6"))   # little hut: plank walls, tin roof, solar panel, a battery sign
 			var ap := _iso(p.x, p.y, top + 13.0 + 7.0)
-			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y + 0.35, top + 13.0), ap]), _c(Color("#8E99A8")))
-			draw_colored_polygon(PackedVector2Array([_iso(p.x + 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y - 0.35, top + 13.0), ap]), _c(Color("#6E7988")))
-			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.4, p.y - 0.3, top + 17.0), _iso(p.x + 0.1, p.y - 0.3, top + 21.0), _iso(p.x + 0.1, p.y + 0.2, top + 21.0), _iso(p.x - 0.4, p.y + 0.2, top + 17.0)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.7)))
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y + 0.35, top + 13.0), ap]), _c(Color("#8E99A8")))
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x + 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y - 0.35, top + 13.0), ap]), _c(Color("#6E7988")))
+			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.4, p.y - 0.3, top + 17.0), _iso(p.x + 0.1, p.y - 0.3, top + 21.0), _iso(p.x + 0.1, p.y + 0.2, top + 21.0), _iso(p.x - 0.4, p.y + 0.2, top + 17.0)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.7)))
 			var sg := _iso(p.x + 0.45, p.y + 0.1, top + 7.0)   # battery sign on the wall: lit cells when it is feeding the cable
-			draw_rect(Rect2(sg + Vector2(-7, -4), Vector2(12, 8)), Color("#2A2418")); draw_rect(Rect2(sg + Vector2(5, -2), Vector2(2, 4)), Color("#2A2418"))
-			for k in 3: draw_rect(Rect2(sg + Vector2(-6 + k * 4, -3), Vector2(3, 6)), Color("#5BD69A") if u.online else Color("#46506A"))
+			_ci.draw_rect(Rect2(sg + Vector2(-7, -4), Vector2(12, 8)), Color("#2A2418")); _ci.draw_rect(Rect2(sg + Vector2(5, -2), Vector2(2, 4)), Color("#2A2418"))
+			for k in 3: _ci.draw_rect(Rect2(sg + Vector2(-6 + k * 4, -3), Vector2(3, 6)), Color("#5BD69A") if u.online else Color("#46506A"))
 			if u.online: _glow(sg, 10.0, Color("#5BD69A"), 0.25)
 		_:
 			_cyl(base + Vector2(-8, 6), 14.0, 20.0, Color("#B0B6C0"))
 	if u.online and str(u.kind) in ["coal", "gas", "nuclear", "hydro", "diesel", "biomass", "psp"]:
-		draw_rect(Rect2(base + Vector2(-20, 12), Vector2(40.0 * lvl, 4.0)), _c(WorldMath.CYAN))
-		draw_rect(Rect2(base + Vector2(-20, 12), Vector2(40.0, 4.0)), Color(1, 1, 1, 0.15), false, 1.0)
+		_ci.draw_rect(Rect2(base + Vector2(-20, 12), Vector2(40.0 * lvl, 4.0)), _c(WorldMath.CYAN))
+		_ci.draw_rect(Rect2(base + Vector2(-20, 12), Vector2(40.0, 4.0)), Color(1, 1, 1, 0.15), false, 1.0)
 
 func _smoke(top: Vector2, lvl: float, col: Color) -> void:
 	if lvl <= 0.02: return
 	for k in 5:
 		var ph := fposmod(_t * 0.28 + float(k) / 5.0, 1.0)
-		draw_circle(top + Vector2(ph * 16.0, -ph * 46.0), 4.0 + ph * 9.0 * (0.5 + lvl), Color(col.r * _nl.r, col.g * _nl.g, col.b * _nl.b, (1.0 - ph) * 0.5 * clampf(lvl, 0.0, 1.0)))
+		_ci.draw_circle(top + Vector2(ph * 16.0, -ph * 46.0), 4.0 + ph * 9.0 * (0.5 + lvl), Color(col.r * _nl.r, col.g * _nl.g, col.b * _nl.b, (1.0 - ph) * 0.5 * clampf(lvl, 0.0, 1.0)))
 
 func _shunt(o: Dictionary) -> void:
 	var h: Dictionary = o.h; var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p))
@@ -713,19 +760,19 @@ func _draw_wires() -> void:
 		var gp := _line_poly(gl, 0.0)
 		var k := 0
 		while k + 3 < gp.size():
-			draw_line(gp[k], gp[k + 3], Color(0.96, 0.92, 0.78, 0.55), 2.0, true); k += 8
+			_ci.draw_line(gp[k], gp[k + 3], Color(0.96, 0.92, 0.78, 0.55), 2.0, true); k += 8
 	for l in model.lines:
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
 			if poly.size() < 2: continue
 			if str(l.kind) == "cable" and l.get("mm2") != null:   # bench cables: copper you can see; width ∝ conductor diameter ∝ sqrt(area)
 				var cw := (1.2 + 1.1 * sqrt(float(l.mm2))) / maxf(_scale(), 0.01) * clampf(_scale(), 0.6, 2.0)
-				draw_polyline(poly, _c(Color("#1C1712")), cw + 2.5, true)
-				draw_polyline(poly, _c(Color("#C8794A")), cw, true)
-				draw_polyline(poly, _c(Color("#F0B58A")), maxf(0.8, cw * 0.3), true)
+				_ci.draw_polyline(poly, _c(Color("#1C1712")), cw + 2.5, true)
+				_ci.draw_polyline(poly, _c(Color("#C8794A")), cw, true)
+				_ci.draw_polyline(poly, _c(Color("#F0B58A")), maxf(0.8, cw * 0.3), true)
 				continue
-			draw_polyline(poly, _c(Color("#1A1F30")) if l.in_service else Color(0.35, 0.37, 0.45, 0.8), float(l.width) + 2.0 if l.in_service else 1.5, true)
-			if l.in_service: draw_polyline(poly, Color(l.color.r, l.color.g, l.color.b, 0.9), float(l.width) * 0.75, true)
+			_ci.draw_polyline(poly, _c(Color("#1A1F30")) if l.in_service else Color(0.35, 0.37, 0.45, 0.8), float(l.width) + 2.0 if l.in_service else 1.5, true)
+			if l.in_service: _ci.draw_polyline(poly, Color(l.color.r, l.color.g, l.color.b, 0.9), float(l.width) * 0.75, true)
 
 func _poly_at(poly: PackedVector2Array, cum: PackedFloat32Array, f: float) -> Vector2:
 	var tot: float = cum[cum.size() - 1]
@@ -752,12 +799,12 @@ func _draw_pulses() -> void:
 				var f := fposmod(ph + float(k) / float(n), 1.0)
 				var p := _poly_at(poly, cum, f)
 				var r: float = float(l.width) * 0.5 + 1.8
-				draw_circle(p, r * 2.3, Color(col.r, col.g, col.b, 0.22)); draw_circle(p, r, col.lerp(Color.WHITE, 0.35))
+				_ci.draw_circle(p, r * 2.3, Color(col.r, col.g, col.b, 0.22)); _ci.draw_circle(p, r, col.lerp(Color.WHITE, 0.35))
 		if float(l.loading) > 1.0:   # countdown ring on the hot span: the heat used before the relay trips
 			var poly2 := _line_poly(l, 0.0)
 			var mid := poly2[poly2.size() / 2]
-			draw_arc(mid, 17.0, -PI * 0.5, -PI * 0.5 + TAU * clampf(float(l.overload), 0.03, 1.0), 28, WorldMath.RED, 3.0, true)
-			draw_arc(mid, 17.0, 0.0, TAU, 28, Color(1, 0.23, 0.23, 0.25), 1.5, true)
+			_ci.draw_arc(mid, 17.0, -PI * 0.5, -PI * 0.5 + TAU * clampf(float(l.overload), 0.03, 1.0), 28, WorldMath.RED, 3.0, true)
+			_ci.draw_arc(mid, 17.0, 0.0, TAU, 28, Color(1, 0.23, 0.23, 0.25), 1.5, true)
 
 func _draw_labels() -> void:
 	var font := CbKit.font_regular()
@@ -798,36 +845,36 @@ func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
 	if lit: _glow(c, r * (1.6 + glow), WorldMath.SODIUM, 0.10 + 0.25 * glow)
 	var bob := sin(_t * 4.0) * 2.0 if md == "happy" else (sin(_t * 30.0) * 0.8 if md == "sad" else 0.0)
 	c += Vector2(bob if md == "sad" else 0.0, -absf(bob) if md == "happy" else 0.0)
-	draw_rect(Rect2(c + Vector2(-r * 0.38, r * 0.72), Vector2(r * 0.76, r * 0.42)), Color("#8D93A6"))           # screw base
-	draw_line(c + Vector2(-r * 0.38, r * 0.86), c + Vector2(r * 0.38, r * 0.86), Color("#6C7286"), 1.5)
-	draw_circle(c, r, glass)
-	draw_arc(c, r, 0.0, TAU, 32, Color("#2A2418", 0.55), 1.5)
+	_ci.draw_rect(Rect2(c + Vector2(-r * 0.38, r * 0.72), Vector2(r * 0.76, r * 0.42)), Color("#8D93A6"))           # screw base
+	_ci.draw_line(c + Vector2(-r * 0.38, r * 0.86), c + Vector2(r * 0.38, r * 0.86), Color("#6C7286"), 1.5)
+	_ci.draw_circle(c, r, glass)
+	_ci.draw_arc(c, r, 0.0, TAU, 32, Color("#2A2418", 0.55), 1.5)
 	var ink := Color("#2A2418")
 	var ey := c + Vector2(0, -r * 0.12); var ex := r * 0.34
 	match md:
 		"asleep":
-			draw_arc(ey + Vector2(-ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6); draw_arc(ey + Vector2(ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6)
+			_ci.draw_arc(ey + Vector2(-ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6); _ci.draw_arc(ey + Vector2(ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6)
 			var font := CbKit.font_regular(); var zf := int(r * 0.7)
-			draw_string(font, c + Vector2(r * 0.8, -r * 0.6 - fposmod(_t * 6.0, 6.0)), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, zf, Color(1, 1, 1, 0.7))
+			_ci.draw_string(font, c + Vector2(r * 0.8, -r * 0.6 - fposmod(_t * 6.0, 6.0)), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, zf, Color(1, 1, 1, 0.7))
 		_:
 			var blink := fposmod(_t + float(int(c.x) % 7) * 0.3, 3.6) < 0.12
 			for sx in [-1.0, 1.0]:
 				var e: Vector2 = ey + Vector2(sx * ex, 0)
-				if blink: draw_line(e + Vector2(-r * 0.1, 0), e + Vector2(r * 0.1, 0), ink, 1.6)
-				else: draw_circle(e, r * 0.1, ink)
-				if md == "worried": draw_line(e + Vector2(-sx * r * 0.14, -r * 0.26), e + Vector2(sx * r * 0.12, -r * 0.18), ink, 1.4)
-				if md == "sad": draw_line(e + Vector2(-sx * r * 0.14, -r * 0.18), e + Vector2(sx * r * 0.12, -r * 0.27), ink, 1.4)
+				if blink: _ci.draw_line(e + Vector2(-r * 0.1, 0), e + Vector2(r * 0.1, 0), ink, 1.6)
+				else: _ci.draw_circle(e, r * 0.1, ink)
+				if md == "worried": _ci.draw_line(e + Vector2(-sx * r * 0.14, -r * 0.26), e + Vector2(sx * r * 0.12, -r * 0.18), ink, 1.4)
+				if md == "sad": _ci.draw_line(e + Vector2(-sx * r * 0.14, -r * 0.18), e + Vector2(sx * r * 0.12, -r * 0.27), ink, 1.4)
 			var m := c + Vector2(0, r * 0.3)
 			match md:
-				"happy": draw_arc(m + Vector2(0, -r * 0.12), r * 0.3, 0.35, PI - 0.35, 12, ink, 1.8); draw_circle(c + Vector2(-r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45)); draw_circle(c + Vector2(r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45))
-				"worried": draw_line(m + Vector2(-r * 0.2, 0), m + Vector2(r * 0.2, -r * 0.04), ink, 1.6); draw_circle(c + Vector2(r * 0.72, -r * 0.45), r * 0.1, Color("#7FC8FF"))
-				"sad": draw_arc(m + Vector2(0, r * 0.18), r * 0.24, PI + 0.4, TAU - 0.4, 12, ink, 1.8); draw_circle(ey + Vector2(ex, r * 0.25 + fposmod(_t * 8.0, r * 0.5)), r * 0.07, Color("#7FC8FF"))
+				"happy": _ci.draw_arc(m + Vector2(0, -r * 0.12), r * 0.3, 0.35, PI - 0.35, 12, ink, 1.8); _ci.draw_circle(c + Vector2(-r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45)); _ci.draw_circle(c + Vector2(r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45))
+				"worried": _ci.draw_line(m + Vector2(-r * 0.2, 0), m + Vector2(r * 0.2, -r * 0.04), ink, 1.6); _ci.draw_circle(c + Vector2(r * 0.72, -r * 0.45), r * 0.1, Color("#7FC8FF"))
+				"sad": _ci.draw_arc(m + Vector2(0, r * 0.18), r * 0.24, PI + 0.4, TAU - 0.4, 12, ink, 1.8); _ci.draw_circle(ey + Vector2(ex, r * 0.25 + fposmod(_t * 8.0, r * 0.5)), r * 0.07, Color("#7FC8FF"))
 
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := at - Vector2(w * 0.5, 0.0)
-	draw_rect(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))
-	draw_string(font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	_ci.draw_rect(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))
+	_ci.draw_string(font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 # --------------------------------------------------------------------------------------------------------------------
 # Read-only helpers for the kit tray and the tags (godot/ui/kit_tray.gd, tag_view.gd): screen positions, picking, site pegs
@@ -946,15 +993,15 @@ func _draw_pegs() -> void:
 		var pulse := 0.5 + 0.5 * sin(_t * 3.2 + float(i) * 0.9)
 		var ring := PackedVector2Array()
 		for k in 25: ring.append(p + Vector2(cos(TAU * k / 24.0) * 22.0 * sc, sin(TAU * k / 24.0) * 11.0 * sc))
-		draw_polyline(ring, Color(GridTheme.SODIUM, 0.35 + 0.4 * pulse + (0.25 if hi else 0.0)), 2.0, true)
-		draw_circle(p + Vector2(0, -16.0 * sc), (26.0 + 8.0 * pulse + (8.0 if hi else 0.0)) * sc, Color(GridTheme.SODIUM, 0.07 + 0.08 * pulse + (0.14 if hi else 0.0)))
-		draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(7.0 * sc, 28.0 * sc)), Color("#8A6A43"))
-		draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(2.5 * sc, 28.0 * sc)), Color("#B08A58"))
-		draw_circle(p + Vector2(0, -28.0 * sc), 5.5 * sc, GridTheme.SODIUM if hi else GridTheme.SODIUM.lerp(Color.WHITE, 0.25 * pulse))
-		draw_arc(p + Vector2(0, -28.0 * sc), 5.5 * sc, 0.0, TAU, 14, GridTheme.NIGHT, 1.5)
+		_ci.draw_polyline(ring, Color(GridTheme.SODIUM, 0.35 + 0.4 * pulse + (0.25 if hi else 0.0)), 2.0, true)
+		_ci.draw_circle(p + Vector2(0, -16.0 * sc), (26.0 + 8.0 * pulse + (8.0 if hi else 0.0)) * sc, Color(GridTheme.SODIUM, 0.07 + 0.08 * pulse + (0.14 if hi else 0.0)))
+		_ci.draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(7.0 * sc, 28.0 * sc)), Color("#8A6A43"))
+		_ci.draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(2.5 * sc, 28.0 * sc)), Color("#B08A58"))
+		_ci.draw_circle(p + Vector2(0, -28.0 * sc), 5.5 * sc, GridTheme.SODIUM if hi else GridTheme.SODIUM.lerp(Color.WHITE, 0.25 * pulse))
+		_ci.draw_arc(p + Vector2(0, -28.0 * sc), 5.5 * sc, 0.0, TAU, 14, GridTheme.NIGHT, 1.5)
 		var lb := str(_pegs[i].label)
 		if lb != "":
 			var tw := font.get_string_size(lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz)
-			draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
-			draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
+			_ci.draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
+			_ci.draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)

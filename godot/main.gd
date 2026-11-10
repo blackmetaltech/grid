@@ -83,7 +83,11 @@ func game_build_chrome(r: Control) -> void:
 	chrome.pin_pressed.connect(_on_pin)
 	if OS.is_debug_build() and not OS.has_environment("CB_SMOKE"):   # perf log for device runs: "CB_FPS fps=.. min=.." every 5 s (logcat / stdout)
 		var tm := Timer.new(); tm.wait_time = 5.0; tm.autostart = true; add_child(tm)
-		tm.timeout.connect(func(): print("CB_FPS fps=%d frame_ms=%.1f level=%s" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, str(b.q("levelInfo").get("id", "-")) if started else "title"]))
+		tm.timeout.connect(func():
+			var pf: Dictionary = grid_world.perf if grid_world != null else {}
+			var fr := maxf(1.0, float(Engine.get_frames_per_second()) * 5.0)
+			print("CB_FPS fps=%d frame_ms=%.1f level=%s static_ms=%.1f dyn_ms=%.2f top_ms=%.2f model_ms=%.1f models=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, str(b.q("levelInfo").get("id", "-")) if started else "title", float(pf.get("static_us", 0)) / 1000.0, float(pf.get("dyn_us", 0)) / 1000.0 / fr, float(pf.get("top_us", 0)) / 1000.0 / fr, float(pf.get("model_us", 0)) / 1000.0 / maxf(1.0, float(pf.get("models", 1))), int(pf.get("models", 0))])
+			if grid_world != null: for k in grid_world.perf: grid_world.perf[k] = 0)
 func game_chrome_visible(v: bool) -> void:
 	if chrome != null: chrome.set_chrome_visible(v)
 func game_relayout() -> void:

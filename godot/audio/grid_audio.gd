@@ -41,7 +41,7 @@ var hum_db := -6.0
 var stress := 0.0
 var cute := false
 var muted := false
-var headless := DisplayServer.get_name() == "headless"
+var headless := DisplayServer.get_name() == "headless" or OS.has_environment("CB_NOAUDIO")   # CB_NOAUDIO: perf A/B runs
 var _hum: HumSynth = HumSynth.new()
 var _hum_player: AudioStreamPlayer
 var _hum_pb: AudioStreamGeneratorPlayback
