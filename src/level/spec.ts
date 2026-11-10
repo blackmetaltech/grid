@@ -10,14 +10,15 @@ import { voltageBand, type SimParams } from '../sim/params';
 import type { GridRegionData } from '../regions/data';
 import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from '../catalogue';
 import { buildRouteActions } from '../route-actions';
+import { buildFreqActions } from '../freq-actions';
 import type { CatalogueView } from '../sim/build';
 import { buildActions } from '../actions';
 import type { GridState, Rules } from '../types';
 import type { BenchParams } from './bench';
 
 /** Region-pack symbols a threshold can name: resolved from the pack's grid code (never a literal that could differ per region). */
-export type PackSymbol = 'busBandLoPu' | 'busBandHiPu';
-export type Threshold = number | { symbol: PackSymbol; /** nominal kV of the bus the band is read for */ kv: number };
+export type PackSymbol = 'busBandLoPu' | 'busBandHiPu' | 'ufls1Hz' | 'standardLoHz' | 'standardHiHz' | 'coalMinPct';
+export type Threshold = number | { symbol: PackSymbol; /** nominal kV of the bus the band is read for (voltage symbols) */ kv?: number; /** added to the symbol's value (frequency symbols: e.g. ufls1Hz + 0.2) */ add?: number; /** multiplies the symbol's value before `add` is added (a threshold tuned per pack) */ scale?: number };
 
 /** One build the player could make at a site: a list of actions (empty = leave the site alone). */
 export interface DesignOption { id: string; actions: Action[] }
@@ -80,13 +81,18 @@ export interface GridLevelSpec {
   cableCutBlock?: number;
   /** The sea distance of a submarine cable laid in this level, km (L30). */
   seaCableKm?: number;
+  /** Extra rules the shared pipeline reads (chapters 5 and 6), merged over the standard rules. */
+  extraRules?: (th: Record<string, number>) => Partial<Rules>;
+  /** Shift-report lesson and incident-report "what to try" in the player's own numbers (grid levels that are not route levels). */
+  lessonText?: (s: GridState, p: SimParams, th: Record<string, number>) => string;
+  tryText?: (s: GridState, p: SimParams, th: Record<string, number>) => string;
   brownoutLoses: boolean;
   blackoutLoses: boolean;
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' };
+  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -101,7 +107,12 @@ export interface GridLevelSpec {
 // ---- thresholds -----------------------------------------------------------------------------------------------------------------
 export function resolveThreshold(th: Threshold, p: SimParams, mode: string): number {
   if (typeof th === 'number') return th;
-  const [lo, hi] = voltageBand(p, th.kv, mode);
+  const add = th.add ?? 0;
+  if (th.symbol === 'coalMinPct') return (p.coalMinPct ?? 40) * (th.scale ?? 1) + add;
+  if (th.symbol === 'ufls1Hz') return Math.max(...p.gridcode.ufls.map((u) => u.hz)) + add;   // the first (highest) UFLS stage of the pack's grid code
+  if (th.symbol === 'standardLoHz') return p.gridcode.standardRangeHz[0] + add;
+  if (th.symbol === 'standardHiHz') return p.gridcode.standardRangeHz[1] + add;
+  const [lo, hi] = voltageBand(p, th.kv ?? 0, mode);
   return th.symbol === 'busBandLoPu' ? lo : hi;
 }
 export function resolveThresholds(spec: GridLevelSpec, p: SimParams, mode: string): Record<string, number> {
@@ -121,6 +132,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     ...(spec.ch3 ? { ch3: structuredClone(spec.ch3) } : {}),   // a copy: the state owns its rules
     ...(spec.cableCutBlock !== undefined ? { cableCutBlock: spec.cableCutBlock, seaCableKm: spec.seaCableKm ?? null, darkLoadsLose: true } : {}),
     ...(spec.fogBlock !== undefined ? { fogBlock: spec.fogBlock, darkLoadsLose: true } : {}),   // absent keys elsewhere: the other levels' states and goldens stay as they were
+    ...(spec.extraRules ? spec.extraRules(th) : {}),
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: 'capex',
     star3: spec.star3.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })),
@@ -140,7 +152,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
       const th = resolveThresholds(spec, params, s.mode);
       const frozen = spec.frozen ? spec.frozen[pack.id] ?? null : null;
       if (spec.stars && spec.frozen && !frozen) throw new Error(`level ${spec.id} has no frozen targets for region '${pack.id}'`);
-      const A = { ...buildActions({ cat: () => cat, getParams: () => params, money: () => '' }), ...buildRouteActions({ cat: () => cat, getRoute: () => routeParamsOf(pack.data), money: () => '' }) };
+      const A = { ...buildActions({ cat: () => cat, getParams: () => params, money: () => '' }), ...buildRouteActions({ cat: () => cat, getRoute: () => routeParamsOf(pack.data), money: () => '' }), ...buildFreqActions({ cat: () => cat, money: () => '' }) };
       const mode = s.mode; s.mode = 'sandbox';   // the scenario places the town's loads, which only sandbox may do
       spec.place(s, { A, params, bench: benchParamsOf(pack.data), cat, th, frozen });
       s.mode = mode;

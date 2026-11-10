@@ -21,6 +21,7 @@ import { ch3Step } from './ch3/systems';
 import { ch4Step } from './ch4/systems';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
+import { freqBlockTrack } from './freqtrack';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -409,6 +410,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       // named level measurements for the star rules: billing power factor at the supply point (kWh over kVAh, |Q| counted in both
       // directions) and the loss share of the energy supplied
       const tr = s.metrics.track;
+      freqBlockTrack(s, getParams(s));   // chapter 6 levels only (rules.freqTrack): block-frequency statistics
       const pg = s.units.reduce((a, u) => a + (u.online ? u.P : 0), 0), qg = s.units.reduce((a, u) => a + (u.online ? u.Q : 0), 0);
       tr.pMWh = fin((tr.pMWh ?? 0) + pg * BLOCK_H); tr.qMVArh = fin((tr.qMVArh ?? 0) + Math.abs(qg) * BLOCK_H);
       tr.pfDay = fin(tr.pMWh / (Math.sqrt(tr.pMWh * tr.pMWh + tr.qMVArh * tr.qMVArh) || 1), 1);

@@ -5,7 +5,7 @@ import { GAME } from '../game';
 import type { GridState } from '../types';
 import { makeLevel, type Frozen, type GridLevelSpec } from './spec';
 
-export type FailKind = 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail';
+export type FailKind = 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail';
 
 export interface Outcome {
   status: 'won' | 'lost' | 'playing';
@@ -32,6 +32,10 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (key.startsWith('level.lost.machine') || key === 'level.lost.townLoss') return 'brownout';   // chapter 2's benches
   if (key === 'level.lost.townOverload') return 'overload';
   if (key === 'level.lost.budget') return 'budget';
+  if (key === 'level.lost.nadir') return 'nadir';
+  if (key === 'level.lost.share') return 'share';
+  if (key === 'level.lost.rocof') return 'rocof';
+  if (key === 'level.lost.freqBand' || key === 'level.lost.inRange') return 'freqBand';
   if (key === 'level.lost.flashover') return 'flashover';
   if (key === 'level.lost.saltFlashover') return 'saltFlashover';
   if (key.startsWith('level.lost.island')) return 'islandDark';

@@ -337,6 +337,22 @@ export interface Rules {
   cableCutBlock?: number | null;
   /** The sea distance a submarine cable laid by `layCableRoute` spans, km (L30); absent = the straight distance between its buses. */
   seaCableKm?: number | null;
+  /** Chapter 6 (absent elsewhere): record the frequency numbers of the event window and the blocks in `metrics.track` (nadir, RoCoF, shed MW, band share), and rate the predictions. */
+  freqTrack?: boolean;
+  /** Chapter 6: a 500 ms RoCoF above this (Hz/s) in the event window loses (L21: "RoCoF <= 1.0 Hz/s"). */
+  maxRocofHzS?: number | null;
+  /** Chapter 6: ids of the legacy rooftop PV units that trip on RoCoF > derRocofHzS (no ride-through, DESIGN S29); cleared by `upgradeRideThrough`. */
+  derLegacyIds?: string[];
+  derRocofHzS?: number;
+  /** Chapter 6 (L20): block frequency outside +-0.2 Hz in any block loses; this share of blocks must sit inside the standard range. */
+  maxDevHz?: number | null;
+  /** Chapter 6 (L20): at the end of the run at least this percent of the blocks must sit inside the pack's standard frequency range. */
+  minInRangePct?: number | null;
+  /** Chapter 6 (L22 exam bridge): the textbook cases are rated against the engine's answers; stars = 1 + (>= 2 predictions within 0.5 %) + (all 3). */
+  freqExam?: boolean;
+  predStars?: boolean;
+  /** Chapter 6: once `metrics.track[key]` exists it must stay inside [lo, hi] (L22: G1's share of the step, 0.58..0.62). */
+  trackBand?: { key: string; lo: number; hi: number } | null;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
   /** Chapter 3 (absent elsewhere): the harmonic, fault and power-factor rules of L07-L09 (src/sim/ch3). */

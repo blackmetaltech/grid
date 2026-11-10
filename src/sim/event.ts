@@ -15,6 +15,7 @@ import { finaleVerdict } from './finale';
 import { ch4Verdict, ch4Stars } from './ch4/systems';
 import type { GridState, ReplayLog, Rules, Unit } from '../types';
 import { flashoverParams, saltFlashoverParams, islandDark } from './flashover';
+import { bessFreqMode, derInput, afterDer, freqWindowTrack, predictionsWithin } from './freqtrack';
 
 export interface EventTrigger {
   /** Branch and unit ids opened at t = 0. */
@@ -77,7 +78,7 @@ export function runEventWindow(input: Readonly<GridState>, params: SimParams, tr
   const imbalance = lostGenMW - lostLoadMW;
   const survivors = s.units.filter((u) => u.online && SYNC_KINDS.has(u.kind));
   const fu: FreqUnit[] = survivors.map((u) => ({ id: u.id, kind: govKind(u), S: u.mva, H: u.H, ...(u.droopPct > 0 ? { R: u.droopPct / 100 } : {}), P0: u.P, Pmin: u.pMin, Pmax: u.pMax }));
-  const fb: FreqBess[] = s.storage.filter((b) => b.mw > 0 && energised[b.bus] !== false).map((b) => ({ id: b.id, ratedMW: b.mw, mode: 'following', energyMWh: Math.max(0, (b.soc - 0.1) * b.mwh) }));
+  const fb: FreqBess[] = s.storage.filter((b) => b.mw > 0 && energised[b.bus] !== false).map((b) => ({ id: b.id, ratedMW: b.mw, ...bessFreqMode(b), energyMWh: Math.max(0, (b.soc - 0.1) * b.mwh) }));
   const loadMW = s.loads.reduce((a, l) => a + (energised[l.bus] === false ? 0 : l.P * (1 - l.shedFrac)), 0) + lostLoadMW;
   let frequencyRan = false;
   const marks: ReplayLog['marks'] = casc.replay.map((r) => ({ tS: r.tS, element: r.element, causeKey: r.cause.key }));
@@ -85,11 +86,12 @@ export function runEventWindow(input: Readonly<GridState>, params: SimParams, tr
   if (Math.abs(imbalance) > 1e-6 * Math.max(1, loadMW) && fu.length > 0) {
     const fr = runFrequencyWindow({
       f0: params.f0, units: fu, bess: fb, loadMW: Math.max(loadMW, 1e-3), disturbanceMW: imbalance,
-      gridCode: { deadbandHz: params.gridcode.deadbandHz, ufls: params.gridcode.ufls, genUf: params.gridcode.genUf, genOf: params.gridcode.genOf },
+      gridCode: { deadbandHz: params.gridcode.deadbandHz, ufls: params.gridcode.ufls, genUf: params.gridcode.genUf, genOf: params.gridcode.genOf, ...(derInput(s).derRocofTrip ? { derRocofTrip: derInput(s).derRocofTrip } : {}) }, ...(derInput(s).derLegacyMW ? { derLegacyMW: derInput(s).derLegacyMW } : {}),
     });
     frequencyRan = true;
     if (fr.ok) {
       for (const tr of fr.unitTrips) { const u = s.units.find((x) => x.id === tr.id); if (u) lostUnit(u, 'trip'); }
+      afterDer(s, fr); freqWindowTrack(s, fr, params.f0, imbalance, survivors);   // chapter 6: legacy rooftop PV that tripped leaves the state; the window's numbers go to metrics.track
       for (const ev of fr.events) {
         marks.push({ tS: ev.t, element: ev.element, causeKey: FREQ_CAUSE[ev.kind] ?? 'freq.blackout' });
         if (ev.kind === 'ufls_shed') { const i = Number(ev.element.replace('ufls', '')) - 1; if (s.protection.ufls[i]) s.protection.ufls[i]!.operated = true; }
@@ -140,7 +142,11 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.maxEnsMWh !== null && m.ensMWh > rules.maxEnsMWh) return lost('level.lost.ens', { ens: Math.round(m.ensMWh * 10) / 10, max: rules.maxEnsMWh });
   if (rules.maxCost !== null && m.cost > rules.maxCost) return lost('level.lost.cost', { cost: Math.round(m.cost), max: rules.maxCost });
   if (rules.minNadirHz !== null && m.nadirHz < rules.minNadirHz) return lost('level.lost.nadir', { nadir: Math.round(m.nadirHz * 100) / 100, min: rules.minNadirHz });
+  if (rules.maxRocofHzS != null && (m.track.maxRocof ?? 0) > rules.maxRocofHzS + 1e-9) return lost('level.lost.rocof', { rocof: Math.round((m.track.maxRocof ?? 0) * 100) / 100, max: rules.maxRocofHzS, nadir: Math.round((m.track.nadirHz ?? 0) * 100) / 100 });
+  if (rules.maxDevHz != null && (m.track.maxDevHz ?? 0) > rules.maxDevHz + 1e-9) return lost('level.lost.freqBand', { dev: Math.round(Math.abs(m.track.worstDevSignedHz ?? 0) * 1000), max: Math.round(rules.maxDevHz * 1000), hh: Math.floor((m.track.worstDevBlock ?? 0) / 4), mm: String(((m.track.worstDevBlock ?? 0) % 4) * 15).padStart(2, '0'), low: (m.track.worstDevSignedHz ?? 0) < 0 ? 1 : 0 });
+  if (rules.trackBand != null && m.track[rules.trackBand.key] !== undefined && (m.track[rules.trackBand.key]! < rules.trackBand.lo - 1e-12 || m.track[rules.trackBand.key]! > rules.trackBand.hi + 1e-12)) return lost('level.lost.share', { share: Math.round(m.track[rules.trackBand.key]! * 1000) / 10, lo: rules.trackBand.lo * 100, hi: rules.trackBand.hi * 100, g1: Math.round(m.track.dPm_U1 ?? 0), g2: Math.round(m.track.dPm_U2 ?? 0) });
   const atEnd = rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks;
+  if (atEnd && rules.minInRangePct != null && (m.track.inRangePct ?? 100) < rules.minInRangePct - 1e-9) return lost('level.lost.inRange', { pct: Math.round((m.track.inRangePct ?? 0) * 10) / 10, min: rules.minInRangePct });
   if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin && (m.poorSupplyMin >= (rules.poorSupplyGraceMin ?? 0) || atEnd)) {
     if (s.bench?.verdict) return lost(s.bench.verdict.key, s.bench.verdict.params);   // chapter 2's benches (L04, L06) say why themselves
     if (s.bench && s.bench.limits.lossMaxPct !== null) {   // a bench judged on line losses (L03): say which way it failed
@@ -161,6 +167,7 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
       if (c <= rules.starCost[0] + 1e-6) stars = 2;
       if (c <= rules.starCost[1] + 1e-6 && m.ensMWh === 0 && extra) stars = 3;
     }
+    if (rules.predStars) { const n = predictionsWithin(s, 0.5); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }
     return { status: 'won', key: 'level.won', params: { stars }, stars };
   }
   return { status: 'playing', key: null, params: {}, stars: 0 };

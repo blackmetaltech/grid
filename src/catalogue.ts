@@ -27,6 +27,7 @@ export function simParamsOf(d: GridRegionData): SimParams {
       standardRangeHz: [g.standardRangeHz[0], g.standardRangeHz[1]], droopRangePct: [g.droopRangePct[0], g.droopRangePct[1]],
     },
     economy: { energyPricePerMWh: d.economy.energyPricePerMWh, vollPerMWh: d.economy.vollPerMWh },
+    coalMinPct: d.catalogues.generators.find((x) => x.id === 'coal-sub-500')?.pMinPct ?? 40,
     bands: { levels, lvBandPct: d.voltage.lvBandPct, mvBandPct: { learner: d.voltage.mvBandPct.learner, engineer: d.voltage.mvBandPct.engineer } },
   };
 }
@@ -68,9 +69,11 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
     },
     storage: (id) => {
       const r = cat.storage.find((x) => x.id === id);
-      if (!r || r.mwh === null) return null;
+      if (!r || (r.mwh === null && r.id !== 'psp-250')) return null;
       const eta = r.etaRt ?? 0.86;
-      return { id: r.id, mw: r.mw, mwh: r.mwh, etaRt: eta > 1 ? eta / 100 : eta, capexPerKw: num(r.capexPerKw), capexPerKwh: num(r.capexPerKwh) };
+      // chapter 6: a pumped-storage unit has an 8 h reservoir (the row has no MWh), and a row priced all-in (the grid-forming battery, pumped hydro) is charged that price per kW
+      const allIn = r.capexPerKw === null && r.capexPerKwh === null ? num((r as { allInPerKw?: number | null }).allInPerKw) : null;
+      return { id: r.id, mw: r.mw, mwh: r.mwh ?? r.mw * 8, etaRt: eta > 1 ? eta / 100 : eta, capexPerKw: allIn ?? num(r.capexPerKw), capexPerKwh: num(r.capexPerKwh) };
     },
   };
 }

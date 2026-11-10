@@ -19,6 +19,8 @@ export interface SimParams {
     droopRangePct: [number, number];
   };
   economy: { energyPricePerMWh: number; vollPerMWh: number };
+  /** The pack's coal technical minimum, percent of rating (40 in `global`, 55 in `in`); chapter 6 tunes its thresholds with it. */
+  coalMinPct?: number;
   /** Voltage bands as pu fractions of the level's nominal kV. */
   bands: { levels: { kv: number; loPu: number; hiPu: number }[]; lvBandPct: number; mvBandPct: { learner: number; engineer: number } };
 }

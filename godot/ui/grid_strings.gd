@@ -47,7 +47,7 @@ const S := {
 	"WO_TITLE": "WORK ORDER %s · %s", "WO_RADIO": "On the radio", "WO_GOAL": "Goal", "WO_PASS": "To pass", "WO_STARS": "Lamps to earn", "WO_TAKE": "Take the job", "WO_BACK": "Back to the job",
 	"WO_MODE": "How hard", "WO_COND_LIGHTS": "Lights on", "WO_COND_BUDGET": "Spend ≤ %s", "WO_WINDOW": "%s–%s", "WO_FREE_PLAY": "Free play: no work order.",
 	"TH_vLoadMinV": "Every home ≥\u00a0%s V", "TH_lossMaxPct": "Line losses ≤\u00a0%s\u00a0%%", "TH_loadBusMinPu": "Mill bus ≥\u00a0%s pu", "TH_loadingMax": "No line above %s %% of its rating",
-	"TH_vTolPct": "Village voltage within ±\u00a0%s\u00a0%% of 230\u00a0V rms", "TH_fTolPct": "Frequency within ±\u00a0%s\u00a0%% of the grid's", "TH_predTolPct": "Prediction within\u00a0%s\u00a0%%", "TH_vStar3V": "Every home ≥\u00a0%s V", "TH_lossStar3Pct": "Line losses ≤\u00a0%s\u00a0%%", "TH_pfStar3": "Power factor ≥\u00a0%s",
+	"TH_vStar3V": "Every home ≥\u00a0%s V", "TH_lossStar3Pct": "Line losses ≤\u00a0%s\u00a0%%", "TH_pfStar3": "Power factor ≥\u00a0%s",
 	"LAMP_1": "Pass the job", "LAMP_2": "Spend ≤ %s", "LAMP_3": "Spend ≤ %s%s", "LAMP_AND": ", ", "LAMP_NO_COST": "Done well",
 	"REP_WON": "Shift report", "REP_LOST": "Incident report", "REP_SUB": "WO-%s · %s", "REP_COST": "Cost", "REP_WORST": "Worst home", "REP_LOSS": "Line loss", "REP_V": "%s V", "REP_PCT": "%s\u00a0%%",
 	"REP_ADA": "ADA", "REP_CAUSE": "What happened", "REP_NUMBERS": "The worst home saw %s V; the limit is %s V.", "REP_TRY": "What to try", "REP_TRY_FALLBACK": "Change one thing, run it again, and watch which number moves.",
