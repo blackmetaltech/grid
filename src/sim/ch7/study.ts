@@ -59,7 +59,7 @@ function raw(c: Ch7State): Omit<Study, 'track' | 'actuals'> & { track: Record<st
     Object.assign(base, { capex: st.capexUSD * m, score: st.capexUSD * m });
     base.track = { marginMs: st.marginMs, clearMs: st.clearS * 1000, tCrMs: st.tCrS * 1000, deltaCrDeg: st.deltaCrDeg, stable: st.stable ? 1 : 0, peakDeg: st.swing.maxDeg };
     base.actuals = { deltaCrDeg: st.deltaCrDeg };
-    if (!st.stable) Object.assign(base, { ok: false }, fail('outOfStep', { clear: Math.round(st.clearS * 1000), tcr: Math.round(st.tCrS * 1000), relay: Math.round(st.relayS * 1000), brk: Math.round(st.breakerS * 1000), tloss: r2(st.swing.tLossS ?? 0), du: Math.round(st.deltaUDeg), peak: Math.round(st.swing.maxDeg) }));
+    if (!st.stable) Object.assign(base, { ok: false }, fail('outOfStep', { clear: Math.round(st.clearS * 1000), tcr: Math.round(st.tCrS * 1000), relay: Math.round(st.relayS * 1000), brk: Math.round(st.breakerS * 1000), tloss: r2(st.swing.tLossS ?? 0), du: Math.round(st.deltaUDeg), peak: Math.round(st.swing.clearAtDeg) }));
     return base;
   }
   if (c.id === 'L26') {

@@ -35,7 +35,7 @@ func _draw_panel_body() -> void:
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_RELAY_CAP2"), Color(GridTheme.TEXT, 0.65))
 	_text(_semi(), 10, inner.position + Vector2(0, 70), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 70), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
 	_text(_semi(), 10, inner.position + Vector2(440, 70), T("C7_PREDICT_DCR"), Color(GridTheme.TEXT, 0.8))
-	_text(_mono(), 12, inner.position + Vector2(280, 130), T("C7_CLEAR") % int(q.clearMs), GridTheme.TEXT)
+	_text(_mono(), 11, inner.position + Vector2(0, 128), T("C7_CLEAR_SUM") % [int(q.clearMs), int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], GridTheme.TEXT)
 	if _revealed():
 		var ok := bool(q.stable)
 		_text(_mono(), 12, inner.position + Vector2(440, 130), (T("C7_TCR") % int(q.tCrMs)) + "   " + (T("C7_MARGIN_MS") % int(q.marginMs)), _good(ok))
@@ -80,6 +80,7 @@ func _draw_stage() -> void:
 		_text(_semi(), 20, Vector2(sr.position.x, sr.end.y - 40.0), T("C7_STABLE") if bool(q.stable) else T("C7_SLIPS"), _good(bool(q.stable)), sr.size.x, 1)
 	else:
 		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), sr); _text(_mono(), 12, sr.position + Vector2(14, 28), T("C7_HIDDEN"), GridTheme.DIM)
+		draw_multiline_string(_mono(), sr.position + Vector2(14, 60), T("C7_GLOSS_PM"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(12), -1, Color(GridTheme.TEXT, 0.75))
 
 func _interp(pts: Array, d: float) -> float:
 	for i in range(1, pts.size()):

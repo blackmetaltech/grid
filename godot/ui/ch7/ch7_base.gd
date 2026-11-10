@@ -40,7 +40,7 @@ func _revealed() -> bool: return bool(q.get("revealed", false))
 func _frame(r: Rect2, xlo: float, xhi: float, ylo: float, yhi: float, logx: bool, logy: bool, xcap := "", ycap := "") -> void:
 	plot = {"r": r, "xlo": xlo, "xhi": xhi, "ylo": ylo, "yhi": yhi, "lx": logx, "ly": logy}
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
-	var inner := r.grow(-10.0); plot["r"] = Rect2(inner.position + Vector2(34, 6), inner.size - Vector2(42, 28)); var pr: Rect2 = plot.r
+	var inner := r.grow(-10.0); plot["r"] = Rect2(inner.position + Vector2(34, 22), inner.size - Vector2(42, 44)); var pr: Rect2 = plot.r
 	draw_rect(pr, Color(GridTheme.NIGHT, 0.6)); draw_rect(pr, Color(GridTheme.SODIUM_DIM, 0.35), false, 1.0)
 	var xs: Array = _ticks(xlo, xhi, logx); var ys: Array = _ticks(ylo, yhi, logy)
 	for v in xs:
@@ -50,7 +50,7 @@ func _frame(r: Rect2, xlo: float, xhi: float, ylo: float, yhi: float, logx: bool
 		var p := _pt(xlo, float(v)); draw_line(Vector2(pr.position.x, p.y), Vector2(pr.end.x, p.y), Color(GridTheme.TEXT, 0.08), 1.0)
 		_text(_mono(), 9, Vector2(r.position.x + 4.0, p.y + 3.0), WorkOrder.num(float(v)), Color(GridTheme.TEXT, 0.6), 34.0, 2)
 	if xcap != "": _text(_mono(), 10, Vector2(pr.position.x, r.end.y - 2.0), xcap, Color(GridTheme.TEXT, 0.55), pr.size.x, 2)
-	if ycap != "": _text(_semi(), 10, Vector2(r.position.x + 40.0, r.position.y + 14.0), ycap, Color(GridTheme.TEXT, 0.7))
+	if ycap != "": _text(_semi(), 10, Vector2(r.position.x + 14.0, r.position.y + 15.0), ycap, Color(GridTheme.TEXT, 0.7))
 
 func _ticks(lo: float, hi: float, lg: bool) -> Array:
 	var out := []

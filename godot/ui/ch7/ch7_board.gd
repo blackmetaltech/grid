@@ -60,7 +60,7 @@ func _draw_stage() -> void:
 		if float(q.design.reactor) > 0.0:
 			for i in 4: draw_arc(Vector2(cx - 18 + i * 12, by - 7), 6.0, PI, TAU, 8, GridTheme.COPPER, 3.0)
 	_text(_semi(), 10, Vector2(cx - 50, by + 22), T("C7_COUPLER") + " " + (T("C7_OPEN") if open else T("C7_CLOSED")), Color(GridTheme.TEXT, 0.7), 100.0, 1)
-	_text(_semi(), 10, Vector2(ax - 70, by + 16), T("C7_SEC_A"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 10, Vector2(bx + 20, by + 16), T("C7_SEC_B"), Color(GridTheme.TEXT, 0.7))
+	_text(_semi(), 10, Vector2(ax - 70, by + 26), T("C7_SEC_A"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 10, Vector2(bx + 20, by + 26), T("C7_SEC_B"), Color(GridTheme.TEXT, 0.7))
 	# generators and the feeder breaker
 	for gx in [ax - 40.0, bx + 40.0]:
 		draw_line(Vector2(gx, by), Vector2(gx, by + 46), wire, 2.0); draw_circle(Vector2(gx, by + 62), 16.0, Color(GridTheme.INK)); draw_arc(Vector2(gx, by + 62), 16.0, 0, TAU, 24, wire, 2.0); _text(_semi(), 13, Vector2(gx - 8, by + 67), "G", GridTheme.TEXT, 16.0, 1)
@@ -68,12 +68,15 @@ func _draw_stage() -> void:
 	var br := Rect2(Vector2(fx - 11, by + 40), Vector2(22, 22)); var over := _revealed() and not bool(q.get("ok", true))
 	draw_rect(br, Color(GridTheme.BAD, 0.85) if over else Color(GridTheme.GOOD, 0.75) if _revealed() else Color(GridTheme.SODIUM, 0.6))
 	draw_line(Vector2(fx, by + 62), Vector2(fx, by + 90), wire, 2.0)
-	_text(_semi(), 10, Vector2(fx + 16, by + 56), T("C7_FEEDER") + "  " + T("C7_RATED") % WorkOrder.num(float(q.ratingKA)), Color(GridTheme.TEXT, 0.85))
+	_text(_semi(), 10, Vector2(fx + 34, by + 78), T("C7_FEEDER") + "  " + T("C7_RATED") % WorkOrder.num(float(q.ratingKA)), Color(GridTheme.TEXT, 0.85))
 	if _revealed():
 		# the bolt: the scripted fault just outside the breaker
 		var bp := Vector2(fx, by + 96); var pulse := 0.6 + 0.4 * sin(_t * 9.0)
 		draw_colored_polygon(PackedVector2Array([bp + Vector2(-6, -8), bp + Vector2(4, -8), bp + Vector2(-2, 2), bp + Vector2(8, 2), bp + Vector2(-8, 18), bp + Vector2(-2, 5), bp + Vector2(-8, 5)]), Color(GridTheme.WARN, pulse))
 		if dark: _text(_semi(), 22, Vector2(r.position.x, r.position.y + 24), T("C7_ESTATE_DARK"), GridTheme.BAD, r.size.x, 1)
+	var gy2 := r.end.y - 52.0
+	for g in ["C7_GLOSS_IF", "C7_GLOSS_PU", "C7_GLOSS_REACTOR"]:
+		_text(_mono(), 10, Vector2(r.position.x + 14.0, gy2), T(g), Color(GridTheme.TEXT, 0.6)); gy2 += 15.0
 	# right: the table of who breaks what, and N-1
 	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), tr)
 	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE"), Color(GridTheme.TEXT, 0.7))

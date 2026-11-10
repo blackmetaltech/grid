@@ -48,10 +48,15 @@ func _draw_stage() -> void:
 	_frame(r, 80.0, 8000.0, 0.01, 30.0, true, true, T("C7_TC_X"), T("C7_TC_Y"))
 	for L in q.limits:
 		_poly(L.pts, Color(GridTheme.BAD, 0.35), 1.0)
-		var p := _pt(200.0, float(L.pts[0][1])); _text(_mono(), 9, p + Vector2(4, -3), T("C7_LIMIT") % int(L.mm2), Color(GridTheme.BAD, 0.6))
 	for k in q.curves.size():
 		_poly(q.curves[k].pts, COLS[k], 2.5)
 		var ip := _pt(float(q.curves[k].is), 30.0); draw_line(ip, ip + Vector2(0, 14), COLS[k], 2.0)
+	var lx: float = float((plot.r as Rect2).position.x) + 12.0; var ly: float = float((plot.r as Rect2).position.y) + 40.0
+	_text(_semi(), 10, Vector2(lx, ly - 14.0), T("C7_LEG_CURVES"), Color(GridTheme.TEXT, 0.7))
+	for k in 4:
+		draw_rect(Rect2(Vector2(lx, ly + 16.0 * k - 8.0), Vector2(14, 6)), COLS[k]); _text(_mono(), 10, Vector2(lx + 20.0, ly + 16.0 * k), "R%d  I_s %s A" % [k + 1, str(q.is[k])], GridTheme.TEXT)
+	var by2: float = ly + 16.0 * 4
+	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); _text(_mono(), 10, Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), Color(GridTheme.BAD, 0.85))
 	for f in q.faults:
 		var x := _pt(float(f.amps), 0.01).x; var pr: Rect2 = plot.r
 		draw_line(Vector2(x, pr.position.y), Vector2(x, pr.end.y), Color(GridTheme.TEXT, 0.35), 1.0)

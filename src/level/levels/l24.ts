@@ -17,7 +17,7 @@ export const L24: GridLevelSpec = {
   startBlock: 80, horizonBlocks: null, maxTicks: 2,
   allowed: {
     actions: ['setRelayCurve', 'setRelayPickup', 'setRelayTms'],
-    parts: { setRelayCurve: ['SI', 'VI', 'EI'], setRelayTms: ['0.05', '0.15', '0.25', '0.35', '0.5', '0.75'] },
+    parts: { setRelayCurve: ['SI', 'VI', 'EI'] },
   },
   sites: [
     { id: 'curve', options: [{ id: 'SI', actions: curve('SI') }, { id: 'VI', actions: curve('VI') }, { id: 'EI', actions: curve('EI') }] },
