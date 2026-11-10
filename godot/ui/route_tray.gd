@@ -28,6 +28,9 @@ const CROSS := ["none", "crossing-h", "tubular-13"]
 const MAX_SPAN := {"wood-9": 70, "pcc-11": 100, "tubular-13": 130}
 const COND_MM2 := {"weasel": 30, "rabbit": 50, "dog": 100}
 const STEP_M := 50.0
+## Insulator kit (L29): unit creepage of the whole string in mm (src/data/insulators.ts), display only; the planner computes the real numbers.
+const INS_MM := {"pin": 320, "disc2": 590, "fog1": 430}
+const INS_IDS := ["pin", "disc2", "fog1"]
 
 var b                               ## CbBridge
 var world: WorldView
@@ -57,6 +60,8 @@ var focus := -1                     ## pad / keyboard focus
 var engaged := false
 var level := ""
 var preview := {}                   ## last routePreview result
+var _district: Array = []           ## branch ids of lines the job started with (L29: the district's L05 line); the kit never re-strings them
+var _note_of := {}                  ## {text, note}: the amber salt line of the chip that shows `text`
 var chip_text := ""
 var chip_dot := Color.TRANSPARENT   ## green / amber / red dot of the chip; transparent = none
 var chip_at := Vector2.ZERO         ## tray-local anchor of the chip (bottom centre)
@@ -102,6 +107,12 @@ func refresh() -> void:
 		_read_yards(w); kit.kv = kvs()[0] if not kvs().is_empty() else 0.42
 		var rs: Array = b.g.get("routes", [])
 		if not rs.is_empty(): kit.kv = float(rs[0].request.kv)   # a kept design (Retry): the cell shows the line's own voltage
+		_district = []
+		if ins_allowed(b) and int(b.g.get("tick", 0)) <= int(b.g.get("levelStart", 0)): for r in rs: _district.append(str(r.branchId))   # a fresh job: whatever stands already is the district's, not the player's
+		if ins_allowed(b):   # insulators are a kit part only where the level allows them (L05 keeps its 7 args)
+			kit.insulator = "pin"; kit.coast = "pin"
+			var pr := player_routes()
+			if not pr.is_empty() and pr[0].request.has("insulatorId"): kit.insulator = str(pr[0].request.insulatorId); kit.coast = str(pr[0].request.get("coastInsulatorId", kit.insulator))
 	_read_yards(w); _build_items()
 	visible = true
 	if mode != "": _show_pegs()
@@ -135,6 +146,25 @@ func _parts(action: String, fallback: Array) -> Array:
 		for a in pal.actions: if str(a.action) == action and not (a.parts as Array).is_empty(): return a.parts
 	return fallback
 
+## The lines the player laid: every route except the ones the job started with.
+func player_routes() -> Array:
+	return (b.g.get("routes", []) as Array).filter(func(r): return not _district.has(str(r.branchId)))
+
+## Does the running level let the player choose insulators? The palette lists them when the engine exposes `buildRoute.insulator`; until then the level's fog rule says so.
+static func ins_allowed(bridge) -> bool:
+	if bridge == null: return false
+	var pal = bridge.q("palette")
+	if pal is Dictionary and pal.get("active", false):
+		for a in pal.actions: if str(a.action) == "buildRoute.insulator" and not (a.parts as Array).is_empty(): return true
+	var li = bridge.q("levelInfo")
+	return li is Dictionary and li.get("active", false) and li.get("fogBlock") != null
+
+func ins_parts() -> Array:
+	var pal = b.q("palette")
+	if pal is Dictionary and pal.get("active", false):
+		for a in pal.actions: if str(a.action) == "buildRoute.insulator" and not (a.parts as Array).is_empty(): return a.parts
+	return INS_IDS
+
 func _build_items() -> void:
 	var out: Array = [{"kind": "survey", "id": "survey", "group": 0}]
 	if kvs().size() > 1: out.append({"kind": "kv", "id": "kv", "group": 0})
@@ -142,7 +172,12 @@ func _build_items() -> void:
 	for c in CROSS: out.append({"kind": "crossing", "id": c, "group": 2})
 	out.append({"kind": "span", "id": "span", "group": 3})
 	for c in _parts("buildRoute", ["weasel", "rabbit", "dog"]): out.append({"kind": "conductor", "id": str(c), "group": 4})
-	for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250", "dt-400"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": 5})
+	var g := 5
+	if ins_allowed(b):
+		for k in ["insulator", "coast"]:
+			for i in ins_parts(): out.append({"kind": k, "id": str(i), "group": g})
+			g += 1
+	for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250", "dt-400"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": g})
 	items = out
 
 func item_index(kind: String, id := "") -> int:
@@ -162,7 +197,16 @@ func _args(from: String, to: String, wps: Array, k := {}) -> Array:
 	var kk: Dictionary = k if not k.is_empty() else kit
 	var pts: Array = []
 	for p in wps: pts.append([float((p as Vector2).x), float((p as Vector2).y)])
-	return [from, to, str(kk.conductor), str(kk.family), _crossing_arg(kk), float(kk.span), pts]
+	var out := [from, to, str(kk.conductor), str(kk.family), _crossing_arg(kk), float(kk.span), pts]
+	if kk.has("insulator"): out.append_array([str(kk.insulator), str(kk.coast)])   # only where the level allows insulators
+	return out
+
+## The args that rebuild a recorded line exactly as it was (the put-back after a refused re-string).
+static func _old_args(from: String, to: String, req: Dictionary) -> Array:
+	var all: Array = req.waypoints
+	var out := [from, to, str(req.conductorId).trim_prefix("acsr-"), str(req.familyId), req.crossingFamilyId, float(req.spanM), all.slice(1, all.size() - 1)]
+	if req.has("insulatorId"): out.append_array([str(req.insulatorId), str(req.get("coastInsulatorId", req.insulatorId))])
+	return out
 
 func _branch(id: String) -> Dictionary:
 	for br in b.g.get("branches", []): if str(br.id) == id: return br
@@ -284,7 +328,7 @@ func activate(i: int) -> void:
 		"survey":
 			if mode == "survey": cancel(); return
 			cancel(); mode = "survey"; _show_pegs(); mode_changed.emit(mode); _hint(tx("RT_HINT_START"))
-		"family", "crossing", "conductor": select_kit(str(it.kind), str(it.id))
+		"family", "crossing", "conductor", "insulator", "coast": select_kit(str(it.kind), str(it.id))
 		"span": step_span(1)
 		"kv": step_kv(1)
 		"xfmr":
@@ -310,6 +354,8 @@ func select_kit(what: String, id: String) -> Dictionary:
 			var ok: Array = allowed_spans(); kit.span = ok[ok.size() - 1]
 	elif what == "crossing": kit.crossing = id
 	elif what == "conductor": kit.conductor = id
+	elif what == "insulator" and kit.has("insulator"): kit.insulator = id
+	elif what == "coast" and kit.has("insulator"): kit.coast = id
 	elif what == "span": kit.span = int(id)
 	var r := {"ok": true}
 	if before != kit: r = restring()
@@ -363,7 +409,7 @@ func _refuse(ref: Dictionary, say := true) -> void:
 ## The line voltage changed: every surveyed line moves to the same sites' yards at the new voltage (same bends, same kit). A refusal leaves it as it was.
 func _restring_kv() -> void:
 	if is_locked(): return
-	for r in (b.g.get("routes", []) as Array).duplicate(true):
+	for r in player_routes().duplicate(true):
 		var br := _branch(str(r.branchId))
 		if br.is_empty(): continue
 		var nf := site_bus(str(br.from)); var nt := site_bus(str(br.to))
@@ -377,18 +423,19 @@ func _restring_kv() -> void:
 		if not _act("demolish", [str(r.branchId)]).get("ok", false): continue
 		if not _act("buildRoute", args).get("ok", false):
 			var req: Dictionary = r.request
-			b.act("buildRoute", [str(br.from), str(br.to), str(req.conductorId).trim_prefix("acsr-"), str(req.familyId), req.crossingFamilyId, float(req.spanM), all.slice(1, all.size() - 1)])
+			b.act("buildRoute", _old_args(str(br.from), str(br.to), req))
 		_restore_xfmrs(xf)
 
 ## Re-string every line laid with the kit (same yards, same waypoints). A refusal leaves the line as it was.
 func restring() -> Dictionary:
-	var recs: Array = (b.g.get("routes", []) as Array).duplicate(true)
+	var recs: Array = player_routes().duplicate(true)
 	var n := 0
 	for r in recs:
 		var br := _branch(str(r.branchId))
 		if br.is_empty(): continue
 		var req: Dictionary = r.request
 		var same: bool = str(req.conductorId) == "acsr-" + str(kit.conductor) and str(req.familyId) == str(kit.family) and str(req.crossingFamilyId if req.crossingFamilyId != null else "none") == str(kit.crossing) and float(req.spanM) == float(kit.span)
+		if same and kit.has("insulator"): same = str(req.get("insulatorId", "pin")) == str(kit.insulator) and str(req.get("coastInsulatorId", req.get("insulatorId", "pin"))) == str(kit.coast)
 		if same: continue
 		var all: Array = req.waypoints
 		var wps: Array = []
@@ -403,8 +450,7 @@ func restring() -> Dictionary:
 		if not dm.get("ok", false): return {"ok": false, "restrung": n}
 		var res := _act("buildRoute", args)
 		if not res.get("ok", false):   # cannot happen after a good preview; put the old line back
-			var oargs := [str(br.from), str(br.to), str(req.conductorId).trim_prefix("acsr-"), str(req.familyId), req.crossingFamilyId, float(req.spanM), all.slice(1, all.size() - 1)]
-			b.act("buildRoute", oargs)
+			b.act("buildRoute", _old_args(str(br.from), str(br.to), req))
 		_restore_xfmrs(xf)
 		if not res.get("ok", false): return {"ok": false, "restrung": n}
 		n += 1
@@ -517,7 +563,7 @@ func finish(to_id: String) -> Dictionary:
 	if not r.get("ok", false):
 		if not prev.is_empty():   # put the old line back
 			var req: Dictionary = prev.request; var all: Array = req.waypoints
-			b.act("buildRoute", [from_id, to_id, str(req.conductorId).trim_prefix("acsr-"), str(req.familyId), req.crossingFamilyId, float(req.spanM), all.slice(1, all.size() - 1)])
+			b.act("buildRoute", _old_args(from_id, to_id, req))
 		_restore_xfmrs(xf); return r
 	_restore_xfmrs(xf)
 	last_refusal_key = ""
@@ -584,10 +630,12 @@ func _cell_hover() -> void:
 			"family": k.family = str(it.id)
 			"crossing": k.crossing = str(it.id)
 			"conductor": k.conductor = str(it.id)
+			"insulator": k.insulator = str(it.id)
+			"coast": k.coast = str(it.id)
 			"span": k.span = int(allowed_spans()[(allowed_spans().find(int(kit.span)) + 1) % allowed_spans().size()])
 			_: k = {}
 		if not k.is_empty():
-			var recs: Array = b.g.get("routes", [])
+			var recs: Array = player_routes()
 			if not recs.is_empty():
 				var br := _branch(str(recs[0].branchId)); var all: Array = recs[0].request.waypoints; var wps: Array = []
 				for j in range(1, all.size() - 1): wps.append(Vector2(float(all[j][0]), float(all[j][1])))
@@ -606,6 +654,8 @@ func tip(it: Dictionary) -> String:
 		"span": return tx("RT_TIP_SPAN") % str(kit.span)
 		"kv": return tx("RT_TIP_KV")
 		"conductor": return tx("RT_TIP_COND") % [tx("RT_COND_" + str(it.id)), str(COND_MM2.get(str(it.id), 0))]
+		"insulator": return tx("RT_TIP_INS") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
+		"coast": return tx("RT_TIP_COAST") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return tx("RT_TIP_XF") % str(it.kva)
 	return ""
 
@@ -625,11 +675,25 @@ func _show_preview(args: Array, chip_key: String, say := true):
 		if float(c.get("clearing", 0.0)) > 0.0: parts.append(tx("RT_COST_CLEAR") % M.call("clearing"))
 		if float(c.get("insulators", 0.0)) > 0.0: parts.append(tx("RT_COST_INS") % M.call("insulators"))
 		chip_text += "\n" + " · ".join(parts)
+		var note := salt_note(pv)
+		if note != "": chip_text += "\n" + note; _note_of = {"text": chip_text, "note": note}
 		if instruments != null: instruments.set_clear_ghost(m)
 	else:
 		_refuse(pv.get("refusal", {}), say)
 		if instruments != null: instruments.set_clear_ghost(NAN)
 	return pv
+
+## "N supports short of their salt creepage (worst: pole K, X mm of Y)" from the preview's saltShort and per-support creepage / need; "" when none is short.
+func salt_note(pv: Dictionary) -> String:
+	var short: Array = pv.get("saltShort", [])
+	if short.is_empty(): return ""
+	var sups: Array = pv.supports; var wi := int(short[0]); var wgap := -1.0
+	for i in short:
+		var gap := float(sups[int(i)].needMm) - float(sups[int(i)].creepageMm)
+		if gap > wgap + 1e-9: wgap = gap; wi = int(i)
+	var sp: Dictionary = sups[wi]
+	var at := [wi + 1, int(round(float(sp.creepageMm))), int(round(float(sp.needMm)))]
+	return tx("RT_SALT_NOTE") % ([short.size()] + at) if short.size() > 1 else tx("RT_SALT_NOTE1") % at
 
 func _update_survey_preview() -> void:
 	_dirty = false; _last_prev_ms = Time.get_ticks_msec()
@@ -810,6 +874,8 @@ func _selected(it: Dictionary) -> bool:
 		"family": return str(it.id) == str(kit.family)
 		"crossing": return str(it.id) == str(kit.crossing)
 		"conductor": return str(it.id) == str(kit.conductor)
+		"insulator": return str(it.id) == str(kit.get("insulator", ""))
+		"coast": return str(it.id) == str(kit.get("coast", ""))
 		"survey": return mode == "survey"
 		"xfmr": return mode == "xfmr" and armed_xf == str(it.id)
 	return false
@@ -823,6 +889,8 @@ func caption(it: Dictionary) -> Array:
 		"span": return [tx("RT_SPAN"), tx("RT_SPAN_SUB")]
 		"kv": return [_kv_text(float(kit.kv)), tx("RT_KV_SUB")]
 		"conductor": return [tx("RT_COND_" + str(it.id)), tx("RT_COND_SUB") % str(COND_MM2.get(str(it.id), 0))]
+		"insulator": return [tx("RT_INS_" + str(it.id)), tx("RT_INS_SUB") % str(INS_MM.get(str(it.id), 0))]
+		"coast": return [tx("RT_INS_" + str(it.id)), tx("RT_COAST_SUB") % str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return [tx("RT_XF") % str(it.kva), tx("RT_XF_PLACED") if _xf_placed(str(it.id)) else tx("RT_XF_SUB")]
 	return ["", ""]
 
@@ -855,8 +923,10 @@ func _draw() -> void:
 			"span": _icon_span(c, int(kit.span))
 			"kv": _icon_kv(c, float(kit.kv))
 			"conductor": _icon_reel(c, float(COND_MM2.get(str(it.id), 30)))
+			"insulator": _icon_insulator(c, str(it.id), false)
+			"coast": _icon_insulator(c, str(it.id), true)
 			"xfmr": _icon_xfmr(c, _xf_placed(str(it.id)))
-		if sel and str(it.kind) in ["family", "crossing", "conductor"]:
+		if sel and str(it.kind) in ["family", "crossing", "conductor", "insulator", "coast"]:
 			var dp := r.position + Vector2(r.size.x - 9.0, 9.0)
 			draw_circle(dp, 4.0, GridTheme.SODIUM); draw_arc(dp, 4.0, 0, TAU, 12, GridTheme.NIGHT, 1.0)
 		var cap := caption(it)
@@ -916,15 +986,21 @@ func _draw_price_tag() -> void:
 func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 	var f := GridTheme.font("mono"); var fsz := GridTheme.fs(14)
 	var vw := get_viewport_rect().size.x
+	var note := ""
+	if str(_note_of.get("text", "")) == s and str(_note_of.get("note", "")) != "":   # the amber salt line is drawn under the chip's own text
+		note = str(_note_of.note); s = s.left(s.length() - note.length() - 1)
 	var one := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var maxw := minf(620.0, vw - 60.0)
 	var tw := one.x; var lines := 1
 	if one.x > maxw or s.contains("\n"):
 		var ml := f.get_multiline_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, maxw, fsz); tw = minf(ml.x, maxw); lines = maxi(1, int(round(ml.y / f.get_height(fsz))))
+	var nlines := 0
+	if note != "":
+		var nm := f.get_multiline_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, maxw, fsz); nlines = maxi(1, int(round(nm.y / f.get_height(fsz)))); tw = maxf(tw, minf(nm.x, maxw))
 	var dw := 18.0 if dot.a > 0.0 else 0.0
 	var gx := clampf(global_position.x + at.x, tw * 0.5 + dw * 0.5 + 18.0, vw - tw * 0.5 - dw * 0.5 - 18.0)
 	var x := gx - global_position.x
-	var bh := f.get_height(fsz) * lines + 12.0
+	var bh := f.get_height(fsz) * (lines + nlines) + 12.0
 	var rect := Rect2(Vector2(x - (tw + dw) * 0.5 - 10.0, at.y - bh - 4.0), Vector2(tw + dw + 20.0, bh))
 	draw_style_box(GridTheme.paper_sb(4, 0.0), rect)
 	draw_colored_polygon(PackedVector2Array([Vector2(x - 6.0, rect.end.y - 1.0), Vector2(x + 6.0, rect.end.y - 1.0), Vector2(x, rect.end.y + 7.0)]), GridTheme.PAPER)
@@ -933,6 +1009,7 @@ func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 		draw_circle(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, dot); draw_arc(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, 0.0, TAU, 16, GridTheme.PAPER_INK, 1.3)
 	tx0 += dw
 	draw_multiline_string(f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
+	if note != "": draw_multiline_string(f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz) + f.get_height(fsz) * lines), note, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0, fsz, -1, Color("#9A5200"))
 
 # ---- icons ----------------------------------------------------------------------------------------------------------------------------
 func _icon_survey(c: Vector2) -> void:
@@ -1027,3 +1104,34 @@ func _icon_reel(c: Vector2, mm2: float) -> void:
 	draw_polyline(PackedVector2Array([p0, p1, p2]), Color("#1C1712"), tw + 2.0, true)
 	draw_polyline(PackedVector2Array([p0, p1, p2]), Color("#B9C0C9"), tw, true)
 	draw_circle(p2, tw * 0.5 + 0.5, Color("#F1F4F8")); draw_arc(p2, tw * 0.5 + 0.5, 0.0, TAU, 12, Color("#1C1712"), 1.0)
+
+## An insulator on a crossarm: a pin (one porcelain skirt stack on top of the arm), a two-disc string (hangs under the arm), a fog disc (one wide deep-skirted disc).
+## `coast`: the same part with a wave under it, because that cell applies where the salt reaches.
+func _icon_insulator(c: Vector2, id: String, coast: bool) -> void:
+	var por := Color("#E9E2D0"); var por_d := Color("#9C9484"); var iron := Color("#7C8794")
+	var arm_y := c.y - 12.0 if id != "pin" else c.y + 9.0
+	draw_rect(Rect2(c.x - 19.0, arm_y - 2.0, 38.0, 4.0), Color("#6B5236"))   # the crossarm
+	match id:
+		"pin":
+			draw_rect(Rect2(c.x - 1.5, arm_y - 6.0, 3.0, 5.0), iron)
+			for k in 3:
+				var w := 6.0 + 3.5 * (2 - k); var y := arm_y - 8.0 - 5.0 * k
+				draw_rect(Rect2(c.x - w * 0.5, y - 4.0, w, 4.0), por); draw_rect(Rect2(c.x - w * 0.5, y - 1.0, w, 1.0), por_d)
+			draw_line(Vector2(c.x, arm_y - 24.0), Vector2(c.x, arm_y - 27.0), Color("#B9C0C9"), 2.0)
+		"disc2", "fog1":
+			var n := 2 if id == "disc2" else 1
+			var w := 17.0 if id == "disc2" else 30.0; var h := 5.0 if id == "disc2" else 9.0
+			var y := arm_y + 2.0
+			draw_line(Vector2(c.x, y), Vector2(c.x, y + 3.0), iron, 2.0); y += 3.0
+			for k in n:
+				draw_colored_polygon(PackedVector2Array([Vector2(c.x - w * 0.22, y), Vector2(c.x + w * 0.22, y), Vector2(c.x + w * 0.5, y + h), Vector2(c.x - w * 0.5, y + h)]), por)
+				draw_line(Vector2(c.x - w * 0.5, y + h), Vector2(c.x + w * 0.5, y + h), por_d, 1.4)
+				if id == "fog1":   # the deep skirt: ribs underneath, longer creepage
+					for r in [-0.28, 0.0, 0.28]: draw_line(Vector2(c.x + w * r, y + h), Vector2(c.x + w * r, y + h + 4.0), por_d, 1.4)
+				y += h + 1.5
+			draw_line(Vector2(c.x, y), Vector2(c.x, y + 3.0), Color("#B9C0C9"), 2.0)
+	if coast:
+		for k in 2:
+			var pts := PackedVector2Array(); var wy := c.y + 20.0 + 3.0 * k
+			for i in 9: pts.append(Vector2(c.x - 20.0 + i * 5.0, wy + (2.0 if i % 2 == 0 else -2.0)))
+			draw_polyline(pts, Color("#5FA8D3", 0.9 - 0.3 * k), 1.6)

@@ -175,16 +175,36 @@ static func _grid_design(app: CbApp) -> Array:
 			if str(rr.branchId) != str(br.id): continue
 			var rq: Dictionary = rr.request
 			var wp: Array = (rq.waypoints as Array).slice(1, (rq.waypoints as Array).size() - 1)
-			out.append(["buildRoute", [str(br.from), str(br.to), str(rq.conductorId).trim_prefix("acsr-"), str(rq.familyId), rq.crossingFamilyId, float(rq.spanM), wp]])
+			var ra := [str(br.from), str(br.to), str(rq.conductorId).trim_prefix("acsr-"), str(rq.familyId), rq.crossingFamilyId, float(rq.spanM), wp]
+			if rq.has("insulatorId"): ra.append_array([str(rq.insulatorId), str(rq.get("coastInsulatorId", rq.insulatorId))])   # L29: the insulators are part of the design ('pin' otherwise)
+			out.append(["buildRoute", ra])
 	return out
 
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
 static func replay(app: CbApp, design: Array) -> int:
 	var bad := 0
 	for a in design:
+		if _standing(app, a): continue   # a job that starts with part of the design already built (L29's district line and transformers) must not stack it twice
 		var r = app.b.act(str(a[0]), a[1])
 		if not (r is Dictionary and bool(r.get("ok", false))): bad += 1
 	return bad
+
+## Is this design step already standing (same ends and same part) in the job as it started?
+static func _standing(app: CbApp, a: Array) -> bool:
+	var args: Array = a[1]
+	for br in app.b.g.get("branches", []):
+		if str(br.from) != str(args[0]) or str(br.to) != str(args[1]): continue
+		if str(a[0]) == "placeTransformer":
+			if str(br.kind) == "xfmr" and str(br.catalogId) == str(args[2]): return true
+		elif str(a[0]) == "buildRoute":
+			for rr in app.b.g.get("routes", []):
+				if str(rr.branchId) != str(br.id): continue
+				var rq: Dictionary = rr.request
+				var wp: Array = (rq.waypoints as Array).slice(1, (rq.waypoints as Array).size() - 1)
+				var ins: String = str(rq.get("insulatorId", "pin")); var coast: String = str(rq.get("coastInsulatorId", ins))
+				if str(rq.conductorId).trim_prefix("acsr-") == str(args[2]) and str(rq.familyId) == str(args[3]) and float(rq.spanM) == float(args[5]) and str(rq.crossingFamilyId) == str(args[4]) and JSON.stringify(wp) == JSON.stringify(args[6]) \
+						and ins == (str(args[7]) if args.size() > 7 else "pin") and coast == (str(args[8]) if args.size() > 8 else ins): return true
+	return false
 
 static func _copy_code(app: CbApp, btn: Button) -> void:
 	var code = app.b.q("solutionCode")

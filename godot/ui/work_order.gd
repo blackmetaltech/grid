@@ -51,6 +51,7 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		if str(k) in ["vLoadMinV", "loadBusMinPu"] and win != "": t += ", " + win
 		out.append(t)
 	if th.has("marginStar3M"): out.append(T("WO_COND_CLEARANCE"))   # route jobs: the survey refuses a span that sags too low, so clearance is a build rule the player must know up front
+	if li.get("fogBlock") != null: out.append(T("WO_COND_FOG") % str(li.get("fogTime", "")))   # L29: the fog rolls in at a set time and every insulator is tested
 	var fz = li.get("frozen")
 	if fz is Dictionary: out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))
 	return out

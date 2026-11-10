@@ -151,6 +151,10 @@ func _soil_at(terr, x: float, y: float) -> String:
 	var kinds := {"f": "field", "s": "swamp", "r": "river", "w": "forest", "k": "rock", "a": "sand", "e": "sea", "t": "town", "d": "road"}
 	return str(kinds.get(str(rows[j])[i], ""))
 
+## IEC 60815 specific creepage (mm per kV of Um) of pollution classes I to IV; display only, the engine's needMm is what the tag prints first.
+const SALT_MM_KV := {1: 16, 2: 20, 3: 25, 4: 31}
+const SALT_CLASS := ["", "I", "II", "III", "IV"]
+
 ## What a support, span or yard tag shows, from the engine only. support / span ids are "branch|index" (route_id()); yard id is the bus id.
 func describe_route(k: String, oid: String) -> Dictionary:
 	if k == "yard": return _describe_yard(oid)
@@ -166,7 +170,15 @@ func describe_route(k: String, oid: String) -> Dictionary:
 		var found := tx("TAG_FOUND_" + str(s.foundation))
 		if soil != "": found = tx("TAG_FOUND") % [found, tx("TAG_SOIL_" + soil)]
 		var rows: Array = [[tx("TAG_ANGLE") % [tx("TAG_ANG_" + str(s.angleClass)), int(round(float(s.angleDeg)))], ""], [found, ""]]
-		return {"kind": "support", "id": oid, "title": tx("TAG_SUPPORT_OF") % [fam, idx + 1], "lines": [rows[0][0], rows[1][0]], "angle_class": str(s.angleClass), "angle_deg": float(s.angleDeg), "foundation": str(s.foundation), "soil": soil, "family": str(s.familyId)}
+		var ins_lines: Array = []; var short := false
+		if RouteTray.ins_allowed(b) and s.get("insulatorId") != null:   # L29: the insulator and the salt it has to stand in
+			var cls := int(round(float(s.pollutionClass))); var spec: int = int(SALT_MM_KV.get(cls, 16)); var need := float(s.needMm)
+			var um: String = _g1(need / float(spec)); var has := float(s.creepageMm)
+			short = has < need - 1e-9
+			ins_lines.append(tx("TAG_INS") % [tx("TAG_INS_" + str(s.insulatorId)), _g1(has)])
+			var sea = s.get("seaM")
+			ins_lines.append((tx("TAG_SALT") % [SALT_CLASS[cls], _g1(float(sea)), str(spec), um, _g1(need)]) if sea != null and cls >= 2 else (tx("TAG_SALT_FAR") % [SALT_CLASS[cls], str(spec), um, _g1(need)]))
+		return {"kind": "support", "id": oid, "ins_lines": ins_lines, "short": short, "title": tx("TAG_SUPPORT_OF") % [fam, idx + 1], "lines": [rows[0][0], rows[1][0]], "angle_class": str(s.angleClass), "angle_deg": float(s.angleDeg), "foundation": str(s.foundation), "soil": soil, "family": str(s.familyId)}
 	var spans: Array = plan.spans
 	if idx < 0 or idx >= spans.size(): return {}
 	var sn: Dictionary = spans[idx]; var rec: Dictionary = ctx.rec
@@ -320,6 +332,8 @@ func _build(d: Dictionary) -> void:
 			for r in d.rows: _row(str(r[0]), str(r[1]))
 		"support":
 			for ln in d.lines: _lbl(str(ln), 16, GridTheme.PAPER_INK, "sans")
+			var il: Array = d.get("ins_lines", [])
+			for k in il.size(): _lbl(str(il[k]), 15, GridTheme.BAD.darkened(0.1) if (k == 1 and bool(d.get("short", false))) else GridTheme.PAPER_INK, "sans")
 		"yard":
 			for r in d.rows: _row(str(r[0]), str(r[1]))
 		"span":
