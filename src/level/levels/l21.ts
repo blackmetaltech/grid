@@ -21,7 +21,7 @@ export const gfm = (n: number): Action[] => Array.from({ length: n }, (_, i) => 
 export const rideThrough: Action[] = [{ name: 'upgradeRideThrough', args: [] }];
 
 export const L21: GridLevelSpec = {
-  id: 'L21', kind: 'event', chapter: 6, titleKey: 'level.L21.title', briefKey: 'level.L21.brief', concepts: ['inertia', 'rocof', 'ffr', 'synchronous-condenser', 'inverter-based-resources'],
+  id: 'L21', kind: 'grid', chapter: 6, titleKey: 'level.L21.title', briefKey: 'level.L21.brief', concepts: ['inertia', 'rocof', 'ffr', 'synchronous-condenser', 'inverter-based-resources'],
   startBlock: L21_START, horizonBlocks: L21_HORIZON, maxTicks: L21_HORIZON + 4,
   allowed: {
     actions: ['spinUnit', 'placeUnit', 'placeStorage', 'setFfr', 'upgradeRideThrough', 'predict', 'demolish'],

@@ -23,7 +23,7 @@ export const droop = (pct: number): Action[] => [...COAL_IDS, SPARE, ...HYDRO_ID
 export const ffr = (n: number): Action[] => Array.from({ length: n }, (_, i) => [{ name: 'placeStorage', args: ['B1', 'bess-2h-50'] }, { name: 'setFfr', args: [`S${i + 1}`] }]).flat();
 
 export const L19: GridLevelSpec = {
-  id: 'L19', kind: 'event', chapter: 6, titleKey: 'level.L19.title', briefKey: 'level.L19.brief', concepts: ['inertia', 'rocof', 'governor-droop', 'spinning-reserve', 'ufls', 'ffr'],
+  id: 'L19', kind: 'grid', chapter: 6, titleKey: 'level.L19.title', briefKey: 'level.L19.brief', concepts: ['inertia', 'rocof', 'governor-droop', 'spinning-reserve', 'ufls', 'ffr'],
   startBlock: L19_START, horizonBlocks: L19_HORIZON, maxTicks: L19_HORIZON + 4,
   allowed: {
     actions: ['spinUnit', 'setDroop', 'placeStorage', 'setFfr', 'predict', 'demolish'],

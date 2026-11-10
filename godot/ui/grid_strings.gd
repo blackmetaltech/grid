@@ -132,6 +132,7 @@ const S := {
 	"L30_YARD_CABLE": "Sea cable", "L30_YARD_CABLE_V": "%s mm² · %s km", "L30_YARD_OFFSHORE": "Position", "L30_YARD_OFFSHORE_V": "%s km offshore",
 	"METER_BAT_CAPTION": "BATTERY", "METER_BAT_CAPTION_H": "BATTERY · %s h", "METER_BAT_UNITS": "%", "METER_BAT_NONE": "no battery", "METER_ISL_CAPTION": "ISLAND",
 	"WO_COND_CUT": "The island stays lit from %s to %s when the cable is cut", "TH_batteryMarginMin": "Battery ≥\u00a0%s\u00a0%% left at 23:00",
+	"TH_nadirMinHz": "Frequency never below\u00a0%s\u00a0Hz", "TH_nadirStar3Hz": "Lowest frequency ≥\u00a0%s\u00a0Hz", "TH_inRangeMinPct": "Frequency in the standard range ≥\u00a0%s\u00a0%% of the blocks", "TH_maxDevHz": "Never more than\u00a0%s\u00a0Hz from nominal", "TH_curtailMaxPct": "Sun curtailed ≤\u00a0%s\u00a0%%", "TH_shareTol": "G1 takes 60\u00a0%% of the step, within\u00a0%s",
 	"CH2_TITLE": "The island is on the grid", "CH2_SUB": "Chapter 2 · The Mainland, complete",
 	"CH2_NIA": "Results came in on the first night of the cable. I passed! The school hall stayed lit while the trawler tore the cable up. Everyone thinks it was magic. I told them it was kilowatt-hours.",
 	"CH2_ADA_TAG": "ADA ›", "CH2_ADA": "Thirty years of night shifts and the last good one is the one where the island joined the rest of us. The desk, the radio and the clipboard are yours now.",
