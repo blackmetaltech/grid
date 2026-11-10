@@ -81,6 +81,9 @@ func game_build_chrome(r: Control) -> void:
 	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
+	if OS.is_debug_build() and not OS.has_environment("CB_SMOKE"):   # perf log for device runs: "CB_FPS fps=.. min=.." every 5 s (logcat / stdout)
+		var tm := Timer.new(); tm.wait_time = 5.0; tm.autostart = true; add_child(tm)
+		tm.timeout.connect(func(): print("CB_FPS fps=%d frame_ms=%.1f level=%s" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, str(b.q("levelInfo").get("id", "-")) if started else "title"]))
 func game_chrome_visible(v: bool) -> void:
 	if chrome != null: chrome.set_chrome_visible(v)
 func game_relayout() -> void:
