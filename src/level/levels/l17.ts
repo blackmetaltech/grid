@@ -49,7 +49,7 @@ export const L17: GridLevelSpec = {
   ],
   place: (s, sc) => {
     const A = (name: string, ...a: unknown[]): void => place(sc, s, name, ...a);
-    A('placeBus', 2, 2, 220, 'gen', 1.0); A('placeBus', 6, 2, 220, 'junction'); A('placeBus', 26, 2, 220, 'load');
+    A('placeBus', 26, 2, 220, 'gen', 1.0); A('placeBus', 22, 2, 220, 'junction'); A('placeBus', 2, 2, 220, 'load');
     A('placeUnit', 'ccgt-418', 'B1', 1500);
     A('stringLine', 'B1', 'B2', 'l220-twinzebra', 1, FEEDER_KM);
     A('stringLine', 'B2', 'B3', 'l220-twinzebra', 1, CIRCUIT_KM); A('stringLine', 'B2', 'B3', 'l220-twinzebra', 1, CIRCUIT_KM);
