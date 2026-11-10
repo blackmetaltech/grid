@@ -169,3 +169,19 @@ describe('chapter 5 rules, report and determinism', () => {
     expect(Object.keys(e.state.metrics.track).some((k) => /^(vMinPu|n1Max|tapBase|marginPct)$/.test(k))).toBe(false);
   });
 });
+
+describe('ch5Panel query', () => {
+  it('L17: the P-V curve rises to the nose, falls in voltage, and the operating point sits under the nose by the margin; L18: GS converges to Newton', () => {
+    const spec = specOf('L17')!, e = fresh('L17', 'global', spec.reference); e.state.rules.collapseLoses = false; e.engine.act('tick', [4]);
+    const q = e.engine.q('ch5Panel') as any;
+    expect(q.active).toBe(true); expect(q.pv.points.length).toBeGreaterThan(10);
+    const pts = q.pv.points as { pMW: number; v: number }[];
+    for (let i = 1; i < pts.length; i++) { expect(pts[i]!.pMW).toBeGreaterThan(pts[i - 1]!.pMW); expect(pts[i]!.v).toBeLessThan(pts[i - 1]!.v + 1e-9); }
+    near(q.pv.noseMW, 0.01 * Math.round(100 * q.pv.loadMW * (1 + q.pv.marginPct / 100)), 0.5);
+    const g = (fresh('L18').engine.q('ch5Panel') as any).gs;
+    expect(g.nrIterations).toBeLessThanOrEqual(4); expect(g.gsIterations).toBeGreaterThan(g.nrIterations * 3);
+    expect(g.sweeps[1].v2).toBeCloseTo(examTruth()[EXAM_IDS.gs1]!, 5);
+    expect(g.sweeps[16].mismatch).toBeLessThan(g.sweeps[2].mismatch);
+    expect((fresh('L07').engine.q('ch5Panel') as any).active).toBe(false);
+  });
+});

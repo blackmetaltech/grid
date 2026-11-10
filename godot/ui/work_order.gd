@@ -36,7 +36,7 @@ static func window_text(app: CbApp, li: Dictionary) -> String:
 	return T("WO_WINDOW") % [_hm(float(ls) * 15.0), _hm((float(ls) + float(hz)) * 15.0)]
 
 static func _th_text(key: String, v: float) -> String:
-	if key == "loadingMax" or key == "batteryMarginMin": v *= 100.0
+	if key == "loadingMax" or key == "batteryMarginMin" or key == "n1Max": v *= 100.0
 	return T("TH_" + key) % num(v)
 
 ## Pass conditions (everything the level checks except the third-star thresholds), as plain sentences.

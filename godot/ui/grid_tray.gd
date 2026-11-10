@@ -774,6 +774,7 @@ func tx_part(it: Dictionary) -> String:
 
 func _unit_sub(it: Dictionary) -> String:
 	var part := str(it.part); var n := _tail_number(part)
+	if tx("GT_SUB_" + part) != "GT_SUB_" + part: return tx("GT_SUB_" + part)   # a chapter names the size of a part itself (the bank of 5 MVAr, the SVC of +-100 MVAr)
 	if str(it.icon) == "series" and n != "": return "%d %%" % int(float(n))
 	if str(it.icon) == "line": return tx("GT_UNIT_kv") % part.get_slice("-", 0).trim_prefix("l")
 	if str(it.icon) in UNITS and n != "": return tx(str(UNITS[str(it.icon)])) % n
