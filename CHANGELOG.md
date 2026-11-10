@@ -10,7 +10,9 @@ All notable changes to GRID. The release workflow publishes the section whose he
   A day card with the threat, the island lamp and an event ticker; the game-end card.
 - Ruleset 6 for both region packs (pins and goldens regenerated).
 ### Known gaps
-- In the `in` pack the third lamp of WO-28 is out of reach (cheap coal ramps too slowly at the Day 3 dawn).
+- In the `in` pack the third lamp of WO-28 is out of reach: the IEGC first under-frequency stage is 49.4 Hz, and losing the 660 MW coal unit
+  from a 2.3 GW state with no tie to the national grid leaves a nadir near 49.33 Hz even with every unit spun, so some load is always shed.
+  The fix is a design call (model the All-India interconnection, or make the Day 2 trip a smaller unit). The level is still winnable with two lamps.
 - Day 2's lightning opens the causeway by protection; it is not a sequence-network fault.
 
 ## [0.9.0] - unreleased: "Protection and Markets" (chapter 7)
