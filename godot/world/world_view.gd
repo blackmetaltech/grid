@@ -420,6 +420,7 @@ func _draw_sky(mn: float) -> void:
 		draw_circle(mo, 18.0, Color(0.9, 0.93, 1.0, 0.85 * _night)); draw_circle(mo, 32.0, Color(0.8, 0.85, 1.0, 0.12 * _night))
 
 func _draw_slab() -> void:
+	if model.kind == "bench": return   # islands sit in the sea: no tabletop shadow
 	var W: float = model.map.x; var H: float = model.map.y
 	var shadow := _iso(W * 0.5, H * 0.5, -SLAB - 6.0)
 	_ell(shadow + Vector2(0, 26), (W + H) * TW * 0.27, (W + H) * TH * 0.2, Color(0, 0, 0, 0.12))
@@ -739,12 +740,15 @@ func _draw_labels() -> void:
 	for t in model.towns:
 		if t.kind == "school" or t.kind == "hamlet":
 			if not t.has("volts"): continue
-			var sp := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 56.0))
+			var sp := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 0.0)) + Vector2(0, -78.0 * clampf(_scale(), 0.6, 1.6))   # above the roofs
 			var txt := tr("WORLD_DARK") if float(t.v) <= 0.0 else tr("WORLD_VOLTS_FMT") % float(t.volts)
+			if t.has("loss") and float(t.v) > 0.0: txt = tr("WORLD_LOSS_FMT") % float(t.loss)
+			var glow := clampf(float(t.v) * float(t.v), 0.0, 1.0)
+			if t.has("loss"): glow = 1.0 if float(t.v) > 0.0 else 0.0   # the school's lamps run off the far converter at full voltage
 			if cute and t.has("mood"):
 				var r := 15.0 * (fs / 15.0) * clampf(_scale() * 1.4, 0.8, 1.6)
-				_bulb_mascot(sp + Vector2(0, -r - 6.0), r, str(t.mood), clampf(float(t.v) * float(t.v), 0.0, 1.0))
-			_label(font, fs, sp + Vector2(0, fs + 4.0) if cute else sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
+				_bulb_mascot(sp + Vector2(0, -r - fs - 10.0), r, str(t.mood), glow)
+			_label(font, fs, sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
 			continue
 		var sp2 := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 70.0))
 		var v: float = t.v

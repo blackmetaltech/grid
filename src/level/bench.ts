@@ -39,10 +39,10 @@ export const L03_LINK_V = 380;
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 /** The kit the tray sells on a bench level: price per metre of 2-core cable for each size (the benchCost formula, poles excluded), poles, converters. */
-export function benchKit(p: BenchParams): { cables: { mm2: number; perM: number; ampacityA: number; r20OhmPerKm: number }[]; polePrice: number; poleSpacingM: number; converterPrice: number } {
+export function benchKit(p: BenchParams): { cables: { mm2: number; perM: number; ampacityA: number; r20OhmPerKm: number }[]; polePrice: number; poleSpacingM: number; converterPrice: number; homeW: number; homeV: number } {
   return {
     cables: COPPER.map((c) => ({ mm2: c.areaMm2, perM: p.cable.perMm2PerM * c.areaMm2 * 2 + p.cable.sheathPerM, ampacityA: c.ampacityAirA, r20OhmPerKm: c.r20OhmPerKm })),
-    polePrice: p.cable.polePrice, poleSpacingM: p.cable.poleSpacingM, converterPrice: p.converter.price,
+    polePrice: p.cable.polePrice, poleSpacingM: p.cable.poleSpacingM, converterPrice: p.converter.price, homeW: HOME_W, homeV: HOME_V,
   };
 }
 const copper = (mm2: number | null) => COPPER.find((c) => c.areaMm2 === mm2) ?? null;

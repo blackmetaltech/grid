@@ -37,7 +37,7 @@ export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridStat
         bench = {
           scenario: sc, hutM: s.bench.hutM, mainMm2: s.bench.cableMm2.main, branchMm2: s.bench.cableMm2.b, topology: s.bench.topology, converters: s.bench.converters,
           homes: sc === 'l03' ? [] : [...(sc === 'l01' ? HOMES.l01 : HOMES.l02)], geom: GEOM, sourceV: SOURCE_V,
-          powered: r.powered, vLoadV: r.vLoadV.map(r3), ampFracMax: r3(r.ampFracMax), vMinLimitV: s.bench.limits.vMinV,
+          powered: r.powered, vLoadV: r.vLoadV.map(r3), ampFracMax: r3(r.ampFracMax), vMinLimitV: s.bench.limits.vMinV, lossPct: r3(r.lossPct), lossMaxPct: s.bench.limits.lossMaxPct,
         };
       }
       const kind = s.bench ? 'bench' : s.buses.length > 0 ? 'grid' : 'none';

@@ -9,7 +9,7 @@ const efficient = (s: Readonly<GridState>): boolean => run(s) && (s.metrics.trac
 
 export const L03: GridLevelSpec = {
   id: 'L03', kind: 'bench', chapter: 1, titleKey: 'level.L03.title', briefKey: 'level.L03.brief', concepts: ['joule-loss', 'high-voltage-transmission', 'converters'],
-  startBlock: 32, horizonBlocks: 8, maxTicks: 12,
+  startBlock: 72, horizonBlocks: 8, maxTicks: 12,
   allowed: { actions: ['placeConverters', 'layCable'], parts: { layCable: [...CABLE_SIZES_MM2] } },
   sites: [
     { id: 'voltage', options: [{ id: 'v48', actions: [] }, { id: 'v380', actions: [{ name: 'placeConverters', args: [true] }] }] },

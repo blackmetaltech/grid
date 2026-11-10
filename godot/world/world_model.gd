@@ -104,6 +104,10 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 		var lim = bn.get("vMinLimitV")
 		tw["limit"] = float(lim) if lim != null else 0.0
 		tw["mood"] = WorldMath.mood(v * vsrc, tw.limit, powered)
+		if sc == "l03":   # the school is judged on line losses, not on a home voltage: the label and the face follow the losses
+			var lm = bn.get("lossMaxPct")
+			tw["loss"] = float(bn.get("lossPct", 100.0)); tw["loss_max"] = float(lm) if lm != null else 5.0
+			tw["mood"] = WorldMath.mood_loss(tw.loss, tw.loss_max, powered)
 		m.towns.append(tw)
 	if sc == "l02" and str(bn.topology) == "trunk": m.subs.append({"id": "j", "pos": L02_J, "kv": 0.048, "v": 1.0, "energised": powered})
 	if sc == "l03" and bool(bn.converters):

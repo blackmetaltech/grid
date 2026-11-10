@@ -28,5 +28,6 @@ COACH_WELCOME_BODY,This is the empty province. Time moves in 15-minute blocks; p
 COACH_WELCOME_WHY,"Real grids are balanced and settled every 15 minutes in many markets, so the game uses the same step."
 WORLD_BUS_FMT,%s%.2f pu
 WORLD_VOLTS_FMT,%.1f V
+WORLD_LOSS_FMT,loss %.1f %%
 WORLD_LOAD_FMT,%d%%
 WORLD_DARK,dark

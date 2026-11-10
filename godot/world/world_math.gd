@@ -101,3 +101,10 @@ static func mood(volts: float, limit_v: float, powered: bool) -> String:
 	if volts < limit_v: return "sad"
 	if volts < limit_v + MOOD_MARGIN_V: return "worried"
 	return "happy"
+
+## Cute face for a load judged on line losses (L03): happy well inside the limit, worried within 1 point of it, sad over it.
+static func mood_loss(loss_pct: float, max_pct: float, powered: bool) -> String:
+	if not powered: return "asleep"
+	if loss_pct > max_pct: return "sad"
+	if loss_pct > max_pct - 1.0: return "worried"
+	return "happy"
