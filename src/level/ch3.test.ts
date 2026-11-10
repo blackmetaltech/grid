@@ -197,7 +197,7 @@ describe('L08 placeBank, prices and the fuse', () => {
     const r4 = e.engine.act('placeShunt', ['B2', 'cap-11-300', 1]); expect(r4.ok).toBe(false); expect(r4.key).toBe('level.action.notAllowed');
     const free = new Env(GAME); free.reset({ seed: 1 });
     expect(free.engine.act('placeBus', [1, 1, 11, 'gen', 1.0]).ok).toBe(true);
-    const r5 = free.engine.act('placeBank', ['B1', 'cap-11-300', 2, 3]); expect(r5.ok).toBe(false); expect(r5.key).toBe('ch3.bank.detune'); expect(en[r5.key!]).toBeTruthy(); expect(r5.message).not.toMatch(/\{/);
+    const r5 = free.engine.act('placeBank', ['B1', 'cap-11-300', 2, 3]); expect(r5.ok).toBe(false); expect(r5.key).toBe('ch3.bank.detune'); expect(en[r5.key as string]).toBeTruthy(); expect(r5.message).not.toMatch(/\{/);
     const r6 = free.engine.act('placeBank', ['B1', 'cap-11-300', 2, 7]); expect(r6.ok).toBe(true); expect(r6.message).toMatch(/series resonance at h = 3\.78/);
   });
   it('a detuned bank delivers Q / (1 - p) at its terminals: the load flow sees 900 / 0.93 kVAr', () => {
@@ -290,7 +290,7 @@ describe('L09 placeSeriesCap, price, lesson and hints', () => {
     const r = e.engine.act('placeSeriesCap', ['T1', 40]); expect(r.ok).toBe(true); expect(r.message).toMatch(/Series capacitor of 40 % on line T1: \d\.\d+ Ω against the line's 12\.\d+ Ω/);
     const b = e.state.branches[0]!; near(b.x, x0 * 0.6, 1e-12); near(b.seriesCap!.xGross, x0, 1e-12);
     const twice = e.engine.act('placeSeriesCap', ['T1', 55]); expect(twice.ok).toBe(false);
-    expect(twice.key).toBe('ch3.series.twice'); expect(en[twice.key!]).toBeTruthy();
+    expect(twice.key).toBe('ch3.series.twice'); expect(en[twice.key as string]).toBeTruthy();
     const bad = fresh('L09').engine.act('placeSeriesCap', ['T1', 33]); expect(bad.ok).toBe(false); expect(bad.key).toBe('level.part.notAllowed');
     const no = fresh('L09').engine.act('placeSeriesCap', ['T9', 40]); expect(no.ok).toBe(false); expect(no.key).toBe('act.unknownId');
     const free = new Env(GAME); free.reset({ seed: 1 });
