@@ -71,3 +71,19 @@ Newest last. Each entry: what, why, where.
     - `src/locales.test.ts` "every key is used" now scans all game sources (it only read game.ts and levels.ts, which cannot hold
       the keys of the new modules); same strictness. Two comments in `sim/network/{types,transformer}.ts` were reworded because
       `verify.test.ts`'s import scanner read the word "from" in quotes as an import once game.ts reached those files.
+13. **M1.11 verify + M1.12 perf (src/leaderboard/**, src/perf.test.ts).**
+    - Wire format: the player-facing code is `GRID1.<levelId>.<levelHash8>.<CB1 code>.<crc8>` (a thin envelope over core's `CB1`, #1;
+      the CB1 body already carries ruleset id, seed, mode, actions). DESIGN 12.2's varint payload and frozen action table are NOT
+      built: the JSON action list is compact enough (limits 256 KB / 20 000 actions) and a table would need a version bump per action.
+      `levelHash8` = hash of the level's initial state after `startLevel` (setup, rules, grid) + ruleset id + `rulesetVersion`; it does
+      not see `goal`/`fail` code (functions), so a verdict-only change must bump `GAME.rulesetVersion`.
+    - `makeGridVerifier(def)` (src/leaderboard/verify.ts) returns DESIGN 12.3's `{ok,metrics,stars,rulesetId,levelHash,ticks}` or
+      `{ok:false,error,detail}` with the 8 error kinds; never throws (a throwing `opts.budget` still propagates). Metrics: `ticks, cost,
+      capex, opex, ensMWh, lossesMWh, stars` (`lossesPct` of the DESIGN list is omitted: no generated-energy total is kept; the
+      level-specific primary metric arrives with the M2 levels). `src/verify.ts` (plain core verifier) is unchanged.
+    - `dist/verify.mjs`: `pnpm build:verify` (esbuild via vite's copy, ES2022, neutral platform, no externals), 180 KB at M1; the
+      test rebuilds it and checks size, no `node:`/imports, and bit-equality with in-process for T00 and the 10-bus level.
+    - Perf (desktop, shared box, best of 3 medians; CB_PERF=1 prints): LF warm 0.2 ms (3), block 2.0 ms (5), day 180 ms (400), event
+      window 6 ms (20), cascade x10 21 ms (80), N-1 x90 142 ms (400), fault column 0.3 ms (2), worst cascade window 26 ms (100).
+      No deviation. A late day of a 7-day run costs ~250 ms (history ring grows the per-action state clone), still in budget.
+    - Nightly fuzz: `pnpm fuzz:nightly` (`GRID_FUZZ_N`, default 50 000) runs every P1..P25 file once.

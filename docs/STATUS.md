@@ -28,7 +28,8 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
 ### Not started (next, in order)
 1. ~~M1.10 systems pipeline~~ DONE (see DECISIONS #12): src/sim/tick.ts, event.ts, actions.ts, queries.ts; synthetic 10-bus day + goldens.
 2. M1.8 finish (above) + M1.9 data verification (web; zero `recall` in global, 13 grid-code provenance entries are recall today).
-3. M1.11 verify/solution code (core makeVerifier + level-hash check; consider `GameDef.mergeTicks`), M1.12 perf harness, 50k nightly fuzz run.
+3. ~~M1.11 verify, M1.12 perf~~ DONE (DECISIONS #13): src/leaderboard/verify.ts (GRID1 envelope + levelHash), `pnpm build:verify` -> dist/verify.mjs, src/perf.test.ts (all 7 budgets met), `pnpm fuzz:nightly`.
+   **50k nightly run FAILED (546 s): P16 case 32916 (seed 20260610, window times out, 2.75 Hz off), P11 seed 20300579 (warm start lands on a different solution, |dV| 1.26 pu), P25 unresolved 859 > 2 % of 27 154 failing (3.2 %). Fix in the engine lanes, then rerun `pnpm fuzz:nightly`.**
 4. M2 vertical slice (P0, L01-L03, L07) per BUILD-PLAN.
 
 ## Open issues
