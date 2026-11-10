@@ -62,7 +62,7 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		if c3.get("harmonics") is Dictionary: out.append(T("C3_WO_DRIVES"))
 		if c3.get("fault") is Dictionary: out.append(T("C3_WO_FAULT") % _hm(float((c3.fault as Dictionary).block) * 15.0))
 	var fz = li.get("frozen")
-	if fz is Dictionary and (float(fz.budget) > 0.0 or str(li.get("histogram", "")) != "score"): out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))   # a score level without a build budget (L24, L26) has no spend line
+	if fz is Dictionary and float(fz.budget) > 0.0: out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))   # a level without a build budget (score levels L24/L26, the exam bridges) has no spend line
 	return out
 
 ## The three lamp captions: pass, cost star A, cost star B plus the extra third-star conditions. Empty when the job awards no stars.
@@ -80,6 +80,8 @@ static func lamp_texts(li: Dictionary) -> Array:
 		var fb := ("%s s" % WorkOrder.num(snappedf(float(fz.starB), 0.01))) if sec else CbRegion.money(float(fz.starB), false, 0)
 		l2 = (T("C7_LAMP_SCORE") if scored else T("LAMP_2")) % fa
 		l3 = (T("C7_LAMP_SCORE3") if scored else T("LAMP_3")) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
+		if not scored and float(fz.starA) <= 0.0:   # nothing to buy (the exam bridges): the lamps are not about spend
+			l2 = T("LAMP_NO_COST"); l3 = T("LAMP_NO_COST") + ((T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else "")
 	return [T("LAMP_1"), l2, l3]
 
 ## Split an engine story line "TOBI: text" into [speaker, text].
