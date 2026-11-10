@@ -153,6 +153,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       s.shunts = s.shunts.filter((h) => h.id !== id && !(isBus && h.bus === id));
       s.storage = s.storage.filter((b) => b.id !== id && !(isBus && b.bus === id));
       s.buses = s.buses.filter((b) => b.id !== id);
+      s.routes = s.routes.filter((r) => s.branches.some((b) => b.id === r.branchId));   // a demolished line takes its route record with it
       s.solution = null;
       return accept(s, 'demolish', 'act.demolish.ok', { id });
     },

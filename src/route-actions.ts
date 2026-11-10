@@ -1,0 +1,211 @@
+// Overhead-line routes (L05 "The River Line", DEPTH §3-4): the `buildRoute` action, the `routePreview` query and the pricing. The pure planner
+// (src/sim/route) places supports along the waypoints the player clicked and checks every span's clearance at the design temperature; this file
+// turns a plan into a branch, a bill of materials and, when the planner refuses, a teaching message. Region data arrives as `RouteParams`
+// (rules for the line's kV, prices, support families, conductors), never as a pack.
+import type { ActionFn, ActionResult, QueryFn } from '@core/kit';
+import { t } from './i18n';
+import type { GridState, RouteRecord, WorstSpanRecord } from './types';
+import { makeLine, type CatalogueView, type LineSpec } from './sim/build';
+import { planRoute, weightNPerM, type ConductorMech, type RoutePlan, type RouteRequest, type RouteResult, type RouteRules, type SupportFamily, type Terrain, type TileKind } from './sim/route';
+import type { RouteData } from './regions/data';
+import { terrainOf } from './level/maps';
+
+type Params = Record<string, string | number>;
+
+/** Region rules and prices as plain numbers (src/catalogue.ts routeParamsOf), plus the shared physical tables. */
+export interface RouteParams {
+  /** The planner's rules for a line of `kv` (ground clearance by voltage class). */
+  rulesFor: (kv: number) => RouteRules;
+  prices: RouteData['prices'];
+  families: SupportFamily[];
+  conductors: ConductorMech[];
+}
+export interface RouteDeps {
+  cat: (s: GridState) => CatalogueView;
+  getRoute: (s: GridState) => RouteParams;
+  money: (s: GridState, amount: number) => string;
+}
+
+import { familyWord, foundationWord, kindWord } from './route-words';
+/** What a span is "over", most telling first: water, a road, swamp, rock, forest, plain ground. */
+const OVER_PRIORITY: TileKind[] = ['river', 'sea', 'road', 'town', 'swamp', 'rock', 'forest', 'sand', 'field'];
+export function dominantOver(kinds: readonly TileKind[]): TileKind {
+  for (const k of OVER_PRIORITY) if (kinds.includes(k)) return k;
+  return 'field';
+}
+
+const r2 = (x: number): number => Math.round(x * 100) / 100;
+const r3 = (x: number): number => Math.round(x * 1000) / 1000;
+const isStr = (x: unknown): x is string => typeof x === 'string' && x.length > 0;
+const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+
+// ---- the planner's refusals as teaching messages ------------------------------------------------------------------------------------
+function refusalParams(r: Extract<RouteResult, { ok: false }>['refusal']): Params {
+  switch (r.key) {
+    case 'route.tooShort': return {};
+    case 'route.offMap': return { x: Math.round(r.at[0]), y: Math.round(r.at[1]) };
+    case 'route.noOverhead': return { kind: kindWord(r.kind) };
+    case 'route.noSupportGapTooLong': return { gap: Math.round(r.gapM), max: r.maxSpanM, family: familyWord(r.familyId) };
+    case 'route.kvTooHigh': return { kv: r.kv, kvMax: r.kvMax, family: familyWord(r.familyId) };
+    case 'route.noFoundation': return { kind: kindWord(r.kind), family: familyWord(r.familyId), needs: foundationWord(r.needs) };
+    case 'route.unknownFamily': return { id: r.id };
+    case 'route.unknownConductor': return { id: r.id };
+    case 'route.spanTooLong': return { span: r.spanM, max: r.maxSpanM };
+  }
+}
+
+export interface Refusal { key: string; message: string; params: Params }
+const refusal = (key: string, params: Params = {}): { ok: false; refusal: Refusal } => ({ ok: false, refusal: { key, message: t(key, params), params } });
+
+// ---- pricing -------------------------------------------------------------------------------------------------------------------------
+export interface RouteCost { supports: number; foundations: number; conductor: number; clearing: number; total: number }
+/** Bill of materials of a plan at the pack's prices (to the cent). The foundation is `foundationShare` of the angle-adjusted support price times the
+ *  foundation kind's multiplier; wires are 4 below 1 kV, 3 above; right-of-way clearing is charged per metre of route over forest. */
+export function priceRoute(plan: RoutePlan, kv: number, conductorShort: string, prices: RouteData['prices']): RouteCost {
+  let supports = 0, foundations = 0;
+  for (const sp of plan.supports) {
+    const base = (prices.support[sp.familyId] ?? 0) * (prices.angleMultiplier[sp.angleClass] ?? 1);
+    supports += base;
+    foundations += base * prices.foundationShare * (prices.foundationMultiplier[sp.foundation] ?? 1);
+  }
+  const wires = kv < 1 ? prices.phaseWires.lv : prices.phaseWires.mv;
+  const conductor = plan.bom.conductorM * wires * (prices.conductorPerM[conductorShort] ?? 0);
+  const clearing = plan.bom.clearedForestM * prices.clearingPerM;
+  const c = { supports: r2(supports), foundations: r2(foundations), conductor: r2(conductor), clearing: r2(clearing) };
+  return { ...c, total: r2(c.supports + c.foundations + c.conductor + c.clearing) };
+}
+
+// ---- evaluating a request ------------------------------------------------------------------------------------------------------------
+export interface RouteArgs { from: string; to: string; conductor: string; family: string; crossing: string | null; spanM: number; waypointsM: [number, number][] }
+export type RouteEval =
+  | { ok: false; refusal: Refusal }
+  | { ok: true; plan: RoutePlan; cost: RouteCost; kv: number; request: RouteRequest; spec: LineSpec; worst: WorstSpanRecord; badSpans: number[] };
+
+/** The planner is pure: memoise it by (region, terrain, request) outside the state so previews and probes stay cheap. */
+const PLAN_CACHE = new Map<string, RouteResult>();
+const PLAN_CACHE_MAX = 4000;
+function planCached(s: GridState, terrain: Terrain, req: RouteRequest, rp: RouteParams): RouteResult {
+  const key = `${s.region}|${s.terrain}|${JSON.stringify(req)}`;
+  let r = PLAN_CACHE.get(key);
+  if (!r) {
+    r = planRoute(terrain, req, rp.rulesFor(req.kv), rp.families, rp.conductors);
+    if (PLAN_CACHE.size >= PLAN_CACHE_MAX) PLAN_CACHE.clear();
+    PLAN_CACHE.set(key, r);
+  }
+  return r;
+}
+
+export function parseArgs(a: unknown[]): RouteArgs | { bad: string } {
+  const [from, to, conductor, family, crossing, spanM, wps] = a;
+  if (!isStr(from) || !isStr(to)) return { bad: 'exp.bus_ids' };
+  if (!isStr(conductor)) return { bad: 'exp.a_conductor_id' };
+  if (!isStr(family)) return { bad: 'exp.a_support_family_id' };
+  if (crossing !== null && crossing !== undefined && !isStr(crossing)) return { bad: 'exp.a_support_family_id_or_null' };
+  if (!isNum(spanM) || spanM <= 0) return { bad: 'exp.a_span_length_in_metres' };
+  const w = wps === undefined ? [] : wps;
+  if (!Array.isArray(w) || w.some((p) => !Array.isArray(p) || p.length !== 2 || !isNum(p[0]) || !isNum(p[1]))) return { bad: 'exp.a_list_of_points_in_metres' };
+  return { from, to, conductor, family, crossing: crossing ?? null, spanM, waypointsM: (w as [number, number][]).map((p) => [p[0], p[1]] as [number, number]) };
+}
+
+export function evaluateRoute(s: GridState, a: RouteArgs, d: RouteDeps): RouteEval {
+  const A = s.buses.find((b) => b.id === a.from), B = s.buses.find((b) => b.id === a.to);
+  if (!A) return refusal('act.unknownId', { what: t('what.bus'), id: a.from });
+  if (!B) return refusal('act.unknownId', { what: t('what.bus'), id: a.to });
+  if (A.id === B.id) return refusal('act.line.same', { bus: A.id });
+  if (Math.abs(A.kvNom - B.kvNom) > 1e-9) return refusal('route.kvMismatch', { a: A.id, kvA: A.kvNom, b: B.id, kvB: B.kvNom });
+  const terrain = terrainOf(s.terrain);
+  if (!terrain) return refusal('route.noTerrain');
+  const rp = d.getRoute(s), kv = A.kvNom;
+  const mech = rp.conductors.find((c) => c.id === `acsr-${a.conductor}`);
+  if (!mech) return refusal('route.unknownConductor', { id: a.conductor });
+  const tplKv = kv < 1 ? '04' : String(kv), spec0 = d.cat(s).line(`l${tplKv}-${a.conductor}`);
+  if (!spec0) return refusal('route.noTemplate', { kv, conductor: a.conductor });
+  const at = (b: { x: number; y: number }): [number, number] => [(b.x + 0.5) * terrain.tileM, (b.y + 0.5) * terrain.tileM];
+  const request: RouteRequest = { waypoints: [at(A), ...a.waypointsM, at(B)], familyId: a.family, crossingFamilyId: a.crossing, conductorId: mech.id, kv, spanM: a.spanM };
+  const res = planCached(s, terrain, request, rp);
+  if (!res.ok) return refusal(res.refusal.key, refusalParams(res.refusal));
+  const plan = res;
+  // the line's pu values are on the buses' own base: a 0.433 kV pack bus gets the same ohms per km on its own Zbase and a thermal MVA scaled with kV
+  const spec: LineSpec = { ...spec0, kv, thermalMva: spec0.thermalMva * (kv / spec0.kv) };
+  const w = plan.spans[plan.worstSpan]!;
+  const worst: WorstSpanRecord = { span: plan.worstSpan, lengthM: r3(w.lengthM), over: dominantOver(w.over), sagM: r3(w.sagDesignM), hN: r3(w.hDesignN), wNPerM: r3(weightNPerM(mech)), clearanceM: r3(w.clearanceM), requiredM: r3(w.requiredM) };
+  const badSpans = plan.spans.flatMap((sp, i) => (sp.ok ? [] : [i]));
+  return { ok: true, plan, cost: priceRoute(plan, kv, a.conductor, rp.prices), kv, request, spec, worst, badSpans };
+}
+
+// ---- the action ------------------------------------------------------------------------------------------------------------------------
+const accept = (s: GridState, name: string, key: string, params: Params = {}): ActionResult => {
+  s.actionLog.push({ tick: s.tick, name, key });
+  if (s.actionLog.length > 200) s.actionLog.splice(0, s.actionLog.length - 200);
+  return { ok: true, message: t(key, params), key, params };
+};
+const reject = (key: string, params: Params = {}): ActionResult => ({ ok: false, message: t(key, params), key, params });
+function nextBranchId(s: GridState): string {
+  const used = new Set(s.branches.map((b) => b.id));
+  for (let n = s.branches.length + 1; ; n++) if (!used.has(`T${n}`)) return `T${n}`;
+}
+
+export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridState>> {
+  return {
+    /** Build an overhead line between two buses of the same voltage along the player's waypoints (metres on the map). */
+    buildRoute: (s, ...raw: unknown[]) => {
+      const a = parseArgs(raw);
+      if ('bad' in a) return reject('act.arg', { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM', expected: t(a.bad) });
+      const ev = evaluateRoute(s, a, d);
+      if (!ev.ok) return { ok: false, message: ev.refusal.message, key: ev.refusal.key, params: ev.refusal.params };
+      const { plan, cost, request, spec } = ev;
+      const id = nextBranchId(s);
+      const terrain = terrainOf(s.terrain)!;
+      const toTile = (p: [number, number]): [number, number] => [r3(p[0] / terrain.tileM - 0.5), r3(p[1] / terrain.tileM - 0.5)];
+      s.branches.push(makeLine(spec, id, a.from, a.to, plan.lengthM / 1000, 1, a.waypointsM.map(toTile)));
+      s.budget.spent += cost.total;
+      const rec: RouteRecord = {
+        branchId: id, request: { ...request, waypoints: request.waypoints.map((p) => [p[0], p[1]] as [number, number]) }, worstMarginM: r3(plan.worstMarginM), badSpans: ev.badSpans,
+        lengthM: r3(plan.lengthM), cost: cost.total, supports: plan.supports.length, worst: ev.worst,
+      };
+      s.routes.push(rec);
+      s.solution = null;
+      return accept(s, 'buildRoute', 'route.ok', { id, kv: ev.kv, km: r3(plan.lengthM / 1000), n: plan.supports.length, spans: plan.spans.length, cost: d.money(s, cost.total), margin: r3(plan.worstMarginM) });
+    },
+  };
+}
+
+// ---- the queries -----------------------------------------------------------------------------------------------------------------------
+/** The plan as plain finite JSON for the front-end and the world query. */
+export function planView(plan: RoutePlan): { supports: unknown[]; spans: unknown[] } {
+  return {
+    supports: plan.supports.map((p) => ({ x: r3(p.x), y: r3(p.y), familyId: p.familyId, angleDeg: r3(p.angleDeg), angleClass: p.angleClass, foundation: p.foundation })),
+    spans: plan.spans.map((sp) => ({
+      lengthM: r3(sp.lengthM), over: [...sp.over], sagM: r3(sp.sagDesignM), clearanceM: r3(sp.clearanceM), requiredM: r3(sp.requiredM), marginM: r3(sp.clearanceM - sp.requiredM), atM: r3(sp.atM), ok: sp.ok,
+    })),
+  };
+}
+
+export function buildRouteQueries(d: RouteDeps): Record<string, QueryFn<GridState>> {
+  return {
+    /** What `buildRoute` would do with these arguments, without building: the plan with sag and clearance per span, the cost breakdown, or the refusal. Never throws. */
+    routePreview: (s, ...raw: unknown[]) => {
+      const a = parseArgs(raw);
+      if ('bad' in a) { const key = 'act.arg', params = { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM', expected: t(a.bad) }; return { ok: false, refusal: { key, message: t(key, params), params } }; }
+      const ev = evaluateRoute(s as GridState, a, d);
+      if (!ev.ok) return { ok: false, refusal: ev.refusal };
+      const { plan, cost } = ev;
+      return {
+        ok: true, ...planView(plan), cost: { supports: r3(cost.supports), foundations: r3(cost.foundations), conductor: r3(cost.conductor), clearing: r3(cost.clearing), total: r3(cost.total) },
+        lengthM: r3(plan.lengthM), worstMarginM: r3(plan.worstMarginM), worstSpan: plan.worstSpan, badSpans: ev.badSpans, worst: ev.worst,
+      };
+    },
+  };
+}
+
+/** The routes of a state re-planned from their stored requests (deterministic): what the world query draws. */
+export function replanRoutes(s: GridState, rp: RouteParams): { branchId: string; supports: unknown[]; spans: unknown[] }[] {
+  const terrain = terrainOf(s.terrain);
+  if (!terrain) return [];
+  const out: { branchId: string; supports: unknown[]; spans: unknown[] }[] = [];
+  for (const r of s.routes) {
+    const res = planCached(s, terrain, r.request, rp);
+    if (res.ok) out.push({ branchId: r.branchId, ...planView(res) });
+  }
+  return out;
+}

@@ -175,6 +175,30 @@ violations). This is the "employable" layer: it is exactly a junior planning eng
    crocodile sulking in the mangrove until you choose piles, the conductor visibly sags lower as the hamlet's bulbs turn on.
 4. L29, L30, L04, L06 follow in that order.
 
+## 8b. Chapter 2 jobs after L05 (design, Opus)
+**District persistence.** Each later Ch 2 job starts from the player's own verified solution code of the previous job (profile save;
+the level's reference build when there is none). The engine replays that code in `place()`, so the old line stands, now in "year 2".
+
+**L29 Salt Wind** (year 2). The harbour (fish market + ice plant, 150 kW at pf 0.85, all night) sits on the south coast. Extend 11 kV
+from Brightwater's yard down to it. Tiles ≤ 1 from the sea are pollution class IV (31 mm/kV), ≤ 2 class III, ≤ 6 class II.
+- New choice per line: insulators — pin (320 mm, $25), 2-disc string (590 mm, $70, drops the conductor 0.30 m), 1 anti-fog disc
+  (430 mm, $55, drop 0.15 m). Um = 12 kV: class III needs 300 mm (pin passes), class IV 372 mm (pin fails; disc string or fog disc).
+- Event: sea fog 02:00-05:00 (severity rises to IV at 04:00). A support whose creepage < its tile's need flashes over → line trips →
+  the ice plant warms (Cute: the fish look worried, then sad). Incident: "Pole 12 stands 40 m from the surf (class IV: 31 mm/kV × 12 kV =
+  372 mm). Its pin insulator offers 320 mm."
+- The drop of a disc string eats clearance (§4.2), so the long spans the player liked in L05 may now fail clearance: the two rules meet.
+- Naive: pin insulators all the way along the beach → flashover at 04:00. Lesson: fog discs on the coastal stretch (or route inland,
+  longer). ★★★: cost ≤ B and every coastal support at class IV.
+
+**L30 Bring the Island Home** (chapter finale, year 3). Saltmarsh Island, 4 km offshore, joins the mainland: a submarine 11 kV XLPE cable
+from the harbour (only cable can cross the sea; no supports), an 11/0.42 kV transformer and an inverter at the island's battery hut.
+- Teaches cable vs overhead (cost ×6-10, capacitance: the cable makes Q = V²ωCℓ ≈ 46 kvar at 4 km, shown on its tag as the Ch 3 teaser),
+  energy vs power, and **N-1 at Class-12 level**: at 21:00 a trawler's anchor cuts the cable (scripted). The island must ride through
+  until 23:00 on its own battery: kWh ≥ load × hours. The player sizes the island battery (kWh) and the inverter (kW).
+- Naive: cable only (cheapest) → island dark at 21:00. Lesson: battery ≥ 2 h × island evening load + inverter ≥ peak kW.
+- Story payoff: Nia's exam results arrive on the island's first mainland-powered night; Ada retires; Tobi: "Island's on the grid. Mind
+  the anchor."
+
 ## 9. Oracles for the route module (added to DESIGN §9.1; computed by an independent script, never by the engine)
 | id | problem | expected (tolerance) |
 |---|---|---|

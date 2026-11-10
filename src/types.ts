@@ -321,6 +321,8 @@ export interface Rules {
   starCost: [number, number] | null;
   /** What `starCost` compares: the operating `metrics.cost` or the build cost `budget.spent`. */
   starBasis: 'operating' | 'capex';
+  /** Block of the day at which every route with a span under its clearance rule flashes over and trips (the hot evening peak); null = never. */
+  flashoverBlock: number | null;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
 }
@@ -355,6 +357,33 @@ export interface BlockSummary {
 
 export interface LoggedAction { tick: number; name: string; key: string }
 
+/** What a route request looked like (src/sim/route/types.ts RouteRequest, repeated structurally: the state stays plain JSON and imports nothing). */
+export interface RouteRequestRecord {
+  waypoints: [number, number][]; familyId: string; crossingFamilyId: string | null; conductorId: string; kv: number; spanM: number;
+}
+/** The span of a built route with the smallest clearance margin: the numbers the lesson, the flashover event and the incident report quote. */
+export interface WorstSpanRecord {
+  /** Span index along the route and its horizontal length, m. */
+  span: number; lengthM: number;
+  /** Dominant tile kind under the span ('river', 'road', ...). */
+  over: string;
+  /** Sag and horizontal tension at the design temperature (m, N), conductor weight (N/m), lowest clearance (m) and the rule (m). */
+  sagM: number; hN: number; wNPerM: number; clearanceM: number; requiredM: number;
+}
+/** A line built by `buildRoute`: the request that made it (re-planned by queries), its worst margin and the build cost. */
+export interface RouteRecord {
+  branchId: string;
+  request: RouteRequestRecord;
+  /** Smallest clearance margin over all spans at the design temperature (m; negative = a violation) and the spans with a negative margin. */
+  worstMarginM: number;
+  badSpans: number[];
+  lengthM: number;
+  cost: number;
+  /** Number of supports on the route and the worst span (not in the original brief: the verdict and the lesson read them without re-planning). */
+  supports: number;
+  worst: WorstSpanRecord;
+}
+
 export interface Coach { stepId: string | null; hintsUsed: number; seen: string[] }
 
 export interface GridState extends BaseState {
@@ -388,4 +417,8 @@ export interface GridState extends BaseState {
   stars: 0 | 1 | 2 | 3;
   /** The bench circuit of a bench level; null on grid levels and in free play. */
   bench: BenchState | null;
+  /** Id of the terrain map the level stands on ('mainland'); the map data stays in code (src/level/maps), never in the state. null: no terrain. */
+  terrain: string | null;
+  /** Lines built with `buildRoute`, in build order. */
+  routes: RouteRecord[];
 }

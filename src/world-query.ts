@@ -6,10 +6,14 @@ import type { GridState } from './types';
 import { solvedOf, toMW } from './sim/solved';
 import { fin } from './sim/finite';
 import { solveBench, HOMES, GEOM, SOURCE_V, type BenchParams } from './level/bench';
+import { mapRows } from './level/maps';
+import { terrainOf } from './level/maps';
+import { replanRoutes, type RouteParams } from './route-actions';
 
 const r3 = (x: number): number => Math.round(fin(x) * 1000) / 1000;
 
-export interface WorldDeps { getBench: (s: GridState) => BenchParams }
+export interface WorldDeps { getBench: (s: GridState) => BenchParams; getRoute: (s: GridState) => RouteParams }
+const r1 = (x: number): number => Math.round(fin(x) * 10) / 10;
 
 export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridState>> {
   return {
@@ -44,7 +48,12 @@ export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridStat
       let w = 0, h = 0;
       for (const b of s.buses) { w = Math.max(w, b.x); h = Math.max(h, b.y); }
       for (const b of s.branches) for (const p of b.waypoints) { w = Math.max(w, p[0]); h = Math.max(h, p[1]); }
-      return { kind, level: s.level, map: { w: w + 4, h: h + 4 }, buses, branches, units, shunts, bench, blackout: s.block.blackout };
+      // the terrain the level stands on (rows as the map's tile characters, elevation per tile to 0.1 m) and the routes built on it, re-planned from their requests
+      const tr = terrainOf(s.terrain);
+      const terrain = tr && s.terrain ? { id: s.terrain, cols: tr.cols, nrows: tr.rows, tileM: tr.tileM, rows: [...(mapRows(s.terrain) ?? [])], elev: tr.elevM.map(r1) } : null;
+      const routes = terrain ? replanRoutes(s as GridState, d.getRoute(s as GridState)) : [];
+      const mapSize = tr ? { w: tr.cols, h: tr.rows } : { w: w + 4, h: h + 4 };
+      return { kind, level: s.level, map: mapSize, buses, branches, units, shunts, bench, blackout: s.block.blackout, terrain, routes };
     },
   };
 }

@@ -17,6 +17,7 @@ import { voltageBand, type SimParams } from './params';
 import { systemRng } from './rngs';
 import { fin } from './finite';
 import { stepBench, type BenchParams } from '../level/bench';
+import { flashoverStep } from './flashover';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -232,6 +233,9 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       }
     } },
 
+    // 7b. flashover: at the level's hot evening block, spans under their clearance rule flash over and trip their line (before the load flow sees it).
+    { id: 'flashover', run: (s) => { flashoverStep(s); } },
+
     // 8. loadflow: islands, Newton-Raphson, Q-limits, collapse sheds -> `solution` (V and theta only; flows are memoised outside).
     { id: 'loadflow', run: (s) => {
       if (s.buses.length === 0) { s.solution = null; s.block.lossMW = 0; return; }
@@ -397,6 +401,12 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       tr.supplyMWh = fin((tr.supplyMWh ?? 0) + s.block.genMW * BLOCK_H);
       tr.peakLoading = Math.max(tr.peakLoading ?? 0, fin(s.block.worstLoading));
       tr.lossPct = tr.supplyMWh > 1e-9 ? fin((100 * s.metrics.lossesMWh) / tr.supplyMWh) : 0;
+      if (s.routes.length > 0) {   // route levels: the thinnest clearance of any span (m) and the lowest voltage a loaded bus saw (pu; 0 when dark)
+        tr.worstMarginM = fin(Math.min(...s.routes.map((r) => r.worstMarginM)));
+        const sol = solvedOf(s);
+        const vs = s.loads.filter((l) => l.P > 0).map((l) => (sol && sol.sol.energised[l.bus] !== false ? sol.sol.V[l.bus] ?? 0 : 0));
+        if (vs.length > 0) tr.loadVMinPu = Math.min(tr.loadVMinPu ?? Infinity, fin(Math.min(...vs)));
+      }
     } },
 
     // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).

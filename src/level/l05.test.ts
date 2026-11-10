@@ -1,0 +1,120 @@
+// L05 The River Line, engine side: the sag lesson gate (an electrically fine line with a span under its clearance rule flashes over at 19:30), the
+// refusals of buildRoute (one teaching key per planner refusal), routePreview == buildRoute, the world's terrain and routes, demolish, determinism.
+import { describe, expect, it } from 'vitest';
+import { Env, TICK, hashOf } from '@core/kit';
+import { GAME } from '../game';
+import { en } from '../locales/en';
+import { MAINLAND_ROWS } from './maps/mainland';
+import { specOf } from './index';
+import { runDesign } from './run';
+import { route, xfmrPair, NAIVE } from './levels/l05';
+import type { GridState } from '../types';
+
+const spec = specOf('L05')!;
+const fresh = (region = 'global'): Env<GridState> => { const e = new Env(GAME); e.reset({ seed: 1, level: 'L05', region }); return e as Env<GridState>; };
+const wood70 = (): ReturnType<typeof route> => route('saddle', 'wood-9', 'crossing-h', 70, 'rabbit');
+
+describe('L05 sag lesson gate', () => {
+  it('saddle, wood poles, H-frame crossing, 70 m spans, Rabbit: electrically fine, margin -0.52 m, flashes over at 19:30 and ends the level', () => {
+    const o = runDesign(spec, 'global', [wood70(), ...xfmrPair('dt-250')]);
+    expect(o.rejected).toBeNull();
+    expect(o.track.worstMarginM).toBeCloseTo(-0.521, 2);
+    expect(o.status).toBe('lost'); expect(o.failKind).toBe('flashover');
+    expect(o.ticks).toBe(14);                                  // 16:00 + 14 blocks = 19:30
+    expect(o.state.clock.block).toBe(78);
+    expect(o.state.block.verdictKey).toBe('level.lost.flashover');
+    expect(o.reason).toMatch(/19:30.*sag 1\.031 m.*only 6\.479 m above the road.*7 m is the rule/);
+    expect(o.state.events.log.some((e) => e.causeKey === 'route.flashover')).toBe(true);
+    // electrically fine until the peak: nothing before 19:30 browned out (the poor-supply clock only ran after the trip)
+    expect(o.state.metrics.poorSupplyMin).toBeLessThanOrEqual(15);
+  });
+  it('the same design with the low-clearance span fixed (pcc-11 poles) does not flash over, and the naive 0.42 kV run browns out first', () => {
+    expect(runDesign(spec, 'global', spec.reference).status).toBe('won');
+    const n = runDesign(spec, 'global', [NAIVE]);
+    expect(n.failKind).toBe('brownout'); expect(n.track.loadVMinPu).toBeLessThan(0.8);
+  });
+  it('the clearance rule is the pack\'s: the CEA draft pack (4.6 m) lets the wood-pole line stand', () => {
+    expect(runDesign(spec, 'in', [wood70(), ...xfmrPair('dt-250')]).status).toBe('won');
+  });
+});
+
+describe('buildRoute refusals teach', () => {
+  const refuse = (args: unknown[], key: string): void => {
+    const e = fresh(); const r = e.engine.act('buildRoute', args);
+    expect(r.ok, key).toBe(false); expect(r.key).toBe(key); expect(en[key], key).toBeTruthy(); expect(r.message).not.toMatch(/\{/);
+    expect(e.state.routes).toEqual([]); expect(e.state.budget.spent).toBe(0);
+  };
+  const A = (over: Record<number, unknown>): unknown[] => { const a: unknown[] = ['B2', 'B3', 'rabbit', 'tubular-13', 'crossing-h', 90, []]; for (const [i, v] of Object.entries(over)) a[Number(i)] = v; return a; };
+  it('each refusal kind has its key', () => {
+    refuse(A({ 4: null }), 'route.noSupportGapTooLong');
+    refuse(A({ 3: 'wood-9', 4: 'crossing-h', 5: 60 }), 'route.noFoundation');
+    refuse(A({ 5: 150 }), 'route.spanTooLong');
+    refuse(A({ 3: 'ghost' }), 'level.part.notAllowed');   // the level's part list answers first; the planner's own keys are checked through the preview
+    const pv = (a: unknown[]): any => fresh().engine.q('routePreview', a);
+    expect(pv(A({ 3: 'ghost' })).refusal.key).toBe('route.unknownFamily');
+    expect(pv(A({ 2: 'unobtainium' })).refusal.key).toBe('route.unknownConductor');
+    refuse(A({ 1: 'B2' }), 'act.line.same');
+    refuse(A({ 1: 'B4' }), 'route.kvMismatch');
+    refuse(A({ 1: 'B9' }), 'act.unknownId');
+    refuse(['B2', 'B3', 'rabbit', 'tubular-13', 'crossing-h', 90, [[-500, 100]]], 'route.offMap');
+    refuse(['B2', 'B3', 'rabbit', 'tubular-13', 'crossing-h', 90, [[4400, 700], [4500, 700]]], 'route.noOverhead');   // through the market town
+    refuse(['B2', 'B3', 'rabbit', 'pcc-11', 'crossing-h', 90, []], 'route.noFoundation');                             // concrete poles on the gorge's rock? (straight line: rock at the ridge)
+    refuse(A({ 5: 'long' }), 'act.arg');
+  });
+  it('a line above the family kV is refused: lattice-33 is not offered, a family made for 11 kV carries 11 kV only where it says', () => {
+    const e = fresh(); const r = e.engine.act('buildRoute', ['B2', 'B3', 'rabbit', 'lattice-33', null, 90, []]);
+    expect(r.ok).toBe(false); expect(r.key).toBe('level.part.notAllowed');
+  });
+});
+
+describe('routePreview and buildRoute agree', () => {
+  it('same plan, same cost; refusals come back as data, never as a throw', () => {
+    const e = fresh(); const a = spec.reference[0]!;
+    const pv = e.engine.q('routePreview', a.args as unknown[]) as any;
+    expect(pv.ok).toBe(true);
+    const r = e.engine.act('buildRoute', a.args as unknown[]);
+    expect(r.ok).toBe(true);
+    expect(e.state.budget.spent).toBeCloseTo(pv.cost.total, 2);
+    expect(pv.cost.total).toBeCloseTo(pv.cost.supports + pv.cost.foundations + pv.cost.conductor + pv.cost.clearing, 2);
+    const rec = e.state.routes[0]!;
+    expect(rec.cost).toBeCloseTo(pv.cost.total, 2); expect(rec.worstMarginM).toBeCloseTo(pv.worstMarginM, 3); expect(rec.supports).toBe(pv.supports.length);
+    expect(rec.badSpans).toEqual(pv.badSpans); expect(rec.lengthM).toBeCloseTo(pv.lengthM, 3);
+    const w = e.engine.q('world') as any;
+    expect(w.routes[0].branchId).toBe(rec.branchId); expect(w.routes[0].supports).toEqual(pv.supports); expect(w.routes[0].spans).toEqual(pv.spans);
+    const bad = e.engine.q('routePreview', ['B2', 'B3', 'rabbit', 'wood-9', null, 70, []]) as any;
+    expect(bad.ok).toBe(false); expect(bad.refusal.key).toBe('route.noSupportGapTooLong'); expect(bad.refusal.message).toMatch(/river here is/);
+    expect((e.engine.q('routePreview', [1, 2]) as any).ok).toBe(false);
+    const finite = JSON.stringify(pv, (_k, v) => (typeof v === 'number' && !Number.isFinite(v) ? '__NF__' : v));
+    expect(finite).not.toContain('__NF__');
+  });
+});
+
+describe('world terrain', () => {
+  it('round-trips the map rows and carries a 1 dp elevation per tile', () => {
+    const e = fresh(); const w = e.engine.q('world') as any;
+    expect(w.terrain.id).toBe('mainland'); expect(w.terrain.rows).toEqual([...MAINLAND_ROWS]);
+    expect(w.terrain.cols).toBe(100); expect(w.terrain.nrows).toBe(44); expect(w.terrain.tileM).toBe(50);
+    expect(w.terrain.elev.length).toBe(4400); expect(w.terrain.elev.every((v: number) => Math.round(v * 10) / 10 === v)).toBe(true);
+    expect(w.map).toEqual({ w: 100, h: 44 }); expect(w.routes).toEqual([]);
+    const free = new Env(GAME); free.reset({ seed: 1 });
+    expect((free.engine.q('world') as any).terrain).toBeNull();
+  });
+});
+
+describe('demolish and determinism', () => {
+  it('demolishing a route line (or its bus) removes its record', () => {
+    const e = fresh(); for (const a of spec.reference) expect(e.step(a).info.ok).toBe(true);
+    expect(e.state.routes.length).toBe(1);
+    const id = e.state.routes[0]!.branchId;
+    expect(e.engine.act('demolish', [id]).ok).toBe(true); expect(e.state.routes).toEqual([]);
+    const f = fresh(); f.step(spec.reference[0]!); f.engine.act('demolish', ['B2']); expect(f.state.routes).toEqual([]);
+  });
+  it('the same actions give the same state hash', () => {
+    const run = (): string => { const e = fresh(); for (const a of spec.lesson) e.step(a); for (let i = 0; i < 20; i++) e.step(TICK); return hashOf(e.state); };
+    expect(run()).toBe(run());
+  });
+  it('flashover only fires at the level\'s block: the same bad line is fine in free play', () => {
+    const e = new Env(GAME); e.reset({ seed: 1 });
+    expect(e.state.rules.flashoverBlock).toBeNull();
+  });
+});

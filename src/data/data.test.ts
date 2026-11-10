@@ -149,7 +149,7 @@ describe.each(PACKS.map((p) => [p.id, p] as const))('pack %s catalogues', (_id, 
   it('line costs: cost rises with voltage, a twin 400 kV line costs less than a quad, double circuit factor in (1, 2)', () => {
     const lc = rows('lineCosts'); for (const l of lc) { expect(l.costPerKm, l.id).toBeGreaterThan(0); expect(l.doubleCircuitFactor, l.id).toBeGreaterThan(1); expect(l.doubleCircuitFactor, l.id).toBeLessThan(2); }
     for (let i = 1; i < lc.length; i++) { expect(lc[i].kv).toBeGreaterThanOrEqual(lc[i - 1].kv); expect(lc[i].costPerKm).toBeGreaterThan(lc[i - 1].costPerKm); }
-    const kvs = new Set(lc.map((l) => l.kv)); for (const t of LINE_TEMPLATES) expect(kvs.has(t.kv), t.id).toBe(true);
+    const kvs = new Set(lc.map((l) => l.kv)); for (const t of LINE_TEMPLATES.filter((x) => x.kv >= 1)) expect(kvs.has(t.kv), t.id).toBe(true);
   });
   it('cables: copper price per metre positive, pole spacing sane', () => {
     for (const c of rows('cables')) { expect(c.perMm2PerM).toBeGreaterThan(0); expect(c.sheathPerM).toBeGreaterThan(0); expect(between(c.poleSpacingM, 10, 100)).toBe(true); expect(c.polePrice).toBeGreaterThan(0); }

@@ -46,6 +46,16 @@ static func open(app: CbApp) -> bool:
 	if short: vb.add_child(PaperKit.scroll_box(col))
 	else: vb.add_child(col)
 	var lamps: Array = []
+	if lid == "P0":   # the prologue is a scene, not a job: no lamps, no cost; Ada's line and the way to the island
+		_head(col, T("REP_P0_TITLE"), T("REP_P0_SUB"), PaperKit.RED, compact)
+		col.add_child(PaperKit.rule())
+		col.add_child(_note(T("REP_P0_ADA"), PaperKit.BLUE, "ADA ›", compact))
+		vb.add_child(PaperKit.rule())
+		var prow := HFlowContainer.new(); prow.add_theme_constant_override("h_separation", 12); vb.add_child(prow)
+		var again := PaperKit.btn(T("REP_P0_AGAIN"), false, func(): app.start_level("P0", true), 20); again.name = "Retry"; prow.add_child(again)
+		var go := PaperKit.btn(T("REP_P0_GO"), true, func(): app.start_level("L01", true), 20); go.name = "Next"; prow.add_child(go)
+		go.call_deferred("grab_focus")
+		return true
 	if won: lamps = _won(app, col, e, li if has_li else {}, stars, short, compact)
 	else: _lost(app, col, e, li if has_li else {}, compact)
 	vb.add_child(PaperKit.rule())

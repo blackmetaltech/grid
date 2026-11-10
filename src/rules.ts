@@ -3,7 +3,7 @@
 import type { GridState, Rules } from './types';
 import { t } from './i18n';
 
-export const NO_RULES: Rules = { horizonBlocks: null, maxEnsMWh: null, maxCost: null, minNadirHz: null, maxPoorSupplyMin: null, blackoutLoses: false, starCost: null, starBasis: 'operating', star3: [] };
+export const NO_RULES: Rules = { horizonBlocks: null, maxEnsMWh: null, maxCost: null, minNadirHz: null, maxPoorSupplyMin: null, blackoutLoses: false, flashoverBlock: null, starCost: null, starBasis: 'operating', star3: [] };
 
 export const ruleGoal = (s: Readonly<GridState>): boolean => s.block.verdict === 'won';
 export function ruleFail(s: Readonly<GridState>): string | null {

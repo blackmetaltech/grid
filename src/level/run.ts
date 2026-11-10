@@ -5,7 +5,7 @@ import { GAME } from '../game';
 import type { GridState } from '../types';
 import { makeLevel, type Frozen, type GridLevelSpec } from './spec';
 
-export type FailKind = 'brownout' | 'overload' | 'blackout' | 'budget' | 'timeout';
+export type FailKind = 'brownout' | 'overload' | 'blackout' | 'budget' | 'timeout' | 'flashover';
 
 export interface Outcome {
   status: 'won' | 'lost' | 'playing';
@@ -30,6 +30,7 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (s.block.verdict === 'playing' || key === null) return 'timeout';
   if (key === 'level.lost.poorSupply' || key === 'level.lost.poorSupplyAny' || key === 'level.lost.lossOver' || key === 'level.lost.unpowered') return 'brownout';
   if (key === 'level.lost.budget') return 'budget';
+  if (key === 'level.lost.flashover') return 'flashover';
   return (s.metrics.track.overloadTrips ?? 0) > 0 || s.events.log.some((e) => e.causeKey === 'cascade.overload-trip') ? 'overload' : 'blackout';
 }
 

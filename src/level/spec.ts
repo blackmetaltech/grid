@@ -9,6 +9,7 @@ import { NO_RULES, ruleFail, ruleGoal } from '../rules';
 import { voltageBand, type SimParams } from '../sim/params';
 import type { GridRegionData } from '../regions/data';
 import { catalogueViewOf, simParamsOf, benchParamsOf } from '../catalogue';
+import type { CatalogueView } from '../sim/build';
 import { buildActions } from '../actions';
 import type { GridState, Rules } from '../types';
 import type { BenchParams } from './bench';
@@ -39,6 +40,8 @@ export interface ScaffoldCtx {
   A: Record<string, ActionFn<GridState>>;
   params: SimParams;
   bench: BenchParams;
+  /** The region's catalogue (a level that needs a catalogue value, e.g. the low-voltage side of the distribution transformers). */
+  cat: CatalogueView;
   /** Thresholds resolved for the region and mode. */
   th: Record<string, number>;
   frozen: Frozen | null;
@@ -66,13 +69,15 @@ export interface GridLevelSpec {
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
   story?: { placeKey: string; lineKeys: string[]; lessonKey: string };
+  /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
+  flashoverBlock?: number;
   brownoutLoses: boolean;
   blackoutLoses: boolean;
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' };
+  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -103,6 +108,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     maxPoorSupplyMin: spec.brownoutLoses ? 0 : null,
     poorSupplyGraceMin: spec.kind === 'bench' ? 60 : 0,
     blackoutLoses: spec.blackoutLoses,
+    flashoverBlock: spec.flashoverBlock ?? null,
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: 'capex',
     star3: spec.star3.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })),
@@ -124,7 +130,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
       if (spec.stars && spec.frozen && !frozen) throw new Error(`level ${spec.id} has no frozen targets for region '${pack.id}'`);
       const A = buildActions({ cat: () => cat, getParams: () => params, money: () => '' });
       const mode = s.mode; s.mode = 'sandbox';   // the scenario places the town's loads, which only sandbox may do
-      spec.place(s, { A, params, bench: benchParamsOf(pack.data), th, frozen });
+      spec.place(s, { A, params, bench: benchParamsOf(pack.data), cat, th, frozen });
       s.mode = mode;
       s.actionLog = []; s.budget.spent = s.bench ? s.budget.spent : 0;
       if (frozen) s.budget.capexLimit = frozen.budget;
@@ -140,7 +146,9 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
 
 // ---- the allowed-parts gate -----------------------------------------------------------------------------------------------------
 /** Argument position of the catalogue id (or size) of an action the part list can restrict. */
-const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, switchBranch: 0 };
+const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, switchBranch: 0, buildRoute: 2 };
+/** Further restricted arguments, listed in `allowed.parts` under `<action>.<name>` (a null value, e.g. no crossing family, is always fine). */
+const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }] };
 const ALWAYS = new Set(['setSpeed', 'predict']);
 
 /** Wrap the game's actions so a running level only accepts what its spec allows. Free play (no level) is untouched. */
@@ -153,6 +161,10 @@ export function allowedGate(actions: Record<string, ActionFn<GridState>>, specOf
         if (!spec.allowed.actions.includes(name)) { const key = 'level.action.notAllowed'; return { ok: false, message: t(key, { action: name, level: spec.id }), key, params: { action: name, level: spec.id } }; }
         const pos = PART_ARG[name], list = spec.allowed.parts[name];
         if (pos !== undefined && list && !list.map(String).includes(String(args[pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
+        for (const x of EXTRA_PART_ARG[name] ?? []) {
+          const more = spec.allowed.parts[`${name}.${x.name}`];
+          if (more && args[x.pos] !== null && args[x.pos] !== undefined && !more.map(String).includes(String(args[x.pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[x.pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
+        }
       }
       return fn(s, ...args);
     };

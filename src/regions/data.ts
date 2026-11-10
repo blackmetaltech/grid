@@ -16,6 +16,35 @@ export interface Sourced { source: string; confidence: Confidence }
 
 export interface BandKv { minKv: number; maxKv: number }
 
+export const ROUTE_TILE_KINDS = ['field', 'swamp', 'river', 'forest', 'rock', 'sand', 'sea', 'town', 'road'] as const;
+export const ROUTE_ANGLE_CLASSES = ['suspension', 'small', 'medium', 'large', 'terminal'] as const;
+export const ROUTE_FOUNDATIONS = ['earth', 'pile', 'rock'] as const;
+export interface RouteData {
+  rules: {
+    /** Everyday stringing tension as a fraction of UTS at `everydayC`, and the design (hottest) conductor temperature for clearance checks, deg C. */
+    everydayFrac: number; everydayC: number; designC: number;
+    /** Ground clearance (m) by voltage class: the first row whose `uptoKv` is >= the line's kV applies (rows ascending). */
+    groundClearance: { uptoKv: number; m: number }[];
+    /** Clearance over water above high-water level, extra clearance over roads, insulator string drop (0 for pin insulators), m. */
+    waterClearanceM: number; roadExtraM: number; insulatorDropM: number;
+    /** Tile kinds that cannot hold a support, and kinds a line may not cross overhead. */
+    noSupport: string[]; noOverhead: string[];
+  };
+  prices: {
+    /** Pack currency per support of each family (a suspension support; angle classes multiply it). */
+    support: Record<string, number>;
+    angleMultiplier: Record<string, number>;
+    /** Foundation price as a share of the (angle-adjusted) support price, times the multiplier of the foundation kind. */
+    foundationShare: number;
+    foundationMultiplier: Record<string, number>;
+    /** Pack currency per metre of ONE phase wire, by short conductor id ('weasel', 'rabbit', 'dog'); wires per line: 4 below 1 kV, 3 above. */
+    conductorPerM: Record<string, number>;
+    phaseWires: { lv: number; mv: number };
+    /** Right-of-way clearing, pack currency per metre of route over forest. */
+    clearingPerM: number;
+  };
+}
+
 export interface UflsRow { /** pick-up, Hz */ hz: number; /** percent of demand shed */ shedPct: number; /** relay + breaker delay, s */ delayS: number }
 export interface TripRow { /** frequency threshold, Hz */ hz: number; /** time above/below it before the unit trips, s */ s: number }
 
@@ -72,6 +101,8 @@ export interface GridRegionData {
     nuclearPerMWhe: number | null;
   };
   climate: { /** degrees north */ latitudeDeg: number };
+  /** Overhead-line route rules (clearances, stringing rule) and the prices of supports, foundations and conductors (L05, DEPTH §4). */
+  route: RouteData;
   catalogues: Catalogues;
   /** Source and confidence per data path (see REQUIRED_PROVENANCE). */
   provenance: Record<string, Sourced>;
@@ -142,7 +173,7 @@ export const REQUIRED_PROVENANCE: readonly string[] = [
   'gridcode.droopRangePct', 'gridcode.ufls.hz', 'gridcode.ufls.shedPct', 'gridcode.ufls.delayS',
   'gridcode.genUfTrip.hz', 'gridcode.genUfTrip.s', 'gridcode.genOfTrip.hz', 'gridcode.genOfTrip.s',
   'gridcode.ovStages', 'gridcode.uvLoadTrip', 'gridcode.settlementMin',
-  'economy.energyPricePerMWh', 'economy.vollPerMWh', 'economy.fuelPerGJ', 'climate.latitudeDeg',
+  'economy.energyPricePerMWh', 'economy.vollPerMWh', 'economy.fuelPerGJ', 'climate.latitudeDeg', 'route.rules', 'route.prices',
 ];
 const NULLABLE_PROVENANCE: Record<string, (d: GridRegionData) => unknown> = {
   'gridcode.maxSteadyDevHz': (d) => d.gridcode?.maxSteadyDevHz, 'gridcode.maxInstDevHz': (d) => d.gridcode?.maxInstDevHz,
@@ -157,11 +188,41 @@ function onlyKeys(o: object, allowed: string[], path: string, e: string[]): void
   for (const k of Object.keys(o)) if (!allowed.includes(k)) e.push(`${path}.${k} is not a field of the schema (physics constants do not belong in a region pack)`);
 }
 
+function validateRoute(r: any, e: string[]): void {
+  if (!isObj(r)) { e.push('route must be an object ({rules, prices})'); return; }
+  onlyKeys(r, ['rules', 'prices'], 'route', e);
+  const ru: any = r.rules, pr: any = r.prices;
+  if (!isObj(ru)) e.push('route.rules must be an object');
+  else {
+    onlyKeys(ru, ['everydayFrac', 'everydayC', 'designC', 'groundClearance', 'waterClearanceM', 'roadExtraM', 'insulatorDropM', 'noSupport', 'noOverhead'], 'route.rules', e);
+    if (!isNum(ru.everydayFrac) || !(ru.everydayFrac > 0 && ru.everydayFrac < 1)) e.push('route.rules.everydayFrac must be a fraction of the UTS in (0, 1)');
+    if (!isNum(ru.everydayC) || !isNum(ru.designC) || !(ru.designC > ru.everydayC)) e.push('route.rules.designC must be hotter than everydayC (deg C)');
+    for (const k of ['waterClearanceM', 'roadExtraM', 'insulatorDropM']) if (!isNum(ru[k]) || ru[k] < 0) e.push(`route.rules.${k} must be a number >= 0 (m)`);
+    const g = ru.groundClearance;
+    if (!Array.isArray(g) || g.length === 0 || g.some((x: any) => !isObj(x) || !isPos(x.uptoKv) || !isPos(x.m))) e.push('route.rules.groundClearance must be a non-empty list of {uptoKv > 0, m > 0}');
+    else for (let i = 1; i < g.length; i++) if (!(g[i].uptoKv > g[i - 1].uptoKv)) e.push('route.rules.groundClearance rows must be ascending in uptoKv');
+    for (const k of ['noSupport', 'noOverhead']) if (!Array.isArray(ru[k]) || ru[k].some((x: unknown) => !(ROUTE_TILE_KINDS as readonly string[]).includes(x as string))) e.push(`route.rules.${k} must be a list of tile kinds (${ROUTE_TILE_KINDS.join(', ')})`);
+  }
+  if (!isObj(pr)) e.push('route.prices must be an object');
+  else {
+    onlyKeys(pr, ['support', 'angleMultiplier', 'foundationShare', 'foundationMultiplier', 'conductorPerM', 'phaseWires', 'clearingPerM'], 'route.prices', e);
+    const table = (k: string, keys?: readonly string[]): void => {
+      const t = pr[k];
+      if (!isObj(t) || Object.keys(t).length === 0 || Object.values(t).some((x) => !isPos(x))) e.push(`route.prices.${k} must be a non-empty object of positive numbers`);
+      else if (keys) for (const need of keys) if (!(need in t)) e.push(`route.prices.${k}.${need} is missing`);
+    };
+    table('support'); table('conductorPerM'); table('angleMultiplier', ROUTE_ANGLE_CLASSES); table('foundationMultiplier', ROUTE_FOUNDATIONS);
+    if (!isPos(pr.foundationShare) || pr.foundationShare >= 1) e.push('route.prices.foundationShare must be a share in (0, 1)');
+    if (!isPos(pr.clearingPerM)) e.push('route.prices.clearingPerM must be a positive number');
+    if (!isObj(pr.phaseWires) || !isPos(pr.phaseWires.lv) || !isPos(pr.phaseWires.mv)) e.push('route.prices.phaseWires must be {lv, mv} wire counts');
+  }
+}
+
 /** Schema + range checks for a pack's `data`. Returns messages (empty = valid). */
 export function validateGridData(d: GridRegionData): string[] {
   const e: string[] = [];
   if (!isObj(d)) return ['must be an object'];
-  onlyKeys(d, ['f0', 'voltage', 'gridcode', 'economy', 'climate', 'catalogues', 'provenance'], 'data', e);
+  onlyKeys(d, ['f0', 'voltage', 'gridcode', 'economy', 'climate', 'route', 'catalogues', 'provenance'], 'data', e);
   if (d.f0 !== 50 && d.f0 !== 60) e.push(`f0 must be 50 or 60 Hz (got ${String(d.f0)})`);
   const f0 = d.f0 === 60 ? 60 : 50;
 
@@ -253,6 +314,9 @@ export function validateGridData(d: GridRegionData): string[] {
   const c: any = d.climate;
   if (!isObj(c)) e.push('climate must be an object');
   else { onlyKeys(c, ['latitudeDeg'], 'climate', e); if (!isNum(c.latitudeDeg) || c.latitudeDeg < -90 || c.latitudeDeg > 90) e.push('climate.latitudeDeg must be between -90 and 90'); }
+
+  // route rules and prices
+  validateRoute(d.route, e);
 
   // catalogues
   const cat: any = d.catalogues;

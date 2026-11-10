@@ -4,11 +4,12 @@
 import { defineRegion } from '@core/regions';
 import { validateGridData, type GridRegionData } from '../data';
 import { GLOBAL_CATALOGUES } from './catalogues';
+import { ROUTE, ROUTE_PROVENANCE } from './route';
 
 const SOGL = 'SOGL (EU) 2017/1485 Annex III (CE)';
 
 export const GLOBAL = defineRegion<GridRegionData>({
-  id: 'global', name: 'Global', status: 'shipping', rulesetVersion: 2,
+  id: 'global', name: 'Global', status: 'shipping', rulesetVersion: 3,
   currency: { code: 'USD', symbol: '$', decimals: 2, position: 'prefix' },
   numbers: { grouping: 'western', decimal: '.', group: ',' },
   standards: { voltage: 'IEC 60038', gridcode: 'Lumen Grid Code', conductors: 'BS 215 / IEC 60228' },
@@ -50,6 +51,7 @@ export const GLOBAL = defineRegion<GridRegionData>({
       nuclearPerMWhe: 7,
     },
     climate: { latitudeDeg: 23 },
+    route: ROUTE,
     catalogues: GLOBAL_CATALOGUES,
     provenance: {
       'f0': { source: `${SOGL} Annex III Table 1 (CE standard frequency range is +-50 mHz about 50 Hz; text read via gesetze.legal)`, confidence: 'standard' },
@@ -78,6 +80,7 @@ export const GLOBAL = defineRegion<GridRegionData>({
       'economy.vollPerMWh': { source: 'anchored to LBNL 2015 value-of-service tables (DESIGN 4.8, S37)', confidence: 'game' },
       'economy.fuelPerGJ': { source: 'game constants (coal 2.6, gas 4, diesel 25, biomass 4 US$/GJ); cross-check EIA Electric Power Annual Table 7.4, 2025: coal 2.29, gas 3.65, petroleum 13.4 US$/GJ', confidence: 'game' },
       'climate.latitudeDeg': { source: 'fictional province (DESIGN 11.2)', confidence: 'game' },
+      ...ROUTE_PROVENANCE,
     },
   },
   strings: {

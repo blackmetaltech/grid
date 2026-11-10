@@ -470,6 +470,7 @@ func _paint_top() -> void:
 	var t0 := Time.get_ticks_usec()
 	_draw_labels()
 	_draw_pegs()
+	_draw_breakers()
 	perf.top_us += Time.get_ticks_usec() - t0
 
 func _draw() -> void:
@@ -1005,3 +1006,33 @@ func _draw_pegs() -> void:
 			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz)
 			_ci.draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
 			_ci.draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
+
+
+## Prologue: the open line's breaker glows at the middle of the line (the only legal action). Tap it to close the line.
+func _breaker_points() -> Array:
+	var out: Array = []
+	if str(model.level) != "P0" or float(model.minute) > 120.0: return out   # only before the night starts (P0 opens at 02:00)
+	for l in model.lines:
+		if bool(l.in_service) or str(l.get("kind", "")) == "xfmr": continue
+		var pts: Array = l.pts
+		if pts.size() < 2: continue
+		out.append({"id": str(l.id), "tile": (Vector2(pts[0]) + Vector2(pts[pts.size() - 1])) * 0.5})   # tile coords; world_to_screen adds the centre offset
+	return out
+
+func breaker_at(p: Vector2) -> String:
+	for bp in _breaker_points():
+		if world_to_screen(bp.tile).distance_to(p) < 46.0 * clampf(_scale() * 1.15, 0.8, 1.7): return str(bp.id)
+	return ""
+
+func _draw_breakers() -> void:
+	var sc := clampf(_scale() * 1.15, 0.8, 1.7)
+	for bp in _breaker_points():
+		var p := world_to_screen(bp.tile) + Vector2(0, -18.0 * sc)
+		var pulse := 0.5 + 0.5 * sin(_t * 4.0)
+		_ci.draw_circle(p, (34.0 + 10.0 * pulse) * sc, Color(GridTheme.SODIUM, 0.10 + 0.12 * pulse))
+		_ci.draw_circle(p, 20.0 * sc, Color(GridTheme.SODIUM, 0.35 + 0.3 * pulse))
+		var box := Rect2(p - Vector2(12, 15) * sc, Vector2(24, 30) * sc)
+		_ci.draw_rect(box, GridTheme.INK)
+		_ci.draw_rect(box, GridTheme.SODIUM, false, 2.0)
+		_ci.draw_line(p + Vector2(0, 9) * sc, p + Vector2(7, -9) * sc, GridTheme.SODIUM, 3.0 * sc)   # the open knife: tap to close
+		_ci.draw_circle(p + Vector2(0, 9) * sc, 2.5 * sc, GridTheme.SODIUM)

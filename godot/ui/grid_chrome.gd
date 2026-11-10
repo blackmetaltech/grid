@@ -64,6 +64,12 @@ func _night_locked() -> bool:
 
 ## Tap on the world: the tray first (a pick in progress), then the tags.
 func on_world_tap(p: Vector2) -> void:
+	var wv = app.get("grid_world")
+	var bk: String = wv.breaker_at(p) if wv != null and wv.has_method("breaker_at") else ""
+	if bk != "" and app.modal() == null and str(app.b.g.get("status", "playing")) == "playing":   # P0: the glowing breaker closes the line
+		var r: Dictionary = app.b.act("switchBranch", [bk, true])
+		app.sfx("breaker_close" if r.get("ok", false) else "bad"); app.toast(str(r.get("message", "")), "good" if r.get("ok", false) else "bad")
+		app.game_on_changed(); return
 	if not _on or tray == null: return
 	if tray.visible and tray.on_tap(p): return
 	if tray.visible or tags.is_open(): tags.on_tap(p)

@@ -6,6 +6,10 @@ import type { CatalogueView, GenSpec } from './sim/build';
 import type { UnitKind } from './types';
 import { LINE_TEMPLATES } from './data/lineTemplates';
 import type { BenchParams } from './level/bench';
+import { SUPPORT_FAMILIES } from './data/supports';
+import { ACSR_MECH } from './data/conductors';
+import type { RouteParams } from './route-actions';
+import type { TileKind } from './sim/route';
 
 const UNIT_KINDS: readonly string[] = ['coal', 'gas', 'diesel', 'biomass', 'nuclear', 'hydro', 'psp', 'pv', 'wind', 'synccon'];
 const num = (x: number | null | undefined): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
@@ -74,4 +78,19 @@ export function benchParamsOf(d: GridRegionData): BenchParams {
   const conv = d.catalogues.transformers.find((c) => c.id === 'conv-dcdc-48-380');
   if (!cab || !conv || conv.price === null) throw new Error('region pack lacks the bench cable or converter row');
   return { cable: { perMm2PerM: cab.perMm2PerM, sheathPerM: cab.sheathPerM, polePrice: cab.polePrice, poleSpacingM: cab.poleSpacingM }, converter: { price: conv.price, eta: (conv.etaPct ?? 97) / 100 } };
+}
+
+/** The pack's route rules and prices with the shared support and conductor tables, as the plain view `buildRoute` plans with. */
+export function routeParamsOf(d: GridRegionData): RouteParams {
+  const r = d.route.rules;
+  return {
+    rulesFor: (kv) => {
+      const row = r.groundClearance.find((g) => kv <= g.uptoKv + 1e-9) ?? r.groundClearance[r.groundClearance.length - 1]!;
+      return {
+        everydayFrac: r.everydayFrac, everydayC: r.everydayC, designC: r.designC, groundClearanceM: row.m, waterClearanceM: r.waterClearanceM, roadExtraM: r.roadExtraM,
+        insulatorDropM: r.insulatorDropM, noSupport: r.noSupport as TileKind[], noOverhead: r.noOverhead as TileKind[],
+      };
+    },
+    prices: d.route.prices, families: SUPPORT_FAMILIES, conductors: ACSR_MECH,
+  };
 }

@@ -39,7 +39,7 @@ describe('GRID1 code: round trip', () => {
     const p = parseGridCode(code); expect('error' in p).toBe(false);
     const r = V('T00', code);
     expect(r.ok).toBe(true); if (!r.ok) return;
-    expect(r.rulesetId).toBe('grid:global@2.1'); expect(r.levelHash).toBe(V.levelHash('T00')); expect(r.ticks).toBe(8);
+    expect(r.rulesetId).toBe('grid:global@3.1'); expect(r.levelHash).toBe(V.levelHash('T00')); expect(r.ticks).toBe(8);
     expect(r.metrics).toMatchObject({ ticks: 8, cost: 0, ensMWh: 0 });
     expect(V('T00', code)).toEqual(r);   // pure: same in, same out
   });
@@ -80,7 +80,7 @@ describe('GRID1 code: tamper', () => {
   });
   it('a re-sealed code from another ruleset or region is ruleset-mismatch', () => {
     const d = decodeSolution(t00Run().q('solutionCode') as string) as any; const h = V.levelHash('T00')!;
-    for (const ruleset of ['grid:global@1.0', 'grid:global@2.0', 'junk', 'grid:zz@2.1']) {
+    for (const ruleset of ['grid:global@1.0', 'grid:global@2.0', 'junk', 'grid:zz@3.1']) {
       const r = V('T00', reseal(`GRID1.T00.${h}.${encodeSolution({ ...d, ruleset })}`));
       expect(r.ok, ruleset).toBe(false);
       if (!r.ok) expect(['ruleset-mismatch', 'malformed']).toContain(r.error);
@@ -116,7 +116,7 @@ describe('garbage fuzz: verify never throws, always ok:false', () => {
   });
   it('a CB1 payload that is valid JSON of the wrong shape is rejected cleanly', () => {
     const h = V.levelHash('T00')!;
-    for (const bad of [[], 'x', [1, 2], [GAME.id, 'T00', 'grid:global@2.1', 1, 'engineer', 'nope']]) {
+    for (const bad of [[], 'x', [1, 2], [GAME.id, 'T00', 'grid:global@3.1', 1, 'engineer', 'nope']]) {
       const b64 = Buffer.from(JSON.stringify(bad)).toString('base64url'); const head = 'CB1.' + b64; const cb = head + '.' + hex8(crc32(head));
       expect(V('T00', reseal(`GRID1.T00.${h}.${cb}`)).ok).toBe(false);
     }

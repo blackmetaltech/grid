@@ -11,7 +11,14 @@ const S43A = 'DESIGN Appendix A.3 (orig 4.3) line-template table, same derivatio
 const t = (id: string, kv: number, conductor: string, nBundle: number, dM: number, rOhmKm: number, xOhmKm: number, bUsKm: number, zcOhm: number, silMw: number, thermalMva: number, source = S43, note?: string): LineTemplate =>
   ({ id, kv, conductor, nBundle, dM, rOhmKm, xOhmKm, bUsKm, zcOhm, silMw, thermalMva, source, confidence: weakest('derived', 'game'), fieldConfidence: { dM: 'game' }, ...(note ? { note } : {}) });
 
+// l04-*: the 0.42 kV (four-wire, flat 0.4 m spacing) low-voltage lines of L05 "The River Line". Same derivation as above: R = R20 x 1.24, X and B from
+// Glover with GMR 0.81 r, GMD = 0.4 m x cbrt(2). B comes out at 3.6-4.1 uS/km, which at 0.42 kV is under 1 VAr per km: negligible, and kept honest.
+// Priced per route (supports, wires, clearing: src/route-actions.ts), not per km, so the line-cost catalogue has no 0.42 kV row.
+const S04 = 'DESIGN §4.3 formulas (R = R20 x 1.24; Glover X, B with GMR 0.81 r) at 0.42 kV, flat spacing 0.4 m (game); L05 low-voltage lines';
 export const LINE_TEMPLATES: LineTemplate[] = [
+  t('l04-weasel', 0.42, 'acsr-weasel', 1, 0.4, 1.1255, 0.319, 3.59, 298, 0.0006, 0.084, S04),
+  t('l04-rabbit', 0.42, 'acsr-rabbit', 1, 0.4, 0.6728, 0.303, 3.79, 283, 0.0006, 0.113, S04),
+  t('l04-dog', 0.42, 'acsr-dog', 1, 0.4, 0.3389, 0.281, 4.10, 262, 0.0007, 0.170, S04),
   t('l11-weasel', 11, 'acsr-weasel', 1, 1.0, 1.1255, 0.377, 3.02, 353, 0.3, 2.2),
   t('l11-rabbit', 11, 'acsr-rabbit', 1, 1.0, 0.6728, 0.360, 3.16, 337, 0.4, 3.0),
   t('l11-dog', 11, 'acsr-dog', 1, 1.0, 0.3389, 0.339, 3.37, 317, 0.4, 4.5),

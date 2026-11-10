@@ -16,7 +16,8 @@ import type { GridRegionData } from './regions/data';
 import { buildPipeline, emptyBlock } from './sim/tick';
 import { findNonFinite } from './sim/finite';
 import type { SimParams } from './sim/params';
-import { catalogueViewOf, simParamsOf, benchParamsOf } from './catalogue';
+import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from './catalogue';
+import { buildRouteActions, buildRouteQueries, type RouteParams } from './route-actions';
 import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import type { CatalogueView } from './sim/build';
@@ -54,6 +55,12 @@ const BENCHES = new Map<string, BenchParams>();
 const getBench = (s: Pick<GridState, 'region'>): BenchParams => {
   let p = BENCHES.get(s.region);
   if (!p) { p = benchParamsOf((REGIONS.get(s.region) as RegionPack<GridRegionData>).data); BENCHES.set(s.region, p); }
+  return p;
+};
+const ROUTES = new Map<string, RouteParams>();
+const getRoute = (s: Pick<GridState, 'region'>): RouteParams => {
+  let p = ROUTES.get(s.region);
+  if (!p) { p = routeParamsOf((REGIONS.get(s.region) as RegionPack<GridRegionData>).data); ROUTES.set(s.region, p); }
   return p;
 };
 const money = (s: GridState, amount: number): string => formatMoney(amount, REGIONS.get(s.region));
@@ -97,15 +104,18 @@ export const GAME: GameDef<GridState> = {
       codexUnlocked: [],
       stars: 0,
       bench: null,
+      terrain: null,
+      routes: [],
     };
     log(s, t('log.start', { region: regionString(pack, 'region'), f0: pack.data.f0, code: regionString(pack, 'gridcode') }));
     return s;
   },
   /** The player's actions, gated by the running level's allowed parts (free play is untouched). */
-  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }) }, specOf),
+  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }), ...buildRouteActions({ cat: catalogueOf, getRoute, money }) }, specOf),
   queries: {
     ...buildQueries({ getParams }),
-    ...buildWorldQueries({ getBench }),
+    ...buildWorldQueries({ getBench, getRoute }),
+    ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },

@@ -5,9 +5,10 @@
 import { defineRegion } from '@core/regions';
 import { validateGridData, type GridRegionData } from '../data';
 import { IN_CATALOGUES } from './catalogues';
+import { ROUTE, ROUTE_PROVENANCE } from './route';
 
 export const IN = defineRegion<GridRegionData>({
-  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 2,
+  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 3,
   currency: { code: 'INR', symbol: '₹', decimals: 2, position: 'prefix' },
   numbers: { grouping: 'indian', decimal: '.', group: ',' },
   standards: { voltage: 'CEA Grid Standards 2010', gridcode: 'IEGC', conductors: 'IS 398' },
@@ -49,6 +50,7 @@ export const IN = defineRegion<GridRegionData>({
       nuclearPerMWhe: null,
     },
     climate: { latitudeDeg: 23 },
+    route: ROUTE,
     catalogues: IN_CATALOGUES,
     provenance: {
       'f0': { source: 'IEGC cl. 30 (nominal 50 Hz)', confidence: 'standard' },
@@ -75,6 +77,7 @@ export const IN = defineRegion<GridRegionData>({
       'economy.vollPerMWh': { source: 'designer value INR 50/kWh (DESIGN A.1)', confidence: 'game' },
       'economy.fuelPerGJ': { source: 'designer game constants for 2026 (DESIGN A.3: coal 220, LNG 800, diesel 2,500, biomass 1,300 INR/GJ)', confidence: 'game' },
       'climate.latitudeDeg': { source: 'fictional state (DESIGN A.1)', confidence: 'game' },
+      ...ROUTE_PROVENANCE,
     },
   },
   strings: {
