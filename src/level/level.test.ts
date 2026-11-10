@@ -24,7 +24,6 @@ const REGION_IDS = ['global', 'in'];
 const cache = new Map<string, Outcome>();
 /** Level×pack pairs whose third lamp is out of reach for a stated physical reason (each one is in CHANGELOG "Known gaps"; the level still has to be won by both builds). */
 const KNOWN_STAR_GAPS: Record<string, string> = {
-  'L28:in': 'IEGC UFLS stage 1 is 49.4 Hz; losing a 660 MW unit from a 2.3 GW islanded state leaves a nadir near 49.33 Hz even with every unit spun, so energy is always shed (needs the All-India interconnection or a smaller largest unit)',
 };
 const outcomeOf = (spec: GridLevelSpec, region: string, kind: 'naive' | 'lesson' | 'reference'): Outcome => {
   const k = `${spec.id}/${region}/${kind}`;

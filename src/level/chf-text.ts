@@ -19,6 +19,7 @@ export function finaleLesson(s: GridState): string {
   if (!f || tr.demandMWh === undefined) return '';
   const fmt = (x: number, d = 0): string => x.toFixed(d);
   const parts: string[] = [];
+  if (s.region === 'in') parts.push(t('level.L28.lessonTie', { nadir: fmt(s.metrics.nadirHz, 2) }));
   parts.push(t('level.L28.lessonA', { peak: fmt(tr.peakDemandMW ?? 0), vmin: fmt(tr.vMinPu ?? 0, 3) }));
   if (s.clock.day >= 1 || s.status === 'won') parts.push(t('level.L28.lessonB', { ens: fmt(s.metrics.ensMWh, 1), ensPct: fmt(tr.ensPct ?? 0, 3), energy: fmt(f.energyMWh), dips: tr.freqDips ?? 0, nadir: fmt(tr.freqNadirHz ?? 50, 2) }));
   if ((tr.islandDarkBlocks ?? 0) === 0 && (tr.lightning ?? 0) > 0) {

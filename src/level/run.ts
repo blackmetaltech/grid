@@ -55,6 +55,8 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
 
 /** Play `actions` on `spec` in `region` (seed 1, learner mode unless given). `frozen` overrides the spec's targets (null: no budget, one star). */
 export function runDesign(spec: GridLevelSpec, region: string, actions: Action[], o: { frozen?: Frozen | null; seed?: number; mode?: string; ticks?: number } = {}): Outcome {
+  const alt = spec.byRegion?.[region];
+  if (alt) { if (actions === spec.lesson && alt.lesson) actions = alt.lesson; else if (actions === spec.reference && alt.reference) actions = alt.reference; }
   const use = o.frozen !== undefined ? { ...spec, frozen: o.frozen === null ? Object.fromEntries(['global', 'in'].map((r) => [r, { budget: 0, starA: 0, starB: 0 }])) : { [region]: o.frozen } } : spec;
   const level = makeLevel(use);
   const env = new Env({ ...GAME, levels: [level] });

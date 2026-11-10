@@ -8,6 +8,8 @@ import { place } from '../spec';
 import { BLOCKS_PER_DAY, type LoadClass } from '../../types';
 import type { FinaleDay } from '../../sim/finale';
 
+/** The national tie of the `in` pack: import limit, MW, and the equivalent's rating, MVA (the All-India grid is about 250 GVA; 100 GVA is stiff enough that 660 MW is a fraction of a hertz). */
+export const TIE_MW = 1000, TIE_MVA = 100000;
 export const TILE_M = 4000;
 export const MAP_W = 100, MAP_H = 44;
 export const DAYS = 3;
@@ -186,7 +188,9 @@ export const L28: GridLevelSpec = {
   lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway], reference: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-4h-50')],
   // frozen from the bot population (80 designs per region; budget = 1.1 x the dearer of lesson and reference rounded up to 2 significant figures; A = median passing cost; B = 15th percentile of the passing
   // designs with no shed energy, no frequency block out of range, the island always lit and losses <= 3 %): chf.test.ts regenerates them and fails on drift > 2 %
-  frozen: { global: { budget: 70000000, starA: 59723208.50865215, starB: 53781954.76834224 }, in: { budget: 8000000000, starA: 1579729269.6560645, starB: 631133701.8030616 } },
+  // in the `in` pack the national tie supplies the reserve and the battery is 14 times dearer than the second line: the reference is the cheapest pass there (no spun unit, a second feeder); the lesson is the global one
+  byRegion: { in: { reference: [...tapsEastgate, ...capsEastgate, ...secondCauseway] } },
+  frozen: { global: { budget: 70000000, starA: 59723208.50865215, starB: 53781954.76834224 }, in: { budget: 550000000, starA: 447083478.5954592, starB: 413066581.0983571 } },
   coach: [
     { id: 'volt', textKey: 'coach.L28.volt', whyKey: 'coach.L28.volt.why', done: (s) => s.actionLog.some((a) => a.name === 'setTapAuto') && s.shunts.length > 0 },
     { id: 'reserve', textKey: 'coach.L28.reserve', whyKey: 'coach.L28.reserve.why', done: (s) => s.actionLog.some((a) => a.name === 'spinUnit') || s.storage.length > 1 },
@@ -212,6 +216,13 @@ export const L28: GridLevelSpec = {
     // the tap changers stand on automatic (the utility's own work); the units that run all night start on
     for (const b of s.branches) if (b.tap) b.tap.auto = { vSet: 1.0, deadband: 0.015, delayBlocks: 1, counter: 0 };
     for (const u of s.units) if (u.kind === 'coal' || u.kind === 'gas' || u.kind === 'hydro') { u.online = true; u.P = u.pMin; }
+    if (sc.region === 'in') {   // an Indian state grid is synchronous with the All-India grid: a 400 kV tie at the Capital, an external equivalent with large inertia, droop and a 1000 MW import limit (no reactive power: voltage-neutral)
+      A('placeUnit', 'ccgt-418', BUS.capital4, TIE_MW);
+      const u = s.units[s.units.length - 1]!;
+      u.pMin = 0; u.mva = TIE_MVA; u.H = 5; u.droopPct = 5; u.qMin = 0; u.qMax = 0; u.online = true; u.P = 0; u.startBlocks = 0;
+      u.cost = { a: 0, b: 1e6, c: 0 }; u.vomPerMWh = 0; u.startCost = 0;   // the dearest source: used for reserve and the shortfall, not as a base load
+      u.commit.schedule = new Array<number>(BLOCKS_PER_DAY).fill(1);
+    }
     const ev = (e: Parameters<typeof s.events.queue.push>[0]): void => { s.events.queue.push(e); };
     ev({ id: 'storm', day: 1, block: EVENTS.stormBlock, kind: 'storm', target: '', magnitude: EVENTS.stormBlocks });
     ev({ id: 'trip-line', day: 1, block: EVENTS.lineBlock, kind: 'trip-branch', target: TRIP.line, magnitude: 0 });

@@ -23,6 +23,7 @@ export const EN_CHF: Record<string, string> = {
   'log.finale.lightning': 'Lightning: protection opened {id} at {time}.',
   'level.lost.islandStorm': 'At {time} on Day {day} Saltmarsh Island ({mw} MW) went dark: lightning opened its only feeder and nothing else could supply it. The exam is in the morning.',
   'level.lost.islandStormBattery': 'At {time} on Day {day} Saltmarsh Island ({mw} MW) went dark even with a {mwh} MWh battery on it (charge {soc} %): the battery must carry the island from the lightning until the crews close the line again.',
+  'level.L28.lessonTie': 'This state grid is synchronous with the All-India grid through a 1000 MW 400 kV tie at the Capital: an interconnection with enormous inertia holds the frequency when a unit trips (the lowest it went was {nadir} Hz), but it sends no reactive power, so the voltage is still yours.',
   'level.L28.lessonA': 'Day 1: demand peaked at {peak} MW and the lowest voltage was {vmin} pu (the band is 0.95 to 1.05).',
   'level.L28.lessonB': 'Day 2: the storm tripped the line, the unit and the transformer and cost {ens} MWh of energy not served, {ensPct} % of the {energy} MWh the province used (energy not served may be at most 0.1 % of what the province used). The frequency dipped {dips} times, to {nadir} Hz at worst.',
   'level.L28.lessonIsland': 'Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew {mwh} MWh through {path}.',

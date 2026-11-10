@@ -41,6 +41,8 @@ export interface ScaffoldCtx {
   /** Actions bound to the region's catalogue (the same ones the player uses), including buildRoute so a later job can rebuild the district its player already built. */
   A: Record<string, ActionFn<GridState>>;
   params: SimParams;
+  /** The region pack id the level is being set up in (a scenario that differs per pack: L28's national tie). */
+  region: string;
   bench: BenchParams;
   /** The region's catalogue (a level that needs a catalogue value, e.g. the low-voltage side of the distribution transformers). */
   cat: CatalogueView;
@@ -99,6 +101,8 @@ export interface GridLevelSpec {
   naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` };
   lesson: Action[];
   reference: Action[];
+  /** A pack whose prices or physics reorder the designs plays its own lesson and reference (L28 in `in`: the battery is dearer than the second line). runDesign swaps them in when handed `lesson` / `reference` themselves. */
+  byRegion?: Record<string, { lesson?: Action[]; reference?: Action[] }>;
   /** Targets frozen per region id (null: none, e.g. the prologue). */
   frozen: Record<string, Frozen> | null;
   coach: CoachStep[];
@@ -158,7 +162,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
       if (spec.stars && spec.frozen && !frozen) throw new Error(`level ${spec.id} has no frozen targets for region '${pack.id}'`);
       const A = { ...buildActions({ cat: () => cat, getParams: () => params, money: () => '' }), ...buildRouteActions({ cat: () => cat, getRoute: () => routeParamsOf(pack.data), money: () => '' }), ...buildFreqActions({ cat: () => cat, money: () => '' }) };
       const mode = s.mode; s.mode = 'sandbox';   // the scenario places the town's loads, which only sandbox may do
-      spec.place(s, { A, params, bench: benchParamsOf(pack.data), cat, th, frozen });
+      spec.place(s, { A, region: pack.id, params, bench: benchParamsOf(pack.data), cat, th, frozen });
       s.mode = mode;
       s.actionLog = []; s.budget.spent = s.bench ? s.budget.spent : 0; delete s.purchases;   // what the scenario placed is not the player's to refund
       if (frozen) s.budget.capexLimit = frozen.budget;

@@ -32,8 +32,9 @@ describe('L28 three-day gate', () => {
       if (region === 'global') {
         expect(l.stars).toBe(2); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.track.islandDarkBlocks).toBe(0); expect(r.track.freqViolBlocks).toBe(0); expect(r.track.lossPct!).toBeLessThanOrEqual(3);
       } else {
-        // OPEN (honest note): in the `in` pack the cheap coal ramps down too slowly at the Day 3 dawn (fixed by easing the holiday demand) but the U1 trip still sheds ~26 MWh through the in pack's UFLS: both stars pass, the third is not reachable yet
-        expect(l.stars).toBeGreaterThanOrEqual(1); expect(r.stars).toBeGreaterThanOrEqual(1); expect(r.track.islandDarkBlocks).toBe(0);
+        // the national tie holds the frequency in the in pack (nadir well above the 49.4 Hz first UFLS stage): the reference is the cheapest pass there (no spun unit)
+        expect(l.stars).toBeLessThan(3); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.state.metrics.nadirHz).toBeGreaterThan(49.8); expect(r.track.islandDarkBlocks).toBe(0);
+        expect(info(run(play(spec.reference, 'in'))).lesson).toContain('All-India grid');
       }
     });
   }

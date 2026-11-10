@@ -24,10 +24,9 @@ Chapters 3-7 and the finale were built in parallel and land together in this tag
 - The Godot test runner read `CH2-FLOW OK` as a failure (a tag with a digit).
 - L13's predict panel was blank until the slider moved; L22's exam sheet ran off the right edge; L24's readout sat under the budget tag;
   L27's answer boxes covered the formula lines; L17's B3 sat under the tray.
+### Changed
+- WO-28 in the `in` pack now has the All-India interconnection: a 1000 MW 400 kV tie at the Capital (an external equivalent with 100 GVA of inertia, droop, no reactive power), so losing the 660 MW unit leaves a nadir near 49.96 Hz and the third lamp is reachable (reference: taps, switched capacitors and a second causeway line, 398 M INR; the spun unit is the lesson's extra).
 ### Known gaps
-- In the `in` pack the third lamp of WO-28 is out of reach: the IEGC first under-frequency stage is 49.4 Hz, and losing the 660 MW coal unit
-  from a 2.3 GW state with no tie to the national grid leaves a nadir near 49.33 Hz even with every unit spun, so some load is always shed.
-  The fix is a design call (model the All-India interconnection, or make the Day 2 trip a smaller unit). The level is still winnable with two lamps.
 - Day 2's lightning opens the causeway by protection; it is not a sequence-network fault.
 
 ## [0.9.0] - in 1.0.0-rc.1: "Protection and Markets" (chapter 7)
