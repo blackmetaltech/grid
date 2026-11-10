@@ -1,10 +1,10 @@
 extends CbApp
-## GRID front-end. M0: a placeholder world and a clock drawer; everything else (title, top bar, dock, settings, saves, coach,
+## GRID front-end. The world (godot/world: diorama, lights, flow ribbons, day-night) comes from the engine queries; drawers arrive in M2.4+.
 ## pad, touch, smoke) comes from CbApp in addons/cobanana. The real world and drawers arrive in M2.
 var grid_world: WorldView
 
 func game_config() -> Dictionary:
-	return {
+	return GridUi.extend_config({
 		"title": str(ProjectSettings.get_setting("application/config/name", "GRID")),
 		"tagline": tr("GRID_TAGLINE"),
 		"blurb": tr("GRID_BLURB"),
@@ -15,7 +15,7 @@ func game_config() -> Dictionary:
 		"overlay": ["clock"], "full": [],
 		"tick_label": tr("TICK_BUTTON"), "tick_seconds": [0.0, 4.0, 1.6, 0.6],
 		"keys": [["Space", tr("KEY_SPACE_DESC")], ["1", tr("KEY_DOCK_DESC")]],
-	}
+	})
 
 func game_build_world(parent: Node) -> Node:
 	grid_world = WorldView.new(); grid_world.app = self; parent.add_child(grid_world)
@@ -23,6 +23,10 @@ func game_build_world(parent: Node) -> Node:
 
 func game_on_changed() -> void:
 	if grid_world != null: grid_world.refresh(b)
+	GridUi.on_changed(self)
+
+func game_end_card(vb: VBoxContainer, g: Dictionary) -> void:
+	GridUi.end_card(vb, g, self)
 
 func game_time_text() -> String:
 	var c = b.q("clock")

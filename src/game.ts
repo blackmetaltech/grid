@@ -21,6 +21,7 @@ import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import type { CatalogueView } from './sim/build';
 import { buildQueries } from './queries';
+import { buildUiQueries } from './ui-queries';
 import { buildWorldQueries } from './world-query';
 import { NO_RULES } from './rules';
 
@@ -105,6 +106,7 @@ export const GAME: GameDef<GridState> = {
   queries: {
     ...buildQueries({ getParams }),
     ...buildWorldQueries({ getBench }),
+    ...buildUiQueries({ specOf, getParams }),
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },
   systems: SYSTEMS,
