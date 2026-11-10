@@ -6,7 +6,7 @@ const S := {
 	"C7_PREDICT": "Your prediction", "C7_PREDICT_KA": "I_f at the feeder, kA", "C7_PREDICT_DCR": "critical clearing angle, deg", "C7_PREDICT_LAM": "load-area lambda at 20:00, $/MWh",
 	# L23 / L27 board
 	"C7_GRID": "grid 132 kV", "C7_SEC_A": "section A", "C7_SEC_B": "section B", "C7_COUPLER": "coupler", "C7_OPEN": "open", "C7_CLOSED": "closed", "C7_FEEDER": "feeder F1",
-	"C7_FAULT": "3-phase fault", "C7_RATED": "rated %s kA", "C7_DUTY": "must break %s kA", "C7_HIDDEN": "(run the fault to see it)", "C7_ESTATE_DARK": "ESTATE DARK",
+	"C7_FAULT": "3-phase fault", "C7_RATED": "rated %s kA", "C7_DUTY": "must break %s kA", "C7_HIDDEN": "(run it to see it)", "C7_ESTATE_DARK": "ESTATE DARK",
 	"C7_BREAKERS": "BREAKERS (kA, each)", "C7_COUPLER_CAP": "BUS COUPLER", "C7_REACTOR_CAP": "BUS-SECTION REACTOR (pu)", "C7_XFMR_CAP": "TRANSFORMER IMPEDANCE (%)",
 	"C7_N1_OK": "survives a transformer trip (%s pu)", "C7_N1_BAD": "a transformer trip is not covered", "C7_FAULT_KA": "%s kA  (%s MVA)", "C7_ZTH": "Z_th %s pu", "C7_NONE": "none",
 	"C7_TABLE": "Who breaks what", "C7_NO_REACTOR": "0",
