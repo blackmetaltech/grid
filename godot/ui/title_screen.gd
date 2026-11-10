@@ -36,7 +36,8 @@ static func build(app: CbApp, root: Control) -> bool:
 	if saves.size() > 0: entries.append([T("TITLE_CONTINUE"), "continue", func(): app.load_slot(str((saves[0] as Dictionary).slot))])
 	else: entries.append([T("TITLE_NIGHT"), "night", func(): new_night_shift(app)])
 	entries.append([T("TITLE_JOBS"), "jobs", func(): Jobs.open(app)])
-	entries.append([T("TITLE_SANDBOX"), "sandbox", func(): app.new_game("sandbox")])
+	# Sandbox stays off the title until it has its own tray and map (DEPTH.md §6.4); an empty board with the old Build drawer was a dead end
+	if OS.has_environment("CB_SANDBOX"): entries.append([T("TITLE_SANDBOX"), "sandbox", func(): app.new_game("sandbox")])
 	entries.append([T("TITLE_SETTINGS"), "settings", func(): app.open_settings()])
 	if not CbLayout.is_mobile(): entries.append([T("TITLE_QUIT"), "quit", func(): app.quit_game()])
 	for en in entries:

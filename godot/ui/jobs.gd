@@ -63,7 +63,8 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 	var lock := lock_text(app, id)
 	var b := PaperKit.btn("", false, func():
 		host.queue_free()
-		app.start_level(id, not app.started), 18)
+		if app.started: app._autosave()   # picking a work order is the confirmation: no generic (cyan) dialog, the running job is autosaved first
+		app.start_level(id, true), 18)
 	b.name = "Job_" + id; b.custom_minimum_size = Vector2(0, 68 if compact else 92); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.clip_text = true
 	var hb := HBoxContainer.new(); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_theme_constant_override("separation", 14); hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hb.offset_left = 16; hb.offset_right = -14; hb.offset_top = 6; hb.offset_bottom = -6; b.add_child(hb)
