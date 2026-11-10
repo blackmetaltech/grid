@@ -593,8 +593,15 @@ func _unit(o: Dictionary) -> void:
 				var a: float = ang + TAU * float(k) / 3.0
 				draw_line(hub, hub + Vector2(cos(a), sin(a)) * 24.0, _c(Color("#F0F3F7")), 2.5)
 		"hut", "bench":
-			_box(p, 0.6, 0.5, 16.0, Color("#6A7A8C")); draw_circle(base + Vector2(0, -22), 3.0, _c(Color("#39E1FF")) if u.online else Color("#46506A"))
-			if u.online: _glow(base + Vector2(0, -22), 10.0, WorldMath.CYAN, 0.2)
+			var top := _box(p, 0.9, 0.7, 13.0, Color("#D9CBA6"))   # little hut: plank walls, tin roof, solar panel, a battery sign
+			var ap := _iso(p.x, p.y, top + 13.0 + 7.0)
+			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y + 0.35, top + 13.0), ap]), _c(Color("#8E99A8")))
+			draw_colored_polygon(PackedVector2Array([_iso(p.x + 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y - 0.35, top + 13.0), ap]), _c(Color("#6E7988")))
+			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.4, p.y - 0.3, top + 17.0), _iso(p.x + 0.1, p.y - 0.3, top + 21.0), _iso(p.x + 0.1, p.y + 0.2, top + 21.0), _iso(p.x - 0.4, p.y + 0.2, top + 17.0)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.7)))
+			var sg := _iso(p.x + 0.45, p.y + 0.1, top + 7.0)   # battery sign on the wall: lit cells when it is feeding the cable
+			draw_rect(Rect2(sg + Vector2(-7, -4), Vector2(12, 8)), Color("#2A2418")); draw_rect(Rect2(sg + Vector2(5, -2), Vector2(2, 4)), Color("#2A2418"))
+			for k in 3: draw_rect(Rect2(sg + Vector2(-6 + k * 4, -3), Vector2(3, 6)), Color("#5BD69A") if u.online else Color("#46506A"))
+			if u.online: _glow(sg, 10.0, Color("#5BD69A"), 0.25)
 		_:
 			_cyl(base + Vector2(-8, 6), 14.0, 20.0, Color("#B0B6C0"))
 	if u.online and str(u.kind) in ["coal", "gas", "nuclear", "hydro", "diesel", "biomass", "psp"]:
@@ -644,6 +651,12 @@ func _draw_wires() -> void:
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
 			if poly.size() < 2: continue
+			if str(l.kind) == "cable" and l.get("mm2") != null:   # bench cables: copper you can see; width ∝ conductor diameter ∝ sqrt(area)
+				var cw := (1.2 + 1.1 * sqrt(float(l.mm2))) / maxf(_scale(), 0.01) * clampf(_scale(), 0.6, 2.0)
+				draw_polyline(poly, _c(Color("#1C1712")), cw + 2.5, true)
+				draw_polyline(poly, _c(Color("#C8794A")), cw, true)
+				draw_polyline(poly, _c(Color("#F0B58A")), maxf(0.8, cw * 0.3), true)
+				continue
 			draw_polyline(poly, _c(Color("#1A1F30")) if l.in_service else Color(0.35, 0.37, 0.45, 0.8), float(l.width) + 2.0 if l.in_service else 1.5, true)
 			if l.in_service: draw_polyline(poly, Color(l.color.r, l.color.g, l.color.b, 0.9), float(l.width) * 0.75, true)
 

@@ -92,8 +92,8 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 	if sc == "l02" and str(bn.topology) == "trunk":
 		var j := Vector2(12, 8)
 		m.subs.append({"id": "j", "pos": j, "kv": 0.048, "v": 1.0, "energised": powered})
-		m.lines.append(_line("main", [hut_p, j], amp, dirp, true, 1, 0.048, 0.0, "cable"))
-		for i in targets.size(): m.lines.append(_line("b%d" % (i + 1), [j, targets[i][0]], amp, dirp, bn.branchMm2 != null, 1, 0.048, 0.0, "cable"))
+		m.lines.append(_line("main", [hut_p, j], amp, dirp, true, 1, 0.048, 0.0, "cable")); m.lines[-1]["mm2"] = bn.mainMm2
+		for i in targets.size(): m.lines.append(_line("b%d" % (i + 1), [j, targets[i][0]], amp, dirp, bn.branchMm2 != null, 1, 0.048, 0.0, "cable")); m.lines[-1]["mm2"] = bn.branchMm2
 	else:
 		for i in targets.size():
 			var mm = bn.mainMm2 if i == 0 else bn.branchMm2
@@ -101,7 +101,7 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 			if sc == "l01": pts = [hut_p, Vector2(L01_HAMLET.x, L01_BEACH_Y), L01_HAMLET]
 			if sc == "l03" and bool(bn.converters):
 				m.subs.append({"id": "c%d" % i, "pos": hut_p if i == 0 else targets[0][0], "kv": 0.38, "v": 1.0, "energised": powered})
-			m.lines.append(_line("main" if i == 0 else "b", pts, amp, dirp, mm != null, 1, 0.048, 0.0, "cable"))
+			m.lines.append(_line("main" if i == 0 else "b", pts, amp, dirp, mm != null, 1, 0.048, 0.0, "cable")); m.lines[-1]["mm2"] = mm
 
 static func _town(id: String, nm: String, p: Vector2, count: int, v: float, shed: float, kind: String, idx: int) -> Dictionary:
 	var en := PackedFloat32Array(); var sum := 0.0
