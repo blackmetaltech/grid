@@ -67,13 +67,13 @@ func set_rate(r: int) -> void:
 	if running(): app.set_speed(rate)
 	queue_redraw()
 
-## A new level resets the knob to the default: 2x on a bench level (the night is short), 1x elsewhere.
+## A new level resets the knob to the default: 2x on a bench level or any run of <= 10 h (L05's evening), 1x on full days.
 func sync() -> void:
 	if app != null and app.started and app.b != null:
 		var li = app.b.q("levelInfo"); var id: String = str(li.get("id", "")) if li is Dictionary and li.get("active", false) else ""
 		if id != _level:
 			_level = id
-			if id != "": rate = 2 if str(li.get("kind", "")) == "bench" else 1
+			if id != "": rate = 2 if str(li.get("kind", "")) == "bench" or (li.get("horizonBlocks") != null and int(li.get("horizonBlocks")) <= 40) else 1   # short runs (bench nights, L05's evening) start at 2x
 	if app != null and app.speed > 0: rate = clampi(app.speed, 1, 3)
 	queue_redraw()
 

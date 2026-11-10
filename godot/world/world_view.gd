@@ -1011,11 +1011,13 @@ func _route_pulses(l: Dictionary) -> void:
 func _draw_labels() -> void:
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
+	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	for t in model.towns:
-		if t.kind == "school" or t.kind == "hamlet":
+		if t.kind == "school" or t.kind == "hamlet" or t.get("mascot", false):
 			if not t.has("volts"): continue
 			var sp := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 0.0)) + Vector2(0, -78.0 * clampf(_scale(), 0.6, 1.6))   # above the roofs
 			var txt := tr("WORLD_DARK") if float(t.v) <= 0.0 else tr("WORLD_VOLTS_FMT") % float(t.volts)
+			if t.get("mascot", false) and float(t.v) > 0.0: txt = "%s · %d V" % [str(t.name), roundi(float(t.volts))]
 			if t.has("loss") and float(t.v) > 0.0: txt = tr("WORLD_LOSS_FMT") % float(t.loss)
 			var glow := clampf(float(t.v) * float(t.v), 0.0, 1.0)
 			if t.has("loss"): glow = 1.0 if float(t.v) > 0.0 else 0.0   # the school's lamps run off the far converter at full voltage
@@ -1023,6 +1025,7 @@ func _draw_labels() -> void:
 				var r := 15.0 * (fs / 15.0) * clampf(_scale() * 1.4, 0.8, 1.6)
 				_bulb_mascot(sp + Vector2(0, -r - fs - 10.0), r, str(t.mood), glow)
 			_label(font, fs, sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
+			taken.append(sp)
 			continue
 		var sp2 := to_screen(_iso(_tc(t.pos).x, _tc(t.pos).y, 70.0))
 		var v: float = t.v
@@ -1030,7 +1033,9 @@ func _draw_labels() -> void:
 		var txt2 := tr("WORLD_DARK") if v <= 0.0 else tr("WORLD_BUS_FMT") % [arrow, v]
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
 		_label(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col)
+	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
 	for s in model.subs:
+		if yards_quiet: break
 		if s.has("v") and float(s.v) > 0.0 and s.id != "j" and not str(s.id).begins_with("c"):
 			var sp3 := to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0))
 			var vs: float = s.v; var ar := "▼ " if vs < 0.95 else ("▲ " if vs > 1.05 else "")
@@ -1038,7 +1043,10 @@ func _draw_labels() -> void:
 	for l in model.lines:
 		if l.in_service and float(l.loading) >= 0.9 and str(l.kind) != "cable":
 			var poly := _line_poly(l, 0.0)
-			_label(font, fs, to_screen(poly[poly.size() / 2]) + Vector2(0, -26), tr("WORLD_LOAD_FMT") % int(round(float(l.loading) * 100.0)), l.color)
+			var lp := to_screen(poly[poly.size() / 2]) + Vector2(0, -26)
+			for q in taken:
+				if absf(lp.y - q.y) < fs * 1.8 and absf(lp.x - q.x) < 160.0: lp.y = q.y + fs * 2.0   # drop below the town's name
+			_label(font, fs, lp, tr("WORLD_LOAD_FMT") % int(round(float(l.loading) * 100.0)), l.color)
 
 ## A round bulb with a face. `glow` = (V/V0)^2 (brightness of the homes); the face is WorldMath.mood (band vs the level's limit).
 func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:

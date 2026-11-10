@@ -68,6 +68,12 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 		if float(bus.demandMW) > 0.0 or float(bus.peakMW) > 0.0 or bus.kind == "load":
 			var n := clampi(6 + int(maxf(float(bus.peakMW), float(bus.demandMW)) / 4.0), 6, 40) if not has_terrain else 14   # a market town on the 50 m map: more roofs
 			m.towns.append(_town(str(bus.id), str(bus.name), p, n, v, float(bus.shed), "town", 0))
+			if has_terrain:   # chapter 2: the market gets the bulb mascot; its face is the voltage band (the level's band floor from levelInfo, worried within 0.02 pu)
+				var tw: Dictionary = m.towns[-1]
+				tw["mascot"] = true; tw["volts"] = v * float(bus.kv) * 1000.0
+				var li = b.q("levelInfo"); var lo := 0.94
+				if li is Dictionary and li.get("thresholds") is Dictionary: lo = float((li.thresholds as Dictionary).get("villageBandLoPu", 0.94))   # the engine's band, per pack
+				tw["mood"] = "asleep" if v <= 0.0 else ("sad" if v < lo else ("worried" if v < lo + 0.02 else "happy"))
 		else:
 			m.subs.append({"id": str(bus.id), "pos": p, "kv": float(bus.kv), "v": v, "energised": v > 0.0})
 	for br in w.branches:
