@@ -35,10 +35,10 @@ export const EN_CH6: Record<string, string> = {
   'level.L19.tryBudget': 'The reserve cost more than the budget. A spinning coal unit is the cheaper reserve here; batteries are for the first seconds.',
   'coach.L19.headroom': 'Press Run and watch the 20:00 trip: look at how much room the units still running have left.',
   'coach.L19.headroom.why': 'The units that remain must make up the lost power. They can go up only to their rating, and the room left below it is called headroom.',
-  'coach.L19.reserve': 'Keep the spare coal unit spinning, or put batteries on frequency response, then run the shift again.',
+  'coach.L19.reserve': 'Keep the spare coal unit (U17, "spare coal": a unit kept running and ready) spinning: it is the one unit that adds a whole unit of headroom. Batteries on frequency response help only the first seconds.',
   'coach.L19.reserve.why': 'Headroom must be at least the size of the biggest unit and it only works on units that follow frequency (droop). A battery answers in a fifth of a second but cannot last for hours.',
-  'coach.L19.predict': 'Before you run: predict the rate of change of frequency at the instant of the trip, in Hz per second (question id rocof0).',
-  'coach.L19.predict.why': 'RoCoF = dP x f0 / (2 H S): the lost power over the stored energy of the machines that remain.',
+  'coach.L19.predict': 'Before you run: predict the RoCoF (rate of change of frequency: how fast the frequency falls, in Hz per second) at the instant of the trip.',
+  'coach.L19.predict.why': 'RoCoF = dP x f0 / (2 H S): the lost power over the stored energy of the machines that remain. Heavy spinning machines (large H x S) hold their speed, so more inertia slows the fall.',
   'coach.L19.run': 'Run the shift to 22:30.',
   'coach.L19.run.why': 'The nadir is the lowest point of the swing. The first load-shedding stage is the line you must not cross.',
 

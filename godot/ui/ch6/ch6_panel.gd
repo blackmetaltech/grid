@@ -91,7 +91,7 @@ func _unit(g: Dictionary, id: String):
 
 func _l19(g: Dictionary, locked: bool) -> void:
 	var sp = _unit(g, "U17")
-	if sp != null and not sp.online and sp.commit.schedule.size() == 0: _btn(tx("C6_SPIN"), "spinUnit", ["U17"])
+	if sp != null and not sp.online and sp.commit.schedule.size() == 0: _btn(tx("C6_SPIN"), "spinUnit", ["U17"]); _note(tx("C6_SPIN_WHY"))
 	_ffr_buttons(g)
 	_predict("rocof0", "Hz/s", tx("C6_P_ROCOF"), locked)
 	_note(tx("C6_BARS"))
@@ -104,8 +104,10 @@ func _ffr_buttons(g: Dictionary) -> void:
 		if str(b.mode) != "ffr": _btn(tx("C6_FFR") % [str(b.id), int(round(float(b.mw)))], "setFfr", [str(b.id)])
 
 func _l20(g: Dictionary, locked: bool) -> void:
-	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 92.0); _curve.g = g; _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
-	_note(tx("C6_PEAKERS"))
+	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 92.0); _curve.g = g; _curve.fc = app.b.q("netForecast"); _curve.note = tx("C6_FORECAST"); _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
+	_note(tx("C6_COMMIT_GLOSS"))
+	var r = app.b.q("actionCost", ["placeUnit", ["B1", "ocgt-105", 105]])
+	if r is Dictionary and r.get("ok", false): _note(tx("C6_PEAKER_PRICE") % [CbRegion.money(float(r.cost) / 105.0, false, 0), CbRegion.money(float(r.cost), false, 0)])
 	for b in g.storage:
 		if str(b.mode) != "schedule": _btn(tx("C6_CLOCK") % [str(b.id), int(round(float(b.mw)))], "setStoreClock", [str(b.id), 10, 14, 15, 21])
 	for l in g.loads:
@@ -163,23 +165,34 @@ class NetCurve extends Control:
 	var g: Dictionary = {}
 	var cap := ""
 	var ramp_fmt := ""
+	var fc = null
+	var note := ""
 	func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(GridTheme.PAPER_INK, 0.08))
 		var e: Array = g.get("history", {}).get("entries", [])
 		var f := ThemeDB.fallback_font
 		draw_string(f, Vector2(4, 12), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GridTheme.PAPER_INK)
+		var top := 18.0; var bh := size.y - top - 14.0
+		var fnet: Array = fc.net if fc is Dictionary else []
+		var fhi := 1.0
+		for v in fnet: fhi = maxf(fhi, float(v))
+		if not fnet.is_empty():
+			var fp := PackedVector2Array()
+			for i in fnet.size(): fp.append(Vector2(4.0 + (size.x - 8.0) * float(i) / 95.0, top + bh * (1.0 - float(fnet[i]) / fhi)))
+			for i in range(0, fp.size() - 1, 2): draw_line(fp[i], fp[i + 1], Color(GridTheme.PAPER_INK, 0.45), 1.5)
+			draw_string(f, Vector2(4, size.y - 3), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(GridTheme.PAPER_INK, 0.7))
 		if e.size() < 2: return
-		var net: Array = []; var hi := 1.0
+		var net: Array = []; var hi := fhi
 		for x in e:
 			var pv := float((x.genMW as Dictionary).get("pv", 0.0)); var n := float(x.demandMW) - pv; net.append(n); hi = maxf(hi, n)
 		var ramp := 0.0; var at := 0
 		for i in range(1, net.size()):
 			var r: float = (float(net[i]) - float(net[i - 1])) / 15.0
 			if r > ramp: ramp = r; at = i
-		var pts := PackedVector2Array(); var top := 18.0; var bh := size.y - top - 14.0
+		var pts := PackedVector2Array()
 		for i in net.size(): pts.append(Vector2(4.0 + (size.x - 8.0) * float(i) / 95.0, top + bh * (1.0 - float(net[i]) / hi)))
 		if pts.size() > 1: draw_polyline(pts, GridTheme.PAPER_INK, 2.0)
 		if ramp > 1.0:
 			draw_circle(pts[at], 4.0, Color("#C0392B"))
 			var blk := int(e[at].block)
-			draw_string(f, Vector2(4, size.y - 3), ramp_fmt % [int(round(ramp)), blk / 4, (blk % 4) * 15], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#C0392B"))
+			draw_string(f, Vector2(4, size.y - 15), ramp_fmt % [int(round(ramp)), blk / 4, (blk % 4) * 15], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#C0392B"))

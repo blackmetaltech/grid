@@ -14,5 +14,7 @@ const S := {
 	"C6_FORM_TEXT": "RoCoF [Hz/s] = dP [MW] x f0 [Hz] / (2 x H [s] x S [MVA])   (dP = power lost, H = inertia constant, S = machine rating)\nDroop: df [Hz] = -dP / (S1/R1 + S2/R2 + ...) x f0   with R as a fraction (4 % = 0.04), S in MW, dP in MW\nWith load damping D (per unit): df = -dP / (1/R + D) x f0.  A machine's share = (S/R) / sum of (S/R)",
 	"C6_DROOP": "%s droop: %.1f %%", "C6_NET": "Net load = demand - sun (MW)", "C6_RAMP": "steepest climb %d MW/min at %02d:%02d",
 	"C6_RIDE_GLOSS": "Ride-through: the inverter stays connected through a fast frequency change instead of tripping.", "C6_BARS": "Cyan bars on the plants: that unit's output against its rating.",
-	"C6_PEAKERS": "Peakers: place a gas unit, then tap it and press Start (commit) at about 14:00. A peaker earns nothing until it is committed.",
+		"C6_SPIN_WHY": "Keep U17: it adds a 13th unit's headroom (about 500 MW), spread over all the units so each takes a small share of a trip.",
+	"C6_PEAKER_PRICE": "Gas peaker: %s per MW (a 105 MW unit costs %s)", "C6_COMMIT_GLOSS": "Place = buy the unit. Commit (tap it, press Start) = order it onto the grid; until then it stands idle.",
+	"C6_FORECAST": "dashed: forecast with no help; solid: what has happened",
 }

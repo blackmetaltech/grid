@@ -47,9 +47,8 @@ export const L21: GridLevelSpec = {
   // frozen from the bot population (144 designs per region; same rule as L19)
   frozen: { global: { budget: 330000000, starA: 305540314.9647888, starB: 305540314.9647888 }, in: { budget: 58000000000, starA: 52750636143.6818, starB: 52750636143.6818 } },
   coach: [
-    { id: 'read-inertia', textKey: 'coach.L21.inertia', whyKey: 'coach.L21.inertia.why', done: (s) => s.tick > s.levelStart },
+    { id: 'predict', textKey: 'coach.L21.predict', whyKey: 'coach.L21.predict.why', done: (s) => s.metrics.predictions.length > 0 || s.tick > s.levelStart },
     { id: 'add-inertia', textKey: 'coach.L21.add', whyKey: 'coach.L21.add.why', done: (s) => s.actionLog.some((a) => a.name === 'spinUnit' || a.name === 'placeStorage' || a.name === 'upgradeRideThrough') },
-    { id: 'predict', textKey: 'coach.L21.predict', whyKey: 'coach.L21.predict.why', done: (s) => s.metrics.predictions.length > 0 },
     { id: 'run', textKey: 'coach.L21.run', whyKey: 'coach.L21.run.why', done: (s) => s.status !== 'playing' },
   ],
   place: (s, sc) => {

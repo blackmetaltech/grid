@@ -48,9 +48,8 @@ export const L19: GridLevelSpec = {
   // frozen from the bot population (42 designs per region; budget = 1.1 x the dearer of lesson and reference, rounded up to 2 significant figures; A = median passing cost, B = 15th percentile of the three-star designs)
   frozen: { global: { budget: 93000000, starA: 56778941.90140845, starB: 29603941.901408453 }, in: { budget: 12000000000, starA: 6255913561.5451765, starB: 1755913561.5451765 } },
   coach: [
-    { id: 'read-headroom', textKey: 'coach.L19.headroom', whyKey: 'coach.L19.headroom.why', done: (s) => s.tick > s.levelStart },
+    { id: 'predict', textKey: 'coach.L19.predict', whyKey: 'coach.L19.predict.why', done: (s) => s.metrics.predictions.length > 0 || s.tick > s.levelStart },
     { id: 'reserve', textKey: 'coach.L19.reserve', whyKey: 'coach.L19.reserve.why', done: (s) => s.actionLog.some((a) => a.name === 'spinUnit' || a.name === 'placeStorage' || a.name === 'setDroop') },
-    { id: 'predict', textKey: 'coach.L19.predict', whyKey: 'coach.L19.predict.why', done: (s) => s.metrics.predictions.length > 0 },
     { id: 'run', textKey: 'coach.L19.run', whyKey: 'coach.L19.run.why', done: (s) => s.status !== 'playing' },
   ],
   place: (s, sc) => {
