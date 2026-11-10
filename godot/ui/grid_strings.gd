@@ -43,4 +43,6 @@ const S := {
 	"HUD_FREQ": "Frequency", "HUD_HZ": "%s Hz", "HUD_ROCOF": "%s Hz/s", "HUD_BUDGET": "Budget", "HUD_BUDGET_FMT": "%s of %s",
 	"DIAL_NORMAL": "normal", "DIAL_OFF_RANGE": "outside the standard range", "DIAL_SHED": "danger: load shedding range",
 	"RESULT_HIST_TITLE": "How your design compares", "RESULT_MINE_FMT": "Your design: %s. %d%% of the %d designs did as well or better (lower is better).", "HIST_YOU": "you", "HIST_STAR_A": "A", "HIST_STAR_B": "B",
+	"BREAKER_RUN_NIGHT": "Run the night", "BREAKER_RUN_DAY": "Run the day", "METER_BLANK": "—", "METER_OFF": "not connected", "BREAKER_PAUSE": "Pause", "RADIO_WHY": "why?", "RADIO_LOG_TITLE": "Radio log", "RADIO_CLOSE": "Close", "RADIO_EMPTY": "Nothing on the radio yet.",
+	"METER_VOLT_CAPTION": "WORST HOME", "METER_VOLT_UNITS": "V", "PIN_TITLE": "WO-%s  %s", "PIN_PROGRESS": "Step %d of %d", "MENU_TIP": "Menu", "METER_LOSS_CAPTION": "LINE LOSS", "METER_LOSS_UNITS": "%", "TEST_REFUSED": "Refused: test",
 }

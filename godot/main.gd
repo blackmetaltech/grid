@@ -2,9 +2,12 @@ extends CbApp
 ## GRID front-end. The world (godot/world: diorama, lights, flow ribbons, day-night) comes from the engine queries; drawers arrive in M2.4+.
 ## pad, touch, smoke) comes from CbApp in addons/cobanana. The real world and drawers arrive in M2.
 var grid_world: WorldView
+var chrome: GridChrome
 
 func game_config() -> Dictionary:
+	GridUi.load_strings()
 	return GridUi.extend_config({
+		"chrome": "custom", "home": "clock",
 		"title": str(ProjectSettings.get_setting("application/config/name", "GRID")),
 		"tagline": tr("GRID_TAGLINE"),
 		"blurb": tr("GRID_BLURB"),
@@ -23,7 +26,7 @@ func game_build_world(parent: Node) -> Node:
 
 func game_on_changed() -> void:
 	if grid_world != null: grid_world.refresh(b)
-	GridUi.on_changed(self)
+	if chrome != null: chrome.refresh()
 
 func game_end_card(vb: VBoxContainer, g: Dictionary) -> void:
 	GridUi.end_card(vb, g, self)
@@ -39,9 +42,8 @@ func game_top_stats() -> Array:
 	return [[tr("HUD_CLOCK"), "%02d:%02d" % [int(c.hour), int(c.minute)], CbKit.ACC], [tr("HUD_DAY"), str(int(c.day) + 1), CbKit.TX]]
 
 func game_coach_steps() -> Array:
-	return [
-		{"id": "welcome", "kind": "read", "title": tr("COACH_WELCOME_TITLE"), "body": tr("COACH_WELCOME_BODY"), "why": tr("COACH_WELCOME_WHY")},
-	]
+	# The core coach only needs one placeholder step; the level's own coach (engine query `coach`) speaks through the radio, GridChrome polls it.
+	return [{"id": "welcome", "kind": "read", "title": tr("COACH_WELCOME_TITLE"), "body": tr("COACH_WELCOME_BODY"), "why": tr("COACH_WELCOME_WHY")}]
 
 ## CB_CAM for screenshots: parts separated by '|'. `act=name/arg/arg` runs an engine action (numbers, true/false or text args), `ff=n` advances n
 ## blocks, anything else goes to the world camera ("zoom=2,tx=12,ty=7").
@@ -61,7 +63,27 @@ func game_camera(spec: String) -> void:
 	if grid_world != null: grid_world.set_camera(",".join(cam))
 
 func game_unhandled_key(e: InputEventKey) -> bool:
+	if chrome != null and chrome.key(e): return true
+	match e.keycode:   # until the kit tray lands, the old drawers open as overlays on B / I / T
+		KEY_B: show_screen(home if cur == "build" else "build"); chrome.refresh(); return true
+		KEY_I: show_screen(home if cur == "inspect" else "inspect"); chrome.refresh(); return true
+		KEY_T: show_screen(home if cur == "timeline" else "timeline"); chrome.refresh(); return true
 	return grid_world != null and grid_world.key(e)
+
+# --- custom chrome hooks ---
+func game_build_chrome(r: Control) -> void:
+	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
+func game_chrome_visible(v: bool) -> void:
+	if chrome != null: chrome.set_chrome_visible(v)
+func game_relayout() -> void:
+	if chrome != null: chrome.layout()
+func game_toast(text: String, level: String) -> bool:
+	if chrome == null: return false
+	chrome.toast(text, level); return true
+func game_coach(step: Dictionary, index: int, total: int) -> bool:
+	if chrome == null: return false
+	if str(step.get("id", "")) != "welcome": chrome.coach(step, index, total)
+	return true
 
 func game_title_demo() -> void:
 	pass   # the title backdrop is the static world until M2
@@ -78,3 +100,23 @@ func game_smoke() -> void:
 	CbSmoke._check(int(c1.block) == int(c0.block) + 3 and int(c1.day) == int(c0.day), "the clock advances one block per tick")
 	show_screen("clock"); await get_tree().process_frame
 	show_screen(home); await get_tree().process_frame
+	# GRID chrome: nodes exist, kit bar and dock are hidden, breaker drives the speed, radio hears the coach
+	b.act("startLevel", ["L01", 1, "learner"]); game_on_changed(); await get_tree().process_frame; _relayout(); await get_tree().process_frame
+	CbSmoke._check(chrome != null and chrome.visible and chrome.instruments != null and chrome.radio != null and chrome.breaker != null and chrome.pin != null, "GRID chrome nodes exist and are shown in a level")
+	CbSmoke._check(not top.visible and not dock_scroll.visible and _bar_h == 0.0 and _dock_h == 0.0, "kit bar and dock are hidden in custom chrome")
+	CbSmoke._check(chrome.instruments.clock.visible and chrome.instruments.volt.visible and not chrome.instruments.dial.visible, "bench level: clock and voltmeter, no frequency dial")
+	set_speed(0); chrome.breaker.toggle(); CbSmoke._check(speed == 1, "breaker run sets speed 1")
+	chrome.breaker.cycle_rate(); CbSmoke._check(speed == 2, "rate knob moves a running night to 2x")
+	chrome.breaker.toggle(); CbSmoke._check(speed == 0, "breaker pause sets speed 0")
+	chrome.space_steps = false; var ev := InputEventKey.new(); ev.keycode = KEY_SPACE; ev.pressed = true; game_unhandled_key(ev); CbSmoke._check(speed > 0, "Space toggles run"); game_unhandled_key(ev); CbSmoke._check(speed == 0, "Space toggles pause"); chrome.space_steps = true
+	var t0 := int(b.q("clock").tick); ev.keycode = KEY_PERIOD; game_unhandled_key(ev); CbSmoke._check(int(b.q("clock").tick) == t0 + 1, "'.' steps one block")
+	CbSmoke._check(chrome.radio.lines.any(func(l): return l.speaker == "TOBI" and l.kind == "coach"), "the radio received the coach line")
+	var msg := tr("TEST_REFUSED")
+	toast(msg, "warn")
+	CbSmoke._check(chrome.radio.lines.back().speaker == "SYS" and chrome.radio.lines.back().kind == "warn", "a toast arrives on the radio as a SYS warning")
+	b.act("startLevel", ["L03", 1, "learner"]); game_on_changed(); await get_tree().process_frame
+	CbSmoke._check(chrome.instruments.mode == "loss" and chrome.instruments.volt.units == "%" and chrome.instruments.volt.vmax == 20.0, "L03: the meter is LINE LOSS 0-20 %, not volts")
+	CbSmoke._check(chrome.instruments.volt.blank and chrome.instruments.volt.needle_value() == 0.0 and chrome.breaker.label_text() == tr("BREAKER_RUN_DAY"), "L03 before the circuit is built: blank meter at rest, breaker says Run the day")
+	b.act("startLevel", ["L07", 1, "learner"]); game_on_changed(); await get_tree().process_frame
+	CbSmoke._check(chrome.instruments.dial.visible and not chrome.instruments.volt.visible, "grid level: frequency dial, no voltmeter")
+

@@ -9,10 +9,15 @@ var f0 := 50.0
 var needle_deg := 0.0
 var target_deg := 0.0
 var _have := false
+signal codex_requested(id: String)
+var codex_id := ""
 
 func _init() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(112, 84)
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	custom_minimum_size = Vector2(160, 132)
+
+func _gui_input(e: InputEvent) -> void:
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and codex_id != "": codex_requested.emit(codex_id); accept_event()
 
 func set_query(d: Dictionary, instant := false) -> void:
 	q = d; f = float(d.fHz); f0 = float(d.f0)
@@ -40,21 +45,32 @@ func _arc(c: Vector2, r: float, a0: float, a1: float, col: Color, w: float) -> v
 
 func _draw() -> void:
 	if not _have: return
-	var r := minf(size.x * 0.5, size.y / 1.5) - 3.0
-	var c := Vector2(size.x * 0.5, r + 3.0)
-	_arc(c, r, DialMath.START_DEG, DialMath.START_DEG + DialMath.SWEEP_DEG, CbKit.LINE, 7.0)
+	var w := size.x; var h := size.y
+	var ink := GridTheme.PAPER_INK
+	draw_style_box(GridTheme.meter_face_sb(10), Rect2(Vector2.ZERO, size))
+	draw_rect(Rect2(Vector2(5, 5), size - Vector2(10, 10)), Color(GridTheme.SODIUM, 0.06), true)
+	var r := minf(w * 0.5 - 18.0, (h - 34.0) / 1.5)
+	var c := Vector2(w * 0.5, 22.0 + r)
+	_arc(c, r, DialMath.START_DEG, DialMath.START_DEG + DialMath.SWEEP_DEG, Color(ink, 0.55), 7.0)
 	# the pack's standard range, painted green
-	_arc(c, r, DialMath.angle_deg(float(q.stdLo), f0), DialMath.angle_deg(float(q.stdHi), f0), CbKit.GR, 7.0)
+	_arc(c, r, DialMath.angle_deg(float(q.stdLo), f0), DialMath.angle_deg(float(q.stdHi), f0), GridTheme.GOOD, 7.0)
 	# danger ends: below the first UFLS stage and above the generator over-frequency trip
 	var st: Array = q.get("uflsHz", [])
-	if not st.is_empty(): _arc(c, r, DialMath.START_DEG, DialMath.angle_deg(float(st[0]), f0), CbKit.RD, 7.0)
-	_arc(c, r, DialMath.angle_deg(float(q.genOfHz), f0), DialMath.START_DEG + DialMath.SWEEP_DEG, CbKit.RD, 7.0)
-	for h in st:   # UFLS stage ticks
-		var a := DialMath.angle_deg(float(h), f0)
-		draw_line(_pt(c, r - 9.0, a), _pt(c, r + 4.0, a), CbKit.AM, 2.0, true)
+	if not st.is_empty(): _arc(c, r, DialMath.START_DEG, DialMath.angle_deg(float(st[0]), f0), GridTheme.BAD, 7.0)
+	_arc(c, r, DialMath.angle_deg(float(q.genOfHz), f0), DialMath.START_DEG + DialMath.SWEEP_DEG, GridTheme.BAD, 7.0)
+	for hz in st:   # UFLS stage ticks
+		var a := DialMath.angle_deg(float(hz), f0)
+		draw_line(_pt(c, r - 9.0, a), _pt(c, r + 4.0, a), GridTheme.WARN, 2.0, true)
 	for k in [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0]:   # scale ticks around the centre
 		var a2 := DialMath.angle_deg(f0 + k, f0)
-		draw_line(_pt(c, r - (7.0 if k == 0.0 else 4.0), a2), _pt(c, r - 1.0, a2), CbKit.DIM, 1.5, true)
-	var col := [CbKit.GR, CbKit.AM, CbKit.RD][DialMath.zone(f, q)] as Color
-	draw_line(c, _pt(c, r - 5.0, needle_deg), col, 3.0, true)
-	draw_circle(c, 5.0, col)
+		draw_line(_pt(c, r - (9.0 if k == 0.0 else 6.0), a2), _pt(c, r + 1.0, a2), ink, 1.5, true)
+	var cf := GridTheme.font("semi"); var csz := GridTheme.fs(11)
+	draw_string(cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("HUD_FREQ"), HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
+	var mf := GridTheme.font("mono"); var rs := TranslationServer.translate("HUD_HZ") % ("%.2f" % self.f); var rsz := GridTheme.fs(17)
+	var rw := mf.get_string_size(rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz)
+	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 14.0), Vector2(rw.x + 16.0, rsz + 8.0))
+	draw_rect(plate, GridTheme.NIGHT, true)
+	draw_string(mf, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, [GridTheme.SODIUM, GridTheme.WARN, GridTheme.BAD][DialMath.zone(self.f, q)])
+	draw_line(c + Vector2(2, 2), _pt(c, r - 5.0, needle_deg) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)
+	draw_line(c, _pt(c, r - 5.0, needle_deg), Color("#B3261E"), 3.0, true)
+	draw_circle(c, 5.5, GridTheme.NIGHT); draw_circle(c, 2.0, GridTheme.SODIUM_DIM)
