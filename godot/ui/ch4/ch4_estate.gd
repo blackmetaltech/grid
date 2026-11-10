@@ -28,9 +28,9 @@ func _layout_panel() -> void:
 	for k in 2: _add_chip(Rect2(Vector2(x + 78.0 * k, inner.position.y + 20.0), Vector2(72, 40)), "rated", [250.0, 440.0][k])
 	x += 78.0 * 2 + 8.0
 	for k in 2: _add_chip(Rect2(Vector2(x + 62.0 * k, inner.position.y + 20.0), Vector2(56, 40)), "conn", ["Y", "D"][k])
-	var sr := Rect2(Vector2(inner.position.x, inner.position.y + 66.0), Vector2(190, 70))
+	var sr := Rect2(Vector2(inner.position.x, inner.position.y + 66.0), Vector2(190, 58))
 	hits.append({"rect": sr, "kind": "slider", "id": "count", "arg": ""})
-	for k in 3: _add_chip(Rect2(Vector2(inner.position.x + 202.0 + 88.0 * k, inner.position.y + 66.0), Vector2(82, 70)), "starter", STARTERS[k])
+	for k in 3: _add_chip(Rect2(Vector2(inner.position.x + 202.0 + 88.0 * k, inner.position.y + 66.0), Vector2(82, 58)), "starter", STARTERS[k])
 
 func _press(h: Dictionary, p: Vector2) -> void:
 	var id := str(h.id)
@@ -139,7 +139,7 @@ func _draw_pump(r: Rect2, ground: float) -> void:
 func _draw_bus_trace(r: Rect2) -> void:
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_TRACE"), Color(GridTheme.TEXT, 0.7))
-	var plot := Rect2(r.position + Vector2(14.0, 36.0), r.size - Vector2(28.0, 70.0))
+	var plot := Rect2(r.position + Vector2(14.0, 36.0), r.size - Vector2(28.0, 100.0))
 	var v0 := float(q.vBusPu); var dip := float(q.dipPct) / 100.0; var vmin := 0.80; var vmax := 1.04
 	var Y := func(v: float) -> float: return plot.position.y + plot.size.y * (1.0 - (clampf(v, vmin, vmax) - vmin) / (vmax - vmin))
 	var lim: float = v0 * (1.0 - float(q.dipMaxPct) / 100.0)
@@ -170,9 +170,9 @@ func _draw_panel_body() -> void:
 					_chip(h.rect, T("C4_ST_" + str(arg).to_upper()), pr, str(q.starter) == str(arg), id, arg, not lock)
 		elif k == "slider":
 			var n := _count(); _stepper(h.rect, T("C4_CANS"), "%d" % n, float(n) / 140.0, "count")
-	var y := inner.position.y + 168.0
+	var y := inner.position.y + 160.0
 	var hv := hover.get_slice("/", 1) if hover.begins_with("starter/") else str(q.starter)
-	_text(mono, 11, inner.position + Vector2(0, 152.0), T("C4_HINT_" + hv.to_upper()), Color(GridTheme.SODIUM, 0.85))
+	_text(mono, 11, inner.position + Vector2(0, 140.0), T("C4_HINT_" + hv.to_upper()), Color(GridTheme.SODIUM, 0.85))
 	var checks := [[T("C4_CHK_PF") % _f(float(q.pf), 3), bool(q.pass.pf) and bool(q.pass.lead)], [T("C4_CHK_CAN"), bool(q.pass.can)], [T("C4_CHK_DIP") % _f(float(q.dipPct), 1), bool(q.pass.dip)]]
 	var x := inner.position.x
 	for c in checks:
