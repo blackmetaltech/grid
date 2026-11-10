@@ -2,6 +2,44 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [0.9.0] - unreleased: "Protection and Markets" (chapter 7)
+### Added
+- **WO-23 Fault Level**: the short-circuit current at each feeder against its breaker rating (30.2 kA at F1 once the generators join);
+  split the bus, add a reactor or high-impedance transformers to bring it under the breakers.
+- **WO-24 Coordination**: grade the relays so the nearest one trips first (time-current curves, 0.3 s grading margin).
+- **WO-25 Clear It in Time**: the critical clearing time of a generator after a fault (163.6 ms, 53.5°) against relay plus breaker time.
+- **WO-26 Merit Order**: commit plants and pick a dispatch rule; the water value of the hydro; a congested corridor splits the price.
+- **WO-27 Exam Bridge**: protection calculations (symmetrical and earth-fault currents, CCT) on paper, attempt first.
+### Known gaps
+- The study networks of WO-23 and WO-27 are the scenario's; the map is decoration. No bullet-time replay of the fault yet.
+
+## [0.8.0] - unreleased: "Frequency and Renewables" (chapter 6)
+### Added
+- **WO-19 Fifty Hertz**: the largest unit trips at 20:00; keep a spare unit spinning so the nadir stays above the first shedding stage.
+- **WO-20 Sun Goes Down**: the evening ramp after 3 GW of solar; commit peakers in time, move the pumps to noon. A net-load curve shows the ramp.
+- **WO-21 Inertia Matters**: RoCoF without spinning mass; ride-through for rooftop inverters and grid-forming batteries.
+- **WO-22 Exam Bridge: Droop and RoCoF**: three predictions with a formula card you can open after trying.
+
+## [0.7.0] - unreleased: "Load Flow and Voltage" (chapter 5)
+### Added
+- Chapter 5 (WO-14 to WO-18): per-unit, load flow on the state ring, taps, reactors and the nose of the P-V curve.
+
+## [0.6.0] - unreleased: "Three-Phase and Machines" (chapter 4)
+### Added
+- **WO-10 Balance the Phases**: move each house's drop between phases a, b and c; the neutral carries the unbalance (160 A on one phase).
+- **WO-11 Star or Delta**: size a capacitor bank (a star bank needs three times the microfarads of a delta one) and pick the pump's starter.
+- **WO-12 Over the Hill**: a generator 300 km away; raise its excitation, add series capacitors or a third circuit so it stays in step
+  after a line trips (P-δ curve, rotor-angle swing).
+- **WO-13 Exam Bridge**: synchronous machine phasors (E, δ, P_max) on paper.
+
+## [0.5.0] - unreleased: "Phasors and Power Factor" (chapter 3)
+### Added
+- **WO-07 The Lagging Mill** with a shift-report lesson in your numbers (S = P + jQ, the wattless current at lunch).
+- **WO-08 Resonance at the Fifth**: the plain bank resonates with the mill's drives and blows its fuse; a detuned bank or a filter
+  (harmonic study at h × 50 Hz, THD against the 5 % limit).
+- **WO-09 The Hundred-Percent Trap**: series compensation lifts the far end, but at 100 % the fault current beats the old breaker.
+- Chapter-end cards for chapters 3 to 7; the Jobs list is grouped by chapter.
+
 ## [0.4.0] - unreleased: "Salt Wind" (insulation: the sea air on the insulators)
 ### Added
 - **WO-29 Salt Wind.** Year two on the Mainland: your River Line still stands, and the harbour (fish market and ice plant) on the
@@ -12,10 +50,16 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **The salt is visible**: the coast is whitened by how much salt the wind lays there, sea fog rolls in from 02:00 and is thickest
   at 04:00, and an insulator short of its creepage crackles violet in the fog before it flashes over.
 - The harbour gets its own houses, dark until you bring the power.
+- **WO-04 Spin the Alternator**: poles, turns, field and coil area on a machine bench; the scope shows the sine, the village needs
+  50 Hz and 230 V (f = poles × rpm ÷ 120, e₀ = N·B·A·ω).
+- **WO-06 Exam Bridge: The Town Line** (textbook mode): 800 kW over a 15 km line loses 75 % at 4 kV and 0.75 % at 40 kV; pick the
+  cheapest pair of transformers that keeps losses under 2 %.
 - **WO-30 Bring the Island Home** (chapter 2 finale). Saltmarsh Island lies 4 km off the harbour. Lay a submarine XLPE cable
   (70 / 120 / 185 mm²; it charges like a capacitor: Q = V²ωCℓ, about 46 kvar), put a transformer on the island, and size the
   island battery. At 21:00 a trawler drags its anchor across the cable: the island must stay lit until 23:00 on the battery alone
-  (inverter kW against the peak, kWh against two hours of evening load). The island, the seabed cable, the trawler and the cut are drawn.
+  (inverter kW against the peak, kWh against two hours of evening load). The island, the seabed cable, the trawler and the cut are drawn;
+  the lighthouse turns while the island is live and the battery hut shows its charge.
+- Prices before you buy (the engine prices a build on a copy of the night); taking down something you bought this job refunds it.
 ### Fixed
 - The shift report no longer contradicts the clearance gauge: it names your longest span and your tightest one (the gauge's number);
   after a flashover it names the span that flashed, and "What to try" tells you how to lift it (or, at 0.42 kV, to go to 11 kV).
