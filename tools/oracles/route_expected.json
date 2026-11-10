@@ -114,5 +114,76 @@
    "fog1": 80,
    "disc2": 73
   }
+ },
+ "S-11": {
+  "sub-11-70": {
+   "50": {
+    "Q_kvar": 38.0132711084365,
+    "I_c_A": 1.9951793006576397
+   },
+   "60": {
+    "Q_kvar": 45.615925330123794,
+    "I_c_A": 2.3942151607891673
+   }
+  },
+  "sub-11-120": {
+   "50": {
+    "Q_kvar": 45.6159253301238,
+    "I_c_A": 2.3942151607891673
+   },
+   "60": {
+    "Q_kvar": 54.73911039614855,
+    "I_c_A": 2.8730581929470005
+   }
+  },
+  "sub-11-185": {
+   "50": {
+    "Q_kvar": 53.2185795518111,
+    "I_c_A": 2.793251020920695
+   },
+   "60": {
+    "Q_kvar": 63.86229546217331,
+    "I_c_A": 3.351901225104834
+   }
+  }
+ },
+ "S-12": {
+  "delivered_kWh": 81.0,
+  "cells_kWh": 87.34454629478512,
+  "eta_one_way": 0.9273618495495703,
+  "skus": {
+   "25kw-50kwh": {
+    "window_kWh": 40.0,
+    "power_ok": false,
+    "energy_ok": false,
+    "margin": null
+   },
+   "50kw-100kwh": {
+    "window_kWh": 80.0,
+    "power_ok": true,
+    "energy_ok": false,
+    "margin": null
+   },
+   "50kw-125kwh": {
+    "window_kWh": 100.0,
+    "power_ok": true,
+    "energy_ok": true,
+    "margin": 0.1265545370521488
+   },
+   "50kw-150kwh": {
+    "window_kWh": 120.0,
+    "power_ok": true,
+    "energy_ok": true,
+    "margin": 0.27212878087679065
+   },
+   "100kw-200kwh": {
+    "window_kWh": 160.0,
+    "power_ok": true,
+    "energy_ok": true,
+    "margin": 0.45409658565759303
+   }
+  },
+  "min_nameplate_kWh_for_margin_20": 136.47585358560173,
+  "first_dark_block_50kw_100kwh": 91
  }
 }

@@ -10,14 +10,15 @@ import { type DemandClass, demandPQ, generateClouds, advectClouds, transmittance
 import { priorityList, neededSet, economicDispatch, storageStep, thresholdRequest, blockCost, type CommitUnit, type EdUnit, type StorageParams } from './dispatch';
 import { blockFrequency, type BlockUnit } from './dynamics';
 import { stepOverload, remainingS, type OverloadState } from './thermal';
-import { isDispatchable, RENEWABLE_KINDS } from './netbuild';
+import { isDispatchable, RENEWABLE_KINDS, toNet } from './netbuild';
 import { solveState, remember, solvedOf, toResult } from './solved';
 import { runEventWindow, levelResult } from './event';
 import { voltageBand, type SimParams } from './params';
 import { systemRng } from './rngs';
 import { fin } from './finite';
 import { stepBench, type BenchParams } from '../level/bench';
-import { flashoverStep, saltFlashoverStep } from './flashover';
+import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
+import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -159,7 +160,10 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       const p = getParams(s);
       const price = p.economy.energyPricePerMWh;
       let storageMW = 0;
+      const held = heldByStorage(toNet(s), s.storage), holding = held.forming;   // a battery that holds an island is run by the island's load (settled after the load flow), not by the price
+      storageMW += held.loadMW;                                                // and what it carries is not the thermal fleet's to cover
       for (const b of s.storage) {
+        if (s.rules.cableCutBlock != null || holding.has(b.id) || held.orphans.has(b.id)) { b.P = 0; continue; }   // L30's backup battery floats on the live grid
         const sp: StorageParams = { energyMWh: b.mwh, pChMaxMW: b.mw, pDisMaxMW: b.mw, etaRt: b.etaRt, socMin: 0.1, socMax: 0.9 };
         let ch = 0, dis = 0;
         if (b.mode === 'threshold') ({ pChMW: ch, pDisMW: dis } = thresholdRequest(sp, s.dispatch.lambda, 0.7 * price, 1.3 * price));
@@ -234,7 +238,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
     } },
 
     // 7b. flashover: at the level's hot evening block, spans under their clearance rule flash over and trip their line (before the load flow sees it).
-    { id: 'flashover', run: (s) => { flashoverStep(s); saltFlashoverStep(s); } },
+    { id: 'flashover', run: (s) => { flashoverStep(s); saltFlashoverStep(s); anchorCutStep(s); } },
 
     // 8. loadflow: islands, Newton-Raphson, Q-limits, collapse sheds -> `solution` (V and theta only; flows are memoised outside).
     { id: 'loadflow', run: (s) => {
@@ -244,6 +248,13 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       for (const [id, f] of Object.entries(sol.shed)) { const l = s.loads.find((x) => x.id === id); if (l) l.shedFrac = Math.min(1, 1 - (1 - l.shedFrac) * (1 - f)); }
       s.solution = toResult(sol);
       remember(s.solution, solved);
+      // storage that held an island this block discharged what the island drew; a backup battery on a live grid floats full (L30)
+      const float = s.rules.cableCutBlock != null;
+      for (const b of s.storage) {
+        const isl = sol.islands.find((i) => i.slackUnit === b.id);
+        if (isl) s.metrics.track.islandKWh = fin((s.metrics.track.islandKWh ?? 0) + settleIslandStorage(b, (flows.slack[b.bus]?.p ?? 0) * S_BASE_MVA));
+        else if (float) { b.P = 0; if (sol.energised[b.bus]) b.soc = SOC_MAX; }
+      }
       const regUnits = new Map<string, Unit[]>();
       for (const u of s.units) if (u.online) { const a = regUnits.get(u.bus) ?? []; a.push(u); regUnits.set(u.bus, a); }
       for (const [bus, us] of regUnits) {
@@ -402,6 +413,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       tr.supplyMWh = fin((tr.supplyMWh ?? 0) + s.block.genMW * BLOCK_H);
       tr.peakLoading = Math.max(tr.peakLoading ?? 0, fin(s.block.worstLoading));
       tr.lossPct = tr.supplyMWh > 1e-9 ? fin((100 * s.metrics.lossesMWh) / tr.supplyMWh) : 0;
+      if (s.rules.cableCutBlock != null && s.storage.length > 0) tr.batteryMargin = fin(Math.min(...s.storage.map((b) => windowShare(b.soc))));   // usable charge left in the window (L30 third star)
       if (s.routes.length > 0) {   // route levels: the thinnest clearance of any span (m) and the lowest voltage a loaded bus saw (pu; 0 when dark)
         tr.worstMarginM = fin(Math.min(...s.routes.map((r) => r.worstMarginM)));
         const coast = s.routes.flatMap((r) => (r.coastMinCreepageMm === undefined ? [] : [r.coastMinCreepageMm]));

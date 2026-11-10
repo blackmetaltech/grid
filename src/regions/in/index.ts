@@ -8,7 +8,7 @@ import { IN_CATALOGUES } from './catalogues';
 import { ROUTE, ROUTE_PROVENANCE } from './route';
 
 export const IN = defineRegion<GridRegionData>({
-  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 4,
+  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 5,
   currency: { code: 'INR', symbol: '₹', decimals: 2, position: 'prefix' },
   numbers: { grouping: 'indian', decimal: '.', group: ',' },
   standards: { voltage: 'CEA Grid Standards 2010', gridcode: 'IEGC', conductors: 'IS 398' },

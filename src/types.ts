@@ -327,6 +327,10 @@ export interface Rules {
   fogBlock?: number | null;
   /** A load on a de-energised bus counts as poor supply (a level where part of the job is an unserved bus that would otherwise sit outside every island check: L29's harbour). */
   darkLoadsLose?: boolean;
+  /** Block at which a trawler's anchor cuts every submarine cable (L30); null/absent = never. */
+  cableCutBlock?: number | null;
+  /** The sea distance a submarine cable laid by `layCableRoute` spans, km (L30); absent = the straight distance between its buses. */
+  seaCableKm?: number | null;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
 }
@@ -435,4 +439,9 @@ export interface GridState extends BaseState {
   terrain: string | null;
   /** Lines built with `buildRoute`, in build order. */
   routes: RouteRecord[];
+  /** Submarine cables laid with `layCableRoute` (L30), in build order; absent until the first one (old states and goldens stay as they were). */
+  cables?: SeaCableRecord[];
 }
+
+/** A laid submarine cable: its branch, price (refunded when it is demolished), and what it was made of. */
+export interface SeaCableRecord { branchId: string; cableId: string; lengthKm: number; cost: number; chargingKvar: number }

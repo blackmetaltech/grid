@@ -12,3 +12,8 @@ export const STORAGE: StorageRow[] = [
   s({ id: 'bess-gfm-50', mw: 50, mwh: 50, capexPerKw: null, capexPerKwh: null, allInPerKw: 100000, etaRt: 0.86, responseMs: 50, socMinPct: 10, socMaxPct: 90, hVs: 4, source: `${A}: 10 cr/MW recall; H_v game` }, { allInPerKw: RC, etaRt: RC, hVs: G }),
   s({ id: 'psp-250', mw: 250, mwh: null, capexPerKw: null, capexPerKwh: null, allInPerKw: 65000, etaRt: 0.75, source: `${A}: recall (see the generator row)` }, { allInPerKw: RC, etaRt: RC }),
 ];
+
+// L30 island batteries (the `global` rows at the pack's price factor x 8, as the route prices: INR 1,200 per kW of inverter + 3,200 per kWh of cells).
+const isl = (kw: number, kwh: number): StorageRow => s({ id: `isl-${kw}kw-${kwh}kwh`, mw: kw / 1000, mwh: kwh / 1000, capexPerKw: 1200, capexPerKwh: 3200, allInPerKw: 1200 + (3200 * kwh) / kw, etaRt: 0.86, responseMs: 50, socMinPct: 10, socMaxPct: 90, source: 'game: the global island battery prices x 8 (the pack\'s like-for-like factor); round-trip 0.86, SoC 10-90 %' },
+  { capexPerKw: G, capexPerKwh: G, allInPerKw: G, etaRt: G, responseMs: G, socMinPct: G });
+STORAGE.push(isl(25, 50), isl(50, 100), isl(50, 125), isl(50, 150), isl(100, 200));

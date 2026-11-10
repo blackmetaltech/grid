@@ -33,8 +33,8 @@ const near = (a: number, b: number, rel: number): void => { expect(Math.abs(a - 
 const MARGIN = 0.02;
 
 describe('level list', () => {
-  it('the campaign so far: the T00 clock fixture, then P0, L01, L02, L03, L05, L29, L07 in order', () => {
-    expect(LEVELS.map((l) => l.id)).toEqual(['T00', 'P0', 'L01', 'L02', 'L03', 'L05', 'L29', 'L07']);
+  it('the campaign so far: the T00 clock fixture, then P0, L01, L02, L03, L05, L29, L30, L07 in order', () => {
+    expect(LEVELS.map((l) => l.id)).toEqual(['T00', 'P0', 'L01', 'L02', 'L03', 'L05', 'L29', 'L30', 'L07']);
     expect(CAMPAIGN_LEVELS.map((l) => l.id)).toEqual(LEVEL_SPECS.map((l) => l.id));
     expect(new Set(LEVEL_SPECS.map((l) => l.id)).size).toBe(LEVEL_SPECS.length);
     expect(specOf('L07')?.chapter).toBe(3); expect(specOf('nope')).toBeUndefined();

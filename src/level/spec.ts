@@ -69,18 +69,22 @@ export interface GridLevelSpec {
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); default the sag lesson. */ lessonKind?: 'sag' | 'salt' };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
   /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
   fogBlock?: number;
+  /** Block at which a trawler's anchor cuts every submarine cable (L30); absent = never. */
+  cableCutBlock?: number;
+  /** The sea distance of a submarine cable laid in this level, km (L30). */
+  seaCableKm?: number;
   brownoutLoses: boolean;
   blackoutLoses: boolean;
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' };
+  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -112,6 +116,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     poorSupplyGraceMin: spec.kind === 'bench' ? 60 : 0,
     blackoutLoses: spec.blackoutLoses,
     flashoverBlock: spec.flashoverBlock ?? null,
+    ...(spec.cableCutBlock !== undefined ? { cableCutBlock: spec.cableCutBlock, seaCableKm: spec.seaCableKm ?? null, darkLoadsLose: true } : {}),
     ...(spec.fogBlock !== undefined ? { fogBlock: spec.fogBlock, darkLoadsLose: true } : {}),   // absent keys elsewhere: the other levels' states and goldens stay as they were
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: 'capex',
@@ -150,7 +155,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
 
 // ---- the allowed-parts gate -----------------------------------------------------------------------------------------------------
 /** Argument position of the catalogue id (or size) of an action the part list can restrict. */
-const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, switchBranch: 0, buildRoute: 2 };
+const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, layCableRoute: 2, switchBranch: 0, buildRoute: 2 };
 /** Further restricted arguments, listed in `allowed.parts` under `<action>.<name>` (a null value, e.g. no crossing family, is always fine). */
 const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }, { pos: 7, name: 'insulator' }, { pos: 8, name: 'coastInsulator' }] };
 const ALWAYS = new Set(['setSpeed', 'predict']);

@@ -9,7 +9,7 @@ import { ROUTE, ROUTE_PROVENANCE } from './route';
 const SOGL = 'SOGL (EU) 2017/1485 Annex III (CE)';
 
 export const GLOBAL = defineRegion<GridRegionData>({
-  id: 'global', name: 'Global', status: 'shipping', rulesetVersion: 4,
+  id: 'global', name: 'Global', status: 'shipping', rulesetVersion: 5,
   currency: { code: 'USD', symbol: '$', decimals: 2, position: 'prefix' },
   numbers: { grouping: 'western', decimal: '.', group: ',' },
   standards: { voltage: 'IEC 60038', gridcode: 'Lumen Grid Code', conductors: 'BS 215 / IEC 60228' },

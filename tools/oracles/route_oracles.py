@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Route-module oracles S-01..S-08 (design/grid/DEPTH.md §9), computed independently of the engine (no shared code).
+"""Route-module oracles S-01..S-12 (design/grid/DEPTH.md §9), computed independently of the engine (no shared code).
 
 Run: python3 tools/oracles/route_oracles.py  -> writes tools/oracles/route_expected.json (unrounded floats).
 Methods: parabolic sag D = wL^2/(8H); exact catenary by cosh; the parabolic state-change cubic solved by bisection
@@ -96,6 +96,38 @@ def max_span(attach):
     return best
 s10['wood_max_flat_span_m'] = {k: max_span(7.5 - dr) for k, dr in DROP.items()}
 out['S-10'] = s10
+
+# S-11 submarine cable charging (L30): Q = V^2 w C l (three-phase, V line-to-line), I_c = V_ph w C l, for the three 11 kV cables, 4 km, at 50 and 60 Hz
+CAB = {'sub-11-70': 0.25, 'sub-11-120': 0.30, 'sub-11-185': 0.35}   # uF/km
+s11 = {}
+for cid, c_uf in CAB.items():
+    row = {}
+    for f in (50, 60):
+        w = 2 * math.pi * f; V = 11e3; l = 4.0
+        row[str(f)] = {'Q_kvar': V * V * w * c_uf * 1e-6 * l / 1e3, 'I_c_A': (V / math.sqrt(3)) * w * c_uf * 1e-6 * l}
+    s11[cid] = row
+out['S-11'] = s11
+# S-12 island on its battery from the cut (21:00) to 23:00 (L30): the evening shape of a 45 kW peak, blocks 84..91 (21:00 .. 22:45); cells drained P dt / eta, eta = sqrt(0.86);
+# usable window 10..90 % of the nameplate; margin = usable charge left / window at the cut. Loss-free (the engine adds about 1 % of transformer and cable loss).
+ETA = math.sqrt(0.86); PEAK = 45.0
+def frac(b):
+    h = b / 4
+    return 0.7 if 18 <= h < 19 else 0.85 if 19 <= h < 20 else 1.0 if 20 <= h < 22 else 0.8 if 22 <= h < 23 else 0.6 if 23 <= h < 24 else 0.3
+blocks = range(84, 92)
+delivered = sum(PEAK * frac(b) * 0.25 for b in blocks)
+cells = delivered / ETA
+s12 = {'delivered_kWh': delivered, 'cells_kWh': cells, 'eta_one_way': ETA, 'skus': {}}
+for kw, kwh in ((25, 50), (50, 100), (50, 125), (50, 150), (100, 200)):
+    window = 0.8 * kwh
+    s12['skus'][f'{kw}kw-{kwh}kwh'] = {'window_kWh': window, 'power_ok': kw >= PEAK, 'energy_ok': window >= cells, 'margin': (window - cells) / window if window >= cells else None}
+s12['min_nameplate_kWh_for_margin_20'] = cells / (0.8 * 0.8)
+s12['first_dark_block_50kw_100kwh'] = None
+soc_window = 0.8 * 100; used = 0.0
+for b in blocks:
+    e = PEAK * frac(b) * 0.25 / ETA
+    if used + e > soc_window + 1e-12: s12['first_dark_block_50kw_100kwh'] = b; break
+    used += e
+out['S-12'] = s12
 
 p = os.path.join(os.path.dirname(__file__), 'route_expected.json')
 json.dump(out, open(p, 'w'), indent=1)

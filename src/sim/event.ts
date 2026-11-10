@@ -11,7 +11,7 @@ import { SYNC_KINDS, toNet } from './netbuild';
 import type { SimParams } from './params';
 import { fin } from './finite';
 import type { GridState, ReplayLog, Rules, Unit } from '../types';
-import { flashoverParams, saltFlashoverParams } from './flashover';
+import { flashoverParams, saltFlashoverParams, islandDark } from './flashover';
 
 export interface EventTrigger {
   /** Branch and unit ids opened at t = 0. */
@@ -132,6 +132,7 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit + 1e-9) return lost('level.lost.budget', { spent: Math.round(s.budget.spent), max: Math.round(s.budget.capexLimit) });
   if (rules.flashoverBlock !== null && (m.track.flashover ?? 0) > 0) return lost('level.lost.flashover', flashoverParams(s));
   if ((rules.fogBlock ?? null) !== null && (m.track.saltFlashover ?? 0) > 0) return lost('level.lost.saltFlashover', saltFlashoverParams(s));
+  if ((rules.cableCutBlock ?? null) !== null && m.poorSupplyMin > 0) { const d = islandDark(s); if (d) return lost(d.key, d.params); }   // L30: say why the island went dark
   if (rules.blackoutLoses && s.block.blackout) return lost('level.lost.blackout');
   if (rules.maxEnsMWh !== null && m.ensMWh > rules.maxEnsMWh) return lost('level.lost.ens', { ens: Math.round(m.ensMWh * 10) / 10, max: rules.maxEnsMWh });
   if (rules.maxCost !== null && m.cost > rules.maxCost) return lost('level.lost.cost', { cost: Math.round(m.cost), max: rules.maxCost });

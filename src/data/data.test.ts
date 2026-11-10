@@ -171,7 +171,7 @@ describe('RELEASE gate for global', () => {
   it('every shipping pack in the registry passes the gate', () => { for (const p of REGIONS.list()) expect(releaseGateProblems(p), p.id).toEqual([]); });
   it('global has a catalogue row with a non-recall tag for every unit of the DESIGN §4.9 counts', () => {
     const c = GLOBAL.data.catalogues;
-    expect(c.generators.length).toBe(14); expect(c.storage.length).toBe(4);
+    expect(c.generators.length).toBe(14); expect(c.storage.length).toBe(4 + 5);   // the four DESIGN rows and the five L30 island packs
     for (const n of NAMES) for (const r of c[n]) expect(r.confidence, `${n}/${r.id}`).not.toBe('recall');
     // the in pack keeps its recall rows (draft); the gate must not apply to it
     expect(IN.data.catalogues.generators.some((r) => r.confidence === 'recall')).toBe(true);

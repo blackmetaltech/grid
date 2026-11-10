@@ -21,7 +21,7 @@ export interface ActionDeps {
 }
 
 /** Names of things in teaching messages (keys, so another locale can say them). */
-const WHAT = { bus: 'what.bus', unit: 'what.unit', load: 'what.load', branch: 'what.branch', shunt: 'what.shunt', element: 'what.element', generator: 'what.generator', line: 'what.line', transformer: 'what.transformer', compensation: 'what.compensation', storage: 'what.storage' } as const;
+const WHAT = { bus: 'what.bus', unit: 'what.unit', load: 'what.load', branch: 'what.branch', shunt: 'what.shunt', element: 'what.element', generator: 'what.generator', line: 'what.line', transformer: 'what.transformer', compensation: 'what.compensation', storage: 'what.storage', cable: 'what.cable' } as const;
 
 const accept = (s: GridState, name: string, key: string, params: Params = {}): ActionResult => {
   s.actionLog.push({ tick: s.tick, name, key });
@@ -105,6 +105,28 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       s.budget.spent += spec.costPerKm * len * n;
       return accept(s, 'stringLine', 'act.line.ok', { id, len: r1(len), circuits: n, x: r3(br.x), mva: Math.round(br.ratingMVA) });
     },
+    /** Lay a submarine cable between two buses of its voltage (L30): no supports, no waypoints; its length is the sea distance the level gives (`rules.seaCableKm`), else the straight distance. */
+    layCableRoute: (s, from: unknown, to: unknown, cableId: unknown) => {
+      if (!isStr(from) || !isStr(to)) return bad('fromBus, toBus', 'exp.bus_ids');
+      if (!isStr(cableId)) return bad('cableId', 'exp.a_catalogue_id');
+      if (from === to) return reject('act.line.same', { bus: from });
+      const a = busOf(s, from), b = busOf(s, to);
+      if (!a) return unknown('bus', from);
+      if (!b) return unknown('bus', to);
+      const spec = d.cat(s).line(cableId);
+      if (!spec) return reject('act.unknownCatalog', { what: t(WHAT.cable), id: cableId });
+      if (spec.kind !== 'cable') return reject('act.cable.notSubmarine', { id: cableId });
+      for (const bb of [a, b]) if (Math.abs(bb.kvNom - spec.kv) > 1e-9) return reject('act.line.kv', { lineKv: spec.kv, bus: bb.id, busKv: bb.kvNom });
+      const sea = s.rules.seaCableKm;
+      const len = isNum(sea) && sea > 0 ? sea : Math.max(0.1, Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)) * s.map.tileM / 1000);
+      const id = nextId(s.branches.map((x) => x.id), 'T');
+      s.branches.push(makeLine(spec, id, from, to, len, 1, []));
+      const cost = spec.costPerKm * len, kvar = spec.bUsKm * 1e-6 * (spec.kv * 1000) * (spec.kv * 1000) * len / 1000;   // Q = V^2 w C l = V^2 B l
+      s.budget.spent += cost;
+      s.cables = [...(s.cables ?? []), { branchId: id, cableId, lengthKm: len, cost, chargingKvar: kvar }];
+      s.solution = null;
+      return accept(s, 'layCableRoute', 'act.cable.ok', { id, km: r1(len), kvar: r1(kvar), cost: d.money(s, cost), amps: Math.round(spec.thermalMva * 1000 / (Math.sqrt(3) * spec.kv)) });
+    },
     placeTransformer: (s, hv: unknown, lv: unknown, catalogId: unknown) => {
       if (!isStr(hv) || !isStr(lv)) return bad('busHV, busLV', 'exp.bus_ids');
       if (!isStr(catalogId)) return bad('catalogId', 'exp.a_catalogue_id');
@@ -155,6 +177,10 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       s.buses = s.buses.filter((b) => b.id !== id);
       for (const r of s.routes) if (!s.branches.some((b) => b.id === r.branchId)) s.budget.spent -= r.cost;   // a surveyed line taken down is refunded: re-stringing with another kit costs the difference, not a second line
       s.routes = s.routes.filter((r) => s.branches.some((b) => b.id === r.branchId));   // a demolished line takes its route record with it
+      if (s.cables) {   // a laid submarine cable taken up is refunded the same way
+        for (const c of s.cables) if (!s.branches.some((b) => b.id === c.branchId)) s.budget.spent -= c.cost;
+        s.cables = s.cables.filter((c) => s.branches.some((b) => b.id === c.branchId));
+      }
       s.solution = null;
       return accept(s, 'demolish', 'act.demolish.ok', { id });
     },

@@ -8,11 +8,14 @@ import { fin } from './sim/finite';
 import { solveBench, HOMES, GEOM, SOURCE_V, type BenchParams } from './level/bench';
 import { mapRows } from './level/maps';
 import { terrainOf } from './level/maps';
+import { offshoreBus } from './sim/islandStorage';
 import { replanRoutes, type RouteParams } from './route-actions';
 
 const r3 = (x: number): number => Math.round(fin(x) * 1000) / 1000;
 
 export interface WorldDeps { getBench: (s: GridState) => BenchParams; getRoute: (s: GridState) => RouteParams }
+/** Charging reactive power of a laid submarine cable (kvar, nominal voltage): Q = V^2 w C l; 0 for a branch that is not one. */
+const chargingKvarOf = (s: GridState, id: string): number => s.cables?.find((c) => c.branchId === id)?.chargingKvar ?? 0;
 const r1 = (x: number): number => Math.round(fin(x) * 10) / 10;
 
 export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridState>> {
@@ -26,11 +29,11 @@ export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridStat
         const demand = ls.reduce((a, l) => a + l.P, 0);
         const peak = ls.reduce((a, l) => a + l.Ppeak, 0);
         const served = ls.reduce((a, l) => a + l.P * (1 - l.shedFrac), 0);
-        return { id: b.id, name: b.name, x: b.x, y: b.y, kv: b.kvNom, kind: b.kind, energised: energised.has(b.id), peakMW: r3(peak), demandMW: r3(demand), servedMW: r3(served), shed: demand > 0 ? r3(1 - served / demand) : 0 };
+        return { id: b.id, name: b.name, x: b.x, y: b.y, kv: b.kvNom, kind: b.kind, energised: energised.has(b.id), peakMW: r3(peak), demandMW: r3(demand), servedMW: r3(served), shed: demand > 0 ? r3(1 - served / demand) : 0, ...(offshoreBus(s as GridState, b) ? { offshore: true } : {}) };
       });
       const branches = s.branches.map((b) => {
         const f = solved?.flows.branch[b.id];
-        return { id: b.id, from: b.from, to: b.to, kind: b.kind, circuits: b.circuits, inService: b.inService, waypoints: b.waypoints.map((p) => [p[0], p[1]] as [number, number]), pFromMW: f ? r3(toMW(f.pFrom)) : 0, qFromMVAr: f ? r3(toMW(f.qFrom)) : 0, ratingMVA: r3(b.ratingMVA), overloadFrac: b.timer ? r3(b.timer.frac) : 0 };
+        return { id: b.id, from: b.from, to: b.to, kind: b.kind, circuits: b.circuits, inService: b.inService, waypoints: b.waypoints.map((p) => [p[0], p[1]] as [number, number]), pFromMW: f ? r3(toMW(f.pFrom)) : 0, qFromMVAr: f ? r3(toMW(f.qFrom)) : 0, ratingMVA: r3(b.ratingMVA), overloadFrac: b.timer ? r3(b.timer.frac) : 0, ...(b.kind === 'cable' ? { chargingKvar: r3(chargingKvarOf(s as GridState, b.id)) } : {}) };
       });
       const units = s.units.map((u) => ({ id: u.id, bus: u.bus, kind: u.kind, online: u.online, P: r3(u.P), pMax: r3(u.pMax), availMW: r3(u.availMW) }));
       const shunts = s.shunts.map((h) => ({ id: h.id, bus: h.bus, kind: h.kind, steps: h.steps, on: h.on }));

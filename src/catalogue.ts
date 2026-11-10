@@ -5,6 +5,7 @@ import type { SimParams } from './sim/params';
 import type { CatalogueView, GenSpec } from './sim/build';
 import type { UnitKind } from './types';
 import { LINE_TEMPLATES } from './data/lineTemplates';
+import { submarineCable } from './data/submarine';
 import type { BenchParams } from './level/bench';
 import { SUPPORT_FAMILIES } from './data/supports';
 import { ACSR_MECH } from './data/conductors';
@@ -47,6 +48,8 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
       return spec;
     },
     line: (id) => {
+      const sub = submarineCable(id);
+      if (sub) return { id: sub.id, kind: 'cable', kv: sub.kv, rOhmKm: sub.rOhmKm, xOhmKm: sub.xOhmKm, bUsKm: 2 * Math.PI * d.f0 * sub.cUfKm, thermalMva: Math.sqrt(3) * sub.kv * sub.ampacityA / 1000, costPerKm: d.route.prices.submarine?.[sub.id] ?? 0 };   // B = 2 pi f C (uS per km)
       const tpl = LINE_TEMPLATES.find((x) => x.id === id);
       if (!tpl) return null;
       const cost = cat.lineCosts.find((c) => c.kv === tpl.kv);

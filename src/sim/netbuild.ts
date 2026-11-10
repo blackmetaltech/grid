@@ -1,6 +1,7 @@
 // Game state -> pure network description for the load flow, cascade and frequency modules. Nothing here mutates the state.
 import { S_BASE_MVA, tapTau, type Net, type NetUnit } from './network';
 import type { GridState, Unit } from '../types';
+import { formingStorage } from './islandStorage';
 
 export const SYNC_KINDS: ReadonlySet<string> = new Set(['coal', 'gas', 'diesel', 'biomass', 'nuclear', 'hydro', 'psp', 'synccon']);
 export const RENEWABLE_KINDS: ReadonlySet<string> = new Set(['pv', 'wind']);
@@ -26,11 +27,18 @@ export function toNet(s: Pick<GridState, 'buses' | 'branches' | 'units' | 'loads
     else if (h.kind === 'statcom') units.push({ id: h.id, bus: h.bus, kind: 'statcom', online: h.on > 0, vSet: vSet.get(h.bus) ?? 1, iMax: pu(h.mvarStep * h.steps) });
     else units.push({ id: h.id, bus: h.bus, kind: 'svc', online: h.on > 0, vSet: vSet.get(h.bus) ?? 1, bMin: -pu(h.mvarStep * h.steps), bMax: pu(h.mvarStep * h.steps) });
   }
-  return {
+  const net: Net = {
     buses: s.buses.map((b) => ({ id: b.id, kV: b.kvNom })),
     branches: s.branches.map((b) => ({ id: b.id, from: b.from, to: b.to, r: b.r, x: b.x, bc: b.bc, gc: b.gc, tau: b.tap ? tapTau(b.tap.pos) : 1, rateMVA: b.ratingMVA, inService: b.inService })),
     shunts,
     loads: s.loads.map((l) => ({ id: l.id, bus: l.bus, p: pu(l.P * (1 - l.shedFrac)), q: pu(l.Q * (1 - l.shedFrac)), zip: l.zip })),
     units,
   };
+  // an island with no synchronous source and a battery that can carry it (power and energy for the block) is held by the battery's inverter (L30)
+  for (const id of formingStorage(net, s.storage)) {
+    const u = net.units.find((x) => x.id === id)!;
+    const mw = u.pMax ?? 0;
+    u.kind = 'bess-gfm'; u.p = 0; u.vSet = vSet.get(u.bus) ?? 1; u.qMin = -0.6 * mw; u.qMax = 0.6 * mw; delete u.q;
+  }
+  return net;
 }

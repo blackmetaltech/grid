@@ -44,6 +44,8 @@ export interface RouteData {
     clearingPerM: number;
     /** Pack currency per phase per support of each insulator string ('pin', 'disc2', 'fog1'); absent = the base US$ prices of src/data/insulators.ts. */
     insulator?: Record<string, number>;
+    /** Pack currency per km of each submarine cable ('sub-11-70', ...; src/data/submarine.ts); absent = not offered (L30). */
+    submarine?: Record<string, number>;
   };
 }
 
@@ -207,13 +209,14 @@ function validateRoute(r: any, e: string[]): void {
   }
   if (!isObj(pr)) e.push('route.prices must be an object');
   else {
-    onlyKeys(pr, ['support', 'angleMultiplier', 'foundationShare', 'foundationMultiplier', 'conductorPerM', 'phaseWires', 'clearingPerM', 'insulator'], 'route.prices', e);
+    onlyKeys(pr, ['support', 'angleMultiplier', 'foundationShare', 'foundationMultiplier', 'conductorPerM', 'phaseWires', 'clearingPerM', 'insulator', 'submarine'], 'route.prices', e);
     const table = (k: string, keys?: readonly string[]): void => {
       const t = pr[k];
       if (!isObj(t) || Object.keys(t).length === 0 || Object.values(t).some((x) => !isPos(x))) e.push(`route.prices.${k} must be a non-empty object of positive numbers`);
       else if (keys) for (const need of keys) if (!(need in t)) e.push(`route.prices.${k}.${need} is missing`);
     };
     if (pr.insulator !== undefined) table('insulator');
+    if (pr.submarine !== undefined) table('submarine');
     table('support'); table('conductorPerM'); table('angleMultiplier', ROUTE_ANGLE_CLASSES); table('foundationMultiplier', ROUTE_FOUNDATIONS);
     if (!isPos(pr.foundationShare) || pr.foundationShare >= 1) e.push('route.prices.foundationShare must be a share in (0, 1)');
     if (!isPos(pr.clearingPerM)) e.push('route.prices.clearingPerM must be a positive number');

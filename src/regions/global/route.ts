@@ -17,6 +17,7 @@ export const ROUTE: RouteData = {
     phaseWires: { lv: 4, mv: 3 },
     clearingPerM: 8,
     insulator: { pin: 25, disc2: 70, fog1: 95 },   // US$ per phase per support (L29; src/data/insulators.ts)
+    submarine: { 'sub-11-70': 120000, 'sub-11-120': 150000, 'sub-11-185': 190000 },   // US$ per km (L30): game, 6 to 10 x the ~19,000 US$ per km of an 11 kV overhead line (supports, wires, pins)
   },
 };
 export const ROUTE_PROVENANCE = {
