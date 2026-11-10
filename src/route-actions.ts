@@ -9,6 +9,7 @@ import { makeLine, type CatalogueView, type LineSpec } from './sim/build';
 import { planRoute, weightNPerM, type ConductorMech, type RoutePlan, type RouteRequest, type RouteResult, type RouteRules, type SupportFamily, type Terrain, type TileKind } from './sim/route';
 import type { RouteData } from './regions/data';
 import { terrainOf } from './level/maps';
+import { specOf } from './level';
 
 type Params = Record<string, string | number>;
 
@@ -79,7 +80,7 @@ export function priceRoute(plan: RoutePlan, kv: number, conductorShort: string, 
 export interface RouteArgs { from: string; to: string; conductor: string; family: string; crossing: string | null; spanM: number; waypointsM: [number, number][] }
 export type RouteEval =
   | { ok: false; refusal: Refusal }
-  | { ok: true; plan: RoutePlan; cost: RouteCost; kv: number; request: RouteRequest; spec: LineSpec; worst: WorstSpanRecord; badSpans: number[] };
+  | { ok: true; plan: RoutePlan; cost: RouteCost; kv: number; request: RouteRequest; spec: LineSpec; worst: WorstSpanRecord; longest: WorstSpanRecord; badSpans: number[] };
 
 /** The planner is pure: memoise it by (region, terrain, request) outside the state so previews and probes stay cheap. */
 const PLAN_CACHE = new Map<string, RouteResult>();
@@ -125,14 +126,29 @@ export function evaluateRoute(s: GridState, a: RouteArgs, d: RouteDeps): RouteEv
   const at = (b: { x: number; y: number }): [number, number] => [(b.x + 0.5) * terrain.tileM, (b.y + 0.5) * terrain.tileM];
   const request: RouteRequest = { waypoints: [at(A), ...a.waypointsM, at(B)], familyId: a.family, crossingFamilyId: a.crossing, conductorId: mech.id, kv, spanM: a.spanM };
   const res = planCached(s, terrain, request, rp);
-  if (!res.ok) return refusal(res.refusal.key, refusalParams(res.refusal));
+  if (!res.ok) {
+    const r = res.refusal;
+    // a crossing family IS chosen and the river is still wider than it spans: never tell the player to pick one
+    if (r.key === 'route.noSupportGapTooLong' && a.crossing !== null) {
+      const offered = s.level ? specOf(s.level)?.allowed.parts['buildRoute.crossing'] : undefined;   // only a structure the level's kit actually offers
+      const fits = rp.families.filter((f) => f.kvMax >= kv && f.maxSpanM >= r.gapM && f.id !== r.familyId && (!offered || (offered as readonly unknown[]).includes(f.id))).sort((x, y) => x.maxSpanM - y.maxSpanM)[0];
+      const base = { gap: Math.round(r.gapM), family: familyWord(r.familyId), max: r.maxSpanM };
+      return fits ? refusal('route.crossingTooNarrow', { ...base, use: familyWord(fits.id) }) : refusal('route.crossingTooNarrowNone', base);
+    }
+    return refusal(r.key, refusalParams(r));
+  }
   const plan = res;
   // the line's pu values are on the buses' own base: a 0.433 kV pack bus gets the same ohms per km on its own Zbase and a thermal MVA scaled with kV
   const spec: LineSpec = { ...spec0, kv, thermalMva: spec0.thermalMva * (kv / spec0.kv) };
-  const w = plan.spans[plan.worstSpan]!;
-  const worst: WorstSpanRecord = { span: plan.worstSpan, lengthM: r3(w.lengthM), over: dominantOver(w.over), sagM: r3(w.sagDesignM), hN: r3(w.hDesignN), wNPerM: r3(weightNPerM(mech)), clearanceM: r3(w.clearanceM), requiredM: r3(w.requiredM) };
+  const rec = (i: number): WorstSpanRecord => {
+    const w = plan.spans[i]!;
+    return { span: i, lengthM: r3(w.lengthM), over: dominantOver(w.over), sagM: r3(w.sagDesignM), hN: r3(w.hDesignN), wNPerM: r3(weightNPerM(mech)), clearanceM: r3(w.clearanceM), requiredM: r3(w.requiredM) };
+  };
+  let li = 0;
+  plan.spans.forEach((sp, i) => { if (sp.lengthM > plan.spans[li]!.lengthM) li = i; });
+  const worst = rec(plan.worstSpan), longest = rec(li);
   const badSpans = plan.spans.flatMap((sp, i) => (sp.ok ? [] : [i]));
-  return { ok: true, plan, cost: priceRoute(plan, kv, a.conductor, rp.prices), kv, request, spec, worst, badSpans };
+  return { ok: true, plan, cost: priceRoute(plan, kv, a.conductor, rp.prices), kv, request, spec, worst, longest, badSpans };
 }
 
 // ---- the action ------------------------------------------------------------------------------------------------------------------------
@@ -163,7 +179,7 @@ export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridSta
       s.budget.spent += cost.total;
       const rec: RouteRecord = {
         branchId: id, request: { ...request, waypoints: request.waypoints.map((p) => [p[0], p[1]] as [number, number]) }, worstMarginM: r3(plan.worstMarginM), badSpans: ev.badSpans,
-        lengthM: r3(plan.lengthM), cost: cost.total, supports: plan.supports.length, worst: ev.worst,
+        lengthM: r3(plan.lengthM), cost: cost.total, supports: plan.supports.length, worst: ev.worst, longest: ev.longest,
       };
       s.routes.push(rec);
       s.solution = null;

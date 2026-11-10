@@ -382,6 +382,8 @@ export interface RouteRecord {
   /** Number of supports on the route and the worst span (not in the original brief: the verdict and the lesson read them without re-planning). */
   supports: number;
   worst: WorstSpanRecord;
+  /** The longest span of the line (usually the river crossing: the sag lesson). Absent in states saved before it existed. */
+  longest?: WorstSpanRecord;
 }
 
 export interface Coach { stepId: string | null; hintsUsed: number; seen: string[] }

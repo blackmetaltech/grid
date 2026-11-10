@@ -20,6 +20,27 @@ export interface LevelQueryDeps {
 
 const r3 = (x: number): number => Math.round(x * 1000) / 1000;
 
+/** Chapter 2's shift-report lesson: the sag of the line's longest span (the route with the least clearance margin if several lines stand) in the player's own numbers, then the voltage lesson.
+ *  The printed sag is recomputed from the printed span, w and H so every number on the card can be checked by hand. */
+export function routeLesson(s: GridState, spec: GridLevelSpec, lessonKey: string, p: SimParams): string {
+  const r = s.routes.reduce((best, x) => (x.worstMarginM < best.worstMarginM ? x : best)), w = r.longest ?? r.worst;
+  const f1 = (x: number): string => x.toFixed(1), f2 = (x: number): string => x.toFixed(2);
+  const L = Math.round(w.lengthM), wN = Number(f2(w.wNPerM)), H = Math.round(w.hN);
+  let out = t(lessonKey, { kv: r.request.kv, km: f1(r.lengthM / 1000), n: r.supports, span: L, over: kindWord(w.over), sag: f2(wN * L * L / (8 * H)), w: f2(wN), h: H, clr: f2(w.clearanceM), req: f1(w.requiredM) });
+  const loads = s.loads, pMw = loads.reduce((a, l) => a + l.Ppeak, 0), sMva = loads.reduce((a, l) => a + l.Ppeak / (l.pf > 0 ? l.pf : 1), 0);
+  const lv = s.buses.find((b) => b.id === loads[0]?.bus)?.kvNom ?? 0;
+  if (pMw <= 0 || lv <= 0) return out;
+  const pf = f2(pMw / sMva);
+  if (r.request.kv > lv + 1e-9) {
+    const amps = (kv: number): number => (sMva * 1e6) / (Math.sqrt(3) * kv * 1000), ratio = r.request.kv / lv;
+    out += ' ' + t('level.L05.lessonKv', { mw: f2(pMw), pf, lv, kv: r.request.kv, iLow: Math.round(amps(lv)), iHigh: Math.round(amps(r.request.kv)), ratio: Math.round(ratio), heat: Math.round(ratio * ratio / 10) * 10 });
+  } else {
+    const v = s.metrics.track.loadVMinPu, lo = resolveThresholds(spec, p, s.mode).villageBandLoPu;
+    if (v !== undefined && lo !== undefined && v < lo) out += ' ' + t('level.L05.lessonLv', { lv, v: f2(v), drop: f1((1 - v) * 100), mw: f2(pMw) });
+  }
+  return out;
+}
+
 export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<GridState>> {
   return {
     /** The running level's card: kind, thresholds resolved for this region and mode, allowed parts, star targets. */
@@ -31,11 +52,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
-          if (spec.story && !s.bench && s.routes.length > 0) {   // chapter 2: the line's worst span with the player's numbers (D = wL^2/8H)
-            const r = s.routes[0]!, w = r.worst, f1 = (x: number): string => x.toFixed(1), f2 = (x: number): string => x.toFixed(2);
-            return t(spec.story.lessonKey, { kv: r.request.kv, km: f1(r.lengthM / 1000), n: r.supports, span: Math.round(w.lengthM), over: kindWord(w.over), sag: f2(w.sagM),
-              w: f2(w.wNPerM), h: Math.round(w.hN), clr: f2(w.clearanceM), req: f1(w.requiredM) });
-          }
+          if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');
           if (!run) return '';

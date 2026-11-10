@@ -9,6 +9,7 @@ import { specOf } from './index';
 import { runDesign } from './run';
 import { route, xfmrPair, NAIVE } from './levels/l05';
 import type { GridState } from '../types';
+import { ruleFail } from '../rules';
 
 const spec = specOf('L05')!;
 const fresh = (region = 'global'): Env<GridState> => { const e = new Env(GAME); e.reset({ seed: 1, level: 'L05', region }); return e as Env<GridState>; };
@@ -145,14 +146,60 @@ describe('L05 review fixes (2026-11-10)', () => {
 });
 
 describe('L05 shift-report lesson', () => {
-  it('names the worst span with D = wL²/8H in the player\'s numbers, and the numbers check out', () => {
+  it('names the LONGEST span with D = wL²/8H in the player\'s numbers, and the printed numbers recompute', () => {
     const e = fresh();
     for (const a of spec.reference) e.engine.act(a.name, a.args as unknown[]);
     const s = e.state as GridState;
     const li = e.engine.q('levelInfo') as { lesson: string };
-    const w = s.routes[0]!.worst;
-    expect(li.lesson).toMatch(/^Your 11 kV line runs \d+\.\d km on \d+ supports\. Its worst span, \d+ m over the /);
-    expect(li.lesson).toContain(`sags ${w.sagM.toFixed(2)} m`);
-    expect(w.wNPerM * w.lengthM * w.lengthM / (8 * w.hN)).toBeCloseTo(w.sagM, 2);   // the record keeps 3 dp
+    const rec = s.routes[0]!, w = rec.longest!;
+    expect(w.over).toBe('river'); expect(w.lengthM).toBeGreaterThanOrEqual(rec.worst.lengthM);
+    expect(w.lengthM).toBeCloseTo(Math.max(...(e.engine.q('routePreview', spec.reference[0]!.args as unknown[]) as any).spans.map((x: any) => x.lengthM)), 3);
+    expect(li.lesson).toMatch(/^Your 11 kV line runs \d+\.\d km on \d+ supports\. Its longest span, \d+ m over the river, sags \d+\.\d\d m at 75 °C/);
+    const m = li.lesson.match(/w = ([\d.]+) N\/m and H = (\d+) N: [\d.]+ × (\d+)² ÷ \(8 × \d+\) = ([\d.]+) m/)!;
+    expect(m).not.toBeNull();
+    const [, pw, pH, pL, pSag] = m;
+    expect(Number(pw) * Number(pL) ** 2 / (8 * Number(pH))).toBeCloseTo(Number(pSag), 2);
+    expect(li.lesson).toContain(`sags ${pSag} m`);
+    expect(Number(pSag)).toBeCloseTo(w.sagM, 1);       // the true sag, to the rounding of the printed w and H
+    expect(li.lesson).toContain(`clears it by ${w.clearanceM.toFixed(2)} m`);
+  });
+  it('the 11 kV line adds the voltage sentence: hand oracle for current and heat ratios', () => {
+    const e = fresh();
+    for (const a of spec.reference) e.engine.act(a.name, a.args as unknown[]);
+    const li = e.engine.q('levelInfo') as { lesson: string };
+    const sMva = 0.2 / 0.9, iLow = sMva * 1e6 / (Math.sqrt(3) * 420), iHigh = sMva * 1e6 / (Math.sqrt(3) * 11000);
+    expect(Math.round(iLow)).toBe(305); expect(Math.round(iHigh)).toBe(12);
+    expect(li.lesson).toContain(`draws ${Math.round(iLow)} A at 0.42 kV but only ${Math.round(iHigh)} A at 11 kV`);
+    expect(li.lesson).toContain('1/26 of the current and loses about 1/690 of the heat');
+  });
+  it('the 0.42 kV line that browned out says what the drop was instead', () => {
+    const o = runDesign(spec, 'global', [NAIVE]);
+    const li = (() => { const e = fresh(); e.engine.act(NAIVE.name, NAIVE.args as unknown[]); e.state.metrics.track.loadVMinPu = o.track.loadVMinPu!; return e.engine.q('levelInfo') as { lesson: string }; })();
+    expect(li.lesson).toMatch(/At 0\.42 kV the village sagged to 0\.\d\d pu, \d+\.\d % under nominal\. Carry the same 0\.20 MW at a higher voltage and the current is smaller/);
+    expect(li.lesson).not.toContain('Voltage did the rest');
+    expect(li.lesson).toContain(`${((1 - o.track.loadVMinPu!) * 100).toFixed(1)} %`);
+  });
+});
+
+describe('L05 crossing refusal honesty (critique 0.3)', () => {
+  const pv = (cross: string | null): any => fresh().engine.q('routePreview', ['B2', 'B3', 'rabbit', 'tubular-13', cross, 90, []]);
+  it('a chosen crossing family that is too short is named with the gap, its max and the family that would do; never "use a crossing structure"', () => {
+    const r = pv('tubular-13').refusal;
+    expect(r.key).toBe('route.crossingTooNarrow');
+    expect(r.message).toBe('The river is 155 m wide; steel tubular pole banks span at most 130 m. Change the bank structure to: H-frame crossing structure.');
+    expect(r.message).not.toMatch(/crossing structure on each bank/);
+  });
+  it('with no crossing chosen the old advice stands', () => {
+    const r = pv(null).refusal;
+    expect(r.key).toBe('route.noSupportGapTooLong'); expect(r.message).toMatch(/Use a crossing structure on each bank/);
+  });
+});
+
+describe('L05 budget message shows money', () => {
+  it('Spent $452,353 but the budget is $260,000', () => {
+    // rendered by the level's fail text (rules.ts), from the verdict params the sim stores as plain numbers
+    const s = fresh().state as GridState;
+    s.block.verdict = 'lost'; s.block.verdictKey = 'level.lost.budget'; s.block.verdictParams = { spent: 452353, max: 260000 };
+    expect(ruleFail(s)).toBe('Spent $452,353 but the budget is $260,000.');
   });
 });
