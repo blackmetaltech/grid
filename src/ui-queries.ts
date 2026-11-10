@@ -8,6 +8,8 @@ import { solvedOf, toMW } from './sim/solved';
 import type { SimParams } from './sim/params';
 import { fin } from './sim/finite';
 import { t } from './i18n';
+import { formatMoney } from '@core/regions';
+import { REGIONS } from './regions';
 import type { GridLevelSpec } from './level/spec';
 import { botPopulation, resultHistogram, type BotPopulation } from './level/population';
 
@@ -82,7 +84,7 @@ export function buildUiQueries(d: UiDeps): Record<string, QueryFn<GridState>> {
       const mine = spec.histogram === 'lossPct' ? (s.metrics.track.lossPct ?? null) : s.budget.spent;
       const h = resultHistogram(bot, [], mine, 10);
       const fz = spec.frozen ? spec.frozen[s.region] ?? null : null;
-      return { active: true, level: spec.id, source: h.source, labelKey: h.labelKey, label: h.labelKey ? t(h.labelKey) : '', metricKey: h.metricKey, metric: t(h.metricKey), histogram: spec.histogram, bins: h.bins.map((b) => ({ from: r3(b.from), to: r3(b.to), count: b.count })), n: h.n, percentile: h.percentile === null ? null : r3(h.percentile), mine: mine === null ? null : r3(mine), starA: fz ? fz.starA : null, starB: fz ? fz.starB : null, stars: s.stars, status: s.status };
+      return { active: true, level: spec.id, source: h.source, labelKey: h.labelKey, label: h.labelKey ? t(h.labelKey) : '', metricKey: h.metricKey, metric: t(h.metricKey), histogram: spec.histogram, bins: h.bins.map((b) => ({ from: r3(b.from), to: r3(b.to), count: b.count })), n: h.n, percentile: h.percentile === null ? null : r3(h.percentile), mine: mine === null ? null : r3(mine), mineText: mine === null ? '' : spec.histogram === 'lossPct' ? `${mine.toFixed(1)} %` : formatMoney(mine, REGIONS.get(s.region), { decimals: 0 }), starA: fz ? fz.starA : null, starB: fz ? fz.starB : null, stars: s.stars, status: s.status };
     },
   };
 }

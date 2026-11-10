@@ -438,7 +438,7 @@ func _draw_sky(mn: float) -> void:
 			var p := Vector2(WorldMath.hash2(k, 1, 77) * size.x, WorldMath.hash2(k, 2, 77) * size.y * 0.7)
 			draw_circle(p, 0.8 + 1.2 * WorldMath.hash2(k, 3, 77), Color(1, 1, 1, (_night - 0.3) * (0.4 + 0.5 * WorldMath.hash2(k, 4, 77))))
 	var a := (mn - 360.0) / 720.0 * PI      # sun: east at 06:00, west at 18:00
-	var sun := Vector2(size.x * 0.5 - cos(a) * size.x * 0.42, size.y * 0.5 - sin(a) * size.y * 0.42)
+	var sun := Vector2(size.x * 0.5 - cos(a) * size.x * 0.42, size.y * 0.68 - sin(a) * size.y * 0.6)   # horizon low: the sun sets behind the sea, not mid-sky
 	if sin(a) > -0.1 and sin(a) < 1.01: draw_circle(sun, 26.0, Color(1.0, 0.86, 0.55, 0.9)); draw_circle(sun, 44.0, Color(1.0, 0.8, 0.5, 0.18))
 	else:
 		var mo := Vector2(size.x * 0.5 + cos(a) * size.x * 0.42, size.y * 0.5 + sin(a) * size.y * 0.42)

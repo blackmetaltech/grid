@@ -55,7 +55,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
     benchKit: (s) => {
       if (!s.bench) return { active: false };
       const k = benchKit(d.getBench(s)), pack = REGIONS.get(s.region);
-      return { active: true, ...k, cables: k.cables.map((c) => ({ ...c, perMText: formatMoney(c.perM, pack, { decimals: 2 }) })), budgetText: formatMoney(s.budget.capexLimit, pack), spentText: formatMoney(s.budget.spent, pack), budget: s.budget.capexLimit, spent: s.budget.spent };
+      return { active: true, ...k, cables: k.cables.map((c) => ({ ...c, perMText: formatMoney(c.perM, pack, { decimals: 2 }) })), budgetText: formatMoney(s.budget.capexLimit, pack, { decimals: 0 }), spentText: formatMoney(s.budget.spent, pack, { decimals: 0 }), budget: s.budget.capexLimit, spent: s.budget.spent };
     },
     benchDetail: (s) => {
       if (!s.bench) return { active: false, reason: 'bench.none' };
