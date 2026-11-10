@@ -313,6 +313,8 @@ export interface Rules {
   /** Blocks the level lasts; reaching it without a loss wins. */
   horizonBlocks: number | null;
   maxEnsMWh: number | null; maxCost: number | null; minNadirHz: number | null; maxPoorSupplyMin: number | null;
+  /** Grace before a poor-supply loss, minutes (bench levels: the player sees an hour of dim homes before the incident report). */
+  poorSupplyGraceMin?: number;
   /** A total blackout loses the level. */
   blackoutLoses: boolean;
   /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS and every `star3` condition); null = one star. */

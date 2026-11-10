@@ -92,6 +92,7 @@ export const en: Record<string, string> = {
   'level.lost.cost': 'Operating cost reached {cost}; the budget is {max}.',
   'level.lost.nadir': 'Frequency fell to {nadir} Hz; it had to stay above {min} Hz.',
   'level.lost.budget': 'Spent {spent} but the budget is {max}.',
+  'level.lost.poorSupplyAny': 'Homes were below the voltage limit for {min} minutes of the night.',
   'level.lost.poorSupply': 'Poor supply lasted {min} minutes; the limit is {max}.',
   // replay / why-card causes
   'cascade.initial-trip': '{id} was lost.',

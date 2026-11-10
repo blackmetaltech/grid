@@ -133,8 +133,11 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.maxEnsMWh !== null && m.ensMWh > rules.maxEnsMWh) return lost('level.lost.ens', { ens: Math.round(m.ensMWh * 10) / 10, max: rules.maxEnsMWh });
   if (rules.maxCost !== null && m.cost > rules.maxCost) return lost('level.lost.cost', { cost: Math.round(m.cost), max: rules.maxCost });
   if (rules.minNadirHz !== null && m.nadirHz < rules.minNadirHz) return lost('level.lost.nadir', { nadir: Math.round(m.nadirHz * 100) / 100, min: rules.minNadirHz });
-  if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin) return lost('level.lost.poorSupply', { min: m.poorSupplyMin, max: rules.maxPoorSupplyMin });
-  if (rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks) {
+  const atEnd = rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks;
+  if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin && (m.poorSupplyMin >= (rules.poorSupplyGraceMin ?? 0) || atEnd)) {
+    return rules.maxPoorSupplyMin === 0 ? lost('level.lost.poorSupplyAny', { min: m.poorSupplyMin }) : lost('level.lost.poorSupply', { min: m.poorSupplyMin, max: rules.maxPoorSupplyMin });
+  }
+  if (atEnd) {
     let stars: 1 | 2 | 3 = 1;
     if (rules.starCost) {
       const c = rules.starBasis === 'capex' ? s.budget.spent : m.cost;

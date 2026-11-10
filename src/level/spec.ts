@@ -99,6 +99,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     ...NO_RULES,
     horizonBlocks: spec.horizonBlocks,
     maxPoorSupplyMin: spec.brownoutLoses ? 0 : null,
+    poorSupplyGraceMin: spec.kind === 'bench' ? 60 : 0,
     blackoutLoses: spec.blackoutLoses,
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: 'capex',
