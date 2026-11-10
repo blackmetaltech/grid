@@ -77,33 +77,63 @@ export interface GridRegionData {
   provenance: Record<string, Sourced>;
 }
 
-// ---- catalogue rows: priced SKUs only; physics columns are shared and live elsewhere ----
-export interface CatalogueRow extends Sourced { id: string }
-export interface GeneratorRow extends CatalogueRow { kind: string; /** pack currency per kW */ capexPerKw: number }
-export interface TransformerRow extends CatalogueRow { mva: number; kvHv: number; kvLv: number; /** pack currency per unit */ price: number }
-export interface CompensationRow extends CatalogueRow { mvar: number; /** pack currency per kVAr */ pricePerKvar: number }
-export interface StorageRow extends CatalogueRow { mw: number; mwh: number; /** pack currency per kW and per kWh */ capexPerKw: number; capexPerKwh: number }
-export interface ProtectionRow extends CatalogueRow { kind: string; /** pack currency per unit */ price: number }
+// ---- catalogue rows: priced SKUs plus the per-SKU columns DESIGN §4 tabulates; physics constants shared by all packs live in src/data ----
+// Every row carries `source` + `confidence`; `confidence` is the WEAKEST tag among the row's values and `fieldConfidence` lists the
+// per-field tags where DESIGN splits them. `null` = the table gives no single value (reported, never invented).
+export type FieldConf = Partial<Record<string, Confidence>>;
+export interface CatalogueRow extends Sourced { id: string; fieldConfidence?: FieldConf; note?: string }
+export interface GeneratorRow extends CatalogueRow {
+  kind: string;
+  /** pack currency per kW (per kVA for synccon); null when the pack's table prints only a US$ cross-reference */
+  capexPerKw: number | null;
+  unit?: string;
+  pMinPct?: number | null; /** MJ/kWh, full load; null for water, wind, sun */ heatRateMJkWh?: number | null; rampPctMin?: number | null;
+  startHotS?: number | null; startColdS?: number | null; hS?: number | null; droopPct?: number | null; co2tPerMWh?: number | null;
+  /** US$ per kW cross-reference (EIA) when the pack currency is not US$ */ capexUsdPerKw?: number | null;
+}
+export interface TransformerRow extends CatalogueRow {
+  mva: number; kvHv: number; kvLv: number; /** pack currency per unit; null when the table gives a range */ price: number | null;
+  zPct?: number | null; xr?: number | null; noLoadKw?: number | null; loadKw?: number | null; etaPct?: number | null;
+  vector?: string; oltc?: string; pricePerMva?: number | null;
+}
+export interface CompensationRow extends CatalogueRow {
+  kind: string; kv?: number | null; mvar: number | null; /** pack currency per kVAr; null when not tabulated */ pricePerKvar: number | null;
+  pricePerKvarUsd?: number | null; costFactor?: number | null; autoCostFactor?: number | null; uFPerPhase?: number | null; detunePct?: number | null;
+  resonanceH?: number | null; seriesPct?: number | null;
+}
+export interface StorageRow extends CatalogueRow {
+  mw: number; mwh: number | null; capexPerKw: number | null; capexPerKwh: number | null; /** all-in pack currency per kW */ allInPerKw?: number | null;
+  etaRt?: number | null; responseMs?: number | null; socMinPct?: number | null; socMaxPct?: number | null; hVs?: number | null; allInUsdPerKw?: number | null;
+}
+export interface ProtectionRow extends CatalogueRow { kind: string; price: number | null; params?: Record<string, unknown> }
+export interface LineCostRow extends CatalogueRow { kv: number; variant?: string; /** pack currency per km per circuit */ costPerKm: number; doubleCircuitFactor?: number | null }
+export interface CableRow extends CatalogueRow { /** per metre per mm2 of conductor per core */ perMm2PerM: number; sheathPerM: number; polePrice: number; poleSpacingM: number }
+export interface FuelRow extends CatalogueRow { /** 'GJ' (fuel energy) or 'MWh_e' (nuclear: per electric MWh) */ unit: string; price: number }
 export interface Catalogues {
   generators: GeneratorRow[];
   transformers: TransformerRow[];
   compensation: CompensationRow[];
   storage: StorageRow[];
   protection: ProtectionRow[];
+  lineCosts: LineCostRow[];
+  cables: CableRow[];
+  fuels: FuelRow[];
 }
 
-/** Allowed keys per catalogue (row keys beyond these are rejected: no physics columns in a pack). */
-const ROW_KEYS: Record<keyof Catalogues, string[]> = {
-  generators: ['id', 'kind', 'capexPerKw', 'source', 'confidence'],
-  transformers: ['id', 'mva', 'kvHv', 'kvLv', 'price', 'source', 'confidence'],
-  compensation: ['id', 'mvar', 'pricePerKvar', 'source', 'confidence'],
-  storage: ['id', 'mw', 'mwh', 'capexPerKw', 'capexPerKwh', 'source', 'confidence'],
-  protection: ['id', 'kind', 'price', 'source', 'confidence'],
+interface RowSpec { str: string[]; num: string[]; opt: string[]; optStr: string[]; optObj?: string[] }
+/** Allowed keys per catalogue: `num` required positive; `opt` number >= 0 or null (may be absent); `str` required text; `optStr` optional text. */
+const ROW_SPEC: Record<keyof Catalogues, RowSpec> = {
+  generators: { str: ['kind'], num: [], opt: ['capexPerKw', 'pMinPct', 'heatRateMJkWh', 'rampPctMin', 'startHotS', 'startColdS', 'hS', 'droopPct', 'co2tPerMWh', 'capexUsdPerKw'], optStr: ['unit'] },
+  transformers: { str: [], num: ['mva', 'kvHv', 'kvLv'], opt: ['price', 'zPct', 'xr', 'noLoadKw', 'loadKw', 'etaPct', 'pricePerMva'], optStr: ['vector', 'oltc'] },
+  compensation: { str: ['kind'], num: [], opt: ['kv', 'mvar', 'pricePerKvar', 'pricePerKvarUsd', 'costFactor', 'autoCostFactor', 'uFPerPhase', 'detunePct', 'resonanceH', 'seriesPct'], optStr: [] },
+  storage: { str: [], num: ['mw'], opt: ['mwh', 'capexPerKw', 'capexPerKwh', 'allInPerKw', 'allInUsdPerKw', 'etaRt', 'responseMs', 'socMinPct', 'socMaxPct', 'hVs'], optStr: [] },
+  protection: { str: ['kind'], num: [], opt: ['price'], optStr: [], optObj: ['params'] },
+  lineCosts: { str: [], num: ['kv', 'costPerKm'], opt: ['doubleCircuitFactor'], optStr: ['variant'] },
+  cables: { str: [], num: ['perMm2PerM', 'sheathPerM', 'polePrice', 'poleSpacingM'], opt: [], optStr: [] },
+  fuels: { str: ['unit'], num: ['price'], opt: [], optStr: [] },
 };
-const ROW_NUMS: Record<keyof Catalogues, string[]> = {
-  generators: ['capexPerKw'], transformers: ['mva', 'kvHv', 'kvLv', 'price'], compensation: ['mvar', 'pricePerKvar'],
-  storage: ['mw', 'mwh', 'capexPerKw', 'capexPerKwh'], protection: ['price'],
-};
+const ROW_COMMON = ['id', 'source', 'confidence', 'fieldConfidence', 'note'];
+const rowKeys = (s: RowSpec): string[] => [...ROW_COMMON, ...s.str, ...s.num, ...s.opt, ...s.optStr, ...(s.optObj ?? [])];
 
 /** Data paths that must carry provenance (a path whose value is null is exempt). */
 export const REQUIRED_PROVENANCE: readonly string[] = [
@@ -228,20 +258,29 @@ export function validateGridData(d: GridRegionData): string[] {
   const cat: any = d.catalogues;
   if (!isObj(cat)) e.push('catalogues must be an object');
   else {
-    onlyKeys(cat, Object.keys(ROW_KEYS), 'catalogues', e);
-    for (const name of Object.keys(ROW_KEYS) as (keyof Catalogues)[]) {
+    onlyKeys(cat, Object.keys(ROW_SPEC), 'catalogues', e);
+    for (const name of Object.keys(ROW_SPEC) as (keyof Catalogues)[]) {
       const rows = cat[name];
       if (!Array.isArray(rows)) { e.push(`catalogues.${name} must be an array`); continue; }
+      const spec = ROW_SPEC[name];
       const seen = new Set<string>();
       rows.forEach((r: any, i: number) => {
         const at = `catalogues.${name}[${i}]${isObj(r) && isStr(r.id) ? ` ('${r.id}')` : ''}`;
         if (!isObj(r)) { e.push(`${at} must be an object`); return; }
-        onlyKeys(r, ROW_KEYS[name], at, e);
+        onlyKeys(r, rowKeys(spec), at, e);
         if (!isStr(r.id)) e.push(`${at}.id must be a non-empty string`); else if (seen.has(r.id)) e.push(`${at}: duplicate id '${r.id}'`); else seen.add(r.id);
         if (!isStr(r.source)) e.push(`${at} has no source (every catalogue row needs a source string)`);
         if (!CONFIDENCES.includes(r.confidence)) e.push(`${at}.confidence must be one of ${CONFIDENCES.join(', ')} (got ${JSON.stringify(r.confidence)})`);
-        for (const k of ROW_NUMS[name]) if (!isPos(r[k])) e.push(`${at}.${k} must be a positive number`);
-        if ((name === 'generators' || name === 'protection') && !isStr(r.kind)) e.push(`${at}.kind must be a non-empty string`);
+        for (const k of spec.num) if (!isPos(r[k])) e.push(`${at}.${k} must be a positive number`);
+        for (const k of spec.opt) if (r[k] !== undefined && r[k] !== null && !(isNum(r[k]) && r[k] >= 0)) e.push(`${at}.${k} must be a number >= 0 or null`);
+        for (const k of spec.str) if (!isStr(r[k])) e.push(`${at}.${k} must be a non-empty string`);
+        for (const k of spec.optStr) if (r[k] !== undefined && !isStr(r[k])) e.push(`${at}.${k} must be a non-empty string when present`);
+        for (const k of spec.optObj ?? []) if (r[k] !== undefined && !isObj(r[k])) e.push(`${at}.${k} must be an object when present`);
+        if (r.note !== undefined && !isStr(r.note)) e.push(`${at}.note must be a non-empty string when present`);
+        if (r.fieldConfidence !== undefined) {
+          if (!isObj(r.fieldConfidence)) e.push(`${at}.fieldConfidence must be an object`);
+          else for (const [k, c] of Object.entries(r.fieldConfidence)) if (!CONFIDENCES.includes(c as Confidence)) e.push(`${at}.fieldConfidence.${k} must be one of ${CONFIDENCES.join(', ')}`);
+        }
       });
     }
   }
@@ -286,7 +325,8 @@ export function packDataHash(pack: Pick<RegionPack<GridRegionData>, 'data'>): st
   const { provenance: _p, catalogues, ...rules } = pack.data;
   const stripped: Record<string, unknown[]> = {};
   for (const [name, rows] of Object.entries(catalogues) as [string, Record<string, unknown>[]][]) {
-    stripped[name] = rows.map(({ source: _s, confidence: _c, ...row }) => row);
+    if (rows.length === 0 && !['generators', 'transformers', 'compensation', 'storage', 'protection'].includes(name)) continue; // empty new catalogues hash as absent (pins stay valid)
+    stripped[name] = rows.map(({ source: _s, confidence: _c, fieldConfidence: _f, note: _n, ...row }) => row);
   }
   return hashOf({ ...rules, catalogues: stripped });
 }

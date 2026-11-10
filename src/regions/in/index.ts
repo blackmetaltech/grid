@@ -48,7 +48,7 @@ export const IN = defineRegion<GridRegionData>({
       nuclearPerMWhe: null,
     },
     climate: { latitudeDeg: 23 },
-    catalogues: { generators: [], transformers: [], compensation: [], storage: [], protection: [] },
+    catalogues: { generators: [], transformers: [], compensation: [], storage: [], protection: [], lineCosts: [], cables: [], fuels: [] },
     provenance: {
       'f0': { source: 'IEGC cl. 30 (nominal 50 Hz)', confidence: 'standard' },
       'voltage.lv': { source: 'Indian LV supply practice, 415 V three-phase / 230 V phase', confidence: 'recall' },

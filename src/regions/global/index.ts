@@ -50,7 +50,7 @@ export const GLOBAL = defineRegion<GridRegionData>({
       nuclearPerMWhe: 7,
     },
     climate: { latitudeDeg: 23 },
-    catalogues: { generators: [], transformers: [], compensation: [], storage: [], protection: [] },
+    catalogues: { generators: [], transformers: [], compensation: [], storage: [], protection: [], lineCosts: [], cables: [], fuels: [] },
     provenance: {
       'f0': { source: `${SOGL}, nominal frequency`, confidence: 'recall' },
       'voltage.lv': { source: 'IEC 60038:2009 Table 1 (230/400 V)', confidence: 'standard' },
