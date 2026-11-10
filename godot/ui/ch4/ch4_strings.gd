@@ -16,7 +16,7 @@ const S := {
 	"C4_BANK_TXT": "%d cans of %d µF = %d µF per phase", "C4_CANV": "volts on a can %d V, rated %d V", "C4_BURST": "BURST!", "C4_NOBANK": "No bank yet: pick a can size, a rating and a count.",
 	"C4_PUMP": "Pump %d kW, %s", "C4_ST_DOL": "DOL", "C4_ST_YD": "Y-Δ", "C4_ST_SOFT": "soft", "C4_TRACE": "Estate bus voltage through the pump's start", "C4_LIMIT": "limit %s %% dip", "C4_PUMP_STARTS": "pump starts",
 	"C4_DIP": "dip %s %%", "C4_IST": "starting %d A = %s × running", "C4_CAP_CAP": "CAPACITOR CANS: size, rating, connection | count | pump starter", "C4_CAN": "can", "C4_CANS": "CANS PER PHASE",
-	"C4_CHK_PF": "pf %s (0.95 to 1, lagging)", "C4_CHK_CAN": "cans within rating", "C4_CHK_DIP": "dip %s %%",
+	"C4_CHK_PF": "pf %s", "C4_CHK_CAN": "cans within rating", "C4_CHK_DIP": "dip %s %%",
 	# L12 over the hill
 	"C4_KESTREL": "Kestrel Falls", "C4_CITY": "the city", "C4_LINE": "%d × 300 km, 220 kV, sending %s MW", "C4_ROTOR": "Rotor angle, E′ against the bus V", "C4_PDELTA": "P-δ: before (blue), after the trip (orange), P_m (white)",
 	"C4_PD_KEY": "the rotor must turn back before δu", "C4_SWING": "Rotor angle through the swing", "C4_STAR70": "★ 70°", "C4_SW_OK": "in step, peak %s°", "C4_SW_NOEQ": "no balance after the trip", "C4_SW_SLIP": "slips a pole past %s°",

@@ -66,7 +66,7 @@ func _draw_stage() -> void:
 func _draw_triangle(c: Vector2) -> void:
 	var P := 500.0; var qm := float(q.motorsKvar); var qb := float(q.bank.qKvar) if q.get("bank") is Dictionary else 0.0; var qn := float(q.qNetKvar)
 	var sc := 150.0 / 520.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(c + Vector2(-122.0, -98.0), Vector2(290.0, 232.0)))
+	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(c + Vector2(-122.0, -98.0), Vector2(290.0, 248.0)))
 	_text(_semi(), 11, c + Vector2(-110.0, -80.0), T("C4_TRIANGLE"), Color(GridTheme.TEXT, 0.7))
 	var o := c + Vector2(-100.0, 70.0)
 	var pv := Vector2(P * sc, 0.0)
@@ -77,9 +77,9 @@ func _draw_triangle(c: Vector2) -> void:
 		_arrow(o + pv + Vector2(0.0, -qm * sc), o + pv + Vector2(0.0, -qn * sc), Color(GridTheme.LIVE), 3.0)
 		_text(_mono(), 11, o + pv + Vector2(6.0, -(qm - qb * 0.5) * sc), "−%s" % _f(qb, 0), Color(GridTheme.LIVE))
 	_arrow(o, o + pv + Vector2(0.0, -qn * sc), _good(bool(q.pass.pf)), 3.0)
-	_text(_mono(), 14, c + Vector2(30.0, -58.0), "pf %s" % _f(float(q.pf), 3), _good(bool(q.pass.pf) and bool(q.pass.lead)))
-	_text(_mono(), 11, c + Vector2(30.0, -40.0), T("C4_NEED") % [_f(float(q.needKvar), 0), int(q.needCY), int(q.needCD)], Color(GridTheme.TEXT, 0.75))
-	_text(_mono(), 11, c + Vector2(30.0, -24.0), T("C4_BANKQ") % _f(qb, 0), _good(bool(q.pass.pf)))
+	_text(_mono(), 14, c + Vector2(-110.0, 104.0), "pf %s" % _f(float(q.pf), 3), _good(bool(q.pass.pf) and bool(q.pass.lead)))
+	_text(_mono(), 11, c + Vector2(-110.0, 118.0), T("C4_NEED") % [_f(float(q.needKvar), 0), int(q.needCY), int(q.needCD)], Color(GridTheme.TEXT, 0.75))
+	_text(_mono(), 11, c + Vector2(-110.0, 132.0), T("C4_BANKQ") % _f(qb, 0), _good(bool(q.pass.pf)))
 
 func _draw_motors(r: Rect2) -> void:
 	draw_rect(r, Color("#3A4256")); draw_rect(r, Color("#6C7A8C"), false, 2.0)
@@ -166,7 +166,7 @@ func _draw_panel_body() -> void:
 				"rated": _chip(h.rect, "%d V" % int(arg), T("C4_CAN"), is_equal_approx(sel_rated, float(arg)), id, arg, not lock)
 				"conn": _chip(h.rect, "Y" if str(arg) == "Y" else "Δ", "", sel_conn == str(arg), id, arg, not lock)
 				"starter":
-					var pr := ""; for s in kit.get("l11", {}).get("starters", []): if str(s.id) == str(arg): pr = "×%s · %s" % [WorkOrder.num(float(s.mult)), str(s.price)]
+					var pr := ""; for s in kit.get("l11", {}).get("starters", []): if str(s.id) == str(arg): pr = str(s.price)
 					_chip(h.rect, T("C4_ST_" + str(arg).to_upper()), pr, str(q.starter) == str(arg), id, arg, not lock)
 		elif k == "slider":
 			var n := _count(); _stepper(h.rect, T("C4_CANS"), "%d" % n, float(n) / 140.0, "count")
@@ -174,4 +174,4 @@ func _draw_panel_body() -> void:
 	var checks := [[T("C4_CHK_PF") % _f(float(q.pf), 3), bool(q.pass.pf) and bool(q.pass.lead)], [T("C4_CHK_CAN"), bool(q.pass.can)], [T("C4_CHK_DIP") % _f(float(q.dipPct), 1), bool(q.pass.dip)]]
 	var x := inner.position.x
 	for c in checks:
-		_text(mono, 11, Vector2(x, y), ("✓ " if c[1] else "✗ ") + str(c[0]), _good(bool(c[1]))); x += 150.0
+		_text(mono, 11, Vector2(x, y), ("✓ " if c[1] else "✗ ") + str(c[0]), _good(bool(c[1]))); x += 130.0
