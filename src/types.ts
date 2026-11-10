@@ -339,6 +339,8 @@ export interface Rules {
   seaCableKm?: number | null;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
+  /** Chapter 3 (absent elsewhere): the harmonic, fault and power-factor rules of L07-L09 (src/sim/ch3). */
+  ch3?: import('./sim/ch3/rules').Ch3Rules;
 }
 
 /** A bench level's circuit as the player has built it so far (DC bench, DESIGN 2.6 L01-L03). Derived values are recomputed, never stored. */
@@ -388,8 +390,6 @@ export interface BlockSummary {
   /** Energy not served this block as average MW, and generation short of demand after dispatch, MW. */
   ensMW: number; shortfallMW: number; curtailedMW: number; imbalanceMW: number;
   reserveMW: number; marginPct: number;
-  /** Chapter 3 (absent elsewhere): the harmonic, fault and power-factor rules of L07-L09 (src/sim/ch3). */
-  ch3?: import('./sim/ch3/rules').Ch3Rules;
   /** L28 (the finale, absent elsewhere): the three scripted days, the island that must stay lit, the repair crews (src/sim/finale.ts). */
   finale?: import('./sim/finale').FinaleRules | null;
   worstVPu: number; worstLoading: number;
