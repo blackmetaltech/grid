@@ -2,7 +2,7 @@
 export const EN_CHF: Record<string, string> = {
   'level.L28.title': 'Keep the Lights On',
   'level.L28.brief': 'Three days on the whole state: a heatwave, a storm, a holiday. Spend the reinforcement budget so the province stays lit and Saltmarsh Island never goes dark on the night of Day 2.',
-  'level.L28.place': 'Lumen Province control room, 26 buses, three days',
+  'level.L28.place': 'State control room, 26 buses, three days',
   'level.L28.story1': 'ADA: Day one is the record heat. Every air conditioner in the province is on, and the long lines sag the voltage at the far end.',
   'level.L28.story2': 'TOBI: Day two is the storm. A 400 kV line, the biggest unit and a transformer will trip, and lightning will take the one feeder to Saltmarsh. Nia\'s exam is the morning after.',
   'level.L28.story3': 'VANCE: Day three is the holiday: full sun, no factories. Too much voltage and too little inertia. Spend what you must, no more.',

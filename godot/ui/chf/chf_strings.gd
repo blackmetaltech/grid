@@ -13,7 +13,7 @@ const S := {
 	"CF_TICKER": "Event ticker", "CF_TICKER_EMPTY": "Quiet so far.",
 	"CF_SPIN": "Keep the spare gas unit spinning (reserve)", "CF_SPIN_NOTE": "Headroom you do not hold cannot be summoned when a unit trips or the sun goes down.",
 	"CF_HEAD_TAPS": "Taps on the Eastgate 220/132 kV transformers: tap one in the world and set the voltage it holds (1.02 pu).",
-	"CF_END_TITLE": "The lights stayed on", "CF_END_SUB": "The Lumen Province, three days, complete",
+	"CF_END_TITLE": "The lights stayed on", "CF_END_SUB": "The whole state, three days, complete",
 	"CF_END_NIA": "My exam was the morning after the storm. The island had power all night and I had my notes. Tobi says the whole state held. I say it was N minus one.",
 	"CF_END_TOBI_TAG": "TOBI ›", "CF_END_TOBI": "Line 7's back from maintenance. Close the breaker, will you? ...Joking. Mind the anchor.",
 	"CF_END_ADA_TAG": "ADA ›", "CF_END_ADA": "Forty years of building it wrong, and one night you built it right. The state is yours.",

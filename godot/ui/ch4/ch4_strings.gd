@@ -18,7 +18,7 @@ const S := {
 	"C4_DIP": "dip %s %%", "C4_IST": "starting %d A = %s × running", "C4_CAP_CAP": "CAPACITOR CANS: size, rating, connection | count | pump starter", "C4_CAN": "can", "C4_CANS": "CANS PER PHASE",
 	"C4_CHK_PF": "pf %s", "C4_CHK_CAN": "cans OK", "C4_CHK_DIP": "dip %s %%",
 	# L12 over the hill
-	"C4_KESTREL": "Kestrel Falls", "C4_CITY": "the city", "C4_LINE": "%d × 300 km, 220 kV, sending %s MW", "C4_ROTOR": "Rotor angle, E′ against the bus V", "C4_PDELTA": "P-δ: before (blue), after the trip (orange), P_m (white)",
+	"C4_KESTREL": "Highfell Falls", "C4_CITY": "the city", "C4_LINE": "%d × 300 km, 220 kV, sending %s MW", "C4_ROTOR": "Rotor angle, E′ against the bus V", "C4_PDELTA": "P-δ: before (blue), after the trip (orange), P_m (white)",
 	"C4_PD_KEY": "the rotor must turn back before δu", "C4_SWING": "Rotor angle through the swing", "C4_STAR70": "★ 70°", "C4_SW_OK": "in step, peak %s°", "C4_SW_NOEQ": "no balance after the trip", "C4_SW_SLIP": "slips a pole past %s°",
 	"C4_AVR_CAP": "AVR SET-POINT", "C4_SERIES_CAP": "SERIES CAPACITORS (both circuits)", "C4_THIRD": "3rd circuit", "C4_PEAKS": "CHECKS", "C4_CHK_SYNC": "stays in step (peak %s°)", "C4_CHK_70": "peak under 70° (★)",
 	# L13 the exam

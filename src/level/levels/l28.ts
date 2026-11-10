@@ -16,32 +16,32 @@ export const HORIZON = DAYS * BLOCKS_PER_DAY;
 interface BusRow { key: string; name: string; kv: number; x: number; y: number; kind: 'gen' | 'load' | 'sub' | 'junction'; vSet?: number }
 /** The 26 buses of the state in placement order (ids B1..B26). Tile edge 4 km: the map is 400 x 176 km. */
 export const BUSES: BusRow[] = [
-  { key: 'redhill', name: 'Redhill 400', kv: 400, x: 10, y: 8, kind: 'gen', vSet: 1.02 },
-  { key: 'capital4', name: 'Capital 400', kv: 400, x: 50, y: 22, kind: 'sub' },
-  { key: 'marlow4', name: 'Marlow 400', kv: 400, x: 32, y: 34, kind: 'gen', vSet: 1.02 },
-  { key: 'eastgate4', name: 'Eastgate 400', kv: 400, x: 78, y: 16, kind: 'sub' },
-  { key: 'westfell4', name: 'Westfell 400', kv: 400, x: 22, y: 18, kind: 'sub' },
-  { key: 'south4', name: 'Southplain 400', kv: 400, x: 58, y: 38, kind: 'sub' },
-  { key: 'gorge', name: 'Gorge hydro 220', kv: 220, x: 6, y: 24, kind: 'gen', vSet: 1.03 },
-  { key: 'windmere', name: 'Windmere wind 220', kv: 220, x: 6, y: 34, kind: 'gen', vSet: 1.0 },
-  { key: 'sunfield', name: 'Sunfield solar 220', kv: 220, x: 50, y: 42, kind: 'gen', vSet: 1.0 },
-  { key: 'capital2', name: 'Capital 220', kv: 220, x: 52, y: 22, kind: 'sub' },
-  { key: 'dc', name: 'Gigawatt datacentre 220', kv: 220, x: 58, y: 18, kind: 'load' },
-  { key: 'eastgate2', name: 'Eastgate 220', kv: 220, x: 80, y: 18, kind: 'sub' },
-  { key: 'highfell', name: 'Highfell pumped hydro 220', kv: 220, x: 32, y: 8, kind: 'gen', vSet: 1.03 },
-  { key: 'westfell2', name: 'Westfell 220', kv: 220, x: 24, y: 18, kind: 'sub' },
-  { key: 'south2', name: 'Southplain 220', kv: 220, x: 60, y: 36, kind: 'sub' },
-  { key: 'eastgate1', name: 'Eastgate', kv: 132, x: 84, y: 22, kind: 'load' },
-  { key: 'harbour', name: 'Harbour', kv: 132, x: 92, y: 26, kind: 'load' },
-  { key: 'saltmarsh', name: 'Saltmarsh Island', kv: 132, x: 96, y: 36, kind: 'load' },
-  { key: 'westfell1', name: 'Westfell', kv: 132, x: 26, y: 22, kind: 'load' },
-  { key: 'northfield', name: 'Northfield', kv: 132, x: 30, y: 12, kind: 'load' },
-  { key: 'southplain', name: 'Southplain', kv: 132, x: 64, y: 34, kind: 'load' },
-  { key: 'marlowtown', name: 'Marlow', kv: 220, x: 38, y: 38, kind: 'load' },
-  { key: 'dunmore', name: 'Dunmore', kv: 132, x: 72, y: 30, kind: 'gen', vSet: 1.0 },
-  { key: 'riverside', name: 'Riverside', kv: 132, x: 40, y: 14, kind: 'load' },
-  { key: 'ironworks', name: 'Ironworks', kv: 132, x: 28, y: 26, kind: 'load' },
-  { key: 'capital1', name: 'Capital 132', kv: 132, x: 50, y: 25, kind: 'load' },
+  { key: 'redhill', name: 'Redhill 400', kv: 400, x: 10, y: 8, kind: 'gen', vSet: 1.02 },   // lint-ok
+  { key: 'capital4', name: 'Capital 400', kv: 400, x: 50, y: 22, kind: 'sub' },   // lint-ok
+  { key: 'marlow4', name: 'Marlow 400', kv: 400, x: 32, y: 34, kind: 'gen', vSet: 1.02 },   // lint-ok
+  { key: 'eastgate4', name: 'Eastgate 400', kv: 400, x: 78, y: 16, kind: 'sub' },   // lint-ok
+  { key: 'westfell4', name: 'Westfell 400', kv: 400, x: 22, y: 18, kind: 'sub' },   // lint-ok
+  { key: 'south4', name: 'Southplain 400', kv: 400, x: 58, y: 38, kind: 'sub' },   // lint-ok
+  { key: 'gorge', name: 'Gorge hydro 220', kv: 220, x: 6, y: 24, kind: 'gen', vSet: 1.03 },   // lint-ok
+  { key: 'windmere', name: 'Windmere wind 220', kv: 220, x: 6, y: 34, kind: 'gen', vSet: 1.0 },   // lint-ok
+  { key: 'sunfield', name: 'Sunfield solar 220', kv: 220, x: 50, y: 42, kind: 'gen', vSet: 1.0 },   // lint-ok
+  { key: 'capital2', name: 'Capital 220', kv: 220, x: 52, y: 22, kind: 'sub' },   // lint-ok
+  { key: 'dc', name: 'Gigawatt datacentre 220', kv: 220, x: 58, y: 18, kind: 'load' },   // lint-ok
+  { key: 'eastgate2', name: 'Eastgate 220', kv: 220, x: 80, y: 18, kind: 'sub' },   // lint-ok
+  { key: 'highfell', name: 'Highfell pumped hydro 220', kv: 220, x: 32, y: 8, kind: 'gen', vSet: 1.03 },   // lint-ok
+  { key: 'westfell2', name: 'Westfell 220', kv: 220, x: 24, y: 18, kind: 'sub' },   // lint-ok
+  { key: 'south2', name: 'Southplain 220', kv: 220, x: 60, y: 36, kind: 'sub' },   // lint-ok
+  { key: 'eastgate1', name: 'Eastgate', kv: 132, x: 84, y: 22, kind: 'load' },   // lint-ok
+  { key: 'harbour', name: 'Harbour', kv: 132, x: 92, y: 26, kind: 'load' },   // lint-ok
+  { key: 'saltmarsh', name: 'Saltmarsh Island', kv: 132, x: 96, y: 36, kind: 'load' },   // lint-ok
+  { key: 'westfell1', name: 'Westfell', kv: 132, x: 26, y: 22, kind: 'load' },   // lint-ok
+  { key: 'northfield', name: 'Northfield', kv: 132, x: 30, y: 12, kind: 'load' },   // lint-ok
+  { key: 'southplain', name: 'Southplain', kv: 132, x: 64, y: 34, kind: 'load' },   // lint-ok
+  { key: 'marlowtown', name: 'Marlow', kv: 220, x: 38, y: 38, kind: 'load' },   // lint-ok
+  { key: 'dunmore', name: 'Dunmore', kv: 132, x: 72, y: 30, kind: 'gen', vSet: 1.0 },   // lint-ok
+  { key: 'riverside', name: 'Riverside', kv: 132, x: 40, y: 14, kind: 'load' },   // lint-ok
+  { key: 'ironworks', name: 'Ironworks', kv: 132, x: 28, y: 26, kind: 'load' },   // lint-ok
+  { key: 'capital1', name: 'Capital 132', kv: 132, x: 50, y: 25, kind: 'load' },   // lint-ok
 ];
 export const BUS = Object.fromEntries(BUSES.map((b, i) => [b.key, `B${i + 1}`])) as Record<string, string>;
 

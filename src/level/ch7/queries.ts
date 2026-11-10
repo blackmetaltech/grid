@@ -15,6 +15,7 @@ import { studyOf } from '../../sim/ch7/study';
 import { IDMT_CURVES, idmtTime } from '../../sim/protection';
 import { equalAreas } from '../../sim/dynamics/smib';
 
+const pr = (s: GridState, x: number): string => formatMoney(x * (s.ch7?.money ?? 1), REGIONS.get(s.region), { decimals: 2 });   // a price per MWh in the pack's currency
 const money = (s: GridState, x: number): string => formatMoney(x * (s.ch7?.money ?? 1), REGIONS.get(s.region), { decimals: 0 });
 const ran = (s: GridState): boolean => s.tick > s.levelStart;
 /** JSON-safe: Infinity and NaN become null. */
@@ -128,7 +129,7 @@ export function ch7Lesson(s: GridState, lessonKey: string): string {
   }
   if (c.id === 'L26') {
     const d = c.l26!, un = studyL26({ ...d, mode: 'lambda' }), st = studyL26(d), F = SC.l26.corridorMW, ls = st.lam20.s, lg = st.lam20.g;
-    return t(lessonKey, { flow: Math.round(un.lam20.flowMW), cap: F, op: Math.round(F * SC.l26.corridorOpFrac), ls: ls === null ? '-' : r2(ls), lg: lg === null ? '-' : r2(lg), diff: ls === null || lg === null ? '-' : r2(ls - lg), nu: r2(hydroSchedule().nu) });
+    return t(lessonKey, { flow: Math.round(un.lam20.flowMW), cap: F, op: Math.round(F * SC.l26.corridorOpFrac), ls: ls === null ? '-' : pr(s, ls), lg: lg === null ? '-' : pr(s, lg), diff: ls === null || lg === null ? '-' : pr(s, ls - lg), nu: pr(s, hydroSchedule().nu) });
   }
   const st = studyL27({ rating: c.l27!.rating, dispatch: c.l27!.dispatch }), ok = studyOf(s)?.track.predictionsOk ?? 0, a = examAnswers();
   return t(lessonKey, { three: r1(st.boardKA.threePh), slg: r1(st.boardKA.slg), lam: r2(a.ps21.lambda), ok, n: studyOf(s)?.track.predictionsMade ?? 0 });

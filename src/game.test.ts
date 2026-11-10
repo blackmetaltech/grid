@@ -9,7 +9,7 @@ describe('GRID engine (M0)', () => {
     const e = new Engine(GAME);
     expect(e.state.clock).toEqual({ day: 0, block: 0, phase: 'build', speed: 1 });
     expect(e.state.buses).toEqual([]); expect(e.state.metrics.cost).toBe(0); expect(e.state.metrics.predictions).toEqual([]);
-    expect(e.state.region).toBe('global'); expect(e.state.ruleset).toBe('grid:global@5.1');
+    expect(e.state.region).toBe('global'); expect(e.state.ruleset).toBe('grid:global@6.1');
     expect(e.q('summary')).toEqual({ region: 'global', mode: 'learner', counts: { buses: 0, branches: 0, units: 0, loads: 0, shunts: 0, storage: 0 } });
   });
   it('the state is plain JSON: it survives a JSON round trip unchanged (no undefined, Maps or typed arrays)', () => {
