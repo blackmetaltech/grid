@@ -6,6 +6,16 @@ extends RefCounted
 ## truth tests (godot/tests) read it back and compare it with the raw queries. Pure data out: Dictionaries, Arrays, Vector2, no nodes.
 
 const BENCH_HUT := Vector2(3, 8)
+# L01 geometry, 1 tile = 10 m so the drawn cable is as long as the engine's run: beach row y = 12, hamlet 70 m up the rise.
+const L01_MAP := Vector2(36, 17)
+const L01_HAMLET := Vector2(29, 5)
+const L01_BEACH_Y := 12.0
+const L01_MANGROVE := Rect2(7, 6, 19, 4)   # tiles; blocked for cables (DESIGN L01), the reason the cable follows the beach
+
+## Where the battery hut stands for a cable run of `d` metres: along the beach west of the corner below the hamlet.
+static func l01_hut_pos(d: float) -> Vector2:
+	var vertical := (L01_BEACH_Y - L01_HAMLET.y) * 10.0
+	return Vector2(L01_HAMLET.x - (d - vertical) / 10.0, L01_BEACH_Y)
 
 static func empty() -> Dictionary:
 	return {"kind": "none", "level": "", "map": Vector2(26, 16), "minute": 0.0, "night": 1.0, "towns": [], "subs": [], "lines": [], "units": [], "shunts": [], "blackout": false}
@@ -57,10 +67,10 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 	var powered := bool(bn.powered)
 	var hut_p := BENCH_HUT
 	var targets: Array = []   # [pos, count, label kind]
-	if sc == "l01":
-		var hx := 21.0
-		if hut != null: hx = 5.0 + float(hut) / 300.0 * 16.0
-		hut_p = Vector2(3, 8); targets.append([Vector2(hx + 3.0, 8), 10, "hamlet"])
+	if sc == "l01":   # Saltmarsh Island at 10 m per tile: the hamlet sits on the rise, the hut on the south beach, the cable runs along the beach
+		m.map = L01_MAP
+		hut_p = l01_hut_pos(float(hut) if hut != null else 300.0); targets.append([L01_HAMLET, 10, "hamlet"])
+		m["island"] = {"beach_y": L01_BEACH_Y, "mangrove": L01_MANGROVE}
 	elif sc == "l02":
 		targets.append([Vector2(22, 5), 10, "hamlet"]); targets.append([Vector2(22, 11), 14, "hamlet"])
 	else:
@@ -85,6 +95,7 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 		for i in targets.size():
 			var mm = bn.mainMm2 if i == 0 else bn.branchMm2
 			var pts: Array = [hut_p, targets[i][0]]
+			if sc == "l01": pts = [hut_p, Vector2(L01_HAMLET.x, L01_BEACH_Y), L01_HAMLET]
 			if sc == "l03" and bool(bn.converters):
 				m.subs.append({"id": "c%d" % i, "pos": hut_p if i == 0 else targets[0][0], "kv": 0.38, "v": 1.0, "energised": powered})
 			m.lines.append(_line("main" if i == 0 else "b", pts, amp, dirp, mm != null, 1, 0.048, 0.0, "cable"))

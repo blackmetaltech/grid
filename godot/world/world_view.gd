@@ -80,6 +80,48 @@ func _rebuild() -> void:
 		for k in range(pts.size() - 1):
 			var a := _tc(pts[k]); var c := _tc(pts[k + 1]); var n := int(maxf(1.0, a.distance_to(c) * 2.0))
 			for q in n + 1: line_tiles[Vector2i((a.lerp(c, float(q) / float(n))).floor())] = true
+	if model.kind == "bench": _rebuild_island(W, H, infra, line_tiles)
+	else: _rebuild_land(W, H, infra, line_tiles)
+	_rebuild_objects()
+
+## Bench levels: one small island at 10 m a tile. Sea all round, a sand ring, the south beach strip (hut sites), mangrove in the
+## middle (L01: the cable may not cross it), palms on the sand, a low rise under the hamlet.
+func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> void:
+	var isl: Dictionary = model.get("island", {})
+	var beach_y: float = float(isl.get("beach_y", -1.0))
+	var mang: Rect2 = isl.get("mangrove", Rect2())
+	var c := Vector2(W, H) * 0.5; var r := Vector2(W, H) * 0.5 - Vector2(1.5, 1.0)
+	for j in H:
+		for i in W:
+			var q := Vector2(i + 0.5, j + 0.5)
+			var dx := absf(q.x - c.x) / r.x; var dy := absf(q.y - c.y) / r.y
+			var f := (dx * dx + dy * dy) * 1.18 + (WorldMath.hash2(i, j, 9) - 0.5) * 0.16 + 0.22 * sin(float(i) * 0.31 + 1.7) * cos(float(j) * 0.47 + 0.4) + 0.1 * sin(float(i) * 0.83 + float(j) * 0.61)
+			var near := 99.0
+			for p in infra: near = minf(near, q.distance_to(p))
+			var kind := "grass"
+			var keep := near < 1.5 or line_tiles.has(Vector2i(i, j))
+			var on_beach := beach_y >= 0.0 and q.y > beach_y - 0.6 and q.y < beach_y + 1.6 and f < 1.3
+			if (i < 1 or j < 1 or i > W - 2 or j > H - 2) and not keep: kind = "water"
+			elif beach_y >= 0.0 and q.y >= beach_y + 1.6 and f > 0.45 and not keep: kind = "water"
+			elif f > 1.0 and not keep and not on_beach: kind = "water"
+			elif f > 0.86 or on_beach: kind = "sand"
+			elif mang.has_point(q) and not keep: kind = "mangrove"
+			var z := 0.0
+			if kind == "grass": z = clampf((1.0 - f) * 9.0 - 1.5, 0.0, 8.0) + WorldMath.hash2(i, j, 5) * 1.5
+			if kind == "water": z = -6.0
+			elif kind == "mangrove": z = 0.5
+			elif kind == "sand": z = 1.0
+			_zgrid[Vector2i(i, j)] = z
+			_tiles.append({"i": i, "j": j, "kind": kind, "var": WorldMath.hash2(i, j, 1)})
+			var free := near > 1.4 and not line_tiles.has(Vector2i(i, j))
+			if kind == "mangrove":
+				for k in 2: _objs.append({"t": "mangrove", "p": Vector2(i + 0.15 + 0.7 * WorldMath.hash2(i, j, 10 + k), j + 0.15 + 0.7 * WorldMath.hash2(i, j, 20 + k)), "h": 9.0 + 6.0 * WorldMath.hash2(i, j, 30 + k), "v": WorldMath.hash2(i, j, 40 + k)})
+			elif kind == "sand" and free and WorldMath.hash2(i, j, 7) > 0.84:
+				_objs.append({"t": "palm", "p": Vector2(i + 0.5, j + 0.5), "h": 20.0 + 10.0 * WorldMath.hash2(i, j, 8), "v": WorldMath.hash2(i, j, 11)})
+			elif kind == "grass" and free and near > 2.2 and WorldMath.hash2(i, j, 7) > 0.8:
+				_objs.append({"t": "tree", "p": Vector2(i + 0.5, j + 0.5), "h": 13.0 + 6.0 * WorldMath.hash2(i, j, 8), "v": WorldMath.hash2(i, j, 12)})
+
+func _rebuild_land(W: int, H: int, infra: Array, line_tiles: Dictionary) -> void:
 	for j in H:
 		for i in W:
 			var near := 99.0
@@ -100,6 +142,8 @@ func _rebuild() -> void:
 				for k in 3: _objs.append({"t": "tree", "p": Vector2(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 10 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 20 + k)), "h": 16.0 + 14.0 * WorldMath.hash2(i, j, 30 + k), "v": WorldMath.hash2(i, j, 40 + k)})
 			elif kind == "grass" and near > 2.4 and WorldMath.hash2(i, j, 7) > 0.93:
 				_objs.append({"t": "tree", "p": Vector2(i + 0.5, j + 0.5), "h": 14.0, "v": WorldMath.hash2(i, j, 8)})
+
+func _rebuild_objects() -> void:
 	for ti in model.towns.size():
 		var t: Dictionary = model.towns[ti]
 		var cols := int(ceil(sqrt(float(t.count) * 1.3)))
@@ -107,11 +151,11 @@ func _rebuild() -> void:
 		var kinds_big: bool = t.kind != "hamlet"
 		for k in int(t.count):
 			var cx := k % cols; var cy := k / cols
-			var step := 0.5 if t.kind == "town" else 0.46
+			var step := 0.5 if t.kind == "town" else (1.05 if model.kind == "bench" else 0.46)   # bench: 10 m tiles, homes ~10 m apart
 			var p := _tc(t.pos) + Vector2((float(cx) - float(cols - 1) * 0.5) * step, (float(cy) - float(rows - 1) * 0.5) * step)
 			var cdist := Vector2(float(cx) - float(cols - 1) * 0.5, float(cy) - float(rows - 1) * 0.5).length()
 			var h := (12.0 + 18.0 * WorldMath.hash2(cx, cy, 50 + ti)) * (1.4 - 0.1 * cdist) if t.kind == "town" else (9.0 + 4.0 * WorldMath.hash2(cx, cy, 60)) * (2.0 if t.kind == "school" else 1.0)
-			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": 0.3 if t.kind != "school" else 0.6, "hamlet": t.kind != "town", "v": WorldMath.hash2(cx, cy, 70 + ti)})
+			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": (0.3 if model.kind != "bench" else 0.55) if t.kind != "school" else 0.6, "hamlet": t.kind != "town", "v": WorldMath.hash2(cx, cy, 70 + ti)})
 	for s in model.subs: _objs.append({"t": "sub", "p": _tc(s.pos), "s": s})
 	var at_bus := {}
 	for u in model.units:
@@ -157,11 +201,6 @@ func _view_rect() -> Rect2:
 
 func _bounds() -> Rect2:
 	var W: float = model.map.x; var H: float = model.map.y
-	if model.kind == "bench":   # the bench is a strip: frame the hut, the cable and the hamlets, not the whole slab
-		var lo := Vector2(1e9, 1e9); var hi := Vector2(-1e9, -1e9)
-		for p in _infra_points():
-			var q := _iso(p.x, p.y); lo = lo.min(q); hi = hi.max(q)
-		if lo.x < hi.x: return Rect2(lo + Vector2(-320, -230), hi - lo + Vector2(640, 230 + 200 + SLAB))
 	var x0 := _iso(0, H).x; var x1 := _iso(W, 0).x
 	return Rect2(x0, -60.0, x1 - x0, (W + H) * TH * 0.5 + 60.0 + SLAB + 20.0)
 
@@ -350,6 +389,7 @@ func _tile_col(t: Dictionary) -> Color:
 		"water": return Color("#5FA8C8").lerp(Color("#3E86B0"), v) 
 		"sand": return Color("#D8C690").lerp(Color("#C9B87F"), v)
 		"forest": return Color("#5E8F58").lerp(Color("#4E7F4E"), v)
+		"mangrove": return Color("#3E5E46").lerp(Color("#35523D"), v)
 	return Color("#86AE6C").lerp(Color("#76A064"), v)
 
 func _draw_tile(t: Dictionary) -> void:
@@ -374,6 +414,8 @@ func _draw_tile(t: Dictionary) -> void:
 func _draw_obj(o: Dictionary) -> void:
 	match o.t:
 		"tree": _tree(o)
+		"palm": _palm(o)
+		"mangrove": _mangrove(o)
 		"bld": _building(o)
 		"tower": _tower(o)
 		"sub": _substation(o)
@@ -386,6 +428,25 @@ func _tree(o: Dictionary) -> void:
 	var g := Color("#3F7A44").lerp(Color("#5E9A4A"), o.v)
 	draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.3, -h * 0.25), base + Vector2(h * 0.3, -h * 0.25), base + Vector2(0, -h * 0.75)]), _c(_shade(g, 0.8)))
 	draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.24, -h * 0.5), base + Vector2(h * 0.24, -h * 0.5), base + Vector2(0, -h)]), _c(g))
+
+func _palm(o: Dictionary) -> void:
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
+	var lean := (float(o.v) - 0.5) * 10.0
+	var top := base + Vector2(lean, -h)
+	draw_line(base, base + Vector2(lean * 0.4, -h * 0.5), _c(Color("#7A5E3E")), 2.5); draw_line(base + Vector2(lean * 0.4, -h * 0.5), top, _c(Color("#7A5E3E")), 2.0)
+	var g := Color("#4F8A4A").lerp(Color("#6AA25A"), o.v)
+	for k in 5:
+		var a := -PI * 0.5 + (float(k) - 2.0) * 0.62 + float(o.v) * 0.4
+		var tip := top + Vector2(cos(a) * h * 0.55, sin(a) * h * 0.25 + h * 0.18)
+		draw_colored_polygon(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
+
+func _mangrove(o: Dictionary) -> void:
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
+	var root := _c(Color("#4A3A2A"))
+	for k in 3: draw_line(base + Vector2(-5 + float(k) * 5.0, 0), base + Vector2(-1 + float(k) * 1.0, -h * 0.4), root, 1.2)
+	var g := Color("#2F5536").lerp(Color("#3D6B44"), o.v)
+	_ell(base + Vector2(0, -h * 0.65), h * 0.75, h * 0.45, _c(_shade(g, 0.8)))
+	_ell(base + Vector2(-1, -h * 0.8), h * 0.55, h * 0.33, _c(g))
 
 func _building(o: Dictionary) -> void:
 	var t: Dictionary = model.towns[o.ti]
