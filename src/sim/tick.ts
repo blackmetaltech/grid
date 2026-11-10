@@ -16,6 +16,7 @@ import { runEventWindow, levelResult } from './event';
 import { voltageBand, type SimParams } from './params';
 import { systemRng } from './rngs';
 import { fin } from './finite';
+import { stepBench, type BenchParams } from '../level/bench';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -44,7 +45,7 @@ const effDemand = (s: GridState): number => s.loads.reduce((a, l) => a + l.P * (
 /** Demand at a future block of the day at the present temperature (for commitment look-ahead). */
 const forecastDemand = (s: GridState, block: number): number => s.loads.reduce((a, l) => a + demandPQ({ cls: DEMAND_CLASS[l.class], peakMW: l.Ppeak, block, tempC: s.weather.tempC }).pMW * (1 - l.shedFrac), 0);
 
-export function buildPipeline(getParams: (s: GridState) => SimParams): System<GridState>[] {
+export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?: (s: GridState) => BenchParams): System<GridState>[] {
   return [
     // 1. clock: advance the block, roll the day over, open a fresh block summary.
     { id: 'clock', run: (s) => {
@@ -84,6 +85,13 @@ export function buildPipeline(getParams: (s: GridState) => SimParams): System<Gr
     { id: 'demand', run: (s) => {
       const now = dayIndex(s);
       for (const l of s.loads) {
+        if (l.shape) {   // a level-authored daily shape (e.g. the rice mill): P and Q per block as fractions of the peak
+          const ps = l.shape.p[s.clock.block] ?? 0, qs = l.shape.q[s.clock.block] ?? 0;
+          let pShape = ps * l.Ppeak;
+          for (const e of s.events.queue) if (e.kind === 'load-surge' && e.target === l.id && now >= eventStart(e) && now < eventStart(e) + SURGE_BLOCKS) pShape += e.magnitude;
+          l.P = fin(pShape); l.Q = fin(qs * l.Ppeak);
+          continue;
+        }
         let pMW = demandPQ({ cls: DEMAND_CLASS[l.class], peakMW: l.Ppeak, block: s.clock.block, tempC: s.weather.tempC }).pMW;
         for (const e of s.events.queue) if (e.kind === 'load-surge' && e.target === l.id && now >= eventStart(e) && now < eventStart(e) + SURGE_BLOCKS) pMW += e.magnitude;
         l.P = fin(pMW);
@@ -275,6 +283,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams): System<Gr
       for (const tr of r.trips) {
         const b = s.branches.find((x) => x.id === tr.id)!;
         b.inService = false; b.timer = null; s.block.trips.push(tr.id);
+        s.metrics.track.overloadTrips = (s.metrics.track.overloadTrips ?? 0) + 1;
         log(s, t('log.overloadTrip', { id: tr.id, pct: Math.round(tr.loading * 100) }), 'bad');
       }
       // voltage bands
@@ -379,10 +388,20 @@ export function buildPipeline(getParams: (s: GridState) => SimParams): System<Gr
       s.metrics.nadirHz = Math.min(s.metrics.nadirHz, s.freq.fHz);
       const solved = solvedOf(s);
       s.block.blackout = s.loads.length > 0 && !!solved && s.loads.every((l) => solved.sol.energised[l.bus] === false || l.shedFrac >= 1);
+      // named level measurements for the star rules: billing power factor at the supply point (kWh over kVAh, |Q| counted in both
+      // directions) and the loss share of the energy supplied
+      const tr = s.metrics.track;
+      const pg = s.units.reduce((a, u) => a + (u.online ? u.P : 0), 0), qg = s.units.reduce((a, u) => a + (u.online ? u.Q : 0), 0);
+      tr.pMWh = fin((tr.pMWh ?? 0) + pg * BLOCK_H); tr.qMVArh = fin((tr.qMVArh ?? 0) + Math.abs(qg) * BLOCK_H);
+      tr.pfDay = fin(tr.pMWh / (Math.sqrt(tr.pMWh * tr.pMWh + tr.qMVArh * tr.qMVArh) || 1), 1);
+      tr.supplyMWh = fin((tr.supplyMWh ?? 0) + s.block.genMW * BLOCK_H);
+      tr.peakLoading = Math.max(tr.peakLoading ?? 0, fin(s.block.worstLoading));
+      tr.lossPct = tr.supplyMWh > 1e-9 ? fin((100 * s.metrics.lossesMWh) / tr.supplyMWh) : 0;
     } },
 
     // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).
     { id: 'levelRules', run: (s) => {
+      if (s.bench && getBench) stepBench(s, getBench(s));   // a bench level's circuit is solved here, once per block, before the verdict
       const r = levelResult(s, s.rules, s.tick + 1 - s.levelStart);
       s.block.verdict = r.status; s.block.verdictKey = r.key; s.block.verdictParams = r.params;
       if (r.status === 'won') s.stars = r.stars;

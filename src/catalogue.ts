@@ -5,6 +5,7 @@ import type { SimParams } from './sim/params';
 import type { CatalogueView, GenSpec } from './sim/build';
 import type { UnitKind } from './types';
 import { LINE_TEMPLATES } from './data/lineTemplates';
+import type { BenchParams } from './level/bench';
 
 const UNIT_KINDS: readonly string[] = ['coal', 'gas', 'diesel', 'biomass', 'nuclear', 'hydro', 'psp', 'pv', 'wind', 'synccon'];
 const num = (x: number | null | undefined): number | null => (typeof x === 'number' && Number.isFinite(x) ? x : null);
@@ -56,7 +57,7 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
       const r = cat.compensation.find((x) => x.id === id);
       if (!r || r.mvar === null) return null;
       const kind = r.kind === 'reactor' || r.kind === 'svc' || r.kind === 'statcom' ? r.kind : 'cap';
-      return { id: r.id, kind, mvarStep: r.mvar, maxSteps: 4, pricePerKvar: r.pricePerKvar ?? 0 };
+      return { id: r.id, kind, mvarStep: r.mvar, maxSteps: 4, pricePerKvar: r.pricePerKvar ?? 0, autoFactor: r.autoCostFactor ?? 1 };
     },
     storage: (id) => {
       const r = cat.storage.find((x) => x.id === id);
@@ -65,4 +66,12 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
       return { id: r.id, mw: r.mw, mwh: r.mwh, etaRt: eta > 1 ? eta / 100 : eta, capexPerKw: num(r.capexPerKw), capexPerKwh: num(r.capexPerKwh) };
     },
   };
+}
+
+/** The bench parts of the pack (cable prices, the 48 V / 380 V DC-DC converter) as plain numbers for the first-chapter levels. */
+export function benchParamsOf(d: GridRegionData): BenchParams {
+  const cab = d.catalogues.cables.find((c) => c.id === 'cu-cable');
+  const conv = d.catalogues.transformers.find((c) => c.id === 'conv-dcdc-48-380');
+  if (!cab || !conv || conv.price === null) throw new Error('region pack lacks the bench cable or converter row');
+  return { cable: { perMm2PerM: cab.perMm2PerM, sheathPerM: cab.sheathPerM, polePrice: cab.polePrice, poleSpacingM: cab.poleSpacingM }, converter: { price: conv.price, eta: (conv.etaPct ?? 97) / 100 } };
 }

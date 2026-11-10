@@ -21,7 +21,7 @@ export const TEST_CAT: CatalogueView = {
   generator: (id) => GENS.find((g) => g.id === id) ?? null,
   line: (id) => { const t = LINE_TEMPLATES.find((x) => x.id === id); return t ? { id: t.id, kind: 'line', kv: t.kv, rOhmKm: t.rOhmKm, xOhmKm: t.xOhmKm, bUsKm: t.bUsKm, thermalMva: t.thermalMva, costPerKm: 100000 } : null; },
   transformer: (id) => (id === 't-x132-33' ? { id, mva: 60, kvHv: 132, kvLv: 33, zPct: 10, xr: 20, noLoadKw: 30, loadKw: 200, tapMin: -8, tapMax: 8, price: 2e6 } : null),
-  shunt: (id) => (id === 't-cap' ? { id, kind: 'cap', mvarStep: 5, maxSteps: 4, pricePerKvar: 30 } : null),
+  shunt: (id) => (id === 't-cap' ? { id, kind: 'cap', mvarStep: 5, maxSteps: 4, pricePerKvar: 30, autoFactor: 1 } : null),
   storage: (id) => (id === 't-bess' ? { id, mw: 20, mwh: 40, etaRt: 0.86, capexPerKw: 400, capexPerKwh: 300 } : null),
 };
 

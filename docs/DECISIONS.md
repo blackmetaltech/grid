@@ -87,3 +87,27 @@ Newest last. Each entry: what, why, where.
       window 6 ms (20), cascade x10 21 ms (80), N-1 x90 142 ms (400), fault column 0.3 ms (2), worst cascade window 26 ms (100).
       No deviation. A late day of a 7-day run costs ~250 ms (history ring grows the per-action state clone), still in budget.
     - Nightly fuzz: `pnpm fuzz:nightly` (`GRID_FUZZ_N`, default 50 000) runs every P1..P25 file once.
+13. **M2.1/M2.2 level framework and levels P0, L01, L02, L03, L07 (src/level/).** A level is a `GridLevelSpec` (site list, allowed parts,
+    pack-symbol thresholds, naive/lesson/reference builds, frozen targets per region, coach step ids); `makeLevel` turns it into a core
+    `Level`, `allowedGate` enforces the part list on the actions. T00 stays as the clock fixture (not in the campaign).
+    - **State changed, goldens regenerated deliberately (once):** `Load.shape`, `Shunt.catalogId`, `Metrics.track` (named level measurements),
+      `Rules.starBasis/star3`, `GridState.bench` change every hash: `src/__golden__/trajectories.json` and `tenbus.json` regenerated. Physics and
+      the 16-system pipeline are unchanged (the bench is solved inside `levelRules`). `GAME.rulesetVersion` NOT bumped (the leaderboard worker's
+      tests pin `grid:global@2.1`); bump it with them.
+    - **Stars:** primary metric is the build cost (`budget.spent`). A = median of the passing designs, B = 15th percentile of the passing designs
+      that also meet the third-star conditions (else B could be below the cheapest 3-star design); both frozen per region from the exhaustive
+      bot population (`population.ts`) and pinned by `level.test.ts` (drift > 2 % fails). Budget = 1.1 x the dearer of lesson and reference,
+      never under 1.3 x the cheapest pass, rounded up to 2 figures (L01 global US$4,000 = the design intent).
+    - **Lesson builds are thicker than DESIGN's** so the 2 % margin rule holds: L01 25 mm2 @ 300 m has 1.85 % margin (35 mm2 @ 300 m: 4.3 %);
+      DESIGN's builds are oracles G-02 and still pass (tested). L01 ref = 25 mm2 @ 120 m.
+    - **L02 geometry tuned (hamlet 2 is 250 m from the hut, not 450 m):** at 48 V, 14 homes at 450 m cannot be fed with any catalogue
+      cable (best 43.6 V radial, no trunk passes); at 250 m both a radial and a trunk layout pass at different costs, as intended.
+      The optional second hut is not offered (no price in any pack).
+    - **L07 star conditions changed:** power factor is the daily billing pf (kWh over kVAh, |Q| counted both ways) >= 0.95, not "every block":
+      controls act with a one-block lag (decision 12), so a switched bank always has one bad block at the mill start. Losses <= 6 % instead of
+      4 %: on 4 km of Weasel the best daily loss is 5.7 % (3.8 % only with the Rabbit reconductor, which costs 480,000 US$ against 13,500 for the
+      900 kVAr bank, so it is over budget in `global`; in `in` it fits). Ref = 4 x 300 kVAr automatic bank, band 0.975-1.005 pu.
+    - Mill shape (06:00-22:00, lunch 13:00-14:00 at 0.15 MW / 0.9 MVAr) is `Load.shape`; both loads are constant P and Q like the oracle.
+    - P0 runs on a small 5-bus version of the province (the 26-bus finale grid is M3): closing T5 re-routes the coal pocket through the weak
+      corridor, T4 trips on its timer and the real cascade ends in the blackout; it is a scene (no stars, `won` = the blackout), and the core
+      "random play wins" probe is expected to fire for it when given the whole site list.

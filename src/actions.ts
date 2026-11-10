@@ -83,7 +83,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (!isStr(cls) || !['residential', 'commercial', 'industrial', 'agricultural', 'critical'].includes(cls)) return bad('class', 'exp.residential_commercial_indus');
       if (!isNum(peakMW) || peakMW <= 0) return bad('peakMW', 'exp.a_positive_number_of_mw');
       const id = nextId(s.loads.map((l) => l.id), 'L');
-      s.loads.push({ id, bus, class: cls as LoadClass, Ppeak: peakMW, P: 0, Q: 0, pf: isNum(pf) && pf > 0 && pf <= 1 ? pf : 0.95, zip: [0.3, 0.2, 0.5], shedFrac: 0, uflsStage: null, priority: null });
+      s.loads.push({ id, bus, class: cls as LoadClass, Ppeak: peakMW, P: 0, Q: 0, pf: isNum(pf) && pf > 0 && pf <= 1 ? pf : 0.95, zip: [0.3, 0.2, 0.5], shedFrac: 0, uflsStage: null, priority: null, shape: null });
       return accept(s, 'placeLoad', 'act.load.ok', { id, cls, mw: peakMW, bus });
     },
     stringLine: (s, from: unknown, to: unknown, catalogId: unknown, circuits: unknown, lengthKm: unknown) => {
@@ -240,6 +240,10 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (!h) return unknown('shunt', id);
       if (!isNum(vLow) || !isNum(vHigh) || !isNum(delay) || delay < 1) return bad('vLow, vHigh, delay', 'exp.voltages_in_pu_and_a_delay_i');
       if (!(vLow < vHigh)) return reject('act.shuntAuto.band', { lo: vLow, hi: vHigh });
+      if (!h.auto) {   // automatic switching is dearer than a fixed bank (catalogue factor on the bank's price)
+        const spec = d.cat(s).shunt(h.catalogId);
+        if (spec && spec.autoFactor > 1) s.budget.spent += (spec.autoFactor - 1) * spec.pricePerKvar * Math.abs(spec.mvarStep) * 1000 * h.steps;
+      }
       h.auto = { vLowPu: vLow, vHighPu: vHigh, delayBlocks: Math.round(delay), counter: 0 };
       return accept(s, 'setShuntAuto', 'act.shuntAuto.ok', { id, lo: vLow, hi: vHigh, delay: Math.round(delay) });
     },

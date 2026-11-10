@@ -139,12 +139,16 @@ export interface Load {
   /** UFLS stage index this load is fed from; null when not on a stage. */
   uflsStage: number | null;
   priority: 'hospital' | 'school' | null;
+  /** A level-authored daily shape: P and Q per block as a fraction of `Ppeak` (96 each); null = the class profile and `pf`. */
+  shape: { p: number[]; q: number[] } | null;
 }
 
 export type ShuntKind = 'cap' | 'reactor' | 'svc' | 'statcom';
 export interface Shunt {
   id: string;
   bus: string;
+  /** Catalogue row id it was built from. */
+  catalogId: string;
   kind: ShuntKind;
   /** Size of one step, MVAr (+ capacitive). */
   mvarStep: number;
@@ -280,6 +284,8 @@ export interface Metrics {
   /** CO2 emitted, tonnes. */
   co2t: number;
   predictions: Prediction[];
+  /** Named level measurements the star rules read (e.g. 'pfMinAbs', 'lossPct', 'vLoadMinV'); written by systems, never by levels. */
+  track: Record<string, number>;
 }
 
 export interface Budget { /** pack currency */ capexLimit: number; spent: number }
@@ -309,8 +315,27 @@ export interface Rules {
   maxEnsMWh: number | null; maxCost: number | null; minNadirHz: number | null; maxPoorSupplyMin: number | null;
   /** A total blackout loses the level. */
   blackoutLoses: boolean;
-  /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS); null = one star. */
+  /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS and every `star3` condition); null = one star. */
   starCost: [number, number] | null;
+  /** What `starCost` compares: the operating `metrics.cost` or the build cost `budget.spent`. */
+  starBasis: 'operating' | 'capex';
+  /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
+  star3: { key: string; min: number | null; max: number | null }[];
+}
+
+/** A bench level's circuit as the player has built it so far (DC bench, DESIGN 2.6 L01-L03). Derived values are recomputed, never stored. */
+export interface BenchState {
+  scenario: 'l01' | 'l02' | 'l03';
+  /** Distance of the battery hut from the first hamlet, m; null until placed. */
+  hutM: number | null;
+  /** Cable per segment: 'main' (L01, L03; L02 trunk or radial A), 'b' (radial B / trunk branch), cross-section in mm2; null = not laid. */
+  cableMm2: { main: number | null; b: number | null };
+  /** L02 only: 'radial' (two cables from the hut) or 'trunk' (junction box, trunk plus branch); null until chosen. */
+  topology: 'radial' | 'trunk' | null;
+  /** L03: converter pair placed (380 V line) or not (48 V line). */
+  converters: boolean;
+  /** Pass limits resolved from the level and region at setup: lowest home voltage, V, and highest line-loss share, percent (null = not enforced). */
+  limits: { vMinV: number | null; lossMaxPct: number | null };
 }
 
 /** Summary of the last operator block (everything the HUD and the explain card need that is not stored elsewhere). */
@@ -359,4 +384,6 @@ export interface GridState extends BaseState {
   /** Concept ids unlocked in this level state (campaign-wide unlocks live in the profile save). */
   codexUnlocked: string[];
   stars: 0 | 1 | 2 | 3;
+  /** The bench circuit of a bench level; null on grid levels and in free play. */
+  bench: BenchState | null;
 }

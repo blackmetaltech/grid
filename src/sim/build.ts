@@ -14,7 +14,7 @@ export interface GenSpec {
 }
 export interface LineSpec { id: string; kind: 'line' | 'cable'; kv: number; rOhmKm: number; xOhmKm: number; bUsKm: number; thermalMva: number; costPerKm: number }
 export interface XfmrSpec { id: string; mva: number; kvHv: number; kvLv: number; zPct: number; xr: number; noLoadKw: number; loadKw: number; tapMin: number; tapMax: number; price: number }
-export interface ShuntSpec { id: string; kind: ShuntKind; mvarStep: number; maxSteps: number; pricePerKvar: number }
+export interface ShuntSpec { id: string; kind: ShuntKind; mvarStep: number; maxSteps: number; pricePerKvar: number; /** price multiplier of automatic (voltage-switched) control */ autoFactor: number }
 export interface StorageSpec { id: string; mw: number; mwh: number; etaRt: number; capexPerKw: number | null; capexPerKwh: number | null }
 
 /** What the actions need to know about the catalogue. game.ts builds one from the pack; tests inject their own. */
@@ -79,7 +79,7 @@ export function makeTransformer(spec: XfmrSpec, id: string, from: string, to: st
 }
 
 export function makeShunt(spec: ShuntSpec, id: string, bus: string, steps: number): Shunt {
-  return { id, bus, kind: spec.kind, mvarStep: spec.kind === 'reactor' ? -Math.abs(spec.mvarStep) : spec.mvarStep, steps, on: 0, auto: null };
+  return { id, bus, catalogId: spec.id, kind: spec.kind, mvarStep: spec.kind === 'reactor' ? -Math.abs(spec.mvarStep) : spec.mvarStep, steps, on: 0, auto: null };
 }
 
 export function makeStorage(spec: StorageSpec, id: string, bus: string): Storage {

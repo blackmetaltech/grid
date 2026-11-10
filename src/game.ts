@@ -5,6 +5,10 @@ import { baseState, log, type GameDef } from '@core/kit';
 import { formatMoney, type RegionPack } from '@core/regions';
 import { BLOCKS_PER_DAY, MODES, SPEEDS, type GridState } from './types';
 import { LEVELS } from './levels';
+import { LEVEL_SPECS, specOf } from './level';
+import { allowedGate } from './level/spec';
+import { buildBenchActions } from './level/bench';
+import { buildLevelQueries } from './level/queries';
 import { PERSONAS } from './personas';
 import { t } from './i18n';
 import { REGIONS } from './regions';
@@ -12,7 +16,8 @@ import type { GridRegionData } from './regions/data';
 import { buildPipeline, emptyBlock } from './sim/tick';
 import { findNonFinite } from './sim/finite';
 import type { SimParams } from './sim/params';
-import { catalogueViewOf, simParamsOf } from './catalogue';
+import { catalogueViewOf, simParamsOf, benchParamsOf } from './catalogue';
+import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import type { CatalogueView } from './sim/build';
 import { buildQueries } from './queries';
@@ -43,8 +48,16 @@ const catalogueOf = (s: GridState): CatalogueView => {
   return v;
 };
 
+const BENCHES = new Map<string, BenchParams>();
+const getBench = (s: Pick<GridState, 'region'>): BenchParams => {
+  let p = BENCHES.get(s.region);
+  if (!p) { p = benchParamsOf((REGIONS.get(s.region) as RegionPack<GridRegionData>).data); BENCHES.set(s.region, p); }
+  return p;
+};
+const money = (s: GridState, amount: number): string => formatMoney(amount, REGIONS.get(s.region));
+
 /** The systems pipeline, DESIGN §8.3 order (src/sim/tick.ts). */
-const SYSTEMS = buildPipeline(getParams);
+const SYSTEMS = buildPipeline(getParams, getBench);
 
 export const GAME: GameDef<GridState> = {
   id: GAME_ID,
@@ -72,7 +85,7 @@ export const GAME: GameDef<GridState> = {
       freq: { fHz: pack.data.f0, rocof: 0 },
       events: { queue: [], log: [] },
       replay: null,
-      metrics: { cost: 0, capex: 0, opex: 0, ensMWh: 0, lossesMWh: 0, poorSupplyMin: 0, ovMin: 0, minMarginPct: 0, nadirHz: pack.data.f0, maxRocof: 0, tapOps: 0, switchOps: 0, co2t: 0, predictions: [] },
+      metrics: { cost: 0, capex: 0, opex: 0, ensMWh: 0, lossesMWh: 0, poorSupplyMin: 0, ovMin: 0, minMarginPct: 0, nadirHz: pack.data.f0, maxRocof: 0, tapOps: 0, switchOps: 0, co2t: 0, predictions: [], track: {} },
       budget: { capexLimit: 0, spent: 0 },
       history: { capacity: HISTORY_CAPACITY, entries: [] },
       rules: { ...NO_RULES },
@@ -81,12 +94,17 @@ export const GAME: GameDef<GridState> = {
       coach: { stepId: null, hintsUsed: 0, seen: [] },
       codexUnlocked: [],
       stars: 0,
+      bench: null,
     };
     log(s, t('log.start', { region: regionString(pack, 'region'), f0: pack.data.f0, code: regionString(pack, 'gridcode') }));
     return s;
   },
-  actions: buildActions({ cat: catalogueOf, getParams, money: (s, amount) => formatMoney(amount, REGIONS.get(s.region)) }),
-  queries: buildQueries({ getParams }),
+  /** The player's actions, gated by the running level's allowed parts (free play is untouched). */
+  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }) }, specOf),
+  queries: {
+    ...buildQueries({ getParams }),
+    ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
+  },
   systems: SYSTEMS,
   catalogues: () => ({ blocksPerDay: BLOCKS_PER_DAY, blockMinutes: 15, speeds: [...SPEEDS] }),
   levels: LEVELS,
@@ -103,5 +121,9 @@ export const GAME: GameDef<GridState> = {
   },
   saveLabel: (s) => t('save.label', { region: REGIONS.get(s.region).strings.region ?? s.region, day: s.clock.day + 1, buses: s.buses.length }),
   describe: (s) => `Tick ${s.tick}: day ${s.clock.day}, block ${s.clock.block}, speed ${s.clock.speed}x, ${s.buses.length} buses, status ${s.status}.`,
-  legalActions: () => SPEEDS.map((x) => ({ name: 'setSpeed', args: [x] })),
+  /** setSpeed always; with `full` the running level's whole site list too (what the cheese search and the searcher walk). */
+  legalActions: (s, full) => [
+    ...SPEEDS.map((x) => ({ name: 'setSpeed', args: [x] })),
+    ...(full && s.level ? (LEVEL_SPECS.find((l) => l.id === s.level)?.sites.flatMap((x) => x.options.flatMap((o) => o.actions)) ?? []) : []),
+  ],
 };

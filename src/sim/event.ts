@@ -128,6 +128,7 @@ export interface LevelResult { status: 'playing' | 'won' | 'lost'; /** locale ke
 export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, ticksUsed: number): LevelResult {
   const lost = (key: string, params: Record<string, string | number> = {}): LevelResult => ({ status: 'lost', key, params, stars: 0 });
   const m = s.metrics;
+  if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit + 1e-9) return lost('level.lost.budget', { spent: Math.round(s.budget.spent), max: Math.round(s.budget.capexLimit) });
   if (rules.blackoutLoses && s.block.blackout) return lost('level.lost.blackout');
   if (rules.maxEnsMWh !== null && m.ensMWh > rules.maxEnsMWh) return lost('level.lost.ens', { ens: Math.round(m.ensMWh * 10) / 10, max: rules.maxEnsMWh });
   if (rules.maxCost !== null && m.cost > rules.maxCost) return lost('level.lost.cost', { cost: Math.round(m.cost), max: rules.maxCost });
@@ -135,7 +136,12 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.maxPoorSupplyMin !== null && m.poorSupplyMin > rules.maxPoorSupplyMin) return lost('level.lost.poorSupply', { min: m.poorSupplyMin, max: rules.maxPoorSupplyMin });
   if (rules.horizonBlocks !== null && ticksUsed >= rules.horizonBlocks) {
     let stars: 1 | 2 | 3 = 1;
-    if (rules.starCost) { if (m.cost <= rules.starCost[0]) stars = 2; if (m.cost <= rules.starCost[1] && m.ensMWh === 0) stars = 3; }
+    if (rules.starCost) {
+      const c = rules.starBasis === 'capex' ? s.budget.spent : m.cost;
+      const extra = rules.star3.every((r) => { const v = m.track[r.key]; return v !== undefined && (r.min === null || v >= r.min - 1e-12) && (r.max === null || v <= r.max + 1e-12); });
+      if (c <= rules.starCost[0] + 1e-6) stars = 2;
+      if (c <= rules.starCost[1] + 1e-6 && m.ensMWh === 0 && extra) stars = 3;
+    }
     return { status: 'won', key: 'level.won', params: { stars }, stars };
   }
   return { status: 'playing', key: null, params: {}, stars: 0 };
