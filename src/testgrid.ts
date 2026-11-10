@@ -43,7 +43,7 @@ export function populate(s: GridState, opts: { wind?: boolean; pv?: boolean } = 
   if (opts.pv !== false) must(A.placeUnit!(s, 't-pv', 'B6', 50) as never);
   must(A.placeLoad!(s, 'B7', 'residential', 40, 0.95) as never); must(A.placeLoad!(s, 'B8', 'commercial', 30, 0.95) as never);
   must(A.placeLoad!(s, 'B9', 'industrial', 45, 0.9) as never); must(A.placeLoad!(s, 'B10', 'residential', 35, 0.95) as never);
-  s.actionLog = []; s.budget.spent = 0;   // the starting grid is not the player's move or spending
+  s.actionLog = []; s.budget.spent = 0; delete s.purchases;   // the starting grid is not the player's move or spending
   for (const u of s.units) if (u.kind === 'coal' || u.kind === 'gas') { u.online = true; u.P = u.pMin; }
 }
 

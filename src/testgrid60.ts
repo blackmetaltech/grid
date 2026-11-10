@@ -25,7 +25,7 @@ export function populate60(s: GridState): void {
   });
   const classes = ['residential', 'commercial', 'industrial'] as const;
   for (let i = 0; i < W * H; i++) if (!genAt.has(i)) must(A.placeLoad!(s, `B${i + 1}`, classes[i % 3]!, 14, 0.95) as never);
-  s.actionLog = []; s.budget.spent = 0;
+  s.actionLog = []; s.budget.spent = 0; delete s.purchases;
   for (const u of s.units) if (u.kind === 'coal' || u.kind === 'gas') { u.online = true; u.P = u.pMin; }
 }
 

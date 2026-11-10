@@ -144,7 +144,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
       const mode = s.mode; s.mode = 'sandbox';   // the scenario places the town's loads, which only sandbox may do
       spec.place(s, { A, params, bench: benchParamsOf(pack.data), cat, th, frozen });
       s.mode = mode;
-      s.actionLog = []; s.budget.spent = s.bench ? s.budget.spent : 0;
+      s.actionLog = []; s.budget.spent = s.bench ? s.budget.spent : 0; delete s.purchases;   // what the scenario placed is not the player's to refund
       if (frozen) s.budget.capexLimit = frozen.budget;
       s.rules = rulesFor(spec, th, frozen);
       s.clock.block = spec.startBlock; s.tick = spec.startBlock;

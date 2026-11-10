@@ -73,7 +73,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const unit = makeUnit(spec, id, bus, mw);
       s.units.push(unit);
       const capex = (spec.capexPerKw ?? 0) * mw * 1000;
-      s.budget.spent += capex;
+      s.budget.spent += capex; (s.purchases ??= {})[id] = capex;
       return accept(s, 'placeUnit', 'act.unit.ok', { id, catalog: catalogId, mw, bus, capex: d.money(s, capex) });
     },
     placeLoad: (s, bus: unknown, cls: unknown, peakMW: unknown, pf: unknown) => {
@@ -102,7 +102,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const id = nextId(s.branches.map((x) => x.id), 'T');
       const br = makeLine(spec, id, from, to, len, n, []);
       s.branches.push(br);
-      s.budget.spent += spec.costPerKm * len * n;
+      s.budget.spent += spec.costPerKm * len * n; (s.purchases ??= {})[id] = spec.costPerKm * len * n;
       return accept(s, 'stringLine', 'act.line.ok', { id, len: r1(len), circuits: n, x: r3(br.x), mva: Math.round(br.ratingMVA) });
     },
     /** Lay a submarine cable between two buses of its voltage (L30): no supports, no waypoints; its length is the sea distance the level gives (`rules.seaCableKm`), else the straight distance. */
@@ -122,7 +122,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const id = nextId(s.branches.map((x) => x.id), 'T');
       s.branches.push(makeLine(spec, id, from, to, len, 1, []));
       const cost = spec.costPerKm * len, kvar = spec.bUsKm * 1e-6 * (spec.kv * 1000) * (spec.kv * 1000) * len / 1000;   // Q = V^2 w C l = V^2 B l
-      s.budget.spent += cost;
+      s.budget.spent += cost; (s.purchases ??= {})[id] = cost;
       s.cables = [...(s.cables ?? []), { branchId: id, cableId, lengthKm: len, cost, chargingKvar: kvar }];
       s.solution = null;
       return accept(s, 'layCableRoute', 'act.cable.ok', { id, km: r1(len), kvar: r1(kvar), cost: d.money(s, cost), amps: Math.round(spec.thermalMva * 1000 / (Math.sqrt(3) * spec.kv)) });
@@ -139,7 +139,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (Math.abs(a.kvNom - spec.kvHv) > 1e-9 || Math.abs(b.kvNom - spec.kvLv) > 1e-9) return reject('act.xfmr.kv', { kvHv: spec.kvHv, kvLv: spec.kvLv, hv, lv, busHv: a.kvNom, busLv: b.kvNom });
       const id = nextId(s.branches.map((x) => x.id), 'T');
       s.branches.push(makeTransformer(spec, id, hv, lv));
-      s.budget.spent += spec.price;
+      s.budget.spent += spec.price; (s.purchases ??= {})[id] = spec.price;
       return accept(s, 'placeTransformer', 'act.xfmr.ok', { id, mva: spec.mva, zpct: spec.zPct, hv, lv });
     },
     placeShunt: (s, bus: unknown, catalogId: unknown, steps: unknown) => {
@@ -151,7 +151,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const n = isNum(steps) && Number.isInteger(steps) && steps >= 1 ? Math.min(steps, spec.maxSteps) : spec.maxSteps;
       const id = nextId(s.shunts.map((x) => x.id), 'C');
       s.shunts.push(makeShunt(spec, id, bus, n));
-      s.budget.spent += spec.pricePerKvar * Math.abs(spec.mvarStep) * 1000 * n;
+      s.budget.spent += spec.pricePerKvar * Math.abs(spec.mvarStep) * 1000 * n; (s.purchases ??= {})[id] = spec.pricePerKvar * Math.abs(spec.mvarStep) * 1000 * n;
       return accept(s, 'placeShunt', 'act.shunt.ok', { id, kind: spec.kind, steps: n, mvar: Math.abs(spec.mvarStep), bus });
     },
     placeStorage: (s, bus: unknown, catalogId: unknown) => {
@@ -162,7 +162,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (!spec) return reject('act.unknownCatalog', { what: t(WHAT.storage), id: catalogId });
       const id = nextId(s.storage.map((x) => x.id), 'S');
       s.storage.push(makeStorage(spec, id, bus));
-      s.budget.spent += (spec.capexPerKw ?? 0) * spec.mw * 1000 + (spec.capexPerKwh ?? 0) * spec.mwh * 1000;
+      s.budget.spent += (spec.capexPerKw ?? 0) * spec.mw * 1000 + (spec.capexPerKwh ?? 0) * spec.mwh * 1000; (s.purchases ??= {})[id] = (spec.capexPerKw ?? 0) * spec.mw * 1000 + (spec.capexPerKwh ?? 0) * spec.mwh * 1000;
       return accept(s, 'placeStorage', 'act.storage.ok', { id, mw: spec.mw, mwh: spec.mwh, bus });
     },
     demolish: (s, id: unknown) => {
@@ -175,11 +175,11 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       s.shunts = s.shunts.filter((h) => h.id !== id && !(isBus && h.bus === id));
       s.storage = s.storage.filter((b) => b.id !== id && !(isBus && b.bus === id));
       s.buses = s.buses.filter((b) => b.id !== id);
-      for (const r of s.routes) if (!s.branches.some((b) => b.id === r.branchId)) s.budget.spent -= r.cost;   // a surveyed line taken down is refunded: re-stringing with another kit costs the difference, not a second line
       s.routes = s.routes.filter((r) => s.branches.some((b) => b.id === r.branchId));   // a demolished line takes its route record with it
-      if (s.cables) {   // a laid submarine cable taken up is refunded the same way
-        for (const c of s.cables) if (!s.branches.some((b) => b.id === c.branchId)) s.budget.spent -= c.cost;
-        s.cables = s.cables.filter((c) => s.branches.some((b) => b.id === c.branchId));
+      if (s.cables) s.cables = s.cables.filter((c) => s.branches.some((b) => b.id === c.branchId));
+      if (s.purchases) {   // anything the player bought this level (line, route, cable, transformer, bank, battery, unit) and takes down again is refunded: re-picking a size costs the difference; pre-placed district gear refunds nothing
+        const live = new Set([...s.branches.map((b) => b.id), ...s.shunts.map((h) => h.id), ...s.storage.map((x) => x.id), ...s.units.map((u) => u.id)]);
+        for (const k of Object.keys(s.purchases)) if (!live.has(k)) { s.budget.spent -= s.purchases[k]; delete s.purchases[k]; }
       }
       s.solution = null;
       return accept(s, 'demolish', 'act.demolish.ok', { id });

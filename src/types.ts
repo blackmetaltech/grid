@@ -451,6 +451,8 @@ export interface GridState extends BaseState {
   routes: RouteRecord[];
   /** Submarine cables laid with `layCableRoute` (L30), in build order; absent until the first one (old states and goldens stay as they were). */
   cables?: SeaCableRecord[];
+  /** What the player paid for each transformer, shunt bank and battery placed this level (id -> price), so demolishing it refunds that price; absent until the first purchase (old states and goldens stay as they were). Pre-placed district gear has no entry and refunds nothing. */
+  purchases?: Record<string, number>;
 }
 
 /** A laid submarine cable: its branch, price (refunded when it is demolished), and what it was made of. */

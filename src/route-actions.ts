@@ -204,7 +204,7 @@ export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridSta
       const terrain = terrainOf(s.terrain)!;
       const toTile = (p: [number, number]): [number, number] => [r3(p[0] / terrain.tileM - 0.5), r3(p[1] / terrain.tileM - 0.5)];
       s.branches.push(makeLine(spec, id, a.from, a.to, plan.lengthM / 1000, 1, a.waypointsM.map(toTile)));
-      s.budget.spent += cost.total;
+      s.budget.spent += cost.total; (s.purchases ??= {})[id] = cost.total;
       const rec: RouteRecord = {
         branchId: id, request: { ...request, waypoints: request.waypoints.map((p) => [p[0], p[1]] as [number, number]) }, worstMarginM: r3(plan.worstMarginM), badSpans: ev.badSpans,
         lengthM: r3(plan.lengthM), cost: cost.total, supports: plan.supports.length, worst: ev.worst, longest: ev.longest,
