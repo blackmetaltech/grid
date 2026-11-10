@@ -214,6 +214,40 @@ from the harbour (only cable can cross the sea; no supports), an 11/0.42 kV tran
 - Story payoff: Nia's exam results arrive on the island's first mainland-powered night; Ada retires; Tobi: "Island's on the grid. Mind
   the anchor."
 
+## 8c. Next layers after chapter 2 (design, Opus, 2026-11-10 night)
+**District persistence, done properly (v0.6).** Today L29 and L30 start from the *reference* builds of the earlier jobs.
+
+Engine:
+- `reset({ inherit: { L05: actions[], L29: actions[] } })` replays the player's own verified actions in `place()` instead of the reference, falling back to the reference when the inherited plan does not pass the earlier job's checks.
+- The run's verdict uses the inherited network, so an undersized L05 transformer (dt-250) shows up in L29 as an overload the player must fix, by paying to swap it.
+
+UI:
+- The profile save keeps each job's last *passing* design (the actions that `_grid_design` already rebuilds) and passes them on job start.
+- The work order shows "Your River Line (year 1) still stands: 4.0 km, concrete, 11 kV".
+
+Leaderboard: a **district score** (sum of the chapter's spend plus unserved energy at a $/kWh penalty) on the chapter card.
+
+**L31 The First Substation (Ch 3, Mill Town district; v0.7).**
+
+Map and setting:
+- A new 100×44 district map: a river valley mill town fed at 33 kV from the north.
+- The player places a 33/11 kV substation on a flat site and picks its **bays**: one per incoming line, transformer and outgoing feeder, each bay a priced item.
+- The player picks the transformer MVA and builds two 11 kV feeders: the mill and the town.
+
+The night's events:
+- Storms bring transient faults. A branch on the line clears by itself, as about 80 % of overhead faults do (`recall`).
+- A **fuse** blows and stays dark until a crew drives out: 45 min plus the travel distance, at `game` speeds.
+- A **recloser** opens and recloses in 2 s, and stays open only on a permanent fault.
+
+Learning: the player discovers the recloser is worth its price on the long rural feeder but not on a short town cable. Trees growing into an uncleared right of way turn transient faults into permanent ones, which links back to the forest clearing cost in L05.
+
+Scoring, oracles and teaching:
+- Score: SAIDI and SAIFI (IEEE 1366) for the night plus cost; ★★★ needs SAIDI ≤ X minutes.
+- Oracles: SAIDI and SAIFI by hand for a scripted fault list; fuse I²t versus the recloser fast curve is a v0.8 teaser, not modelled.
+- Teaches: single-line diagrams, bays, transient vs permanent faults, reliability indices (Diploma/B.Tech, R4).
+
+**L32 Ring the Substations (Ch 5)** and **L33 Eyes on the Grid (Ch 6)** keep §7's plan: bus schemes and N-1 maintenance outages, then SCADA detection time versus customer calls, measured in SAIDI.
+
 ## 9. Oracles for the route module (added to DESIGN §9.1; computed by an independent script, never by the engine)
 | id | problem | expected (tolerance) |
 |---|---|---|
