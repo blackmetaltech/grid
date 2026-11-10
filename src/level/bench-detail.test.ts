@@ -126,3 +126,14 @@ describe('benchPreview', () => {
     expect((start('L07').q('benchPreview', [{ mm2: 10 }]) as any)).toMatchObject({ ok: false });
   });
 });
+
+describe('benchKit query', () => {
+  it('per-metre price x run + poles equals the cost the engine charges, for every L01 design', () => {
+    for (const hut of HUT_SITES_M) for (const mm2 of CABLE_SIZES_MM2) {
+      const e = l01(hut, mm2), k: any = e.q('benchKit'), c = k.cables.find((x: any) => x.mm2 === mm2);
+      const want = c.perM * hut + Math.ceil(hut / k.poleSpacingM) * k.polePrice;
+      expect(rel(want, k.spent)).toBeLessThan(1e-9);
+      expect(typeof c.perMText).toBe('string'); expect(k.budget).toBeGreaterThan(0);
+    }
+  });
+});

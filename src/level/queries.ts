@@ -2,8 +2,10 @@
 // numbers (what the Inspector shows: voltage, current, loss share, cost) and the population stub's histogram.
 import type { QueryFn } from '@core/kit';
 import { t } from '../i18n';
+import { formatMoney } from '@core/regions';
+import { REGIONS } from '../regions';
 import type { GridState } from '../types';
-import { benchCost, benchDetail, previewBench, solveBench, type BenchParams } from './bench';
+import { benchKit, benchCost, benchDetail, previewBench, solveBench, type BenchParams } from './bench';
 import { currentCoachStep, resolveThresholds, type GridLevelSpec } from './spec';
 import type { SimParams } from '../sim/params';
 
@@ -49,6 +51,12 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       return { active: true, scenario: s.bench.scenario, powered: r.powered, vMinV: r3(r.vMinV), vLoadV: r.vLoadV.map(r3), lossPct: r3(r.lossPct), ampFracMax: r3(r.ampFracMax), cost: r3(benchCost(s.bench, p)), reason: r.reason ? t(r.reason) : null, bench: s.bench };
     },
     /** Per-run numbers of the bench as laid (SI, unrounded): runs with their equation data, and the totals. */
+    /** Prices and specs the kit tray shows (money already formatted for the region pack). */
+    benchKit: (s) => {
+      if (!s.bench) return { active: false };
+      const k = benchKit(d.getBench(s)), pack = REGIONS.get(s.region);
+      return { active: true, ...k, cables: k.cables.map((c) => ({ ...c, perMText: formatMoney(c.perM, pack, { decimals: 2 }) })), budgetText: formatMoney(s.budget.capexLimit, pack), spentText: formatMoney(s.budget.spent, pack), budget: s.budget.capexLimit, spent: s.budget.spent };
+    },
     benchDetail: (s) => {
       if (!s.bench) return { active: false, reason: 'bench.none' };
       const r = solveBench(s.bench, d.getBench(s)), det = benchDetail(s.bench, d.getBench(s));
