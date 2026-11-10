@@ -549,6 +549,27 @@ func _windows(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, energy: 
 			var q := PackedVector2Array([a + dir * u0 + up * v0, a + dir * u1 + up * v0, a + dir * u1 + up * v1, a + dir * u0 + up * v1])
 			_ci.draw_colored_polygon(q, lit_col if on else UNLIT)
 
+## Window quads of one wall, split into lit / dark sets (same layout and hash as before; the draw is cached as meshes, see _building).
+func _window_quads(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, seed_v: float, on_v: PackedVector2Array, off_v: PackedVector2Array) -> void:
+	var up := Vector2(0, -h)
+	for r in rows:
+		for c in cols:
+			var on := WorldMath.hash2(c * 31 + int(seed_v * 1000.0), r, 9) > 0.22
+			var u0 := (float(c) + 0.2) / float(cols); var u1 := (float(c) + 0.8) / float(cols)
+			var v0 := (float(r) + 0.25) / float(rows) * 0.8 + 0.1; var v1 := (float(r) + 0.75) / float(rows) * 0.8 + 0.1
+			var q0 := a + dir * u0 + up * v0; var q1 := a + dir * u1 + up * v0; var q2 := a + dir * u1 + up * v1; var q3 := a + dir * u0 + up * v1
+			var dst := on_v if on else off_v
+			dst.append_array(PackedVector2Array([q0, q1, q2, q0, q2, q3]))
+
+func _quad_mesh(tris: PackedVector2Array) -> ArrayMesh:
+	var m := ArrayMesh.new()
+	if tris.is_empty(): return m
+	var cols := PackedColorArray(); cols.resize(tris.size()); cols.fill(Color.WHITE)
+	var arr := []; arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = tris; arr[Mesh.ARRAY_COLOR] = cols
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return m
+
 func _glow(p: Vector2, r: float, col: Color, a: float) -> void:
 	if a <= 0.01: return
 	for k in 3: _ci.draw_circle(p, r * (1.0 - float(k) * 0.28), Color(col.r, col.g, col.b, a * (0.35 + 0.3 * float(k))))
@@ -804,8 +825,14 @@ func _building(o: Dictionary) -> void:
 	if float(t.v) > 0.0 and float(t.v) < 0.92: flick = 0.72 + 0.28 * sin(_t * 17.0 + float(o.k) * 2.7)
 	var x0 := p.x - w * 0.5; var y1 := p.y + w * 0.5; var x1 := p.x + w * 0.5; var y0 := p.y - w * 0.5
 	var cols := maxi(1, int(round(w * 8.0))); var rows := maxi(1, int(h / 9.0))
-	_windows(_iso(x0, y1, base), _iso(x1, y1, base) - _iso(x0, y1, base), h, cols, rows, e, o.v, flick)
-	_windows(_iso(x1, y1, base), _iso(x1, y0, base) - _iso(x1, y1, base), h, cols, rows, e, o.v + 0.37, flick)
+	if not o.has("wm"):   # window quads of both walls, built once per rebuild into two meshes (lit / dark): 2 draw calls instead of ~cols*rows*2
+		var on_v := PackedVector2Array(); var off_v := PackedVector2Array()
+		_window_quads(_iso(x0, y1, base), _iso(x1, y1, base) - _iso(x0, y1, base), h, cols, rows, o.v, on_v, off_v)
+		_window_quads(_iso(x1, y1, base), _iso(x1, y0, base) - _iso(x1, y1, base), h, cols, rows, o.v + 0.37, on_v, off_v)
+		o["wm"] = [_quad_mesh(on_v), _quad_mesh(off_v)]
+	var lit_col := UNLIT.lerp(WorldMath.SODIUM, clampf(e * _gain * flick, 0.0, 1.0))
+	_ci.draw_mesh(o.wm[1], null, Transform2D.IDENTITY, UNLIT)
+	_ci.draw_mesh(o.wm[0], null, Transform2D.IDENTITY, lit_col)
 	if o.role != "":   # hipped roof; the health post carries a red cross on its front wall
 		var rc := Color("#7E3B32") if o.role == "school" else Color("#4E8C6A")
 		var ap2 := _iso(p.x, p.y, base + h + 8.0)
