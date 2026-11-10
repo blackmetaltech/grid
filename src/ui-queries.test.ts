@@ -13,7 +13,7 @@ describe('ui queries', () => {
     for (const spec of LEVEL_SPECS) {
       const p = start(spec.id).q('palette') as any;
       expect(p.active).toBe(true);
-      expect(p.actions.map((a: any) => a.action)).toEqual(spec.allowed.actions);
+      expect(p.actions.map((a: any) => a.action)).toEqual(spec.allowed.actions.filter((a) => a !== 'setSpeed' && a !== 'predict'));   // predictions are typed on the level's own card, not picked from the tray
       for (const a of p.actions) expect(a.parts).toEqual(spec.allowed.parts[a.action] ?? []);
     }
   });

@@ -217,7 +217,7 @@ describe('controls and commitment', () => {
     const soc = (e.state as GridState).storage[0]!.soc; expect(soc).toBeGreaterThan(0.5);
     (e.state as GridState).dispatch.lambda = 500; e.act('tick'); expect((e.state as GridState).storage[0]!.P).toBeGreaterThanOrEqual(0);
   });
-  it('the pipeline is exactly the 17 systems of DESIGN 8.3 in order', () => {
-    expect(buildPipeline(() => TEST_PARAMS).map((x) => x.id)).toEqual(['clock', 'weather', 'demand', 'renewables', 'commitment', 'dispatch', 'controls', 'flashover', 'loadflow', 'limits', 'events', 'blockFrequency', 'economics', 'metrics', 'levelRules', 'explain', 'history']);
+  it('the pipeline is the 17 systems of DESIGN 8.3 in order, plus the chapter systems (finale weather after the weather; chapter 3 and 4 studies after the metrics)', () => {
+    expect(buildPipeline(() => TEST_PARAMS).map((x) => x.id)).toEqual(['clock', 'weather', 'finaleWeather', 'demand', 'renewables', 'commitment', 'dispatch', 'controls', 'flashover', 'loadflow', 'limits', 'events', 'blockFrequency', 'economics', 'metrics', 'ch3', 'ch4', 'levelRules', 'explain', 'history']);
   });
 });
