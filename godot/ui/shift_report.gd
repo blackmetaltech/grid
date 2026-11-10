@@ -262,7 +262,7 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	else:
 		var tr_: Dictionary = g.get("metrics", {}).get("track", {})
 		var r3_ = g.get("rules", {}).get("ch3"); var no_loss: bool = r3_ is Dictionary and (r3_.has("harmonics") or r3_.has("fault"))   # L08 and L09 are not judged on losses
-		if tr_.get("lossPct") != null and not no_loss and not bool(g.get("rules", {}).get("freqTrack", false)):   # chapter 6 is judged on frequency m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])
+		if tr_.get("lossPct") != null and not no_loss and not bool(g.get("rules", {}).get("freqTrack", false)): m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])   # chapter 6 is judged on frequency, not losses
 	var mr := HBoxContainer.new(); mr.add_theme_constant_override("separation", 20); col.add_child(mr)
 	for it in m:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); mr.add_child(cell)

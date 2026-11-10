@@ -47,6 +47,7 @@ func refresh() -> void:
 	_island.text = lamp[0]; _island.add_theme_color_override("font_color", lamp[1])
 	var tr: Dictionary = g.metrics.track
 	var lim := float(g.rules.get("maxEnsMWh", 0.0))
+	_stats.visible = int(g.tick) > int(g.levelStart)
 	_stats.text = tx("CF_STATS") % [float(tr.get("vMinPu", 0.0)), float(tr.get("vMaxPu", 0.0)), float(g.metrics.ensMWh), lim, int(tr.get("freqDips", 0))]
 	var sig := str((g.actionLog as Array).size()) + str(g.get("status", "")) + str(g.tick)
 	if sig != _sig: _sig = sig; _rebuild_ticker(g)
@@ -74,6 +75,7 @@ func _island_text(g: Dictionary) -> Array:
 
 func _rebuild_ticker(g: Dictionary) -> void:
 	var lines: Array = []
+	if int(g.tick) <= int(g.levelStart): _ticker.text = tx("CF_TICKER_EMPTY"); return   # the opening line of the free-play log is not news
 	var lg: Array = g.get("log", [])
 	for i in range(lg.size() - 1, -1, -1):
 		var e = lg[i]
