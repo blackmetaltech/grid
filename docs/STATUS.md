@@ -14,7 +14,8 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
 - M1.4 src/sim/dynamics (frequency window, SMIB): PS-23..26, G-12, G-13, L19 table; P16,P17.
 - M1.5 src/sim/protection, src/sim/thermal (faults, relays, breakers, overload, cascade): PS-17/18/19, G-06/07/18; P19,P20.
 - M1.6 src/sim/dispatch: PS-20/21/22, G-09, G-16; P15,P18.  M1.7 src/sim/weather: G-08, G-14, shape tests.
-- Oracle coverage: all 71 rows have engine tests in the lanes above (spot-verify with `grep -rho "[AGP][CS]\?-[0-9]\+b\?" src/sim | sort -u | wc -l`).
+- Oracle coverage: **62/71** rows have engine tests. Missing: PS-01..05, PS-09, PS-10 (per-unit/3-phase/SIL/loss closed forms) and
+  PS-27/28 (generator phasor; L13 stretch). Small task: add them (bench/network helpers) before the M1 exit.
 
 ### Partial (committed as WIP)
 - M1.8 catalogues: row types/validator extended (src/regions/data.ts); src/data/{conductors,lineTemplates,governors,types}.ts entered.
