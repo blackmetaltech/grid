@@ -42,7 +42,7 @@ describe('ui queries', () => {
     const r = e.q('resultCard') as any;
     expect(r.active).toBe(true); expect(r.source).toBe('bot'); expect(r.labelKey).toBe('hist.bot');
     expect(r.bins.length).toBe(10); expect(r.bins.reduce((a: number, b: any) => a + b.count, 0)).toBe(r.n);
-    expect(r.metricKey).toBe('hist.metric.lossPct'); expect(r.label).toBe('Bot population (offline estimate)'); expect(r.histogram).toBe('lossPct');
+    expect(r.metricKey).toBe('hist.metric.lossPct'); expect(r.label).toBe('Every design the job allows (offline sample, not real players yet)'); expect(r.histogram).toBe('lossPct');
     expect((start('P0').q('resultCard') as any).active).toBe(false);
   }, 60000);
 });

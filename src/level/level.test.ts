@@ -287,7 +287,7 @@ describe('histogram population (bot stub)', () => {
   it('is labelled as a bot population and uses real engine scores of the whole site list', () => {
     for (const region of REGION_IDS) {
       const L01 = specOf('L01')!, pop = botPopulation(L01, region);
-      expect(pop.label).toBe('bot'); expect(pop.labelKey).toBe('hist.bot'); expect(en['hist.bot']).toMatch(/Bot population/);
+      expect(pop.label).toBe('bot'); expect(pop.labelKey).toBe('hist.bot'); expect(en['hist.bot']).toMatch(/offline sample/);
       expect(pop.designs).toBe(56); expect(pop.passing).toBeGreaterThan(10);
       expect(pop.scores).toEqual([...pop.scores].sort((a, b) => a - b));
       expect(pop.metric).toBe('capex');
