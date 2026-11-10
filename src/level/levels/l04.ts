@@ -24,7 +24,7 @@ export const L04: GridLevelSpec = {
     { id: 'poles', options: [4, 8, 10, 12, 14, 20].map((p) => ({ id: `p${p}`, actions: [{ name: 'setPoles', args: [p] }] })) },
     { id: 'winding', options: WINDINGS },
   ],
-  thresholds: { bandMax: 1, predTolPct: 1 },
+  thresholds: { bandMax: 1, vTolPct: MACHINE.voltageTolPct, fTolPct: MACHINE.freqTolPct, predTolPct: 1 },   // the work order lists the two tolerances; bandMax (the share of them used) is the engine's decisive number
   decisive: { key: 'bandUsed', limit: 'bandMax', dir: 'max' },
   star3: [{ key: 'predErrPct', max: 'predTolPct' }],
   story: { placeKey: 'level.L04.place', lineKeys: ['level.L04.story1', 'level.L04.story2'], lessonKey: 'level.L04.lesson' },
