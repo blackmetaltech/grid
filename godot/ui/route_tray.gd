@@ -806,7 +806,7 @@ func _draw() -> void:
 		if not _visible_item(i): continue
 		var it: Dictionary = items[i]; var r: Rect2 = it.rect
 		var sel := _selected(it)
-		var fc := (engaged or CbKit.pad_mode) and i == focus
+		var fc := (engaged or (CbKit.pad_mode and mode == "")) and i == focus   # while surveying the pad drives the map cursor: no stale ring on a tray cell
 		var hv := i == hover and not (engaged and focus >= 0 and focus != i)
 		var fill := Color(GridTheme.NIGHT, 0.55)
 		if hv: fill = Color(GridTheme.INK).lightened(0.14)
