@@ -54,7 +54,7 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
       const tpl = LINE_TEMPLATES.find((x) => x.id === id);
       if (!tpl) return null;
       const cost = cat.lineCosts.find((c) => c.kv === tpl.kv);
-      return { id: tpl.id, kind: 'line', kv: tpl.kv, rOhmKm: tpl.rOhmKm, xOhmKm: tpl.xOhmKm, bUsKm: tpl.bUsKm, thermalMva: tpl.thermalMva, costPerKm: cost?.costPerKm ?? 0 };
+      return { id: tpl.id, kind: 'line', kv: tpl.kv, rOhmKm: tpl.rOhmKm, xOhmKm: tpl.xOhmKm, bUsKm: tpl.bUsKm, thermalMva: tpl.thermalMva, costPerKm: (cost?.costPerKm ?? 0) * (tpl.costFactor ?? 1) };
     },
     transformer: (id) => {
       const r = cat.transformers.find((x) => x.id === id);
@@ -64,7 +64,7 @@ export function catalogueViewOf(d: GridRegionData): CatalogueView {
     shunt: (id) => {
       const r = cat.compensation.find((x) => x.id === id);
       if (!r || r.mvar === null) return null;
-      const kind = r.kind === 'reactor' || r.kind === 'svc' || r.kind === 'statcom' ? r.kind : 'cap';
+      const kind = r.kind === 'shunt-reactor' || r.kind === 'reactor' ? 'reactor' : r.kind === 'svc' || r.kind === 'statcom' ? r.kind : 'cap';   // the pack's 'shunt-reactor' rows absorb Q (they were read as capacitors before chapter 5)
       return { id: r.id, kind, mvarStep: r.mvar, maxSteps: 4, pricePerKvar: r.pricePerKvar ?? 0, autoFactor: r.autoCostFactor ?? 1 };
     },
     storage: (id) => {

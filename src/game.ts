@@ -26,6 +26,7 @@ import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from './ca
 import { buildRouteActions, buildRouteQueries, type RouteParams } from './route-actions';
 import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
+import { buildCh5Actions } from './ch5-actions';
 import type { CatalogueView } from './sim/build';
 import { buildCh3Actions } from './ch3-actions';
 import { buildCh3Queries } from './ch3-queries';
@@ -120,7 +121,7 @@ export const GAME: GameDef<GridState> = {
     return s;
   },
   /** The player's actions, gated by the running level's allowed parts (free play is untouched). */
-  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }), ...buildCh2Actions({ money }), ...buildRouteActions({ cat: catalogueOf, getRoute, money }), ...buildFreqActions({ cat: catalogueOf, money }), ...buildCh3Actions({ cat: catalogueOf, money }), ...buildCh4Actions({ money, specOf }), ...buildCh7Actions({ money, specOf }) }, specOf),
+  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }), ...buildCh2Actions({ money }), ...buildRouteActions({ cat: catalogueOf, getRoute, money }), ...buildFreqActions({ cat: catalogueOf, money }), ...buildCh3Actions({ cat: catalogueOf, money }), ...buildCh4Actions({ money, specOf }), ...buildCh7Actions({ money, specOf }), ...buildCh5Actions() }, specOf),
   queries: {
     ...buildQueries({ getParams }),
     ...buildWorldQueries({ getBench, getRoute }),

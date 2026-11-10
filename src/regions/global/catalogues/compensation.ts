@@ -14,6 +14,7 @@ export const COMPENSATION: CompensationRow[] = [
   lv(25), lv(50), lv(100), mv(300), mv(600), mv(900), det(7), det(14),
   m('cap-33-5', 'shunt-capacitor', 33, 5, 11873, 'shunt capacitor 11,873 US$/MVAr'),
   m('cap-220-50', 'shunt-capacitor', 220, 50, 11873, 'shunt capacitor 11,873 US$/MVAr'),
+  m('cap-400-50', 'shunt-capacitor', 400, 50, 11873, 'shunt capacitor 11,873 US$/MVAr (the same unit price as the 220 kV bank: the table prints one shunt-capacitor row; L15)'),
   ...[50, 63, 80, 125].map((q) => m(`reactor-400-${q}`, 'shunt-reactor', 400, q, 19950, '345 kV class shunt reactor 19,950 US$/MVAr')),
   m('svc-100', 'svc', 400, 100, 114185, 'SVC 114,185 US$/MVAr'),
   m('statcom-100', 'statcom', 400, 100, 226013, 'STATCOM 226,013 US$/MVAr'),

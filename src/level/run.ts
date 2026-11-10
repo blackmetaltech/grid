@@ -32,6 +32,10 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (key.startsWith('level.lost.machine') || key === 'level.lost.townLoss') return 'brownout';   // chapter 2's benches
   if (key === 'level.lost.townOverload') return 'overload';
   if (key === 'level.lost.budget') return 'budget';
+  if (key === 'level.lost.voltageLow') return 'brownout';
+  if (key === 'level.lost.voltageHigh') return 'overvoltage';
+  if (key === 'level.lost.loading') return 'overload';
+  if (key === 'level.lost.collapse') return 'collapse';
   if (key === 'level.lost.nadir') return 'nadir';
   if (key === 'level.lost.share') return 'share';
   if (key === 'level.lost.rocof') return 'rocof';

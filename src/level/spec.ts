@@ -189,6 +189,8 @@ export function allowedGate(actions: Record<string, ActionFn<GridState>>, specOf
         if (!spec.allowed.actions.includes(name)) { const key = 'level.action.notAllowed'; return { ok: false, message: t(key, { action: name, level: spec.id }), key, params: { action: name, level: spec.id } }; }
         const pos = PART_ARG[name], list = spec.allowed.parts[name];
         if (pos !== undefined && list && !list.map(String).includes(String(args[pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
+        const maxSteps = spec.allowed.parts['placeShunt.maxSteps']?.[0];   // chapter 5: a level can cap the number of bank steps (an omitted count means the catalogue's maximum, so it counts as unlimited)
+        if (name === 'placeShunt' && maxSteps !== undefined && !(args[2] !== undefined && Number(args[2]) <= Number(maxSteps))) { const key = 'level.part.notAllowed'; const params = { part: t('level.part.stepsOver', { n: Number(maxSteps) }), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
         for (const x of EXTRA_PART_ARG[name] ?? []) {
           const more = spec.allowed.parts[`${name}.${x.name}`];
           if (more && args[x.pos] !== null && args[x.pos] !== undefined && !more.map(String).includes(String(args[x.pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[x.pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }

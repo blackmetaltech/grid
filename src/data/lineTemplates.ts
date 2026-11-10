@@ -5,6 +5,8 @@ import { weakest, type SourcedRow } from './types';
 
 export interface LineTemplate extends SourcedRow {
   kv: number; conductor: string; nBundle: number; dM: number; rOhmKm: number; xOhmKm: number; bUsKm: number; zcOhm: number; silMw: number; thermalMva: number;
+  /** Price multiplier on the pack's per-km line cost of this voltage (absent = 1): the HTLS conductor of L16 costs three times the plain one. */
+  costFactor?: number;
 }
 const S43 = 'DESIGN §4.3 line-template table (Glover ch. 4 formulas on [APAR] diameters; spacings typical-geometry game)';
 const S43A = 'DESIGN Appendix A.3 (orig 4.3) line-template table, same derivation as §4.3; tools/oracles/lines.py';
@@ -27,6 +29,7 @@ export const LINE_TEMPLATES: LineTemplate[] = [
   t('l132-panther', 132, 'acsr-panther', 1, 5.0, 0.1690, 0.415, 2.73, 390, 44.7, 86),
   t('l220-zebra', 220, 'acsr-zebra', 1, 7.0, 0.0836, 0.417, 2.72, 391, 124, 210),
   t('l220-twinzebra', 220, 'acsr-zebra', 2, 7.0, 0.0418, 0.302, 3.72, 285, 170, 420, 'DESIGN §4.3 (reviewer-derived with the same formulas; missing from the designer catalogue)'),
+  { ...t('l220-zebra-htls', 220, 'acsr-zebra', 1, 7.0, 0.0836, 0.417, 2.72, 391, 124, 420, 'DESIGN §2.6 L16 / Appendix A.3 HTLS row (2x the ampacity at the same reactance, cost 3x); same electrical constants as l220-zebra', 'game: an ACCC-type high-temperature low-sag conductor on the Zebra geometry; ampacity and cost factor are design values, not a datasheet'), costFactor: 3 },
   t('l400-twinmoose', 400, 'acsr-moose', 2, 11.0, 0.0347, 0.327, 3.43, 309, 518, 848, S43A),
   t('l400-quadmoose', 400, 'acsr-moose', 4, 11.0, 0.0173, 0.266, 4.18, 252, 635, 1696, S43A),
 ];

@@ -57,7 +57,7 @@ describe('shared physics catalogues (src/data)', () => {
       expect(t.zcOhm, t.id).toBeCloseTo(Math.sqrt(t.xOhmKm / (t.bUsKm * 1e-6)), -1);   // sqrt(x/b) within ~5 ohm
       expect(t.silMw, t.id).toBeGreaterThan(0);
       // thermal MVA = sqrt(3) kV I75 n; DESIGN prints it rounded (l33-dog prints 13 for 13.4)
-      const calc = Math.sqrt(3) * t.kv * (c.amp75 / 1000) * t.nBundle;
+      const calc = Math.sqrt(3) * t.kv * (c.amp75 / 1000) * t.nBundle * (t.costFactor ? 2 : 1);   // the HTLS row (costFactor) carries twice the ampacity of its geometry's ACSR
       expect(Math.abs(t.thermalMva - calc) / calc, `${t.id}: ${t.thermalMva} vs ${calc.toFixed(2)}`).toBeLessThan(0.05);
     }
     expect(new Set(LINE_TEMPLATES.map((t) => t.id)).size).toBe(LINE_TEMPLATES.length);

@@ -23,6 +23,7 @@ import { ch7Step } from './ch7/study';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 import { freqBlockTrack } from './freqtrack';
+import { ch5Track } from './ch5';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -427,6 +428,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         const vs = s.loads.filter((l) => l.P > 0).map((l) => (sol && sol.sol.energised[l.bus] !== false ? sol.sol.V[l.bus] ?? 0 : 0));
         if (vs.length > 0) tr.loadVMinPu = Math.min(tr.loadVMinPu ?? Infinity, fin(Math.min(...vs)));
       }
+      ch5Track(s);   // chapter 5: voltage watch, loading cap, N-1 probe, loadability margin (each only when the level's rules ask)
     } },
 
     // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).

@@ -10,6 +10,8 @@ import type { SimParams } from './sim/params';
 
 const BLOCK_REAL_MS_AT_1X = 750;
 const LOG_CAP = 200;
+/** Share of a transformer's price that the automatic tap-change control (motor drive, voltage relay) costs (game). */
+export const TAP_AUTO_SHARE = 0.05;
 type Params = Record<string, string | number>;
 
 export interface ActionDeps {
@@ -250,6 +252,10 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (!b) return unknown('branch', id);
       if (!b.tap) return reject('act.tap.notXfmr', { id });
       if (!isNum(vSet) || !isNum(deadband) || !isNum(delay) || vSet < 0.8 || vSet > 1.2 || deadband <= 0 || delay < 1) return reject('act.tapAuto.arg');
+      if (!b.tap.auto) {   // the motor drive and voltage relay: 5 % of the transformer's price (game), paid the first time the tap changer is put on automatic
+        const spec = d.cat(s).transformer(b.catalogId);
+        if (spec) s.budget.spent += TAP_AUTO_SHARE * spec.price;
+      }
       b.tap.auto = { vSet, deadband, delayBlocks: Math.round(delay), counter: 0 };
       return accept(s, 'setTapAuto', 'act.tapAuto.ok', { id, v: vSet, db: deadband, delay: Math.round(delay) });
     },
