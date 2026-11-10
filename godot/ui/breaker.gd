@@ -26,7 +26,15 @@ func lost() -> bool: return app != null and app.b != null and str(app.b.g.get("s
 func label_text() -> String:
 	if lost(): return TranslationServer.translate("BREAKER_RETRY")
 	if running(): return TranslationServer.translate("BREAKER_PAUSE")
+	if is_evening_shift(): return TranslationServer.translate("BREAKER_RUN_EVENING")
 	return TranslationServer.translate("BREAKER_RUN_NIGHT" if is_night_shift() else "BREAKER_RUN_DAY")
+## A job that opens between 15:00 and 18:00 (L05 at 16:00) runs into the evening peak.
+func is_evening_shift() -> bool:
+	if app == null or app.b == null: return false
+	var ls = app.b.g.get("levelStart")
+	if ls == null: return false
+	var mins := fposmod(float(ls) * 15.0, 1440.0)
+	return mins >= 900.0 and mins < 1080.0
 
 ## The level's verb: a shift that starts from 18:00 through the small hours is a night, anything else a day.
 func is_night_shift() -> bool:

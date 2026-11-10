@@ -57,6 +57,8 @@ var _route_poly := {}         # built route (branch id) -> PackedVector2Array: t
 var _objs_s: Array = []       # _objs split by layer (static / animated), same depth order
 var _objs_d: Array = []
 var _ghost := {}              # the not-yet-built plan being previewed (RouteDraw record) or {}
+var _ghost_refused := false   # the engine refused the pending path: it is drawn red, the offending tile gets an X
+var _ghost_bad_tile := -1
 var _ghost_pending: Array = []   # waypoints (metres) the player has already clicked
 var _town_rect := Rect2()     # tiles of the terrain's town area (the market's roofs stand on it)
 var _known_routes := {}       # branch id -> true: a route that was not here before makes a lineman climb
@@ -1264,6 +1266,8 @@ func metres_to_screen(m: Vector2, z_m := 0.0) -> Vector2:
 ## Preview of a not-yet-built line: `plan` = the routePreview result ({} or a refusal clears it), `pending` = waypoints (metres, Vector2 or [x, y]) already clicked.
 func set_route_ghost(plan: Dictionary, pending: Array) -> void:
 	_ghost = RouteDraw.plan_to_route(plan, "ghost", _tile_m()) if (not plan.is_empty() and bool(plan.get("ok", true)) and plan.has("supports")) else {}
+	_ghost_refused = not plan.is_empty() and not bool(plan.get("ok", true))
+	_ghost_bad_tile = int(plan.get("tile", -1)) if _ghost_refused else -1
 	_ghost_pending = []
 	for q in pending: _ghost_pending.append(Vector2(float(q[0]), float(q[1])) if (q is Array) else Vector2(q))
 	queue_redraw()
@@ -1313,6 +1317,19 @@ func _bad_marker(r: Dictionary, sp: Dictionary) -> void:
 	_ci.draw_string(font, at + Vector2(-2.2, 4.2), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, _ga))
 
 func _draw_route_markers() -> void:
+	var sc := _scale()
+	if sc < 0.7:   # overview: the real wires are sub-pixel, so a scale-compensated halo along the supports keeps every line readable
+		var inv := 1.0 / maxf(sc, 0.05)
+		for r in model.routes:
+			var pts := PackedVector2Array()
+			for sd in r.supports: pts.append(_phase_pt(sd, 0))
+			if pts.size() < 2: continue
+			var bad := false
+			for sp in r.spans: if str(sp.band) == RouteDraw.BAND_BAD: bad = true
+			var col := RouteDraw.RED if bad else Color("#C8794A")
+			_ci.draw_polyline(pts, Color(0.05, 0.06, 0.12, 0.45), 5.0 * inv, true)
+			_ci.draw_polyline(pts, Color(col.r, col.g, col.b, 0.95), 2.6 * inv, true)
+			for q in pts: _ci.draw_circle(q, 1.7 * inv, Color("#ECE7DA"))
 	for r in model.routes:
 		for sp in r.spans: if str(sp.band) == RouteDraw.BAND_BAD: _bad_marker(r, sp)
 
@@ -1324,11 +1341,20 @@ func _draw_ghost() -> void:
 		for sp in _ghost.spans: if str(sp.band) == RouteDraw.BAND_BAD: _bad_marker(_ghost, sp)
 		_ga = 1.0
 	if _ghost_pending.is_empty(): return
+	if _ghost_bad_tile >= 0 and model.has("terrain") and model.terrain is Dictionary:
+		var cols := int(model.terrain.get("cols", 0))
+		if cols > 0:
+			var tq := Vector2(float(_ghost_bad_tile % cols) + 0.5, float(_ghost_bad_tile / cols) + 0.5)
+			var gx := _iso(tq.x, tq.y, _zat(tq)); var r := 12.0 / maxf(_scale(), 0.05)
+			_ci.draw_circle(gx, r * 1.8, Color("#E5484D", 0.22))
+			_ci.draw_line(gx + Vector2(-r, -r * 0.5), gx + Vector2(r, r * 0.5), Color("#E5484D"), r * 0.3)
+			_ci.draw_line(gx + Vector2(-r, r * 0.5), gx + Vector2(r, -r * 0.5), Color("#E5484D"), r * 0.3)
 	var tm := _tile_m(); var prev := Vector2(NAN, NAN)
 	for k in _ghost_pending.size():
 		var q: Vector2 = (_ghost_pending[k] as Vector2) / tm
 		var g := _iso(q.x, q.y, _zat(q))
-		if not is_nan(prev.x): _dashed(prev, g, Color(WorldMath.SODIUM, 0.6), 1.4)
+		var inv := 1.0 / maxf(_scale(), 0.05)   # this layer is scaled with the map: keep the survey line >= 3 screen px at the overview
+		if not is_nan(prev.x): _dashed(prev, g, Color("#E5484D", 0.9) if _ghost_refused else Color(WorldMath.SODIUM, 0.85), 3.0 * inv, 8.0 * inv, 5.0 * inv)
 		prev = g
 		_ci.draw_line(g, g + Vector2(0, -9), Color("#8A6A43"), 2.0)
 		_glow(g + Vector2(0, -10), 7.0, WorldMath.SODIUM, 0.5)

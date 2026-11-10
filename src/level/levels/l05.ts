@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 // L05 The River Line (DEPTH §8, chapter 2, kind 'grid'): bring a 0.3 MW hydro set's power to Brightwater market (200 kW, pf 0.90 lagging) across a river and a
 // ridge on the Mainland map. The player surveys an overhead line (buildRoute), chooses support family, crossing family, span and conductor, and steps
 // 0.42 kV up to 11 kV and back down with distribution transformers (or runs 0.42 kV the whole way and watches the voltage and the amps collapse).
@@ -94,6 +95,7 @@ export const L05: GridLevelSpec = {
     { id: 'survey', textKey: 'coach.L05.survey', whyKey: 'coach.L05.survey.why', done: (s) => s.routes.length > 0 },
     // shown only once a line has been surveyed that ends at a 0.42 kV bus and no transformer stands yet
     { id: 'voltage', textKey: 'coach.L05.voltage', whyKey: 'coach.L05.voltage.why', done: (s) => !s.routes.some((r) => r.request.kv < 1) || s.branches.some((b) => b.kind === 'xfmr') },
+    { id: 'transformers', textKey: 'coach.L05.xfmr', whyKey: 'coach.L05.xfmr.why', done: (s) => s.routes.every((r) => r.request.kv < 1) || s.branches.filter((b) => b.kind === 'xfmr').length >= 2 },
     { id: 'run', textKey: 'coach.L05.run', whyKey: 'coach.L05.run.why', done: (s) => s.status !== 'playing' },
   ],
   place: (s, sc) => {
@@ -102,6 +104,7 @@ export const L05: GridLevelSpec = {
     s.terrain = 'mainland';
     s.map.tileM = M; s.map.w = 100; s.map.h = 44;
     A('placeBus', 5, 12, lvKv, 'gen', 1.03); A('placeBus', 7, 12, 11, 'junction'); A('placeBus', 83, 14, 11, 'junction'); A('placeBus', 84, 15, lvKv, 'load');
+    s.buses[3]!.name = t('place.L05.market');   // the town label on the map (the yards are named by the route tray)
     A('placeUnit', 'microhydro-250k', 'B1', 0.3);
     A('placeLoad', 'B4', 'commercial', MARKET.peakMW, MARKET.pf);
     for (const l of s.loads) l.zip = [0, 0, 1];

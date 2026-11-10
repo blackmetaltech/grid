@@ -545,8 +545,11 @@ func _update_survey_preview() -> void:
 	if not is_nan(endm.x): wps.append(endm); pending.append(endm)
 	elif hover_yard != "": pending.append((_yard(hover_yard).pos as Vector2))
 	chip_cell = -1
-	var pv = _show_preview(_args(from_id, to, wps), "RT_CHIP")
-	_ghost(pv if pv is Dictionary and pv.get("ok", false) else {}, pending)
+	var pv = _show_preview(_args(from_id, to, wps), "RT_CHIP", false)   # hover previews speak in the chip only; the radio hears a refusal when the player commits (click / finish)
+	var refused := {}
+	if pv is Dictionary and not pv.get("ok", false):   # the world draws the pending path red and marks the offending tile
+		refused = {"ok": false, "tile": int((pv.get("refusal", {}) as Dictionary).get("params", {}).get("tile", -1))}
+	_ghost(pv if pv is Dictionary and pv.get("ok", false) else refused, pending)
 	_chip_anchor(); queue_redraw()
 
 ## Where the chip of the survey stands, tray-local: above the pointer (or the pad cursor).

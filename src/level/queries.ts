@@ -1,3 +1,4 @@
+import { kindWord } from '../route-words';
 // Read-only queries of the level framework: what the level is (for the brief and result card), the coach's current step, the bench's
 // numbers (what the Inspector shows: voltage, current, loss share, cost) and the population stub's histogram.
 import type { QueryFn } from '@core/kit';
@@ -30,6 +31,11 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
+          if (spec.story && !s.bench && s.routes.length > 0) {   // chapter 2: the line's worst span with the player's numbers (D = wL^2/8H)
+            const r = s.routes[0]!, w = r.worst, f1 = (x: number): string => x.toFixed(1), f2 = (x: number): string => x.toFixed(2);
+            return t(spec.story.lessonKey, { kv: r.request.kv, km: f1(r.lengthM / 1000), n: r.supports, span: Math.round(w.lengthM), over: kindWord(w.over), sag: f2(w.sagM),
+              w: f2(w.wNPerM), h: Math.round(w.hN), clr: f2(w.clearanceM), req: f1(w.requiredM) });
+          }
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');
           if (!run) return '';

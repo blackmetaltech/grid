@@ -147,12 +147,13 @@ static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	replay(app, design)
 	app.game_on_changed()
 	var ch = app.get("chrome")
-	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_KEPT"))
+	var grid_job: bool = design.any(func(a): return str(a[0]) == "buildRoute")
+	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_KEPT_GRID" if grid_job else "REP_RETRY_KEPT"))
 
 ## The bench design now on the table as a list of [action, args] (empty on grid levels or before anything is built).
 static func design_of(app: CbApp) -> Array:
 	var bs = app.b.q("benchStatus")
-	if not (bs is Dictionary and bs.get("active", false)): return []
+	if not (bs is Dictionary and bs.get("active", false)): return _grid_design(app)
 	var bench: Dictionary = bs.bench
 	var out: Array = []
 	if bench.get("hutM") != null: out.append(["placeHut", [float(bench.hutM)]])
@@ -161,6 +162,20 @@ static func design_of(app: CbApp) -> Array:
 	for run in ["main", "b", "b2"]:
 		if cm.get(run) != null: out.append(["layCable", [run, float(cm[run])]])
 	if bool(bench.get("converters", false)): out.append(["placeConverters", [true]])
+	return out
+
+## Grid levels with surveyed routes (chapter 2): every line as buildRoute (same ends, kit and bends) and every transformer, in build order.
+static func _grid_design(app: CbApp) -> Array:
+	var out: Array = []
+	var br_of := {}
+	for br in app.b.g.get("branches", []): br_of[str(br.id)] = br
+	for br in app.b.g.get("branches", []):
+		if str(br.kind) == "xfmr": out.append(["placeTransformer", [str(br.from), str(br.to), str(br.catalogId)]]); continue
+		for rr in app.b.g.get("routes", []):
+			if str(rr.branchId) != str(br.id): continue
+			var rq: Dictionary = rr.request
+			var wp: Array = (rq.waypoints as Array).slice(1, (rq.waypoints as Array).size() - 1)
+			out.append(["buildRoute", [str(br.from), str(br.to), str(rq.conductorId).trim_prefix("acsr-"), str(rq.familyId), rq.crossingFamilyId, float(rq.spanM), wp]])
 	return out
 
 static func replay(app: CbApp, design: Array) -> void:

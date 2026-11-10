@@ -241,6 +241,9 @@ export const en: Record<string, string> = {
   'coach.L05.survey.why': 'Every bend needs a stronger angle pole, swamp poles need piles, rock needs anchors, and the river needs one long span from bank to bank.',
   'coach.L05.voltage': 'At 0.42 kV the market draws about 300 A. What does a transformer at each end buy you?',
   'coach.L05.voltage.why': 'Turns ratio: 11 kV / 0.42 kV ≈ 26, so the line carries 1/26 of the current and loses ~1/690 of the heat.',
+  'coach.L05.xfmr': 'An 11 kV line needs a transformer at each yard: up from 0.42 kV at the powerhouse, down again at the village. Pick a size from the tray; the market peaks near 220 kVA.',
+  'coach.L05.xfmr.why': 'A transformer is rated in kVA (volts × amps it can carry without overheating). Too small and it cooks at the peak; too big and you paid for iron you never use.',
+  'place.L05.market': 'Brightwater',
   'coach.L05.run': 'Pull the breaker and run the evening.',
   'coach.L05.run.why': 'The market peaks at 19:30, the hottest, heaviest hour: that is when a line sags lowest.',
 };

@@ -44,10 +44,10 @@ function refusalParams(r: Extract<RouteResult, { ok: false }>['refusal']): Param
   switch (r.key) {
     case 'route.tooShort': return {};
     case 'route.offMap': return { x: Math.round(r.at[0]), y: Math.round(r.at[1]) };
-    case 'route.noOverhead': return { kind: kindWord(r.kind) };
+    case 'route.noOverhead': return { kind: kindWord(r.kind), tile: r.tile };
     case 'route.noSupportGapTooLong': return { gap: Math.round(r.gapM), max: r.maxSpanM, family: familyWord(r.familyId) };
     case 'route.kvTooHigh': return { kv: r.kv, kvMax: r.kvMax, family: familyWord(r.familyId) };
-    case 'route.noFoundation': return { kind: kindWord(r.kind), family: familyWord(r.familyId), needs: foundationWord(r.needs) };
+    case 'route.noFoundation': return { kind: kindWord(r.kind), family: familyWord(r.familyId), needs: foundationWord(r.needs), tile: r.tile };
     case 'route.unknownFamily': return { id: r.id };
     case 'route.unknownConductor': return { id: r.id };
     case 'route.spanTooLong': return { span: r.spanM, max: r.maxSpanM };

@@ -135,3 +135,16 @@ describe('L05 review fixes (2026-11-10)', () => {
     expect(priceRoute(plan, 11, 'rabbit', prices).total).toBeCloseTo(1000, 6);
   });
 });
+
+describe('L05 shift-report lesson', () => {
+  it('names the worst span with D = wL²/8H in the player\'s numbers, and the numbers check out', () => {
+    const e = fresh();
+    for (const a of spec.reference) e.engine.act(a.name, a.args as unknown[]);
+    const s = e.state as GridState;
+    const li = e.engine.q('levelInfo') as { lesson: string };
+    const w = s.routes[0]!.worst;
+    expect(li.lesson).toMatch(/^Your 11 kV line runs \d+\.\d km on \d+ supports\. Its worst span, \d+ m over the /);
+    expect(li.lesson).toContain(`sags ${w.sagM.toFixed(2)} m`);
+    expect(w.wNPerM * w.lengthM * w.lengthM / (8 * w.hN)).toBeCloseTo(w.sagM, 2);   // the record keeps 3 dp
+  });
+});
