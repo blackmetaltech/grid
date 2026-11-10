@@ -278,6 +278,7 @@ static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary,
 	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE, "", compact))
 	var co = app.b.q("coach"); var tip := T("REP_TRY_FALLBACK")
 	if co is Dictionary and co.get("active", false) and not co.get("done", true) and str(co.get("text", "")) != "": tip = str(co.text)
+	if str(li.get("tryHint", "")) != "": tip = str(li.tryHint)   # the engine's advice for this loss (e.g. the span that flashed over and what lifts it)
 	col.add_child(_note(tip, PaperKit.INK, T("REP_TRY"), compact))
 
 ## A rubber stamp, tilted, in red ink.
