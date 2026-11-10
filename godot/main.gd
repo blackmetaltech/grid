@@ -154,4 +154,5 @@ func game_smoke() -> void:
 	CbSmoke._check(chrome.instruments.volt.blank and chrome.instruments.volt.needle_value() == 0.0 and chrome.breaker.label_text() == tr("BREAKER_RUN_NIGHT"), "L03 before the circuit is built: blank meter at rest, breaker says Run the night (the study hall starts at 18:00)")
 	b.act("startLevel", ["L07", 1, "learner"]); game_on_changed(); await get_tree().process_frame
 	CbSmoke._check(chrome.instruments.dial.visible and not chrome.instruments.volt.visible, "grid level: frequency dial, no voltmeter")
-	await PaperFlow.run(self)   # the paper screens end to end (godot/tests/paper_flow.gd)
+	var pf = load("res://tests/paper_flow.gd")   # by path: tests/ is not exported, so main.gd must never name a test class (Android parse error)
+	if pf != null: await pf.run(self)
