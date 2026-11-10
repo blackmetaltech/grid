@@ -54,7 +54,7 @@ func refresh(b) -> void:
 
 func set_model(m: Dictionary) -> void:
 	model = m
-	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.shunts.map(func(h): return [h.id, h.pos])])
+	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.get("ghosts", []), m.shunts.map(func(h): return [h.id, h.pos])])
 	if sg != _sig:
 		var first := _sig == ""
 		_sig = sg
@@ -82,6 +82,10 @@ func _rebuild() -> void:
 		for k in range(pts.size() - 1):
 			var a := _tc(pts[k]); var c := _tc(pts[k + 1]); var n := int(maxf(1.0, a.distance_to(c) * 2.0))
 			for q in n + 1: line_tiles[Vector2i((a.lerp(c, float(q) / float(n))).floor())] = true
+	for gh in model.get("ghosts", []) + model.get("island", {}).get("routes", []):   # un-laid and alternative routes keep their ground dry too
+		for k in range(gh.size() - 1):
+			var a := _tc(gh[k]); var c := _tc(gh[k + 1]); var n := int(maxf(1.0, a.distance_to(c) * 2.0))
+			for q in n + 1: line_tiles[Vector2i((a.lerp(c, float(q) / float(n))).floor())] = true
 	if model.kind == "bench":
 		_rebuild_island(W, H, infra, line_tiles)
 		if cute: _rebuild_cute(W, H)
@@ -94,6 +98,8 @@ func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> vo
 	var isl: Dictionary = model.get("island", {})
 	var beach_y: float = float(isl.get("beach_y", -1.0))
 	var mang: Rect2 = isl.get("mangrove", Rect2())
+	var lagoon: Rect2 = isl.get("lagoon", Rect2())
+	var hill: Dictionary = isl.get("hill", {})
 	var c := Vector2(W, H) * 0.5; var r := Vector2(W, H) * 0.5 - Vector2(1.5, 1.0)
 	for j in H:
 		for i in W:
@@ -108,11 +114,16 @@ func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> vo
 			if (i < 1 or j < 1 or i > W - 2 or j > H - 2) and not keep: kind = "water"
 			elif beach_y >= 0.0 and q.y >= beach_y + 1.6 and f > 0.45 and not keep: kind = "water"
 			elif f > 1.0 and not keep and not on_beach: kind = "water"
+			elif lagoon.has_point(q) and not keep: kind = "water"   # an inland lagoon: shallow water, sandy shore
 			elif f > 0.86 or on_beach: kind = "sand"
 			elif mang.has_point(q) and not keep: kind = "mangrove"
+			elif lagoon.size.x > 0.0 and lagoon.grow(1.0).has_point(q): kind = "sand"
 			var z := 0.0
 			if kind == "grass": z = clampf((1.0 - f) * 9.0 - 1.5, 0.0, 8.0) + WorldMath.hash2(i, j, 5) * 1.5
-			if kind == "water": z = -6.0
+			if kind == "grass" and not hill.is_empty():   # a hill: the cable climbs it
+				var hd := q.distance_to(hill.pos + Vector2(0.5, 0.5)) / float(hill.r)
+				if hd < 1.0: z += float(hill.h) * pow(1.0 - hd, 1.4) * clampf((0.8 - f) / 0.3, 0.0, 1.0)   # eases to the shore: no cliff into the sea
+			if kind == "water": z = -6.0 if not lagoon.has_point(q) else -2.5
 			elif kind == "mangrove": z = 0.5
 			elif kind == "sand": z = 1.0
 			_zgrid[Vector2i(i, j)] = z
@@ -176,11 +187,15 @@ func _rebuild_objects() -> void:
 		var kinds_big: bool = t.kind != "hamlet"
 		for k in int(t.count):
 			var cx := k % cols; var cy := k / cols
-			var step := 0.5 if t.kind == "town" else (1.05 if model.kind == "bench" else 0.46)   # bench: 10 m tiles, homes ~10 m apart
+			var step := 0.5 if t.kind == "town" else ((1.7 if t.kind == "school" else 1.05) if model.kind == "bench" else 0.46)   # bench: 10 m tiles, homes ~10 m apart
 			var p := _tc(t.pos) + Vector2((float(cx) - float(cols - 1) * 0.5) * step, (float(cy) - float(rows - 1) * 0.5) * step)
 			var cdist := Vector2(float(cx) - float(cols - 1) * 0.5, float(cy) - float(rows - 1) * 0.5).length()
 			var h := (12.0 + 18.0 * WorldMath.hash2(cx, cy, 50 + ti)) * (1.4 - 0.1 * cdist) if t.kind == "town" else (9.0 + 4.0 * WorldMath.hash2(cx, cy, 60)) * (2.0 if t.kind == "school" else 1.0)
-			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": (0.3 if model.kind != "bench" else 0.55) if t.kind != "school" else 0.6, "hamlet": t.kind != "town", "v": WorldMath.hash2(cx, cy, 70 + ti)})
+			var role := ""; var bw := (0.3 if model.kind != "bench" else 0.55) if t.kind != "school" else 0.6
+			if t.kind == "school" and model.kind == "bench":   # L03: the school (tall, brick) and the health post (low, white, red cross)
+				role = "school" if k == 0 else "health"; h = 28.0 if k == 0 else 15.0; bw = 0.95 if k == 0 else 0.72
+			_objs.append({"t": "bld", "ti": ti, "k": k, "p": p, "h": maxf(8.0, h), "w": bw, "role": role, "hamlet": t.kind == "hamlet", "v": WorldMath.hash2(cx, cy, 70 + ti)})
+		if t.kind == "school" and model.kind == "bench": _objs.append({"t": "flag", "p": _tc(t.pos) + Vector2(0.0, -1.3)})
 	for s in model.subs: _objs.append({"t": "sub", "p": _tc(s.pos), "s": s})
 	var at_bus := {}
 	for u in model.units:
@@ -198,7 +213,7 @@ func _tower_points(l: Dictionary) -> Array:
 	var pts: Array = l.pts
 	for k in range(pts.size() - 1):
 		var a := _tc(pts[k]); var c := _tc(pts[k + 1])
-		var n := maxi(1, int(round(a.distance_to(c) / 1.8)))
+		var n := maxi(1, int(round(a.distance_to(c) / (40.0 / float(model.get("tile_m", 10.0)) if model.kind == "bench" else 1.8))))   # bench: a pole every 40 m
 		for q in range(1, n): out.append(a.lerp(c, float(q) / float(n)))
 	return out
 
@@ -422,6 +437,7 @@ func _draw_tile(t: Dictionary) -> void:
 	var i: int = t.i; var j: int = t.j
 	var z: float = _zgrid[Vector2i(i, j)]
 	var col := _tile_col(t)
+	if t.kind == "grass" and z > 8.0: col = col.lerp(Color("#B8CC8A"), clampf((z - 8.0) / 90.0, 0.0, 0.55))   # the hilltop catches the light
 	if t.kind == "water": col = col.lerp(Color("#0A1A2E"), 0.0)
 	var cc := _c(col)
 	if t.kind == "water": cc = Color(col.r * _nl.r * 0.8, col.g * _nl.g * 0.85, col.b * _nl.b * 0.95)
@@ -445,6 +461,7 @@ func _draw_obj(o: Dictionary) -> void:
 		"villager": _villager(o)
 		"mangrove": _mangrove(o)
 		"bld": _building(o)
+		"flag": _flag(o)
 		"tower": _tower(o)
 		"sub": _substation(o)
 		"unit": _unit(o)
@@ -524,6 +541,7 @@ func _building(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var w: float = o.w; var h: float = o.h
 	var wall := Color("#C9C2B0") if not o.hamlet else Color("#B89A72")
 	if t.kind == "school": wall = Color("#C98C6E")
+	if o.role == "health": wall = Color("#EFEBE2")
 	var base := _box(p, w, w, h, wall)
 	var flick := 1.0
 	if float(t.v) > 0.0 and float(t.v) < 0.92: flick = 0.72 + 0.28 * sin(_t * 17.0 + float(o.k) * 2.7)
@@ -531,11 +549,28 @@ func _building(o: Dictionary) -> void:
 	var cols := maxi(1, int(round(w * 8.0))); var rows := maxi(1, int(h / 9.0))
 	_windows(_iso(x0, y1, base), _iso(x1, y1, base) - _iso(x0, y1, base), h, cols, rows, e, o.v, flick)
 	_windows(_iso(x1, y1, base), _iso(x1, y0, base) - _iso(x1, y1, base), h, cols, rows, e, o.v + 0.37, flick)
+	if o.role != "":   # hipped roof; the health post carries a red cross on its front wall
+		var rc := Color("#7E3B32") if o.role == "school" else Color("#4E8C6A")
+		var ap2 := _iso(p.x, p.y, base + h + 8.0)
+		draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap2]), _c(_shade(rc, 1.1)))
+		draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap2]), _c(_shade(rc, 0.8)))
+		if o.role == "health":
+			var zc := base + h * 0.5; var cr := Color("#E5484D")
+			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc - 2.0), _iso(p.x - 0.2, y1, zc - 2.0)]), _c(cr))
+			draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc - 6.5), _iso(p.x - 0.07, y1, zc - 6.5)]), _c(cr))
 	if o.hamlet:   # thatch roof
 		var ap := _iso(p.x, p.y, base + h + 6.0)
 		draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap]), _c(Color("#A07D3C")))
 		draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap]), _c(Color("#7E5F2A")))
 	if e > 0.0 and _night > 0.25: _glow(_iso(p.x, p.y, base + h * 0.5), 15.0 * w * 3.0, WorldMath.SODIUM, 0.035 * clampf(e, 0.0, 1.0) * _night)
+
+## Flag pole by the school: a red pennant that ripples.
+func _flag(o: Dictionary) -> void:
+	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var top := base + Vector2(0, -52)
+	draw_line(base, top, _c(Color("#D8D4CA")), 2.2)
+	var wv := sin(_t * 3.0) * 3.0
+	draw_colored_polygon(PackedVector2Array([top, top + Vector2(18, 3 + wv), top + Vector2(17, 9 + wv * 0.6), top + Vector2(0, 12)]), _c(Color("#E5484D")))
+	draw_circle(top, 2.2, _c(Color("#F2C14E")))
 
 func _tower(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var kv: float = o.kv; var h := _tower_h(kv); var base := _iso(p.x, p.y, _zat(p))
@@ -647,6 +682,12 @@ func _offsets(l: Dictionary) -> Array:
 	return [0.0] if int(l.circuits) <= 1 else [-4.0, 4.0]
 
 func _draw_wires() -> void:
+	for gh in model.get("ghosts", []):   # surveyed route, cable not yet laid: faint dashes
+		var gl := {"pts": gh, "kv": 0.048, "in_service": true, "loading": 0.0}
+		var gp := _line_poly(gl, 0.0)
+		var k := 0
+		while k + 3 < gp.size():
+			draw_line(gp[k], gp[k + 3], Color(0.96, 0.92, 0.78, 0.55), 2.0, true); k += 8
 	for l in model.lines:
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
