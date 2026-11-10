@@ -11,7 +11,7 @@ extends Control
 signal mode_changed(mode: String)
 const H := 96.0
 const PAD := 12.0
-const BIG_W := 80.0
+const BIG_W := 92.0
 const GAP := 6.0
 const WIDE := 900.0                 ## tray width from which the price tag sits inline at the right end
 const TAG_W := 176.0
@@ -23,6 +23,7 @@ var instruments: Instruments
 var sfx := Callable()               ## (cue: String), optional
 var tags                            ## TagView (so Y can open one), optional
 var slot := Callable()              ## () -> Rect2 the tray stands in (GridChrome.tray_rect)
+var locked := Callable()            ## () -> bool: the night runs or the level is over, so the cable cannot change
 
 var items: Array = []               ## {kind: hut|junction|converters|reel, mm2, label, sub, rect (local)}
 var mode := ""                      ## "" | "hut" | "reel"
@@ -104,8 +105,8 @@ func _build_items() -> void:
 			if ok: out.append({"kind": "reel", "mm2": float(c.mm2), "price": str(c.perMText), "amps": float(c.ampacityA)})
 	items = out
 
-func _pole_text() -> String: return CbRegion.money(float(kit.polePrice))
-func _pair_text() -> String: return CbRegion.money(2.0 * float(kit.converterPrice))
+func _pole_text() -> String: return CbRegion.money(float(kit.polePrice), false, 0)
+func _pair_text() -> String: return CbRegion.money(2.0 * float(kit.converterPrice), false, 0)   # whole dollars: it has to fit under an 80 px cell
 func mm2_text(v: float) -> String: return str(int(v)) if is_equal_approx(v, round(v)) else str(v)
 
 func _laid_sizes() -> Array:
@@ -137,7 +138,7 @@ func _layout_items() -> void:
 		else: n_big += 1
 	var reel_w := 78.0
 	var fit := (avail - n_big * (BIG_W + GAP)) / maxf(n_reel, 1) - GAP
-	reel_w = clampf(fit, 54.0, 78.0)
+	reel_w = clampf(fit, maxf(54.0, hit_min()), 78.0)
 	var x := PAD - _scroll
 	var total := 0.0
 	for it in items:
@@ -145,6 +146,9 @@ func _layout_items() -> void:
 		it["rect"] = Rect2(Vector2(x, 5.0), Vector2(cw, H - 10.0)); x += cw + GAP; total += cw + GAP
 	_max_scroll = maxf(0.0, total - GAP - avail)
 	_scroll = clampf(_scroll, 0.0, _max_scroll)
+
+## Smallest tap target in logical px: 48 dp at least on a phone (CbLayout.tap() is the core's 7 mm figure, already in logical px).
+func hit_min() -> float: return maxf(48.0, CbLayout.tap()) if CbLayout.kind == "phone" else 0.0
 
 func _avail_right() -> float: return size.x - PAD - (TAG_W + GAP if _tag_inline else 0.0)
 
@@ -176,6 +180,7 @@ func cancel() -> bool:
 func activate(i: int) -> void:
 	if i < 0 or i >= items.size(): return
 	var it: Dictionary = items[i]
+	if is_locked(): refuse_locked(); return
 	if tags != null: tags.close()
 	match str(it.kind):
 		"hut":
@@ -189,9 +194,16 @@ func activate(i: int) -> void:
 			if runs.size() <= 1:
 				cancel(); _act("layCable", [runs[0] if not runs.is_empty() else "main", mm2])
 			else:
-				if mode == "reel" and is_equal_approx(armed_mm2, mm2): cancel(); return
+				if mode == "reel" and is_equal_approx(armed_mm2, mm2): queue_redraw(); return   # a second tap keeps the reel selected
 				cancel(); mode = "reel"; armed_mm2 = mm2; _show_targets(); mode_changed.emit(mode)
 	queue_redraw()
+
+func is_locked() -> bool: return locked.is_valid() and bool(locked.call())
+
+## While the night runs (or the level is over) nothing laid may change: say so on the radio and keep the cable.
+func refuse_locked() -> void:
+	cancel()
+	if radio != null: radio.say("SYS", tx("TRAY_LOCKED"), "warn")
 
 ## The cable runs the player chooses between: L02 radial or trunk -> two (main, b); L01 and L03 one.
 func run_choices() -> Array:
@@ -228,6 +240,7 @@ func set_target_hi(i: int) -> void:
 
 func place_target(i: int) -> Dictionary:
 	if i < 0 or i >= targets.size(): return {}
+	if is_locked(): refuse_locked(); return {}
 	var t: Dictionary = targets[i]
 	if mode == "hut":
 		var r := _act("placeHut", [float(t.key)])
@@ -247,7 +260,7 @@ func _act(name: String, args: Array) -> Dictionary:
 ## A tap on the world (local coordinates). Returns true when the tray used it.
 func on_tap(pos: Vector2) -> bool:
 	if mode == "" or world == null: return false
-	var p: Dictionary = world.pick(pos)
+	var p: Dictionary = _pick(pos)
 	var k := str(p.get("kind", ""))
 	if k == "peg": place_target(int(p.id)); return true
 	if mode == "reel" and (k == "cable" or k == "route"):
@@ -256,9 +269,21 @@ func on_tap(pos: Vector2) -> bool:
 	cancel()
 	return p.is_empty()
 
+## world.pick, with pegs given a >= 48 dp circle on a phone / touch screen.
+func _pick(pos: Vector2) -> Dictionary:
+	var p: Dictionary = world.pick(pos)
+	if not p.is_empty() and str(p.get("kind", "")) == "peg": return p
+	if CbLayout.touch or CbLayout.kind == "phone":
+		var r := maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5); var best := -1; var bd := 1e9
+		for i in targets.size():
+			var d := pos.distance_to(world.world_to_screen(targets[i].tile, 10.0))
+			if d <= r and d < bd: bd = d; best = i
+		if best >= 0: return {"kind": "peg", "id": best}
+	return p
+
 func on_hover(pos: Vector2) -> void:
 	if mode == "" or world == null: return
-	var p: Dictionary = world.pick(pos)
+	var p: Dictionary = _pick(pos)
 	var k := str(p.get("kind", "")); var hi := -1
 	if k == "peg": hi = int(p.id)
 	elif mode == "reel" and (k == "cable" or k == "route"):
@@ -338,7 +363,10 @@ func _gui_input(e: InputEvent) -> void:
 			if absf(mm.position.x - _press_x) > 10.0: _dragged = true
 			if _dragged: _scroll = clampf(_scroll - mm.relative.x, 0.0, _max_scroll); _layout_items(); queue_redraw(); return
 		var i := _item_at(mm.position)
-		if i != hover: hover = i; _after_hover()
+		if i != hover:
+			hover = i
+			if i >= 0: engaged = false   # the pointer takes over: one ring, under the pointer
+			_after_hover()
 	elif e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed and _max_scroll > 0.0: _scroll = minf(_max_scroll, _scroll + 40.0); _layout_items(); queue_redraw()
@@ -356,7 +384,7 @@ func key(e: InputEventKey) -> bool:
 	if not visible or not e.pressed: return false
 	if e.keycode >= KEY_1 and e.keycode <= KEY_9:
 		var n := e.keycode - KEY_1
-		if n < items.size(): focus = n; _ensure_visible(n); activate(n)
+		if n < items.size(): focus = n; hover = -1; _ensure_visible(n); activate(n); _update_preview()
 		return n < items.size()
 	match e.keycode:
 		KEY_H:
@@ -381,7 +409,7 @@ func pad_button(idx: int) -> bool:
 		JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 			if items.is_empty(): return false
 			var d := -1 if idx == JOY_BUTTON_LEFT_SHOULDER else 1
-			engaged = true
+			engaged = true; hover = -1   # the ring follows the pad; a stale pointer hover must not keep a second one
 			focus = (0 if d > 0 else items.size() - 1) if focus < 0 else posmod(focus + d, items.size())
 			_ensure_visible(focus); _update_preview(); queue_redraw(); return true
 		JOY_BUTTON_A:
@@ -419,11 +447,13 @@ func _draw() -> void:
 		if not _visible_item(i): continue
 		var it: Dictionary = items[i]; var r: Rect2 = it.rect
 		var armed: bool = (str(it.kind) == "hut" and mode == "hut") or (str(it.kind) == "reel" and mode == "reel" and is_equal_approx(armed_mm2, float(it.mm2)))
-		var hv := i == hover; var fc := (engaged or CbKit.pad_mode) and i == focus
+		var fc := (engaged or CbKit.pad_mode) and i == focus
+		var hv := i == hover and not (engaged and focus >= 0 and focus != i)
 		var fill := Color(GridTheme.NIGHT, 0.55)
 		if hv: fill = Color(GridTheme.INK).lightened(0.14)
 		if armed: fill = Color(GridTheme.SODIUM, 0.16 + 0.06 * sin(_t * 4.0))
-		draw_style_box(_cell_sb(fill, armed or hv), r)
+		var other_focus := engaged and focus >= 0 and focus != i
+		draw_style_box(_cell_sb(fill, (armed and not other_focus) or hv), r)
 		if fc: draw_style_box(GridTheme.focus_sb(), r)
 		var c := r.position + Vector2(r.size.x * 0.5, 28.0)
 		var name_s := ""; var sub_s := ""; var sub_col: Color = GridTheme.DIM
@@ -440,7 +470,7 @@ func _draw() -> void:
 				var on2: bool = bool(bench.get("converters", false))
 				_icon_converters(c, on2); name_s = tx("TRAY_CONVERTERS"); sub_s = tx("TRAY_CONVERTERS_ON") if on2 else tx("TRAY_PAIR") % _pair_text(); sub_col = GridTheme.SODIUM if on2 else GridTheme.DIM
 			"reel":
-				_icon_reel(c, float(it.mm2)); name_s = tx("TRAY_REEL") % mm2_text(float(it.mm2)); sub_s = tx("TRAY_PER_M") % str(it.price)
+				_icon_reel(c, float(it.mm2)); name_s = tx("TRAY_REEL") % mm2_text(float(it.mm2)); sub_s = tx("TRAY_PER_M") % str(it.price).trim_suffix(".00")
 				if laid.has(float(it.mm2)): draw_circle(r.position + Vector2(r.size.x - 9.0, 9.0), 4.0, GridTheme.SODIUM); draw_arc(r.position + Vector2(r.size.x - 9.0, 9.0), 4.0, 0, TAU, 12, GridTheme.NIGHT, 1.0)
 		var nfs := 13 if str(it.kind) != "reel" else 14
 		var sfs := 11

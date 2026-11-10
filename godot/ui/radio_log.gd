@@ -12,9 +12,13 @@ var _box: VBoxContainer
 var _current := ""           ## step id of the coach line that carries the tick
 var last_clock := "--:--"
 var width := 560.0
-var visible_lines := 3      ## phone: 1
+var visible_lines := 4      ## rows kept on the panel (phone: 1); every row wraps in full, the panel grows, never an ellipsis
+var max_h := 320.0          ## the panel never grows past this (about 30 % of the screen); then the oldest rows drop off
+var full_opened := 0        ## times the full log was opened (tests)
+const FADE := [1.0, 0.66, 0.44, 0.3, 0.22, 0.18]
 
 func _init() -> void:
+	TrayStrings.load_strings()
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", GridTheme.ink_sb(0.92, 8, 12.0))
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(_box)
@@ -55,9 +59,9 @@ func make_row(l: Dictionary, alpha := 1.0, full := false) -> Control:
 	var pre := GridTheme.label(_prefix(l), sz, _color(l), "mono"); pre.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; row.add_child(pre)
 	var tx := GridTheme.label(str(l.text), sz, GridTheme.WARN if l.kind == "warn" else GridTheme.TEXT, "mono")
 	tx.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; tx.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if not full: tx.max_lines_visible = 3 if live else 2; tx.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tx.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING   # never "…": a line wraps in full
 	row.add_child(tx)
-	if live and str(l.why) != "":
+	if live and str(l.why) != "" and not l.get("why_said", false) and not full:
 		var b := Button.new(); b.text = TranslationServer.translate("RADIO_WHY"); b.flat = true; b.focus_mode = CbKit.focus_mode(); b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		b.add_theme_color_override("font_color", GridTheme.SODIUM); b.add_theme_font_size_override("font_size", GridTheme.fs(14)); b.name = "Why"
 		b.pressed.connect(func(): ask_why(l)); row.add_child(b)
@@ -65,24 +69,58 @@ func make_row(l: Dictionary, alpha := 1.0, full := false) -> Control:
 
 ## ADA explains the why of a coach line (once).
 func ask_why(l: Dictionary) -> void:
-	say("ADA", str(l.why), "why"); why_said.emit(str(l.step))
+	l["why_said"] = true
+	say("ADA", str(l.why), "why", str(l.step)); why_said.emit(str(l.step)); _rebuild()
+
+## Estimated height of one row at the current width (wrapped in full), so the panel can be capped without waiting for a layout pass.
+func _row_h(l: Dictionary) -> float:
+	var f := GridTheme.font("mono"); var sz := GridTheme.fs(15)
+	var pw := f.get_string_size(_prefix(l), HORIZONTAL_ALIGNMENT_LEFT, -1, sz).x
+	var tw := maxf(80.0, width - 24.0 - 3.0 - 16.0 - pw - (46.0 if str(l.get("why", "")) != "" and not l.get("why_said", false) else 0.0))
+	var h := f.get_multiline_string_size(str(l.text), HORIZONTAL_ALIGNMENT_LEFT, tw, sz, -1, TextServer.BREAK_WORD_BOUND | TextServer.BREAK_ADAPTIVE).y
+	return maxf(h, f.get_height(sz)) + 4.0
 
 func _rebuild() -> void:
 	if _box == null: return
 	for c in _box.get_children(): _box.remove_child(c); c.queue_free()
 	var n := lines.size(); var first := maxi(0, n - visible_lines)
+	var foot := 24.0 + 12.0 * 2.0 + 4.0
+	while n - first > 1 and foot + _rows_h(first, n) > max_h: first += 1   # over the cap: the oldest row fades out
 	for i in range(first, n):
 		var age := n - 1 - i
-		_box.add_child(make_row(lines[i], [1.0, 0.62, 0.36][mini(age, 2)]))
+		_box.add_child(make_row(lines[i], FADE[mini(age, FADE.size() - 1)]))
+	_box.add_child(_log_link())
 	custom_minimum_size.x = width
 	size = Vector2(width, 0)   # height follows content
 	visible = not lines.is_empty()
+	call_deferred("_settle")
+
+## The panel's height follows its content: a layout pass with narrow labels can leave it too tall, so let it shrink back every time.
+func _settle() -> void:
+	if is_inside_tree() and visible: reset_size()
+
+func _process(_dt: float) -> void:
+	if visible and absf(size.y - get_combined_minimum_size().y) > 0.5: reset_size()
+
+func _rows_h(first: int, n: int) -> float:
+	var h := 0.0
+	for i in range(first, n): h += _row_h(lines[i]) + 4.0
+	return h
+
+## The small visible way to the full log (the whole panel opens it too).
+func _log_link() -> Control:
+	var hb := HBoxContainer.new(); hb.alignment = BoxContainer.ALIGNMENT_END; hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.name = "LogRow"
+	var b := Button.new(); b.name = "Log"; b.text = TranslationServer.translate("RADIO_LOG_LINK"); b.flat = true; b.focus_mode = CbKit.focus_mode()
+	b.add_theme_color_override("font_color", GridTheme.SODIUM_DIM); b.add_theme_color_override("font_hover_color", GridTheme.SODIUM); b.add_theme_font_size_override("font_size", GridTheme.fs(13))
+	b.custom_minimum_size = Vector2(0, 24); b.pressed.connect(open_full); hb.add_child(b)
+	return hb
 
 func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: open_full(); accept_event()
 
 ## Full log, scrollable, newest at the bottom. Esc closes it (shell modal discipline).
 func open_full() -> void:
+	full_opened += 1
 	if app == null or app.modal() != null: return
 	var d: Dictionary = app.dialog("radiolog", minf(900.0, app.vw() - 40.0), minf(640.0, app.vs_h() - 40.0), GridTheme.SODIUM_DIM, 0.55)
 	d.host.set_script(GridDialogHost); d.host.theme = GridTheme.theme()

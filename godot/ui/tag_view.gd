@@ -76,7 +76,9 @@ func describe(k: String, oid: String) -> Dictionary:
 			if town.is_empty(): return {}
 			var d := {"kind": "hamlet", "id": oid, "title": tx("TAG_SCHOOL") if scen == "l03" else (tx("TAG_HAMLET_N") % str(idx + 1) if scen == "l02" else tx("TAG_HAMLET")), "powered": has}
 			var homes: Array = wb.get("homes", [])
-			if scen == "l03": d["homes_text"] = tx("TAG_LOAD") % (fmt_m(float(det.totals.deliveredW)) if has else "—")
+			if scen == "l03":
+				var dw = det.totals.get("deliveredW") if has else null
+				d["homes_text"] = tx("TAG_LOAD") % (tx("TAG_DELIVERED") % fmt_m(float(dw)) if dw != null else tx("TAG_NOT_CONNECTED"))
 			elif idx < homes.size(): d["homes_text"] = tx("TAG_HOMES") % [str(int(homes[idx])), fmt_m(float(kt.homeW))]
 			else: d["homes_text"] = ""
 			if not has: d["dark"] = tx("TAG_DARK"); d["v"] = 0.0; d["lamp"] = 0.0; return d
@@ -256,15 +258,29 @@ func on_tap(pos: Vector2) -> bool:
 	if world == null: return false
 	var p: Dictionary = world.pick(pos)
 	var k := str(p.get("kind", ""))
+	if p.is_empty(): p = wide_pick(pos, p); k = str(p.get("kind", ""))
 	if k == "route" or k == "peg" or k == "junction": k = ""
 	if k == "":
 		return close()
 	if panel.visible and kind == k and id == str(p.id): return close()
 	return open(k, str(p.id))
 
+## Generous hamlet target: the bulb mascots and villagers around a hamlet count as the hamlet (a fingertip is wider than the sprite). Falls back
+## to `p` (what world.pick found) when nothing is near; a cable right under the pointer still wins over empty ground only.
+func wide_pick(pos: Vector2, p: Dictionary) -> Dictionary:
+	var s: float = world._scale(); var touch := CbLayout.touch or CbLayout.kind != "desktop"
+	var fx := (150.0 if not touch else 190.0) * s; var up := (150.0 if not touch else 190.0) * s; var down := (80.0 if not touch else 100.0) * s
+	var best := {}; var bd := 1e9
+	for t in world.model.towns:
+		if t.kind != "hamlet" and t.kind != "school": continue
+		var d: Vector2 = pos - world.world_to_screen(t.pos)
+		if absf(d.x) <= fx and d.y >= -up and d.y <= down and d.length() < bd: bd = d.length(); best = {"kind": "hamlet", "id": str(t.id)}
+	return best if not best.is_empty() else p
+
 func on_long_press(pos: Vector2) -> bool:
 	if world == null: return false
 	var p: Dictionary = world.pick(pos)
+	if p.is_empty(): p = wide_pick(pos, p)
 	var k := str(p.get("kind", ""))
 	if k == "hamlet" or k == "cable" or k == "hut": return open(k, str(p.id))
 	return false

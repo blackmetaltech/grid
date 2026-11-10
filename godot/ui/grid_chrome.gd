@@ -50,13 +50,17 @@ func _build_tools() -> void:
 	var world: WorldView = app.get("grid_world")
 	tray = KitTray.new(); tray.b = app.b; tray.world = world; tray.radio = radio; tray.instruments = instruments
 	tray.sfx = func(cue: String): app.sfx(cue)
-	tray.slot = tray_rect; add_child(tray)
+	tray.slot = tray_rect; tray.locked = _night_locked; add_child(tray)
 	tags = TagView.new(); tags.b = app.b; tags.world = world; tags.instruments = instruments; tags.slot = tray_rect; add_child(tags)
 	tray.tags = tags
 	if world != null:
 		world.tapped.connect(on_world_tap); world.long_pressed.connect(on_world_long); world.hovered.connect(func(p): tray.on_hover(p))
 	var relay := KitTray.Relay.new(); relay.chrome = self; relay.name = "TrayRelay"
 	app.add_child.call_deferred(relay)
+
+## The cable cannot change while the night runs or once the level is over.
+func _night_locked() -> bool:
+	return app.speed > 0 or str(app.b.g.get("status", "playing")) != "playing"
 
 ## Tap on the world: the tray first (a pick in progress), then the tags.
 func on_world_tap(p: Vector2) -> void:
@@ -79,6 +83,9 @@ func handle_input(e: InputEvent) -> bool:
 		if jb.button_index == JOY_BUTTON_B:   # B: undo the pick, else step out of the tray, else close the tag, else leave it to the shell
 			if tray.mode != "" or tray.engaged: return tray.pad_button(jb.button_index)
 			return tags.close()
+		if jb.button_index == JOY_BUTTON_X and not tags.is_open():   # X: the breaker (X also closes an open tag, as on the keyboard)
+			breaker.toggle(); return true
+		if jb.button_index == JOY_BUTTON_X: return tags.close()
 		return tray.pad_button(jb.button_index)
 	return false
 
@@ -92,6 +99,12 @@ func qa_ui(spec: String) -> void:
 		"hover": tray.hover = tray.item_index("reel", float(f[1])); tray._after_hover()
 		"peg", "run": tray.set_target_hi(int(f[1]))
 		"tag": tags.open(f[1], f[2])
+		"padx":
+			var jb := InputEventJoypadButton.new(); jb.button_index = JOY_BUTTON_X; jb.pressed = true; handle_input(jb)
+		"pad": if app.pad != null: app.pad.set_active(true)
+		"focus": tray.engaged = true; tray.focus = int(f[1]); tray._update_preview(); tray.queue_redraw()
+		"say": for ln in f.slice(1): radio.say("TOBI", ln.replace("_", " "), "coach", "qa%d" % radio.lines.size(), "Because copper resists.")
+		"why": for l in radio.lines: if l.kind == "coach" and l.step != "" and str(l.get("why", "")) != "": radio.ask_why(l); break
 
 func tray_active() -> bool: return tray != null and tray.visible
 
@@ -156,13 +169,25 @@ func key(e: InputEventKey) -> bool:
 			if space_steps: return false   # core then ticks once
 			breaker.toggle(); return true
 		KEY_PERIOD: app.next_tick(); return true
+		KEY_PLUS, KEY_EQUAL, KEY_KP_ADD: breaker.step_rate(1); return true
+		KEY_MINUS, KEY_KP_SUBTRACT: breaker.step_rate(-1); return true
 	return false
 
 ## Slot for the kit tray (bottom-centre), between the radio and the breaker.
 func tray_rect() -> Rect2:
 	var w := app.vw(); var h := app.vs_h()
 	var l := radio.position.x + radio.size.x + M; var r := breaker.position.x - M
+	var hint = app.pad.hint if app.pad != null else null
+	if hint != null and hint.visible and CbKit.pad_mode: l = maxf(l, hint.position.x + hint.size.x + M)   # the pad hint strip runs under the radio: the tray starts after it
 	return Rect2(Vector2(l, h - 96.0 - M), Vector2(maxf(0.0, r - l), 96.0))
+
+## Bottom edge of the radio: above the pad hint strip while it shows (handheld / phone: the strip would sit on the radio).
+func _radio_y() -> float:
+	var y := app.vs_h() - M - radio.size.y
+	var hint = app.pad.hint if app.pad != null else null
+	if hint != null and hint.visible and CbKit.pad_mode and hint.position.x < radio.position.x + radio.width:
+		y = minf(y, hint.position.y - 6.0 - radio.size.y)
+	return y
 
 func layout() -> void:
 	if app == null or instruments == null: return
@@ -171,9 +196,10 @@ func layout() -> void:
 	if tray != null: tray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
 	var left: float = M + (app.world_tools_w() if CbLayout.touch and app.has_method("world_tools_w") else 0.0)
-	var nl := 1 if kind == "phone" else 3; var nw := clampf(w * (0.30 if kind == "desktop" else 0.34), 300.0, 560.0)
-	if nl != radio.visible_lines or nw != radio.width: radio.visible_lines = nl; radio.width = nw; radio._rebuild()
-	radio.position = Vector2(left, h - M - radio.size.y)
+	var nl := 1 if kind == "phone" else 4; var nw := clampf(w * (0.30 if kind == "desktop" else 0.34), 300.0, 560.0)
+	var cap := h * 0.30
+	if nl != radio.visible_lines or nw != radio.width or cap != radio.max_h: radio.visible_lines = nl; radio.width = nw; radio.max_h = cap; radio._rebuild()
+	radio.position = Vector2(left, _radio_y())
 	var bs := 0.80 if kind == "phone" else (1.0 if kind == "desktop" else 0.92)
 	breaker.scale = Vector2(bs, bs); breaker.size = breaker.custom_minimum_size
 	var bw := breaker.size.x * bs; var bh := breaker.size.y * bs
@@ -182,7 +208,10 @@ func layout() -> void:
 	menu_btn.custom_minimum_size = Vector2(tap, tap); menu_btn.size = Vector2(tap, tap); menu_btn.position = Vector2(w - M - tap, M)
 	pin.position = Vector2(M, M); pin.size = Vector2(0, 0)
 
+var _pad_seen := false
 func _process(_dt: float) -> void:
 	if not _on or radio == null or app == null: return
-	radio.position.y = app.vs_h() - M - radio.size.y
+	var ph: bool = CbKit.pad_mode and app.pad != null and app.pad.hint.visible
+	if ph != _pad_seen: _pad_seen = ph; layout()
+	radio.position.y = _radio_y()
 	if app.cur == app.home and app.drawer_tab != null and app.drawer_tab.visible: app.drawer_tab.visible = false   # the core re-shows its grip on some paths
