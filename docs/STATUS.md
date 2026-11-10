@@ -26,13 +26,7 @@ Verify: `pnpm typecheck && ./node_modules/.bin/vitest run` → tsc clean, **29 f
   open-recall list as provenance-only paths → must be updated when catalogue `recall` rows are added.
 
 ### Not started (next, in order)
-1. **M1.10 systems pipeline** (the critical path for M2). A worker read everything and left this design (adopt it):
-   `buildPipeline(getParams)` in src/sim/tick.ts with a plain `SimParams` (f0, grid code, economy, bands, latitude) mapped from the
-   pack in game.ts (src/sim must not import regions — regions.test enforces it); per-system RNG `new Rng(mix(seed, day, block,
-   fnv(systemId)))`; branch r/x/bc/gc pu + tap limits stored on Branch at build time via an injected CatalogueView; unit cost/limit
-   fields copied at placeUnit; `state.block` per-block summary; `state.rules` set by Level.setup; flows memoised in a WeakMap keyed by
-   `state.solution`, never stored; let core set won/lost via Level.goal/fail calling levelResult (if a system sets status itself core
-   skips onLevelEnd + autosave); regenerate core goldens once (idle-1, random-2, level-T00) and add a new 10-bus golden.
+1. ~~M1.10 systems pipeline~~ DONE (see DECISIONS #12): src/sim/tick.ts, event.ts, actions.ts, queries.ts; synthetic 10-bus day + goldens.
 2. M1.8 finish (above) + M1.9 data verification (web; zero `recall` in global, 13 grid-code provenance entries are recall today).
 3. M1.11 verify/solution code (core makeVerifier + level-hash check; consider `GameDef.mergeTicks`), M1.12 perf harness, 50k nightly fuzz run.
 4. M2 vertical slice (P0, L01-L03, L07) per BUILD-PLAN.

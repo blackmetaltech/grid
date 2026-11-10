@@ -16,7 +16,7 @@ export interface NetBus {
   kV: number;
 }
 
-/** Line or transformer: unified pi model (DESIGN 3.3). HV/"from" side carries the tap. */
+/** Line or transformer: unified pi model (DESIGN 3.3). HV (from) side carries the tap. */
 export interface NetBranch {
   id: string;
   from: string;

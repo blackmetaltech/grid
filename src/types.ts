@@ -79,8 +79,12 @@ export interface Branch {
   tap: { pos: number; auto: TapAuto | null } | null;
   /** Thermal rating of the whole branch, MVA. */
   ratingMVA: number;
-  /** Running overload timer, s left to trip; null when not overloaded. */
-  timer: { secLeft: number } | null;
+  /** Series R, X, total charging susceptance bc and shunt conductance gc of the whole branch, pu on 100 MVA (stored at build time). */
+  r: number; x: number; bc: number; gc: number;
+  /** Tap position limits (steps) for a transformer; 0/0 otherwise. */
+  tapMin: number; tapMax: number;
+  /** Running overload timer: seconds left to trip, heat fraction used (0..1) and seconds spent below the reset level; null when not overloaded. */
+  timer: { secLeft: number; frac: number; belowS: number } | null;
 }
 
 export type UnitKind = 'coal' | 'gas' | 'diesel' | 'biomass' | 'nuclear' | 'hydro' | 'psp' | 'pv' | 'wind' | 'synccon';
@@ -94,8 +98,18 @@ export interface Unit {
   P: number;
   Q: number;
   Pset: number;
-  /** Commitment: hourly-block schedule (1 = on) and timers, blocks. */
-  commit: { schedule: number[]; minUpLeft: number; startLeft: number };
+  /** Commitment: per-block schedule (1 = on; [] = none) and timers, blocks. */
+  commit: { schedule: number[]; minUpLeft: number; minDownLeft: number; startLeft: number };
+  /** Limits copied from the catalogue at placement: MW and MVAr. */
+  pMin: number; pMax: number; qMin: number; qMax: number;
+  /** Ramp rate, MW per minute. */
+  rampMWperMin: number;
+  /** Available power this block, MW: Pmax for dispatchable units, sun/wind-limited for pv and wind. */
+  availMW: number;
+  /** Fuel cost curve a + b P + c P^2 (currency/h, MW), variable O&M, start-up cost, CO2 intensity, start-up and min up/down times (blocks). */
+  cost: { a: number; b: number; c: number };
+  vomPerMWh: number; startCost: number; co2tPerMWh: number;
+  minUpBlocks: number; minDownBlocks: number; startBlocks: number;
   /** Governor droop, percent. */
   droopPct: number;
   /** Inertia constant on own MVA base, s. */
@@ -114,6 +128,8 @@ export interface Load {
   class: LoadClass;
   /** Peak active demand, MW. */
   Ppeak: number;
+  /** Demand this block before shedding, MW and MVAr (set by the demand system). */
+  P: number; Q: number;
   /** Power factor, 0..1 (lagging). */
   pf: number;
   /** ZIP split of constant-impedance / constant-current / constant-power shares (sum 1). */
@@ -146,6 +162,8 @@ export interface Storage {
   P: number;
   /** State of charge, 0..1. */
   soc: number;
+  /** Rated power, MW, energy, MWh, round-trip efficiency (copied from the catalogue at placement). */
+  mw: number; mwh: number; etaRt: number;
   mode: 'schedule' | 'threshold' | 'ffr';
   /** One MW value per block of a day for 'schedule' mode; null otherwise. */
   schedule: number[] | null;
@@ -186,8 +204,9 @@ export interface UflsStage {
   operated: boolean;
 }
 
-export interface CloudBlob { x: number; y: number; radiusTiles: number; opacity: number }
-export interface Weather { tempC: number; clouds: CloudBlob[]; windMs: number; stormActive: boolean }
+/** A cloud: centre and radius in tiles, opacity 0..1, drift in tiles per block. */
+export interface CloudBlob { x: number; y: number; radiusTiles: number; opacity: number; vx: number; vy: number }
+export interface Weather { tempC: number; clouds: CloudBlob[]; windMs: number; stormActive: boolean; /** blocks of scripted storm left */ stormLeft: number }
 
 export interface Dispatch {
   /** System marginal price, currency per MWh (pack currency). */
@@ -280,6 +299,35 @@ export interface HistoryEntry {
 /** Fixed ring: at most `capacity` entries (96 × days), oldest dropped first. */
 export interface HistoryRing { capacity: number; entries: HistoryEntry[] }
 
+/** A teaching message as data: the front-end turns `key` + `params` into words. */
+export interface Note { key: string; params: Record<string, string | number> }
+
+/** Pass/fail conditions of the running level, set by `Level.setup`. null = not enforced. */
+export interface Rules {
+  /** Blocks the level lasts; reaching it without a loss wins. */
+  horizonBlocks: number | null;
+  maxEnsMWh: number | null; maxCost: number | null; minNadirHz: number | null; maxPoorSupplyMin: number | null;
+  /** A total blackout loses the level. */
+  blackoutLoses: boolean;
+  /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS); null = one star. */
+  starCost: [number, number] | null;
+}
+
+/** Summary of the last operator block (everything the HUD and the explain card need that is not stored elsewhere). */
+export interface BlockSummary {
+  demandMW: number; genMW: number; lossMW: number;
+  /** Energy not served this block as average MW, and generation short of demand after dispatch, MW. */
+  ensMW: number; shortfallMW: number; curtailedMW: number; imbalanceMW: number;
+  reserveMW: number; marginPct: number;
+  worstVPu: number; worstLoading: number;
+  costBlock: number; starts: number; startCostBlock: number;
+  eventWindow: boolean; trips: string[]; blackout: boolean;
+  verdict: 'playing' | 'won' | 'lost'; verdictKey: string | null; verdictParams: Record<string, string | number>;
+  needs: Note[];
+}
+
+export interface LoggedAction { tick: number; name: string; key: string }
+
 export interface Coach { stepId: string | null; hintsUsed: number; seen: string[] }
 
 export interface GridState extends BaseState {
@@ -303,6 +351,10 @@ export interface GridState extends BaseState {
   metrics: Metrics;
   budget: Budget;
   history: HistoryRing;
+  rules: Rules;
+  block: BlockSummary;
+  /** Successful player actions of this game (newest last, capped). */
+  actionLog: LoggedAction[];
   coach: Coach;
   /** Concept ids unlocked in this level state (campaign-wide unlocks live in the profile save). */
   codexUnlocked: string[];

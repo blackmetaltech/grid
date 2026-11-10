@@ -1,4 +1,4 @@
-// Two-winding transformer in the unified pi form (DESIGN 3.3). HV is the "from" side and carries the tap.
+// Two-winding transformer in the unified pi form (DESIGN 3.3). HV is the from side and carries the tap.
 import { S_BASE_MVA, type NetBranch, type NetShunt } from './types';
 
 /** Tap ratio magnitude for tap position n in [-8, 8]: tau = 1 - 0.0125 n (so +n raises the LV voltage). */

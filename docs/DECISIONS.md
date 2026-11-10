@@ -40,3 +40,34 @@ Newest last. Each entry: what, why, where.
     DESIGN section 3 L17 card (285 -> 300 MW, old table) still shows the old numbers; update it at L17 authoring (M3).
 11. **PS-22 outer iterations:** DESIGN says 3 ED↔LF outer iterations; with 3, PS-22 is within 0.2 %; the oracle test runs 8
     and meets 1e-4. Play keeps 3 (good enough for penalty factors); revisit if Engineer-mode cost targets need it.
+12. **M1.10 systems pipeline (src/sim/tick.ts) deviations from DESIGN 8.3 / the handoff design.**
+    - `buildPipeline(getParams)` takes plain `SimParams` (src/sim/params.ts); `src/catalogue.ts` is the only place a pack meets the
+      sim (`simParamsOf`, `catalogueViewOf`). Branch r/x/bc/gc/tap limits, unit limits, cost curve, ramp and timers are copied onto
+      the records by `sim/build.ts` at placement, so the pipeline never reads a catalogue.
+    - Per-system RNG: `systemRng(seed, day, block, systemId)` (`sim/rngs.ts`); the systems ignore the shared core stream, so `state.rng`
+      never advances in a tick. Only `weather` and `blockFrequency` (forecast-error noise, 0.2 % of demand) draw numbers today.
+    - **Block model simplifications:** controls act on the previous block's solution (one-block lag, as real tap changers do); queued
+      operator actions are not queued (actions apply between ticks, which is equivalent); UVLS is only the block-level UFLS stages
+      plus the cascade's motor-stall rule inside event windows (no UVLS in the block model); PSP is not dispatched (storage
+      module only for BESS); a `fault` event is modelled as the permanent trip of the faulted branch, or of every branch at a faulted
+      bus (short-circuit duty/breaker failure from `protection/` is not used until relays and breakers are placed by levels, M2).
+    - **Frequency in the block model:** imbalance = shortfall (or unabsorbed surplus) + noise goes through `blockFrequency`; UFLS stages
+      shed persistent `shedFrac` on the stage's loads (or on non-critical loads); energy not served = persistent sheds plus load on
+      de-energised buses, priced at VOLL. The load-flow slack picks up losses and the imbalance and its P is written back.
+    - **Commitment:** priority list + reserve (largest unit) with a minimum-generation rule: while committed minimum outputs exceed the
+      demand and the rest still covers it, the dearest unit is dropped (reserve gives way to physics: there is no export in the model).
+      Look-ahead = the slowest offline start time. `commit.schedule` per block: 1 on, 0 off, -1 follow auto.
+    - `state.solution` is empty (null) on a grid with no buses (an existing M0 test requires it). Flows are memoised in a WeakMap keyed by
+      `state.solution` (`sim/solved.ts`); a query on a cloned/loaded state recomputes them warm-started from the stored V and theta.
+    - Finite guard: `findNonFinite` runs in `GAME.invariants` (every tick of every persona/monkey run) and P24 checks every query.
+    - `Branch.timer` is `{secLeft, frac, belowS}` (the overload accumulator persists across blocks); `CloudBlob` carries its drift;
+      `Weather.stormLeft`; new state fields `rules` (set by `Level.setup`), `block` (last block summary incl. verdict) and `actionLog`
+      (DECISIONS #5 said no actionLog; core's `levelActions` still feeds the solution code, `actionLog` is the HUD/explain list).
+    - Level verdicts: `levelRules` stores the verdict in `state.block`; `ruleGoal`/`ruleFail` (src/rules.ts) are what a Level's
+      `goal`/`fail` call, so core sets won/lost and runs `onLevelEnd` + autosave; no system sets `status`.
+    - **Goldens regenerated deliberately, once:** `idle-1`, `random-2`, `level-T00` in `src/__golden__/trajectories.json` (new state
+      fields change every hash); new `src/__golden__/tenbus.json` (quiet day, trip+storm day) recorded on the synthetic 10-bus grid.
+    - `GAME.rulesetVersion` NOT bumped (no real level exists yet); bump it when M2 levels are authored on this pipeline.
+    - `src/locales.test.ts` "every key is used" now scans all game sources (it only read game.ts and levels.ts, which cannot hold
+      the keys of the new modules); same strictness. Two comments in `sim/network/{types,transformer}.ts` were reworded because
+      `verify.test.ts`'s import scanner read the word "from" in quotes as an import once game.ts reached those files.

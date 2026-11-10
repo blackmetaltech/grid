@@ -27,7 +27,10 @@ describe('locales', () => {
   });
   it('every key in en is used somewhere in the game source', async () => {
     const { readFileSync } = await import('node:fs'); const { fileURLToPath } = await import('node:url');
-    const src = ['game.ts', 'levels.ts'].map((f) => readFileSync(fileURLToPath(new URL('./' + f, import.meta.url)), 'utf8')).join('\n');
+    const { readdirSync, statSync } = await import('node:fs'); const { join } = await import('node:path');
+    const files: string[] = []; const walk = (d: string): void => { for (const f of readdirSync(d)) { const p = join(d, f); if (statSync(p).isDirectory()) { if (!/locales|regions|oracles|__golden__|node_modules/.test(f)) walk(p); } else if (/\.ts$/.test(f) && !/\.test\.ts$/.test(f)) files.push(p); } };
+    walk(fileURLToPath(new URL('.', import.meta.url)));
+    const src = files.map((f) => readFileSync(f, 'utf8')).join('\n');
     const unused = Object.keys(en).filter((k) => !src.includes(`'${k}'`) && !(/^(mission|concept|scenario)\./.test(k) && src.includes('`' + k.split('.').slice(0, 2).join('.'))));
     expect(unused).toEqual([]);
   });
