@@ -513,8 +513,8 @@ func on_tap(pos: Vector2) -> bool:
 	if mode == "":
 		if yi >= 0 and tags != null: tags.open("yard", str(yards[yi].id)); return true
 		return false
-	if yi >= 0: press_yard(str(yards[yi].id)); return true
-	if mode == "survey" and from_id != "": press_ground(_metres_at(pos)); return true
+	if yi >= 0 and not (mode == "survey" and from_id != "" and site_bus(str(yards[yi].id)) == from_id): press_yard(str(yards[yi].id)); return true
+	if mode == "survey" and from_id != "": press_ground(_metres_at(pos)); return true   # (a click near the start yard is a first bend, not a dropped click)
 	cancel()
 	return true
 
