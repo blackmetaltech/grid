@@ -248,11 +248,18 @@ func _rebuild_terrain() -> void:
 			for q in n + 1: cleared[Vector2i(a.lerp(c, float(q) / float(n)).floor())] = true
 	_zmax = 0.0
 	var tx0 := 1e9; var ty0 := 1e9; var tx1 := -1.0; var ty1 := -1.0
-	for j in H:
+	var H2 := maxi(H, int(model.map.y))   # an offshore island (L30) extends the map with open sea rows south of the terrain
+	var ic: Vector2 = model.get("island_c", Vector2(-99, -99))
+	for j in H2:
 		for i in W:
 			var idx := j * W + i
-			var kind := kinds[idx]
-			var z := elev[idx] * PXM
+			var kind := ""; var z := 0.0
+			if j < H: kind = kinds[idx]; z = elev[idx] * PXM
+			else:
+				var d := Vector2(i + 0.5, j + 0.5).distance_to(ic) + 0.35 * (WorldMath.hash2(i, j, 160) - 0.5)
+				kind = "field" if d < 1.9 else ("sand" if d < 2.9 else "sea")
+				z = (2.5 if kind == "field" else (1.0 if kind == "sand" else 0.0)) * PXM
+				if kind == "field" and WorldMath.hash2(i, j, 161) > 0.72: _objs.append({"t": "tree", "p": Vector2(i + 0.5, j + 0.3), "h": 14.0, "v": WorldMath.hash2(i, j, 162)})
 			_zgrid[Vector2i(i, j)] = z
 			_zmax = maxf(_zmax, z)
 			_tiles.append({"i": i, "j": j, "kind": kind, "var": WorldMath.hash2(i, j, 1)})
@@ -359,6 +366,7 @@ func _rebuild_objects() -> void:
 	for h in model.shunts: _objs.append({"t": "shunt", "p": _tc(h.pos) + Vector2(0.9, 0.4), "h": h})
 	for li in model.lines.size():
 		var l: Dictionary = model.lines[li]
+		if str(l.kind) == "cable" and model.has("island_c"): continue   # the sea cable lies on the seabed: no towers
 		if not _route_of(str(l.id)).is_empty(): continue   # a routed line stands on its planned supports, not on the generic tower rhythm
 		for tp in _tower_points(l): _objs.append({"t": "tower", "p": tp, "kv": l.kv})
 	_route_poly.clear()
@@ -667,6 +675,7 @@ func _paint_dynamic() -> void:
 	_draw_ghost()
 	if cute and _night > 0.35: _draw_fireflies()
 	_draw_corona()
+	_draw_trawler()
 	_draw_fog()
 	perf.dyn_us += Time.get_ticks_usec() - t0
 
@@ -696,6 +705,50 @@ func _draw_corona() -> void:
 			for q in 3:
 				var a := TAU * WorldMath.hash2(i, int(_t * 12.0) + q, 151)
 				_ci.draw_line(top, top + Vector2(cos(a), sin(a)) * (4.0 + 7.0 * k), Color(0.85, 0.8, 1.0, 0.7 * k), 1.2)
+
+## L30: the submarine cable lies on the seabed (a dark armoured line seen through the water, sodium dots where it lands);
+## a trawler steams across it around the anchor-cut minute; once the cable is out a red cross marks the cut.
+func _draw_sea_cable(l: Dictionary) -> void:
+	var raw: Array = l.pts
+	if raw.size() < 2: return
+	var a: Vector2 = _tc(raw[0]); var c: Vector2 = _tc(raw[raw.size() - 1])
+	var poly := PackedVector2Array()
+	for q in 25:
+		var w := a.lerp(c, q / 24.0)
+		poly.append(_iso(w.x, w.y, minf(_zat(w), 0.0) - 3.0))
+	var ok := bool(l.in_service)
+	_ci.draw_polyline(poly, Color(0.05, 0.08, 0.14, 0.75), 5.0, true)
+	_ci.draw_polyline(poly, Color(0.85, 0.55, 0.2, 0.85) if ok else Color(0.45, 0.4, 0.4, 0.8), 2.0, true)
+	for e in [a, c]: _ci.draw_circle(_iso(e.x, e.y, _zat(e)), 4.0, GridTheme.SODIUM if ok else Color(0.5, 0.5, 0.5))
+
+## L30 (dynamic layer): the trawler steams in from the west, drags its anchor over the cable at the cut minute, steams off east; after the cut a red cross pulses.
+func _draw_trawler() -> void:
+	if not model.has("island_c"): return
+	for l in model.lines:
+		if str(l.kind) != "cable": continue
+		var raw: Array = l.pts
+		if raw.size() < 2: continue
+		var a: Vector2 = _tc(raw[0]); var c: Vector2 = _tc(raw[raw.size() - 1])
+		var ok := bool(l.in_service)
+		var mid := a.lerp(c, 0.4)   # the cut: nearer the harbour, clear of the island's label
+		var cm := float(model.get("cut_min", -1.0)); var mn := float(model.minute)
+		if cm > 0.0 and mn > cm - 90.0 and mn < cm + 60.0:   # the trawler: in from the west 90 min before, drags its anchor over the cable at the cut, steams off east
+			var u := (mn - cm) / 60.0
+			var bp := mid + Vector2(u * 7.0, 0.4 + 0.5 * u)
+			var s := clampf(_scale(), 0.6, 2.0) * 1.6
+			var hull := _iso(bp.x, bp.y, 0.0) + Vector2(0, sin(_t * 1.7) * 1.5)
+			var h := PackedVector2Array([hull + Vector2(-14, -2) * s, hull + Vector2(14, -4) * s, hull + Vector2(10, 4) * s, hull + Vector2(-11, 5) * s])
+			_ci.draw_colored_polygon(h, _c(Color("#7A2E2A")))
+			_ci.draw_rect(Rect2(hull + Vector2(-6, -11) * s, Vector2(9, 8) * s), _c(Color("#E9E2D0")))
+			_ci.draw_line(hull + Vector2(4, -3) * s, hull + Vector2(4, -20) * s, _c(Color("#3A2E26")), 1.5)
+			if _night > 0.3: _ci.draw_circle(hull + Vector2(4, -20) * s, 2.2, Color(1.0, 0.9, 0.6, 0.9))   # mast-head light
+			if absf(u) < 0.6:   # the anchor chain dragging along the seabed
+				_ci.draw_line(hull + Vector2(-12, 3) * s, _iso(mid.x, mid.y, -3.0), Color(0.25, 0.22, 0.2, 0.9), 1.2, true)
+		if not ok:
+			var x := _iso(mid.x, mid.y, 0.0); var r := (8.0 + 2.0 * sin(_t * 4.0)) * clampf(_scale(), 0.8, 1.6)
+			_ci.draw_line(x + Vector2(-r, -r), x + Vector2(r, r), Color(0.95, 0.25, 0.2), 3.0, true)
+			_ci.draw_line(x + Vector2(-r, r), x + Vector2(r, -r), Color(0.95, 0.25, 0.2), 3.0, true)
+
 
 ## Sea fog banks drifting along the coast (a few dozen soft ellipses; they carry the salt that the insulators must shed).
 func _draw_fog() -> void:
@@ -793,7 +846,7 @@ func _draw_tile(t: Dictionary) -> void:
 	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, kr)))
 	_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
 	if model.has("fog_min") and not water:   # a sea-fog job: the salt the wind lays on the coast, whiter by pollution class (II faint, IV crusted)
-		var pc := int((model.terrain.poll as PackedByteArray)[j * W + i]) if model.terrain.has("poll") else 1
+		var pc := int((model.terrain.poll as PackedByteArray)[j * W + i]) if model.terrain.has("poll") and j * W + i < (model.terrain.poll as PackedByteArray).size() else 1
 		if pc >= 2:
 			_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), _c(Color(0.93, 0.96, 1.0, 0.1 * float(pc - 1))))
 			for k in pc - 1: _ci.draw_circle(_iso(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 120 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 130 + k), z), 1.1, _c(Color(1, 1, 1, 0.55)))
@@ -1079,6 +1132,7 @@ func _draw_wires() -> void:
 		for off in _offsets(l):
 			var poly := _line_poly(l, off)
 			if poly.size() < 2: continue
+			if str(l.kind) == "cable" and model.has("island_c"): _draw_sea_cable(l); break
 			if str(l.kind) == "cable" and l.get("mm2") != null:   # bench cables: copper you can see; width ∝ conductor diameter ∝ sqrt(area)
 				var cw := (1.2 + 1.1 * sqrt(float(l.mm2))) / maxf(_scale(), 0.01) * clampf(_scale(), 0.6, 2.0)
 				_ci.draw_polyline(poly, _c(Color("#1C1712")), cw + 2.5, true)

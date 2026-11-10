@@ -59,7 +59,13 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 	var has_terrain: bool = w.get("terrain") is Dictionary and not (w.terrain as Dictionary).is_empty()
 	if has_terrain:
 		m["terrain"] = terrain_of(w.terrain); m["tile_m"] = float(w.terrain.tileM)
+		var isl := Vector2.ZERO; var n_off := 0   # an offshore island (L30): the map grows south with open sea to the island's buses
+		for bus in w.buses: if bool(bus.get("offshore", false)): isl += Vector2(float(bus.x), float(bus.y)); n_off += 1
+		if n_off > 0:
+			isl /= float(n_off); m["island_c"] = isl + Vector2(0.5, 0.5)
+			m.map = Vector2(m.map.x, maxf(m.map.y, isl.y + 4.0))
 		var lif = b.q("levelInfo")   # a sea-fog job: the salt is drawn on the coast and the fog rolls in around its hour
+		if lif is Dictionary and lif.get("cableCutBlock") != null: m["cut_min"] = float(lif.cableCutBlock) * 15.0   # L30: the trawler's anchor
 		if lif is Dictionary and lif.get("fogBlock") != null and str(lif.get("fogTime", "")) != "":
 			var hm := str(lif.fogTime).split(":"); m["fog_min"] = float(int(hm[0]) * 60 + (int(hm[1]) if hm.size() > 1 else 0))
 		for r in w.get("routes", []): m.routes.append(RouteDraw.plan_to_route(r, str(r.branchId), float(w.terrain.tileM)))
