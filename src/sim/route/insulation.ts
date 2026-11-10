@@ -13,3 +13,6 @@ export const requiredCreepageMm = (kvNom: number, cls: PollutionClass): number =
 export function insulatorUnits(kvNom: number, cls: PollutionClass, unitCreepageMm: number): number {
   return Math.ceil(requiredCreepageMm(kvNom, cls) / unitCreepageMm - 1e-9);
 }
+
+/** Insulator-table lookup shared by the planner and the pricing: the fallback string is the plain pin insulator. */
+export const PIN_ID = 'pin';

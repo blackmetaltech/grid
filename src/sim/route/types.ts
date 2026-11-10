@@ -60,7 +60,14 @@ export interface RouteRequest {
   conductorId: string;
   kv: number;
   spanM: number;
+  /** Insulator string on every support ('pin' when absent; src/data/insulators.ts) and the one used instead on supports whose tile is pollution class >= 3
+   *  (the coast; defaults to `insulatorId`). Absent in requests saved before L29. */
+  insulatorId?: string;
+  coastInsulatorId?: string;
 }
+
+/** Physical data of an insulator string (src/data/insulators.ts adds price and provenance). */
+export interface InsulatorMech { id: string; creepageMm: number; dropM: number }
 
 export interface PlannedSupport {
   x: number; y: number;            // metres
@@ -69,6 +76,13 @@ export interface PlannedSupport {
   angleDeg: number;                // deviation at this support (0 on straight runs)
   angleClass: AngleClass;
   foundation: Foundation;
+  /** Insulator on this support, its creepage and the creepage its tile's pollution class needs (Um x specific creepage), mm. */
+  insulatorId: string;
+  creepageMm: number;
+  needMm: number;
+  pollutionClass: PollutionClass;
+  /** Distance from the support to the nearest sea tile edge, m (null when no sea within 7 tiles). */
+  seaM: number | null;
 }
 
 export interface PlannedSpan {
@@ -92,6 +106,7 @@ export type RouteRefusal =
   | { key: 'route.noFoundation'; tile: number; kind: TileKind; familyId: string; needs: Foundation }   // e.g. a wood pole in swamp
   | { key: 'route.unknownFamily'; id: string }
   | { key: 'route.unknownConductor'; id: string }
+  | { key: 'route.unknownInsulator'; id: string }
   | { key: 'route.spanTooLong'; spanM: number; maxSpanM: number };
 
 export interface RoutePlan {
@@ -106,6 +121,7 @@ export interface RoutePlan {
   bom: {
     supports: Record<string, Record<AngleClass, number>>;     // family -> angle class -> count
     foundations: Record<Foundation, number>;
+    insulators: Record<string, number>;                       // insulator id -> supports carrying it (the caller prices 3 phases each)
     conductorM: number;                                       // per phase-conductor metres (caller multiplies by conductors)
     clearedForestM: number;                                   // route metres over forest (right-of-way clearing)
   };

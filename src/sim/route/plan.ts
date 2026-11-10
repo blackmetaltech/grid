@@ -8,14 +8,18 @@
 //  4. Angle = deviation between incoming and outgoing legs at a waypoint (0..180 deg); ends are 'terminal'; <=2 suspension, <=15 small, <=30 medium,
 //     else large. Bank supports of a crossing are dead-ends: at least 'large'.
 //  5. Foundation from the soil under each support: swamp -> pile, rock -> rock, else earth; the family must list it.
+//  5b. Insulators: every support carries the request's insulator (default 'pin'), or its coast insulator where the tile is pollution class >= 3; it records its creepage, the creepage
+//     its tile needs (Um x specific creepage) and the distance to the sea. The string's drop lowers that support's attachment in step 6.
 //  6. Spans: H_everyday = everydayFrac * UTS at everydayC, H_design = state change to designC, D = parabolic sag. Conductor height at x is the
 //     chord between attachment heights (ground + attachM - insulatorDropM) minus 4D x(L-x)/L^2. >= 21 samples (and <= 5 m apart) are checked
 //     against ground (+ required clearance: ground, water above its tile elevation, + road extra). Worst margin gives clearanceM/requiredM/atM.
 import { dmath } from '@core/numerics';
-import { groundAt, tileIndexAt } from './terrain';
+import { groundAt, seaDistanceM, tileIndexAt } from './terrain';
+import { PIN_CREEPAGE_MM, PIN_ID, requiredCreepageMm } from './insulation';
+import { INSULATORS } from '../../data/insulators';
 import { sagParabola, stateChange, weightNPerM } from './sag';
 import type {
-  AngleClass, ConductorMech, Foundation, PlannedSpan, PlannedSupport, RouteRequest, RouteResult, RouteRules, SupportFamily, Terrain, TileKind,
+  AngleClass, ConductorMech, Foundation, InsulatorMech, PlannedSpan, PlannedSupport, RouteRequest, RouteResult, RouteRules, SupportFamily, Terrain, TileKind,
 } from './types';
 
 const SAMPLE_M = 5;
@@ -30,13 +34,16 @@ const CLASS_ORDER: AngleClass[] = ['suspension', 'small', 'medium', 'large'];
 interface Node { x: number; y: number; bank: boolean; angleDeg: number; terminal: boolean; gapNext: boolean }
 
 /** Height margin (m) of a span's lowest point over the ground for a flat test span; exported for tests and UI previews. */
-export function flatSpanMargin(c: ConductorMech, rules: RouteRules, L: number, attachM: number, requiredM: number): number {
+export function flatSpanMargin(c: ConductorMech, rules: RouteRules, L: number, attachM: number, requiredM: number, dropM: number = rules.insulatorDropM): number {
   const H1 = rules.everydayFrac * c.utsN;
   const D = sagParabola(weightNPerM(c), L, stateChange(c, L, H1, rules.everydayC, rules.designC));
-  return attachM - rules.insulatorDropM - D - requiredM;
+  return attachM - dropM - D - requiredM;
 }
 
-export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules, families: SupportFamily[], conductors: ConductorMech[]): RouteResult {
+/** The kit's insulator strings as the planner sees them (the plain pin insulator is built in, so old callers need no table). */
+const INSULATOR_MECH: InsulatorMech[] = INSULATORS.map((i) => ({ id: i.id, creepageMm: i.creepageMm, dropM: i.dropM }));
+
+export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules, families: SupportFamily[], conductors: ConductorMech[], insulators: InsulatorMech[] = INSULATOR_MECH): RouteResult {
   // 1. validation
   const main = families.find((f) => f.id === req.familyId);
   if (!main) return refuse({ key: 'route.unknownFamily', id: req.familyId });
@@ -45,6 +52,11 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
   const cond = conductors.find((c) => c.id === req.conductorId);
   if (!cond) return refuse({ key: 'route.unknownConductor', id: req.conductorId });
   for (const f of crossing ? [main, crossing] : [main]) if (req.kv > f.kvMax) return refuse({ key: 'route.kvTooHigh', kv: req.kv, kvMax: f.kvMax, familyId: f.id });
+  const insId = req.insulatorId ?? PIN_ID, coastId = req.coastInsulatorId ?? insId;
+  const insOf = (id: string): InsulatorMech | undefined => insulators.find((i) => i.id === id) ?? (id === PIN_ID ? { id: PIN_ID, creepageMm: PIN_CREEPAGE_MM, dropM: 0 } : undefined);
+  const inland = insOf(insId), coast = insOf(coastId);
+  if (!inland) return refuse({ key: 'route.unknownInsulator', id: insId });
+  if (!coast) return refuse({ key: 'route.unknownInsulator', id: coastId });
   if (req.spanM > main.maxSpanM) return refuse({ key: 'route.spanTooLong', spanM: req.spanM, maxSpanM: main.maxSpanM });
   const wps: [number, number][] = [];
   const MERGE_M = 5;   // bend points closer than this are one point (a stray double click must not plant two angle towers 1.5 m apart; review 2026-11-10)
@@ -122,19 +134,22 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
     if (!fam.foundations.includes(foundation)) return refuse({ key: 'route.noFoundation', tile: ti, kind, familyId: fam.id, needs: foundation });
     let cls: AngleClass = n.terminal ? 'terminal' : angleClassOf(n.angleDeg);
     if (n.bank && cls !== 'terminal' && CLASS_ORDER.indexOf(cls) < 3) cls = 'large';
-    supports.push({ x: n.x, y: n.y, tile: ti, familyId: fam.id, angleDeg: n.angleDeg, angleClass: cls, foundation });
+    const pollutionClass = terrain.pollution[ti]!, ins = pollutionClass >= 3 ? coast : inland;
+    supports.push({ x: n.x, y: n.y, tile: ti, familyId: fam.id, angleDeg: n.angleDeg, angleClass: cls, foundation, insulatorId: ins.id, creepageMm: ins.creepageMm, needMm: requiredCreepageMm(req.kv, pollutionClass), pollutionClass, seaM: seaDistanceM(terrain, n.x, n.y) });
   }
 
   // 6. spans
   const fam = (id: string): SupportFamily => families.find((f) => f.id === id)!;
+  const dropOf = (id: string): number => insOf(id)?.dropM ?? 0;
   const H1 = rules.everydayFrac * cond.utsN, w = weightNPerM(cond);
   const spans: PlannedSpan[] = [];
   let lengthM = 0, worstMarginM = Infinity, worstSpan = 0, forestM = 0;
   for (let s = 0; s + 1 < supports.length; s++) {
     const A = supports[s]!, B = supports[s + 1]!, L = dist([A.x, A.y], [B.x, B.y]);
     const hH = stateChange(cond, L, H1, rules.everydayC, rules.designC), D = sagParabola(w, L, hH);
-    const hA = groundAt(terrain, A.x, A.y) + fam(A.familyId).attachM - rules.insulatorDropM;
-    const hB = groundAt(terrain, B.x, B.y) + fam(B.familyId).attachM - rules.insulatorDropM;
+    // the string's drop is the support's own (its insulator), on top of the pack's base drop (0 in both packs)
+    const hA = groundAt(terrain, A.x, A.y) + fam(A.familyId).attachM - rules.insulatorDropM - dropOf(A.insulatorId);
+    const hB = groundAt(terrain, B.x, B.y) + fam(B.familyId).attachM - rules.insulatorDropM - dropOf(B.insulatorId);
     const ns = Math.max(20, Math.ceil(L / SAMPLE_M));
     const over: TileKind[] = [];
     let best = Infinity, bestAt = 0, bestClear = 0, bestReq = 0;
@@ -161,9 +176,11 @@ export function planRoute(terrain: Terrain, req: RouteRequest, rules: RouteRules
 
   const bomSup: Record<string, Record<AngleClass, number>> = {};
   const foundations: Record<Foundation, number> = { earth: 0, pile: 0, rock: 0 };
+  const insCount: Record<string, number> = {};
   for (const sp of supports) {
+    insCount[sp.insulatorId] = (insCount[sp.insulatorId] ?? 0) + 1;
     (bomSup[sp.familyId] ??= { suspension: 0, small: 0, medium: 0, large: 0, terminal: 0 })[sp.angleClass]++;
     foundations[sp.foundation]++;
   }
-  return { ok: true, supports, spans, lengthM, worstMarginM, worstSpan, bom: { supports: bomSup, foundations, conductorM: lengthM, clearedForestM: forestM } };
+  return { ok: true, supports, spans, lengthM, worstMarginM, worstSpan, bom: { supports: bomSup, foundations, insulators: insCount, conductorM: lengthM, clearedForestM: forestM } };
 }

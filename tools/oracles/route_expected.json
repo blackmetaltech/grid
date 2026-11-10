@@ -54,5 +54,65 @@
  },
  "S-08": {
   "T_c": 64.2
+ },
+ "S-09": {
+  "need_classIV_mm": 372,
+  "creepage_mm": {
+   "pin": 320,
+   "fog1": 430,
+   "disc2": 590
+  },
+  "passes_classIV": {
+   "pin": false,
+   "fog1": true,
+   "disc2": true
+  },
+  "need_classIII_mm": 300,
+  "passes_classIII": {
+   "pin": true,
+   "fog1": true,
+   "disc2": true
+  },
+  "need_classII_mm": 240,
+  "need_classI_mm": 192
+ },
+ "S-10": {
+  "70": {
+   "sag_hot_m": 1.127129269373998,
+   "pin": {
+    "clearance_m": 7.872870730626002,
+    "margin_m": 1.8728707306260022
+   },
+   "fog1": {
+    "clearance_m": 7.722870730626002,
+    "margin_m": 1.7228707306260018
+   },
+   "disc2": {
+    "clearance_m": 7.5728707306260015,
+    "margin_m": 1.5728707306260015
+   },
+   "loss_disc2_vs_pin_m": 0.3000000000000007
+  },
+  "100": {
+   "sag_hot_m": 1.7656473997420599,
+   "pin": {
+    "clearance_m": 7.234352600257941,
+    "margin_m": 1.2343526002579406
+   },
+   "fog1": {
+    "clearance_m": 7.08435260025794,
+    "margin_m": 1.0843526002579402
+   },
+   "disc2": {
+    "clearance_m": 6.93435260025794,
+    "margin_m": 0.9343526002579399
+   },
+   "loss_disc2_vs_pin_m": 0.3000000000000007
+  },
+  "wood_max_flat_span_m": {
+   "pin": 88,
+   "fog1": 80,
+   "disc2": 73
+  }
  }
 }

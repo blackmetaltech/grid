@@ -16,6 +16,7 @@ export const ROUTE: RouteData = {
     conductorPerM: { weasel: 0.9, rabbit: 1.4, dog: 2.6 },
     phaseWires: { lv: 4, mv: 3 },
     clearingPerM: 8,
+    insulator: { pin: 25, disc2: 70, fog1: 95 },   // US$ per phase per support (L29; src/data/insulators.ts)
   },
 };
 export const ROUTE_PROVENANCE = {

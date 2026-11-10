@@ -17,7 +17,7 @@ import { voltageBand, type SimParams } from './params';
 import { systemRng } from './rngs';
 import { fin } from './finite';
 import { stepBench, type BenchParams } from '../level/bench';
-import { flashoverStep } from './flashover';
+import { flashoverStep, saltFlashoverStep } from './flashover';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -234,7 +234,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
     } },
 
     // 7b. flashover: at the level's hot evening block, spans under their clearance rule flash over and trip their line (before the load flow sees it).
-    { id: 'flashover', run: (s) => { flashoverStep(s); } },
+    { id: 'flashover', run: (s) => { flashoverStep(s); saltFlashoverStep(s); } },
 
     // 8. loadflow: islands, Newton-Raphson, Q-limits, collapse sheds -> `solution` (V and theta only; flows are memoised outside).
     { id: 'loadflow', run: (s) => {
@@ -301,6 +301,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         if (v < lo && loadBuses.has(b.id)) low = true;
         if (v > hi) high = true;
       }
+      if (s.rules.darkLoadsLose) for (const id of loadBuses) if (!sol.energised[id]) low = true;
       s.block.worstVPu = worst;
       if (low) s.metrics.poorSupplyMin += 15;
       if (high) s.metrics.ovMin += 15;
@@ -403,6 +404,8 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       tr.lossPct = tr.supplyMWh > 1e-9 ? fin((100 * s.metrics.lossesMWh) / tr.supplyMWh) : 0;
       if (s.routes.length > 0) {   // route levels: the thinnest clearance of any span (m) and the lowest voltage a loaded bus saw (pu; 0 when dark)
         tr.worstMarginM = fin(Math.min(...s.routes.map((r) => r.worstMarginM)));
+        const coast = s.routes.flatMap((r) => (r.coastMinCreepageMm === undefined ? [] : [r.coastMinCreepageMm]));
+        if (coast.length > 0) tr.coastMinCreepageMm = fin(Math.min(...coast));   // thinnest insulator creepage (mm) of any support within 6 tiles of the sea (L29 third star)
         const sol = solvedOf(s);
         const vs = s.loads.filter((l) => l.P > 0).map((l) => (sol && sol.sol.energised[l.bus] !== false ? sol.sol.V[l.bus] ?? 0 : 0));
         if (vs.length > 0) tr.loadVMinPu = Math.min(tr.loadVMinPu ?? Infinity, fin(Math.min(...vs)));

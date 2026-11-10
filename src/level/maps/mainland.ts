@@ -1,7 +1,7 @@
 // Chapter 2 district map "The Mainland" (DEPTH.md §7-8): 100 × 44 tiles of 50 m (5 km × 2.2 km). West: the waterfall hills and the
 // hydro station; a river runs north to south with a rocky 100 m gorge in the north (rows 6-10) and a mangrove estuary widening to the sea
 // in the south; forests in the north; a ridge (rock crest, a field saddle at rows 19-27) east of the river; the market town in the east
-// (rows 10-18) with the road along row 14 (it crosses the ridge in a cutting through the rock); beach and sea along the south edge. Legend: f field, s swamp, r river, w forest, k rock, a sand, e sea,
+// (rows 10-18) with the road along row 14 (it crosses the ridge in a cutting through the rock); beach and sea along the south edge. L29 "Salt Wind" adds the harbour: a small town block (6 x 3 tiles, cols 79-84, rows 37-39) with a street along row 36 (cols 76-90) just north of the beach. Legend: f field, s swamp, r river, w forest, k rock, a sand, e sea,
 // t town, d road (src/sim/route/types.ts). Elevations in metres; river and sea tiles carry the high-water level.
 // The rows were generated once by a script (river centre piecewise linear, widths per row) and are frozen here as data.
 export const MAINLAND_TILE_M = 50;
@@ -42,10 +42,10 @@ export const MAINLAND_ROWS: readonly string[] = [
   'ffffffffffffffffffffffffffffffffffssssssrrrrssssssffffffffffffffffffffffffffffffffffffffffffffffffff',
   'ffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffffffffffffffffffffffffff',
   'ffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffffffffffffffffffffffffff',
-  'ffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffffffffffffffffffffffffff',
-  'fffffffffffffffffffffffffffffffffffssssssrrrrrssssssffffffffffffffffffffffffffffffffffffffffffffffff',
-  'fffffffffffffffffffffffffffffffffffssssssrrrrrssssssffffffffffffffffffffffffffffffffffffffffffffffff',
-  'fffffffffffffffffffffffffffffffffffssssssrrrrrrssssssfffffffffffffffffffffffffffffffffffffffffffffff',
+  'ffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffdddddddddddddddfffffffff',
+  'fffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffffttttttfffffffffffffff',
+  'fffffffffffffffffffffffffffffffffffssssssrrrrrssssssfffffffffffffffffffffffffffttttttfffffffffffffff',
+  'fffffffffffffffffffffffffffffffffffssssssrrrrrrssssssffffffffffffffffffffffffffttttttfffffffffffffff',
   'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeeeeeeeeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaeeeeeeeeaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
@@ -73,5 +73,7 @@ export function mainlandElev(i: number, j: number): number {
   const u = (i + 0.5 - 70.5) / 6;
   const bump = 1 - u * u;
   if (bump > 0) z += ridgeTop(j) * bump;
+  // the harbour coast (L29): the plain falls gently from row 34 to the beach (1.5 m at row 40) instead of stepping 7 m down at the sand; rows above 34 are untouched
+  if (j > 34) { const f = Math.min(1, (j - 34) / 6); z = z * (1 - f) + 1.5 * f; }
   return z;
 }

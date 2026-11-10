@@ -323,6 +323,10 @@ export interface Rules {
   starBasis: 'operating' | 'capex';
   /** Block of the day at which every route with a span under its clearance rule flashes over and trips (the hot evening peak); null = never. */
   flashoverBlock: number | null;
+  /** Block at which supports short of their tile's creepage flash over in the sea fog (L29); null/absent = never. */
+  fogBlock?: number | null;
+  /** A load on a de-energised bus counts as poor supply (a level where part of the job is an unserved bus that would otherwise sit outside every island check: L29's harbour). */
+  darkLoadsLose?: boolean;
   /** Extra conditions for the third star: a tracked metric (`metrics.track[key]`) must be >= min and/or <= max. */
   star3: { key: string; min: number | null; max: number | null }[];
 }
@@ -360,7 +364,11 @@ export interface LoggedAction { tick: number; name: string; key: string }
 /** What a route request looked like (src/sim/route/types.ts RouteRequest, repeated structurally: the state stays plain JSON and imports nothing). */
 export interface RouteRequestRecord {
   waypoints: [number, number][]; familyId: string; crossingFamilyId: string | null; conductorId: string; kv: number; spanM: number;
+  /** Insulator ids (L29); absent = plain pins. */
+  insulatorId?: string; coastInsulatorId?: string;
 }
+/** The support of a route that is shortest of creepage for its tile (L29 fog flashover): index along the route, distance to the sea (m), pollution class, creepage needed and had (mm). */
+export interface SaltSupportRecord { index: number; seaM: number; cls: number; needMm: number; hasMm: number; insulatorId: string }
 /** The span of a built route with the smallest clearance margin: the numbers the lesson, the flashover event and the incident report quote. */
 export interface WorstSpanRecord {
   /** Span index along the route and its horizontal length, m. */
@@ -384,6 +392,10 @@ export interface RouteRecord {
   worst: WorstSpanRecord;
   /** The longest span of the line (usually the river crossing: the sag lesson). Absent in states saved before it existed. */
   longest?: WorstSpanRecord;
+  /** Supports short of the creepage their tile needs and the worst of them (only when there are any), and the thinnest creepage (mm) of a support within 6 tiles of the sea (only when one is). */
+  saltShort?: number[]; saltWorst?: SaltSupportRecord; coastMinCreepageMm?: number;
+  /** The most exposed support within 6 tiles of the sea (highest creepage need, then thinnest creepage, then nearest the surf): the one the L29 lesson quotes. */
+  coastWorst?: SaltSupportRecord;
 }
 
 export interface Coach { stepId: string | null; hintsUsed: number; seen: string[] }

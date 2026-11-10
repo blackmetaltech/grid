@@ -4,7 +4,8 @@
 // (rules for the line's kV, prices, support families, conductors), never as a pack.
 import type { ActionFn, ActionResult, QueryFn } from '@core/kit';
 import { t } from './i18n';
-import type { GridState, RouteRecord, WorstSpanRecord } from './types';
+import type { GridState, RouteRecord, SaltSupportRecord, WorstSpanRecord } from './types';
+import { INSULATORS } from './data/insulators';
 import { makeLine, type CatalogueView, type LineSpec } from './sim/build';
 import { planRoute, weightNPerM, type ConductorMech, type RoutePlan, type RouteRequest, type RouteResult, type RouteRules, type SupportFamily, type Terrain, type TileKind } from './sim/route';
 import type { RouteData } from './regions/data';
@@ -51,6 +52,7 @@ function refusalParams(r: Extract<RouteResult, { ok: false }>['refusal']): Param
     case 'route.noFoundation': return { kind: kindWord(r.kind), family: familyWord(r.familyId), needs: foundationWord(r.needs), tile: r.tile };
     case 'route.unknownFamily': return { id: r.id };
     case 'route.unknownConductor': return { id: r.id };
+    case 'route.unknownInsulator': return { id: r.id };
     case 'route.spanTooLong': return { span: r.spanM, max: r.maxSpanM };
   }
 }
@@ -59,7 +61,7 @@ export interface Refusal { key: string; message: string; params: Params }
 const refusal = (key: string, params: Params = {}): { ok: false; refusal: Refusal } => ({ ok: false, refusal: { key, message: t(key, params), params } });
 
 // ---- pricing -------------------------------------------------------------------------------------------------------------------------
-export interface RouteCost { supports: number; foundations: number; conductor: number; clearing: number; total: number }
+export interface RouteCost { supports: number; foundations: number; conductor: number; clearing: number; insulators: number; total: number }
 /** Bill of materials of a plan at the pack's prices (to the cent). The foundation is `foundationShare` OF the angle-adjusted support price (the rest is the
  *  support itself), times the foundation kind's multiplier; wires are 4 below 1 kV, 3 above; right-of-way clearing is charged per metre of route over forest. */
 export function priceRoute(plan: RoutePlan, kv: number, conductorShort: string, prices: RouteData['prices']): RouteCost {
@@ -72,15 +74,37 @@ export function priceRoute(plan: RoutePlan, kv: number, conductorShort: string, 
   const wires = kv < 1 ? prices.phaseWires.lv : prices.phaseWires.mv;
   const conductor = plan.bom.conductorM * wires * (prices.conductorPerM[conductorShort] ?? 0);
   const clearing = plan.bom.clearedForestM * prices.clearingPerM;
-  const c = { supports: r2(supports), foundations: r2(foundations), conductor: r2(conductor), clearing: r2(clearing) };
-  return { ...c, total: r2(c.supports + c.foundations + c.conductor + c.clearing) };
+  // insulators: 3 phases x supports x the unit price (per phase per support); the pack's `insulator` table overrides the base US$ price of src/data/insulators.ts
+  let insulators = 0;
+  for (const sp of plan.supports) if (sp.insulatorId) insulators += 3 * (prices.insulator?.[sp.insulatorId] ?? INSULATORS.find((i) => i.id === sp.insulatorId)?.priceUsd ?? 0);
+  const c = { supports: r2(supports), foundations: r2(foundations), conductor: r2(conductor), clearing: r2(clearing), insulators: r2(insulators) };
+  return { ...c, total: r2(c.supports + c.foundations + c.conductor + c.clearing + c.insulators) };
 }
 
 // ---- evaluating a request ------------------------------------------------------------------------------------------------------------
-export interface RouteArgs { from: string; to: string; conductor: string; family: string; crossing: string | null; spanM: number; waypointsM: [number, number][] }
+export interface RouteArgs { from: string; to: string; conductor: string; family: string; crossing: string | null; spanM: number; waypointsM: [number, number][]; insulator: string; coastInsulator: string }
 export type RouteEval =
   | { ok: false; refusal: Refusal }
-  | { ok: true; plan: RoutePlan; cost: RouteCost; kv: number; request: RouteRequest; spec: LineSpec; worst: WorstSpanRecord; longest: WorstSpanRecord; badSpans: number[] };
+  | { ok: true; plan: RoutePlan; cost: RouteCost; kv: number; request: RouteRequest; spec: LineSpec; worst: WorstSpanRecord; longest: WorstSpanRecord; badSpans: number[]; salt: SaltView };
+
+/** Which supports of a plan are short of the creepage their tile needs (fog flashover), the worst of them, and the thinnest creepage within 6 tiles of the sea. */
+export interface SaltView { short: number[]; worst: SaltSupportRecord | null; coastMinCreepageMm: number | null; coastWorst: SaltSupportRecord | null }
+export function saltOf(plan: RoutePlan): SaltView {
+  const short: number[] = []; let worst: SaltSupportRecord | null = null, coastMin: number | null = null, coastWorst: SaltSupportRecord | null = null;
+  const recOf = (p: RoutePlan['supports'][number], i: number): SaltSupportRecord => ({ index: i, seaM: Math.round(p.seaM ?? 0), cls: p.pollutionClass, needMm: Math.round(p.needMm), hasMm: Math.round(p.creepageMm), insulatorId: p.insulatorId });
+  plan.supports.forEach((p, i) => {
+    if (p.pollutionClass >= 2) {   // class >= 2 is exactly "within 6 tiles of the sea"
+      coastMin = coastMin === null ? p.creepageMm : Math.min(coastMin, p.creepageMm);
+      const c = recOf(p, i);
+      if (!coastWorst || c.needMm > coastWorst.needMm || (c.needMm === coastWorst.needMm && (c.hasMm < coastWorst.hasMm || (c.hasMm === coastWorst.hasMm && c.seaM < coastWorst.seaM)))) coastWorst = c;
+    }
+    if (p.creepageMm >= p.needMm - 1e-9) return;
+    short.push(i);
+    const rec = recOf(p, i);
+    if (!worst || rec.needMm - rec.hasMm > worst.needMm - worst.hasMm || (rec.needMm - rec.hasMm === worst.needMm - worst.hasMm && rec.seaM < worst.seaM)) worst = rec;
+  });
+  return { short, worst, coastMinCreepageMm: coastMin, coastWorst };
+}
 
 /** The planner is pure: memoise it by (region, terrain, request) outside the state so previews and probes stay cheap. */
 const PLAN_CACHE = new Map<string, RouteResult>();
@@ -98,7 +122,7 @@ function planCached(s: GridState, terrain: Terrain, req: RouteRequest, rp: Route
 
 export const MIN_SPAN_M = 20, MAX_WAYPOINTS = 40;
 export function parseArgs(a: unknown[]): RouteArgs | { bad: string } {
-  const [from, to, conductor, family, crossing, spanM, wps] = a;
+  const [from, to, conductor, family, crossing, spanM, wps, insulator, coastInsulator] = a;
   if (!isStr(from) || !isStr(to)) return { bad: 'exp.bus_ids' };
   if (!isStr(conductor)) return { bad: 'exp.a_conductor_id' };
   if (!isStr(family)) return { bad: 'exp.a_support_family_id' };
@@ -107,7 +131,10 @@ export function parseArgs(a: unknown[]): RouteArgs | { bad: string } {
   const w = wps === undefined ? [] : wps;
   if (Array.isArray(w) && w.length > MAX_WAYPOINTS) return { bad: 'exp.a_list_of_points_in_metres' };
   if (!Array.isArray(w) || w.some((p) => !Array.isArray(p) || p.length !== 2 || !isNum(p[0]) || !isNum(p[1]))) return { bad: 'exp.a_list_of_points_in_metres' };
-  return { from, to, conductor, family, crossing: crossing ?? null, spanM, waypointsM: (w as [number, number][]).map((p) => [p[0], p[1]] as [number, number]) };
+  if (insulator !== null && insulator !== undefined && !isStr(insulator)) return { bad: 'exp.an_insulator_id' };
+  if (coastInsulator !== null && coastInsulator !== undefined && !isStr(coastInsulator)) return { bad: 'exp.an_insulator_id' };
+  const ins = insulator ?? 'pin';
+  return { from, to, conductor, family, crossing: crossing ?? null, insulator: ins, coastInsulator: coastInsulator ?? ins, spanM, waypointsM: (w as [number, number][]).map((p) => [p[0], p[1]] as [number, number]) };
 }
 
 export function evaluateRoute(s: GridState, a: RouteArgs, d: RouteDeps): RouteEval {
@@ -124,7 +151,8 @@ export function evaluateRoute(s: GridState, a: RouteArgs, d: RouteDeps): RouteEv
   const tplKv = kv < 1 ? '04' : String(kv), spec0 = d.cat(s).line(`l${tplKv}-${a.conductor}`);
   if (!spec0) return refusal('route.noTemplate', { kv, conductor: a.conductor });
   const at = (b: { x: number; y: number }): [number, number] => [(b.x + 0.5) * terrain.tileM, (b.y + 0.5) * terrain.tileM];
-  const request: RouteRequest = { waypoints: [at(A), ...a.waypointsM, at(B)], familyId: a.family, crossingFamilyId: a.crossing, conductorId: mech.id, kv, spanM: a.spanM };
+  const request: RouteRequest = { waypoints: [at(A), ...a.waypointsM, at(B)], familyId: a.family, crossingFamilyId: a.crossing, conductorId: mech.id, kv, spanM: a.spanM,
+    ...(a.insulator !== 'pin' || a.coastInsulator !== 'pin' ? { insulatorId: a.insulator, coastInsulatorId: a.coastInsulator } : {}) };   // omitted when plain pins: old saves and their hashes stay as they were
   const res = planCached(s, terrain, request, rp);
   if (!res.ok) {
     const r = res.refusal;
@@ -148,7 +176,7 @@ export function evaluateRoute(s: GridState, a: RouteArgs, d: RouteDeps): RouteEv
   plan.spans.forEach((sp, i) => { if (sp.lengthM > plan.spans[li]!.lengthM) li = i; });
   const worst = rec(plan.worstSpan), longest = rec(li);
   const badSpans = plan.spans.flatMap((sp, i) => (sp.ok ? [] : [i]));
-  return { ok: true, plan, cost: priceRoute(plan, kv, a.conductor, rp.prices), kv, request, spec, worst, longest, badSpans };
+  return { ok: true, plan, cost: priceRoute(plan, kv, a.conductor, rp.prices), kv, request, spec, worst, longest, badSpans, salt: saltOf(plan) };
 }
 
 // ---- the action ------------------------------------------------------------------------------------------------------------------------
@@ -168,7 +196,7 @@ export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridSta
     /** Build an overhead line between two buses of the same voltage along the player's waypoints (metres on the map). */
     buildRoute: (s, ...raw: unknown[]) => {
       const a = parseArgs(raw);
-      if ('bad' in a) return reject('act.arg', { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM', expected: t(a.bad) });
+      if ('bad' in a) return reject('act.arg', { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM, insulatorId?, coastInsulatorId?', expected: t(a.bad) });
       const ev = evaluateRoute(s, a, d);
       if (!ev.ok) return { ok: false, message: ev.refusal.message, key: ev.refusal.key, params: ev.refusal.params };
       const { plan, cost, request, spec } = ev;
@@ -180,6 +208,8 @@ export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridSta
       const rec: RouteRecord = {
         branchId: id, request: { ...request, waypoints: request.waypoints.map((p) => [p[0], p[1]] as [number, number]) }, worstMarginM: r3(plan.worstMarginM), badSpans: ev.badSpans,
         lengthM: r3(plan.lengthM), cost: cost.total, supports: plan.supports.length, worst: ev.worst, longest: ev.longest,
+        ...(ev.salt.short.length > 0 ? { saltShort: ev.salt.short, saltWorst: ev.salt.worst! } : {}),
+        ...(ev.salt.coastMinCreepageMm !== null ? { coastMinCreepageMm: ev.salt.coastMinCreepageMm, coastWorst: ev.salt.coastWorst! } : {}),
       };
       s.routes.push(rec);
       s.solution = null;
@@ -192,7 +222,7 @@ export function buildRouteActions(d: RouteDeps): Record<string, ActionFn<GridSta
 /** The plan as plain finite JSON for the front-end and the world query. */
 export function planView(plan: RoutePlan): { supports: unknown[]; spans: unknown[] } {
   return {
-    supports: plan.supports.map((p) => ({ x: r3(p.x), y: r3(p.y), familyId: p.familyId, angleDeg: r3(p.angleDeg), angleClass: p.angleClass, foundation: p.foundation })),
+    supports: plan.supports.map((p) => ({ x: r3(p.x), y: r3(p.y), familyId: p.familyId, angleDeg: r3(p.angleDeg), angleClass: p.angleClass, foundation: p.foundation, insulatorId: p.insulatorId, creepageMm: r3(p.creepageMm), needMm: r3(p.needMm), pollutionClass: p.pollutionClass, seaM: p.seaM === null ? null : r3(p.seaM) })),
     spans: plan.spans.map((sp) => ({
       lengthM: r3(sp.lengthM), over: [...sp.over], sagM: r3(sp.sagDesignM), clearanceM: r3(sp.clearanceM), requiredM: r3(sp.requiredM), marginM: r3(sp.clearanceM - sp.requiredM), atM: r3(sp.atM), ok: sp.ok,
     })),
@@ -204,13 +234,13 @@ export function buildRouteQueries(d: RouteDeps): Record<string, QueryFn<GridStat
     /** What `buildRoute` would do with these arguments, without building: the plan with sag and clearance per span, the cost breakdown, or the refusal. Never throws. */
     routePreview: (s, ...raw: unknown[]) => {
       const a = parseArgs(raw);
-      if ('bad' in a) { const key = 'act.arg', params = { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM', expected: t(a.bad) }; return { ok: false, refusal: { key, message: t(key, params), params } }; }
+      if ('bad' in a) { const key = 'act.arg', params = { name: 'fromBus, toBus, conductorId, familyId, crossingFamilyId, spanM, waypointsM, insulatorId?, coastInsulatorId?', expected: t(a.bad) }; return { ok: false, refusal: { key, message: t(key, params), params } }; }
       const ev = evaluateRoute(s as GridState, a, d);
       if (!ev.ok) return { ok: false, refusal: ev.refusal };
       const { plan, cost } = ev;
       return {
-        ok: true, ...planView(plan), cost: { supports: r3(cost.supports), foundations: r3(cost.foundations), conductor: r3(cost.conductor), clearing: r3(cost.clearing), total: r3(cost.total) },
-        lengthM: r3(plan.lengthM), worstMarginM: r3(plan.worstMarginM), worstSpan: plan.worstSpan, badSpans: ev.badSpans, worst: ev.worst,
+        ok: true, ...planView(plan), cost: { supports: r3(cost.supports), foundations: r3(cost.foundations), conductor: r3(cost.conductor), clearing: r3(cost.clearing), insulators: r3(cost.insulators), total: r3(cost.total) },
+        lengthM: r3(plan.lengthM), worstMarginM: r3(plan.worstMarginM), worstSpan: plan.worstSpan, badSpans: ev.badSpans, worst: ev.worst, saltShort: ev.salt.short, coastMinCreepageMm: ev.salt.coastMinCreepageMm,
       };
     },
   };

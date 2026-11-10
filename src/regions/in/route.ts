@@ -13,7 +13,7 @@ export const ROUTE: RouteData = {
     groundClearance: [{ uptoKv: 1, m: 4.6 }, { uptoKv: 11, m: 4.6 }, { uptoKv: 33, m: 5.2 }],
     roadExtraM: 1.2,
   },
-  prices: { ...G.prices, support: scale(G.prices.support), conductorPerM: scale(G.prices.conductorPerM), clearingPerM: G.prices.clearingPerM * K },
+  prices: { ...G.prices, support: scale(G.prices.support), conductorPerM: scale(G.prices.conductorPerM), clearingPerM: G.prices.clearingPerM * K, insulator: scale(G.prices.insulator ?? {}) },
 };
 export const ROUTE_PROVENANCE = {
   'route.rules': { source: 'CEA Safety and Electric Supply Regulations 2010 reg. 58 as recalled in DEPTH §4.2 (4.6 m elsewhere, +1.2 m across a street, 5.2 m at 33 kV); water clearance and stringing rule kept from the game default', confidence: 'recall' as const },

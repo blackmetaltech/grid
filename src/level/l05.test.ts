@@ -76,7 +76,7 @@ describe('routePreview and buildRoute agree', () => {
     const r = e.engine.act('buildRoute', a.args as unknown[]);
     expect(r.ok).toBe(true);
     expect(e.state.budget.spent).toBeCloseTo(pv.cost.total, 2);
-    expect(pv.cost.total).toBeCloseTo(pv.cost.supports + pv.cost.foundations + pv.cost.conductor + pv.cost.clearing, 2);
+    expect(pv.cost.total).toBeCloseTo(pv.cost.supports + pv.cost.foundations + pv.cost.conductor + pv.cost.clearing + pv.cost.insulators, 2);
     const rec = e.state.routes[0]!;
     expect(rec.cost).toBeCloseTo(pv.cost.total, 2); expect(rec.worstMarginM).toBeCloseTo(pv.worstMarginM, 3); expect(rec.supports).toBe(pv.supports.length);
     expect(rec.badSpans).toEqual(pv.badSpans); expect(rec.lengthM).toBeCloseTo(pv.lengthM, 3);

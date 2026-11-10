@@ -8,7 +8,8 @@ import { t } from '../i18n';
 import { NO_RULES, ruleFail, ruleGoal } from '../rules';
 import { voltageBand, type SimParams } from '../sim/params';
 import type { GridRegionData } from '../regions/data';
-import { catalogueViewOf, simParamsOf, benchParamsOf } from '../catalogue';
+import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from '../catalogue';
+import { buildRouteActions } from '../route-actions';
 import type { CatalogueView } from '../sim/build';
 import { buildActions } from '../actions';
 import type { GridState, Rules } from '../types';
@@ -36,7 +37,7 @@ export interface CoachStep { id: string; textKey: string; whyKey: string; done: 
 export type HistogramMetric = 'capex' | 'lossPct';
 
 export interface ScaffoldCtx {
-  /** Actions bound to the region's catalogue (the same ones the player uses). */
+  /** Actions bound to the region's catalogue (the same ones the player uses), including buildRoute so a later job can rebuild the district its player already built. */
   A: Record<string, ActionFn<GridState>>;
   params: SimParams;
   bench: BenchParams;
@@ -68,16 +69,18 @@ export interface GridLevelSpec {
   star3: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); default the sag lesson. */ lessonKind?: 'sag' | 'salt' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
+  /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
+  fogBlock?: number;
   brownoutLoses: boolean;
   blackoutLoses: boolean;
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' };
+  naive: { actions: Action[]; failKind: 'brownout' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -109,6 +112,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     poorSupplyGraceMin: spec.kind === 'bench' ? 60 : 0,
     blackoutLoses: spec.blackoutLoses,
     flashoverBlock: spec.flashoverBlock ?? null,
+    ...(spec.fogBlock !== undefined ? { fogBlock: spec.fogBlock, darkLoadsLose: true } : {}),   // absent keys elsewhere: the other levels' states and goldens stay as they were
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: 'capex',
     star3: spec.star3.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })),
@@ -128,7 +132,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
       const th = resolveThresholds(spec, params, s.mode);
       const frozen = spec.frozen ? spec.frozen[pack.id] ?? null : null;
       if (spec.stars && spec.frozen && !frozen) throw new Error(`level ${spec.id} has no frozen targets for region '${pack.id}'`);
-      const A = buildActions({ cat: () => cat, getParams: () => params, money: () => '' });
+      const A = { ...buildActions({ cat: () => cat, getParams: () => params, money: () => '' }), ...buildRouteActions({ cat: () => cat, getRoute: () => routeParamsOf(pack.data), money: () => '' }) };
       const mode = s.mode; s.mode = 'sandbox';   // the scenario places the town's loads, which only sandbox may do
       spec.place(s, { A, params, bench: benchParamsOf(pack.data), cat, th, frozen });
       s.mode = mode;
@@ -148,7 +152,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
 /** Argument position of the catalogue id (or size) of an action the part list can restrict. */
 const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, switchBranch: 0, buildRoute: 2 };
 /** Further restricted arguments, listed in `allowed.parts` under `<action>.<name>` (a null value, e.g. no crossing family, is always fine). */
-const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }] };
+const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }, { pos: 7, name: 'insulator' }, { pos: 8, name: 'coastInsulator' }] };
 const ALWAYS = new Set(['setSpeed', 'predict']);
 
 /** Wrap the game's actions so a running level only accepts what its spec allows. Free play (no level) is untouched. */

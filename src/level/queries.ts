@@ -1,4 +1,5 @@
-import { kindWord } from '../route-words';
+import { insulatorWord, kindWord } from '../route-words';
+import { SPECIFIC_CREEPAGE, umKv } from '../sim/route/insulation';
 // Read-only queries of the level framework: what the level is (for the brief and result card), the coach's current step, the bench's
 // numbers (what the Inspector shows: voltage, current, loss share, cost) and the population stub's histogram.
 import type { QueryFn } from '@core/kit';
@@ -41,6 +42,18 @@ export function routeLesson(s: GridState, spec: GridLevelSpec, lessonKey: string
   return out;
 }
 
+/** L29's shift-report lesson: creepage = Um x mm/kV in the player's own numbers for the most exposed coastal support of the harbour line, and whether it was enough.
+ *  Every printed number recomputes: need = Um x specific creepage; gap = |has - need|. Empty until a line with a coastal support stands. */
+export function saltLesson(s: GridState, lessonKey: string): string {
+  const r = [...s.routes].reverse().find((x) => x.coastWorst);
+  const w = r?.coastWorst;
+  if (!r || !w) return '';
+  const cls = ['', 'I', 'II', 'III', 'IV'][w.cls] ?? String(w.cls), um = umKv(r.request.kv), spec = SPECIFIC_CREEPAGE[w.cls as 1 | 2 | 3 | 4];
+  const need = Math.round(um * spec), has = w.hasMm;
+  const base = t(lessonKey, { kv: r.request.kv, n: r.supports, pole: w.index + 1, sea: w.seaM, cls, spec, um, need, ins: insulatorWord(w.insulatorId), has });
+  return base + ' ' + (has < need ? t('level.L29.lessonShort', { gap: need - has }) : t('level.L29.lessonOk', { gap: has - need }));
+}
+
 export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<GridState>> {
   return {
     /** The running level's card: kind, thresholds resolved for this region and mode, allowed parts, star targets. */
@@ -50,8 +63,9 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       return {
         active: true, id: spec.id, kind: spec.kind, chapter: spec.chapter, title: t(spec.titleKey), brief: t(spec.briefKey), stars: spec.stars,
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
-        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
+        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, startBlock: spec.startBlock, flashoverBlock: spec.flashoverBlock ?? null, fogBlock: spec.fogBlock ?? null, fogTime: spec.fogBlock === undefined ? null : `${String(Math.floor(spec.fogBlock / 4)).padStart(2, '0')}:${String((spec.fogBlock % 4) * 15).padStart(2, '0')}`, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
+          if (spec.story?.lessonKind === 'salt' && !s.bench) return saltLesson(s, spec.story.lessonKey);   // L29: creepage of the most exposed coastal support
           if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');

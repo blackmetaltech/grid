@@ -68,6 +68,32 @@ describe('oracles', () => {
     expect(insulatorUnits(11, 3, PIN_CREEPAGE_MM)).toBe(1);
     expect([umKv(33), umKv(66), umKv(132), umKv(22)]).toEqual([36, 72.5, 145, 22 * 1.1]);
   });
+  it('S-09 creepage in class IV: need 372 mm; pin fails, one anti-fog disc and a two-disc string pass', () => {
+    const e = EXP['S-09'], need = umKv(11) * 31;
+    expect(need).toBe(e.need_classIV_mm);
+    for (const [id, mm] of [['pin', PIN_CREEPAGE_MM], ['fog1', FOG_DISC_CREEPAGE_MM], ['disc2', 2 * DISC_CREEPAGE_MM]] as const) {
+      expect(mm).toBe(e.creepage_mm[id]); expect(mm >= need).toBe(e.passes_classIV[id]); expect(mm >= umKv(11) * 25).toBe(e.passes_classIII[id]);
+    }
+    expect([umKv(11) * 20, umKv(11) * 16]).toEqual([e.need_classII_mm, e.need_classI_mm]);
+  });
+  it('S-10 a two-disc string lowers the attachment 0.30 m: clearance loss on a Rabbit 70 m span, through flatSpanMargin and the planner', () => {
+    const rabbit = cond('acsr-rabbit'), e = EXP['S-10'];
+    for (const L of [70, 100]) {
+      for (const [id, drop] of [['pin', 0], ['fog1', 0.15], ['disc2', 0.3]] as const) expect(Math.abs(flatSpanMargin(rabbit, rules, L, 9.0, 6.0, drop) - e[String(L)][id].margin_m)).toBeLessThan(1e-6);
+      expect(Math.abs(flatSpanMargin(rabbit, rules, L, 9.0, 6.0, 0) - flatSpanMargin(rabbit, rules, L, 9.0, 6.0, 0.3) - e[String(L)].loss_disc2_vs_pin_m)).toBeLessThan(1e-9);
+    }
+    for (const [id, drop] of [['pin', 0], ['disc2', 0.3]] as const) {
+      const r = plan(field(), req({ waypoints: [[25, 100], [95, 100]], spanM: 70, insulatorId: id }));
+      if (!r.ok) throw new Error('refused');
+      expect(Math.abs(r.worstMarginM - e['70'][id].margin_m)).toBeLessThan(1e-6);
+      expect(r.supports[0]!.insulatorId).toBe(id); expect(drop).toBe(id === 'pin' ? 0 : 0.3);
+    }
+    for (const [id, L] of [['pin', 88], ['fog1', 80], ['disc2', 73]] as const) {
+      expect(e.wood_max_flat_span_m[id]).toBe(L);
+      const drop = id === 'pin' ? 0 : id === 'fog1' ? 0.15 : 0.3;
+      expect(flatSpanMargin(rabbit, rules, L, 7.5, 6, drop)).toBeGreaterThanOrEqual(0); expect(flatSpanMargin(rabbit, rules, L + 1, 7.5, 6, drop)).toBeLessThan(0);
+    }
+  });
   it('S-06 angle classes', () => {
     const cls = (deg: number) => {
       const rad = (deg * Math.PI) / 180; // test-side geometry only; the planner uses dmath
@@ -96,7 +122,7 @@ describe('terrain', () => {
   });
   it('pollution from sea distance', () => {
     const big = parseTerrain(['e' + 'f'.repeat(9), ...Array.from({ length: 3 }, () => 'f'.repeat(10))], 10, () => 0);
-    expect(big.pollution[0]).toBe(3); expect(big.pollution[2]).toBe(3); expect(big.pollution[3]).toBe(2); expect(big.pollution[6]).toBe(2); expect(big.pollution[7]).toBe(1);
+    expect(big.pollution[0]).toBe(4); expect(big.pollution[1]).toBe(4); expect(big.pollution[2]).toBe(3); expect(big.pollution[3]).toBe(2); expect(big.pollution[6]).toBe(2); expect(big.pollution[7]).toBe(1);
     const sw = parseTerrain(['e' + 'f'.repeat(4) + 's'], 10, () => 0);
     expect(sw.pollution[5]).toBe(3);
   });

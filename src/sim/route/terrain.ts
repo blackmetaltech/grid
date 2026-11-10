@@ -5,7 +5,7 @@ export const TILE_CHARS: Record<string, TileKind> = {
   f: 'field', s: 'swamp', r: 'river', w: 'forest', k: 'rock', a: 'sand', e: 'sea', t: 'town', d: 'road',
 };
 
-/** Rows of equal-length strings -> Terrain. Pollution: within 2 tiles (Chebyshev) of sea 3, within 6 tiles 2, else 1; swamp within 6 of sea >= 3. */
+/** Rows of equal-length strings -> Terrain. Pollution (IEC 60815 site severity from sea distance, Chebyshev tiles): within 1 tile of the sea class 4, within 2 class 3, within 6 class 2, else 1; swamp within 6 of sea >= 3. */
 export function parseTerrain(rows: string[], tileM: number, elev: (i: number, j: number) => number): Terrain {
   const nr = rows.length, nc = nr ? rows[0]!.length : 0;
   const kinds: TileKind[] = [], elevM: number[] = [];
@@ -30,7 +30,7 @@ export function parseTerrain(rows: string[], tileM: number, elev: (i: number, j:
   const pollution: PollutionClass[] = [];
   for (let j = 0; j < nr; j++) for (let i = 0; i < nc; i++) {
     const d = seaDist(i, j);
-    let p: PollutionClass = d <= 2 ? 3 : d <= 6 ? 2 : 1;
+    let p: PollutionClass = d <= 1 ? 4 : d <= 2 ? 3 : d <= 6 ? 2 : 1;
     if (kinds[j * nc + i] === 'swamp' && d <= 6 && p < 3) p = 3;
     pollution.push(p);
   }
@@ -59,4 +59,18 @@ export function groundAt(t: Terrain, x: number, y: number): number {
   const fu = u - i0, fv = v - j0;
   const e = (i: number, j: number): number => t.elevM[j * t.cols + i]!;
   return (e(i0, j0) * (1 - fu) + e(i1, j0) * fu) * (1 - fv) + (e(i0, j1) * (1 - fu) + e(i1, j1) * fu) * fv;
+}
+
+/** Distance (m) from a point to the nearest sea tile's edge, searching 7 tiles around; null when no sea tile is that near (0 inside the sea). */
+export function seaDistanceM(t: Terrain, x: number, y: number): number | null {
+  const ci = Math.floor(x / t.tileM), cj = Math.floor(y / t.tileM);
+  let best: number | null = null;
+  for (let dj = -7; dj <= 7; dj++) for (let di = -7; di <= 7; di++) {
+    const i = ci + di, j = cj + dj;
+    if (i < 0 || j < 0 || i >= t.cols || j >= t.rows || t.kinds[j * t.cols + i] !== 'sea') continue;
+    const dx = Math.max(i * t.tileM - x, 0, x - (i + 1) * t.tileM), dy = Math.max(j * t.tileM - y, 0, y - (j + 1) * t.tileM);
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (best === null || d < best) best = d;
+  }
+  return best;
 }

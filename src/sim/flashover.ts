@@ -23,6 +23,35 @@ export function flashoverStep(s: GridState): void {
   }
 }
 
+/** Sea-fog flashover (L29, DEPTH §4.4): at the level's fog block every support whose insulator creepage is under what its tile's pollution class needs flashes over
+ *  and the line trips. The creepage numbers were fixed when the route was built (RouteRecord.saltShort / saltWorst); like the clearance flashover this only opens the branch,
+ *  writes the event and the log line, and marks the metric the verdict reads. */
+export function saltFlashoverStep(s: GridState): void {
+  const at = s.rules.fogBlock ?? null;
+  if (at === null || s.clock.block !== at) return;
+  for (const r of s.routes) {
+    if (!r.saltShort || r.saltShort.length === 0 || !r.saltWorst) continue;
+    const b = s.branches.find((x) => x.id === r.branchId);
+    if (!b || !b.inService) continue;
+    b.inService = false; b.timer = null;
+    s.block.trips.push(b.id);
+    s.metrics.track.saltFlashover = (s.metrics.track.saltFlashover ?? 0) + 1;
+    s.events.log.push({ day: s.clock.day, block: s.clock.block, tS: 0, element: b.id, causeKey: 'route.saltFlashover' });
+    if (s.events.log.length > 200) s.events.log.splice(0, s.events.log.length - 200);
+    const w = r.saltWorst;
+    log(s, t('log.saltFlashover', { id: b.id, n: w.index + 1, short: r.saltShort.length, sea: w.seaM, cls: classWord(w.cls), need: w.needMm, has: w.hasMm }), 'bad');
+  }
+}
+
+/** Params of the 'level.lost.saltFlashover' verdict: the worst support of the first line that flashed over in the fog. */
+export function saltFlashoverParams(s: Readonly<GridState>): Record<string, string | number> {
+  const r = s.routes.find((x) => x.saltWorst && !(s.branches.find((b) => b.id === x.branchId)?.inService ?? false)) ?? s.routes.find((x) => x.saltWorst);
+  if (!r || !r.saltWorst) return {};
+  const w = r.saltWorst, hh = Math.floor(((s.rules.fogBlock ?? 0) % 96) / 4), mm = ((s.rules.fogBlock ?? 0) % 4) * 15;
+  return { id: r.branchId, time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`, n: w.index + 1, short: r.saltShort?.length ?? 1, sea: w.seaM, cls: classWord(w.cls), need: w.needMm, has: w.hasMm };
+}
+const classWord = (c: number): string => ['', 'I', 'II', 'III', 'IV'][c] ?? String(c);
+
 /** Params of the 'level.lost.flashover' verdict: the worst span of the first route that flashed over. */
 export function flashoverParams(s: Readonly<GridState>): Record<string, string | number> {
   const r = s.routes.find((x) => x.badSpans.length > 0 && !(s.branches.find((b) => b.id === x.branchId)?.inService ?? false)) ?? s.routes.find((x) => x.badSpans.length > 0);

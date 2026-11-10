@@ -9,6 +9,8 @@ const TERRAIN_WORD: Record<TileKind, string> = {
 const FAMILY_WORD: Record<string, string> = { 'wood-9': 'family.wood-9', 'pcc-11': 'family.pcc-11', 'tubular-13': 'family.tubular-13', 'lattice-33': 'family.lattice-33', 'crossing-h': 'family.crossing-h' };
 const FOUNDATION_WORD: Record<string, string> = { earth: 'foundation.earth', pile: 'foundation.pile', rock: 'foundation.rock' };
 
+const INSULATOR_WORD: Record<string, string> = { pin: 'insulator.pin', disc2: 'insulator.disc2', fog1: 'insulator.fog1' };
+export const insulatorWord = (id: string): string => (INSULATOR_WORD[id] ? t(INSULATOR_WORD[id]!) : id);
 /** 'river', 'road', ... in words (an unknown kind is returned as given). */
 export const kindWord = (k: string): string => (TERRAIN_WORD[k as TileKind] ? t(TERRAIN_WORD[k as TileKind]!) : k);
 export const familyWord = (id: string): string => (FAMILY_WORD[id] ? t(FAMILY_WORD[id]!) : id);

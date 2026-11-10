@@ -74,6 +74,29 @@ out['S-06'] = {'25deg': angle_class(25), '2deg': angle_class(2), '2.5deg': angle
 # S-08 conductor temperature
 out['S-08'] = {'T_c': 45 + (75 - 45) * 0.8 ** 2}
 
+# S-09 11 kV (Um 12 kV) in pollution class IV (31 mm/kV): need 372 mm; the insulators of the L29 kit (creepage mm): pin 320, one anti-fog disc 430, two standard discs 2 x 295
+need_iv = creepage_needed_mm(12, 31)
+INS = {'pin': 320, 'fog1': 430, 'disc2': 2 * 295}
+out['S-09'] = {'need_classIV_mm': need_iv, 'creepage_mm': INS, 'passes_classIV': {k: v >= need_iv for k, v in INS.items()},
+               'need_classIII_mm': creepage_needed_mm(12, 25), 'passes_classIII': {k: v >= creepage_needed_mm(12, 25) for k, v in INS.items()},
+               'need_classII_mm': creepage_needed_mm(12, 20), 'need_classI_mm': creepage_needed_mm(12, 16)}
+# S-10 the string drop eats clearance: Rabbit 70 m flat span, concrete pole attach 9.0 m, required 6.0 m; drop 0 (pin), 0.15 (fog1), 0.30 (disc2)
+DROP = {'pin': 0.0, 'fog1': 0.15, 'disc2': 0.30}
+wr = w_of('acsr-rabbit'); H1r = 0.2 * COND['acsr-rabbit']['uts']
+s10 = {}
+for L in (70, 100):
+    d = sag_parabola(wr, L, state_change('acsr-rabbit', L, H1r, 15, 75))
+    s10[str(L)] = {'sag_hot_m': d, **{k: {'clearance_m': 9.0 - dr - d, 'margin_m': 9.0 - dr - d - 6.0} for k, dr in DROP.items()}}
+    s10[str(L)]['loss_disc2_vs_pin_m'] = s10[str(L)]['pin']['clearance_m'] - s10[str(L)]['disc2']['clearance_m']
+def max_span(attach):
+    best = None
+    for L in range(30, 200):
+        d = sag_parabola(wr, L, state_change('acsr-rabbit', L, H1r, 15, 75))
+        if attach - d >= 6.0: best = L
+    return best
+s10['wood_max_flat_span_m'] = {k: max_span(7.5 - dr) for k, dr in DROP.items()}
+out['S-10'] = s10
+
 p = os.path.join(os.path.dirname(__file__), 'route_expected.json')
 json.dump(out, open(p, 'w'), indent=1)
 print(json.dumps(out, indent=1))
