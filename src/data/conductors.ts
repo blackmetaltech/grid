@@ -29,10 +29,10 @@ export const ACSR: AcsrRow[] = [
 ];
 
 export interface CopperRow extends SourcedRow { areaMm2: number; r20OhmPerKm: number; ampacityAirA: number }
-const IEC = 'IEC 60228:2023 class-2 copper max R20 (DESIGN §4.2, `standard`); ampacity in air: IEC 60364-5-52 Table B.52-4 ref. method C as commonly reproduced (DESIGN §4.2, `recall`: opened copy did not extract the table)';
+const IEC = 'IEC 60228:2023 class-2 copper max R20 (DESIGN §4.2, `standard`); ampacity in air: game. The figures match the PVC, two-loaded-conductor, reference-method-C column of IEC 60364-5-52 (Table B.52-2 in the 2005 edition; the DESIGN label B.52-4 looks wrong) as commonly reproduced, but no copy of the table could be opened in M1.9';
 const cu = (areaMm2: number, r20OhmPerKm: number, ampacityAirA: number): CopperRow => ({
   id: `cu-${areaMm2}`, areaMm2, r20OhmPerKm, ampacityAirA, source: IEC,
-  fieldConfidence: { r20OhmPerKm: 'standard', ampacityAirA: 'recall' }, confidence: weakest('standard', 'recall'),
+  fieldConfidence: { r20OhmPerKm: 'standard', ampacityAirA: 'game' }, confidence: weakest('standard', 'game'),
 });
 export const COPPER: CopperRow[] = [
   cu(2.5, 7.41, 27), cu(4, 4.61, 36), cu(6, 3.08, 46), cu(10, 1.83, 63), cu(16, 1.15, 85), cu(25, 0.727, 112), cu(35, 0.524, 138), cu(50, 0.387, 168),

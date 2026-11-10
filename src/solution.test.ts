@@ -22,7 +22,7 @@ describe('solution codes of the placeholder level', () => {
     const e = solverRun(); expect(e.state.status).toBe('won');
     const code = e.q('solutionCode') as string;
     const r = verify(LEVEL, code);
-    expect(r.ok).toBe(true); expect(r.reason).toBe('won'); expect(r.ruleset).toBe('grid:global@1.1');
+    expect(r.ok).toBe(true); expect(r.reason).toBe('won'); expect(r.ruleset).toBe('grid:global@2.1');
     expect(r.ticks).toBe(e.state.tick - e.state.levelStart); expect(r.ticks).toBe(8);
     expect(r.metrics).toEqual({ ticks: 8, cost: 0, ensMWh: 0 });
     expect(verify(LEVEL, code)).toEqual(r);                        // same code, same result
@@ -43,13 +43,13 @@ describe('solution codes of the placeholder level', () => {
   });
   it('a code from a different region (ruleset) is not ok on the global board, but verifies in its own region', () => {
     const code = solverRun('in').q('solutionCode') as string;
-    expect((decodeSolution(code) as any).ruleset).toBe('grid:in@1.1');
+    expect((decodeSolution(code) as any).ruleset).toBe('grid:in@2.1');
     const global = verify(LEVEL, code, { region: 'global' }); expect(global.ok).toBe(false); expect(global.reason).toMatch(/Region mismatch/);
-    const own = verify(LEVEL, code); expect(own.ok).toBe(true); expect(own.ruleset).toBe('grid:in@1.1');
+    const own = verify(LEVEL, code); expect(own.ok).toBe(true); expect(own.ruleset).toBe('grid:in@2.1');
   });
   it('a code from another ruleset version is a clean not-ok', () => {
     const d = decodeSolution(solverRun().q('solutionCode') as string) as any;
-    for (const old of ['grid:global@1.0', 'grid:global@2.1', 'grid:global@1']) {
+    for (const old of ['grid:global@1.0', 'grid:global@1.1', 'grid:global@1']) {
       const r = verify(LEVEL, encodeSolution({ ...d, ruleset: old })); expect(r.ok, old).toBe(false); expect(r.reason, old).toMatch(/Ruleset mismatch/);
     }
   });

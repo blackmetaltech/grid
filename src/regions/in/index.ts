@@ -4,9 +4,10 @@
 // pack ever ships. Bump `rulesetVersion` whenever a value in `data` changes (pins.ts enforces it).
 import { defineRegion } from '@core/regions';
 import { validateGridData, type GridRegionData } from '../data';
+import { IN_CATALOGUES } from './catalogues';
 
 export const IN = defineRegion<GridRegionData>({
-  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 1,
+  id: 'in', name: 'India (draft)', status: 'draft', rulesetVersion: 2,
   currency: { code: 'INR', symbol: '₹', decimals: 2, position: 'prefix' },
   numbers: { grouping: 'indian', decimal: '.', group: ',' },
   standards: { voltage: 'CEA Grid Standards 2010', gridcode: 'IEGC', conductors: 'IS 398' },
@@ -48,7 +49,7 @@ export const IN = defineRegion<GridRegionData>({
       nuclearPerMWhe: null,
     },
     climate: { latitudeDeg: 23 },
-    catalogues: { generators: [], transformers: [], compensation: [], storage: [], protection: [], lineCosts: [], cables: [], fuels: [] },
+    catalogues: IN_CATALOGUES,
     provenance: {
       'f0': { source: 'IEGC cl. 30 (nominal 50 Hz)', confidence: 'standard' },
       'voltage.lv': { source: 'Indian LV supply practice, 415 V three-phase / 230 V phase', confidence: 'recall' },

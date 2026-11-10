@@ -6,6 +6,6 @@
 import type { RulesetPin } from './data';
 
 export const PINS: Record<string, RulesetPin> = {
-  global: { rulesetVersion: 1, dataHash: '6d4a4375c56edc03' },
-  in: { rulesetVersion: 1, dataHash: '6fe56e0438674aee' },
+  global: { rulesetVersion: 2, dataHash: 'e9aa8c13846733d9' },
+  in: { rulesetVersion: 2, dataHash: 'ff35044e12f84bf4' },
 };

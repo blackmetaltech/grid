@@ -127,7 +127,7 @@ describe('validateGridData', () => {
     expect(bad((d) => { delete d.provenance['gridcode.ufls.hz']; }).join('\n')).toMatch(/provenance\.gridcode\.ufls\.hz is missing/);
   });
   it('rejects a catalogue row with no source or a bad confidence tag', () => {
-    const row = { id: 'ccgt-418', kind: 'gas', capexPerKw: 1330, source: 'EIA AEO2023 Table 1', confidence: 'report' };
+    const row = { id: 'test-ccgt', kind: 'gas', capexPerKw: 1330, source: 'EIA AEO2023 Table 1', confidence: 'report' };
     expect(bad((d) => { d.catalogues.generators.push({ ...row }); })).toEqual([]);
     expect(bad((d) => { const { source: _s, ...r } = row; d.catalogues.generators.push(r); }).join('\n')).toMatch(/has no source/);
     expect(bad((d) => { d.catalogues.generators.push({ ...row, source: '  ' }); }).join('\n')).toMatch(/has no source/);
@@ -154,14 +154,9 @@ describe('release gate (no recall rows in a shipping pack)', () => {
     expect(releaseGateProblems({ id: 'in', status: 'draft', data: d })).toEqual([]);
     expect(releaseGateProblems({ id: 'in', status: 'shipping', data: d }).length).toBeGreaterThan(0);
   });
-  it('the draft in pack passes trivially; the global pack lists its open recall items (M1.8 empties this list; RELEASE=1 makes it fatal)', () => {
+  it('the draft in pack passes trivially; the global pack has no recall row or provenance entry left (M1.9)', () => {
     expect(releaseGateProblems(IN)).toEqual([]);
-    const open = releaseGateProblems(GLOBAL);
-    if (process.env.RELEASE) expect(open).toEqual([]);
-    else expect(open.map((m) => m.split("'")[1])).toEqual([
-      'f0', 'voltage.lvBandPct', 'gridcode.standardRangeHz', 'gridcode.maxSteadyDevHz', 'gridcode.maxInstDevHz', 'gridcode.fcrDeadbandHz', 'gridcode.fcrFullActivationS',
-      'gridcode.droopRangePct', 'gridcode.ufls.hz', 'gridcode.genUfTrip.hz', 'gridcode.genOfTrip.hz', 'gridcode.ovStages', 'gridcode.settlementMin',
-    ]);
+    expect(releaseGateProblems(GLOBAL)).toEqual([]);
   });
 });
 

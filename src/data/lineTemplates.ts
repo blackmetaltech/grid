@@ -1,15 +1,15 @@
 // DESIGN §4.3 line templates, per km, positive sequence (physics data shared by all packs). R = R20*1.24/n; X and B from Glover ch. 4
-// (`derived`); phase spacings are typical tower geometries (`recall`, flagged). Thermal MVA = sqrt(3)*kV*I75*n. Z0 = 3*Z1 (S6).
+// (`derived`); phase spacings are typical tower geometries (`game`, flagged). Thermal MVA = sqrt(3)*kV*I75*n. Z0 = 3*Z1 (S6).
 // l400-twinmoose / l400-quadmoose: DESIGN Appendix A.3 (orig 4.3) table; tools/oracles/lines.py agrees (twin Moose r 0.0347, x 0.327, b 3.43).
-import type { SourcedRow } from './types';
+import { weakest, type SourcedRow } from './types';
 
 export interface LineTemplate extends SourcedRow {
   kv: number; conductor: string; nBundle: number; dM: number; rOhmKm: number; xOhmKm: number; bUsKm: number; zcOhm: number; silMw: number; thermalMva: number;
 }
-const S43 = 'DESIGN §4.3 line-template table (Glover ch. 4 formulas on [APAR] diameters; spacings typical-geometry recall)';
+const S43 = 'DESIGN §4.3 line-template table (Glover ch. 4 formulas on [APAR] diameters; spacings typical-geometry game)';
 const S43A = 'DESIGN Appendix A.3 (orig 4.3) line-template table, same derivation as §4.3; tools/oracles/lines.py';
 const t = (id: string, kv: number, conductor: string, nBundle: number, dM: number, rOhmKm: number, xOhmKm: number, bUsKm: number, zcOhm: number, silMw: number, thermalMva: number, source = S43, note?: string): LineTemplate =>
-  ({ id, kv, conductor, nBundle, dM, rOhmKm, xOhmKm, bUsKm, zcOhm, silMw, thermalMva, source, confidence: 'derived', fieldConfidence: { dM: 'recall' }, ...(note ? { note } : {}) });
+  ({ id, kv, conductor, nBundle, dM, rOhmKm, xOhmKm, bUsKm, zcOhm, silMw, thermalMva, source, confidence: weakest('derived', 'game'), fieldConfidence: { dM: 'game' }, ...(note ? { note } : {}) });
 
 export const LINE_TEMPLATES: LineTemplate[] = [
   t('l11-weasel', 11, 'acsr-weasel', 1, 1.0, 1.1255, 0.377, 3.02, 353, 0.3, 2.2),
