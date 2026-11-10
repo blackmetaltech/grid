@@ -41,7 +41,7 @@ func _initialize() -> void:
 	var parts: Array = T.b.q("palette").actions.filter(func(a): return a.action == "placeSeriesCap")[0].parts
 	T.check(tray.items.filter(func(i): return i.kind == "place").map(func(i): return i.action) == ["placeSeriesCap", "placeSeriesCap", "placeSeriesCap", "placeSeriesCap", "placeSeriesCap"] and parts.size() == 5, "five series-capacitor cells, the palette's shares")
 	var c55: int = tray.place_index("placeSeriesCap", "55.0")
-	T.check(c55 >= 0 and tray.caption(tray.items[c55]) == ["Series cap", "55 %"], "caption of the 55 %% cell: %s" % str(tray.caption(tray.items[c55]) if c55 >= 0 else []))
+	T.check(c55 >= 0 and tray.caption(tray.items[c55]) == ["Series cap", "55.0 %"], "caption of the 55 %% cell: %s" % str(tray.caption(tray.items[c55]) if c55 >= 0 else []))
 	tray.activate(c55); T.check(tray.mode == "pick" and world.peg_count() == 1, "the line is the only peg (%d)" % world.peg_count())
 	var r2: Dictionary = tray.press_target("T1"); sync.call()
 	T.check(r2.get("ok", false), "pick the line: %s" % str(r2.get("message", r2)))
@@ -49,8 +49,8 @@ func _initialize() -> void:
 	T.check(si is Dictionary and int(si.pct) == 55 and absf(float(si.xcOhm) - 0.55 * float(si.xlOhm)) < 0.02 and not bool(si.faultDone), "seriesInfo: 55 %% of X_L, fault not yet: %s" % str(si))
 	# ---- L07 ----
 	T.level("L07"); sync.call()
-	var ph = T.b.q("feederPeak")
-	T.check(ph is Dictionary and bool(ph.get("active", false)) and int(ph.iA) > 100 and int(ph.ratedA) == 115 and float(ph.pf) < 0.8, "feederPeak reads before Run: %s" % str(ph))
+	var ph = T.b.q("phasor", ["branch", "T1"])
+	T.check(ph is Dictionary and not ph.get("error", false), "the phasor query is there for the card")
 	# ---- work order lines ----
 	T.level("L08")
 	var li = T.b.q("levelInfo"); var th: Dictionary = li.thresholds

@@ -7,7 +7,7 @@ extends RefCounted
 ## benchStatus, coach, solutionCode (queries only).
 
 const STAMP_DELAY := 0.42
-const CHAPTER_END := {"L03": "L05", "L30": "L07"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order). L30 closes chapter 2; L07 opens chapter 3 (src/level/chapters/ch3.ts)
+const CHAPTER_END := {"L03": "L04", "L30": "L07", "L09": "L10", "L13": "L14", "L18": "L19", "L22": "L23", "L27": "L28"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order). L30 closes chapter 2; L07 opens chapter 3 (src/level/chapters/ch3.ts)
 const HIST_MIN_N := 10                ## fewer designs than this and the histogram says so instead of drawing a lonely bar
 static var _d: Dictionary = {}
 
@@ -130,7 +130,7 @@ static func island_bounds(app: CbApp) -> Rect2:
 
 ## "Next job": the last job of a chapter opens the chapter-end card instead of the next work order.
 static func _next(app: CbApp, lid: String, next_id: String) -> void:
-	if CHAPTER_END.has(lid) and (str(CHAPTER_END[lid]) == next_id or lid == "L30"): chapter_end(app, next_id, lid)   # the finale shows its card whatever job the campaign lists next
+	if CHAPTER_END.has(lid): chapter_end(app, next_id if next_id != "" else str(CHAPTER_END[lid]), lid)   # the finale shows its card whatever job the campaign lists next
 	else: app.start_level(next_id, true)
 
 static func _look(app: CbApp, won: bool) -> void:
@@ -378,17 +378,20 @@ static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	vb.add_child(col)
 	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 14); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	var p := "CH2_" if finale else "CH_"   # strings of the card: chapter 1 keeps CH_*, the chapter 2 finale has CH2_*
+	var cn := Jobs.chapter_of(lid)   # chapters 3-7 close with a card of their own (CH3_* ... CH7_*)
+	var mid := cn in ["3", "4", "5", "6", "7"]
+	var p := "CH2_" if finale else ("CH%s_" % cn if mid else "CH_")   # strings of the card: chapter 1 keeps CH_*, the chapter 2 finale has CH2_*
 	hv.add_child(PaperKit.lbl(T(p + "TITLE").to_upper(), (34 if finale else 38) if compact else (52 if finale else 64), "title", PaperKit.INK, true))
 	hv.add_child(PaperKit.lbl(T(p + "SUB"), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
-	var isl: Control = CableDoodle.new() if finale else IslandDoodle.new(); isl.name = "CableDoodle" if finale else "IslandDoodle"; isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
+	var isl: Control = CableDoodle.new() if finale else (ChapterDoodle.new() if mid else IslandDoodle.new()); isl.name = "CableDoodle" if finale else ("ChapterDoodle" if mid else "IslandDoodle")
+	if mid: (isl as ChapterDoodle).chapter = int(cn); isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
 	col.add_child(PaperKit.rule())
 	var nia := _note(T(p + "NIA"), PaperPen.NIA, T("CH_NIA_TAG"), compact); nia.name = "NiaNote"; col.add_child(nia)
 	if finale:   # Ada retires, Tobi has the last word: two notes side by side so the card still fits a 768 p screen
 		var two := HBoxContainer.new(); two.add_theme_constant_override("separation", 14); col.add_child(two)
 		var ada := _note(T("CH2_ADA"), PaperKit.SPEAKER["ADA"], T("CH2_ADA_TAG"), compact); ada.name = "AdaNote"; two.add_child(ada)
 		var tobi := _note(T("CH2_TOBI"), PaperKit.SPEAKER["TOBI"], T("CH2_TOBI_TAG"), compact); tobi.name = "TobiNote"; two.add_child(tobi)
-	var jobs: Array = _chapter_jobs(app, lid) if finale else CHAPTER_JOBS
+	var jobs: Array = _chapter_jobs(app, lid) if finale else (Jobs.list(app).map(func(lv): return str(lv.id)).filter(func(id): return Jobs.chapter_of(id) == cn) if mid else CHAPTER_JOBS)
 	var earned := 0
 	for id in jobs: earned += GridSettings.stars(id)
 	var lr := PaperKit.lbl(T(p + "LAMPS") % [earned, jobs.size() * 3], 16 if compact else 20, "semi", PaperKit.INK, true); lr.name = "ChapterLamps"; col.add_child(lr)
@@ -467,6 +470,29 @@ class IslandDoodle extends Control:
 
 ## Doodle of the cable that joined Saltmarsh to the mainland: harbour pole on the left, the cable running under the waves, the island's lit huts on the right,
 ## and the trawler's anchor that did not get the cable (crossed out).
+## Chapters 3-7: a pencil doodle of the chapter's idea (a phasor pair, three phases, a P-V nose, a frequency dip, a relay curve).
+class ChapterDoodle extends Control:
+	var chapter := 3
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8); var o := Vector2(20, 20) * k; var w := 260.0 * k; var h := 110.0 * k
+		draw_line(o + Vector2(0, h), o + Vector2(w, h), ink, 2.0); draw_line(o, o + Vector2(0, h), ink, 2.0)
+		var pts := PackedVector2Array()
+		for i in 61:
+			var x := float(i) / 60.0; var y := 0.0
+			match chapter:
+				3: y = 0.5 + 0.4 * sin(TAU * x * 2.0)
+				4: y = 0.5 + 0.4 * sin(TAU * (x * 2.0 + 0.33))
+				5: y = 0.15 + 0.8 * sqrt(maxf(0.0, 1.0 - pow(abs(x - 0.8) / 0.8, 2.0))) * (1.0 if x < 0.8 else 0.0)
+				6: y = 0.8 - 0.45 * (x * 8.0) * exp(1.0 - x * 8.0) - 0.15 * (1.0 - exp(-x * 8.0))   # a frequency dip: the nadir, then droop settles it lower
+				_: y = 0.1 + 0.08 / maxf(x, 0.09)
+			pts.append(o + Vector2(x * w, h - clampf(y, 0.0, 1.0) * h))
+		draw_polyline(pts, Color("#B5402F"), 3.0, true)
+		if chapter in [3, 4]:
+			var p2 := PackedVector2Array()
+			for i in 61: var x := float(i) / 60.0; p2.append(o + Vector2(x * w, h - (0.5 + 0.4 * sin(TAU * (x * 2.0 + (0.66 if chapter == 4 else 0.12)))) * h))
+			draw_polyline(p2, Color("#2F6FB5"), 3.0, true)
+
 class CableDoodle extends Control:
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
