@@ -11,6 +11,12 @@ const REDUCE := [0, 20, 40, 60]
 func _init() -> void:
 	scenario = "l12"; name = "Ch4Hydro"
 
+## "$1,025,872" as "$1.03M": the chips are narrow.
+func _short(p: String) -> String:
+	var d := ""
+	for ch in p: if ch >= "0" and ch <= "9": d += ch
+	return CbRegion.money(float(d), true) if d != "" else p
+
 func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var x := inner.position.x
 	for k in 4: _add_chip(Rect2(Vector2(x + 72.0 * k, inner.position.y + 20.0), Vector2(66, 42)), "vref", VREFS[k])
@@ -151,11 +157,11 @@ func _draw_panel_body() -> void:
 			"vref": _chip(h.rect, _f(float(arg), 2), "pu", is_equal_approx(float(b.vref), float(arg)), id, arg, not lock)
 			"series":
 				var pr := ""; for s in l12.get("series", []): if int(s.pct) == int(arg): pr = str(s.price)
-				_chip(h.rect, "%d %%" % int(arg), pr if int(arg) > 0 else "", int(b.seriesPct) == int(arg), id, arg, not lock)
-			"third": _chip(h.rect, T("C4_THIRD"), str(l12.get("circuitPrice", "")), bool(b.third), id, arg, not lock)
+				_chip(h.rect, "%d %%" % int(arg), _short(pr) if int(arg) > 0 else "", int(b.seriesPct) == int(arg), id, arg, not lock)
+			"third": _chip(h.rect, T("C4_THIRD"), _short(str(l12.get("circuitPrice", ""))), bool(b.third), id, arg, not lock)
 			"redispatch":
 				var pr2 := ""; for s in l12.get("redispatch", []): if int(s.mw) == int(arg): pr2 = str(s.price)
-				_chip(h.rect, ("−%d MW" % int(arg)) if int(arg) > 0 else "0 MW", pr2 if int(arg) > 0 else "", int(b.reduceMW) == int(arg), id, arg, not lock)
+				_chip(h.rect, ("−%d MW" % int(arg)) if int(arg) > 0 else "0 MW", _short(pr2) if int(arg) > 0 else "", int(b.reduceMW) == int(arg), id, arg, not lock)
 	_text(_semi(), 11, inner.position + Vector2(0, 150.0), T("C4_PEAKS2"), Color(GridTheme.TEXT, 0.7))
 	var sw: Dictionary = q.swing; var ok := bool(sw.stable)
 	_text(_mono(), 11, inner.position + Vector2(0, 168.0), ("✓ " if ok else "✗ ") + T("C4_CHK_SYNC") % _f(float(sw.peak), 0) + "   " + ("✓ " if bool(q.ok) and float(sw.peak) <= 70.0 and ok else "· ") + T("C4_CHK_70"), _good(ok))

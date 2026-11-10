@@ -31,7 +31,7 @@ func refresh(st: Dictionary, k: Dictionary) -> void:
 func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	for k in IDS.size():
-		var e: LineEdit = edits[IDS[k]]; e.position = inner.position + Vector2(76.0 + 160.0 * k, 24.0); e.size = Vector2(76, 30)
+		var e: LineEdit = edits[IDS[k]]; e.position = inner.position + Vector2(84.0 + 170.0 * k, 24.0); e.size = Vector2(88, 30)
 	hits.append({"rect": Rect2(Vector2(inner.position.x, inner.position.y + 66.0), Vector2(330, 70)), "kind": "slider", "id": "exc", "arg": ""})
 
 func _pe() -> String:
@@ -64,20 +64,20 @@ func _draw_rated(r: Rect2) -> void:
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_RATED_CASE"), Color(GridTheme.TEXT, 0.7))
 	var s := 112.0; var o := r.position + Vector2(48.0, r.size.y * 0.55)
 	var V := Vector2(s, 0.0); var a := deg_to_rad(36.87); var I := Vector2(cos(a), sin(a)) * s * 0.9   # screen y down: I lags V, so it points below the axis
-	_arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V + Vector2(6, 4), "V = 1", Color.WHITE)
-	_arrow(o, o + I, Color(GridTheme.SODIUM), 3.0); _text(_mono(), 12, o + I + Vector2(4, 14), "I = 1, pf 0.8 lag", GridTheme.SODIUM)
+	_arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V * 0.5 + Vector2(-20, 18), "V = 1", Color.WHITE)
+	_arrow(o, o + I, Color(GridTheme.SODIUM), 3.0); _text(_mono(), 12, o + I * 0.5 + Vector2(16, 24), "I = 1, pf 0.8 lag", GridTheme.SODIUM)
 	var ans = q.get("answers")
 	if ans is Dictionary:
 		var jx := Vector2(cos(-deg_to_rad(53.13)), sin(-deg_to_rad(53.13))) * s * 1.2
-		_arrow(o + V, o + V + jx, Color("#FF9A3E"), 3.0); _text(_mono(), 12, o + V + jx * 0.5 + Vector2(8, 0), "jX_s I", Color("#FF9A3E"))
+		_arrow(o + V, o + V + jx, Color("#FF9A3E"), 3.0); _text(_mono(), 12, o + V + jx * 0.5 + Vector2(14, 8), "jX_s I", Color("#FF9A3E"))
 		var E := V + jx; _arrow(o, o + E, Color(GridTheme.GOOD), 4.0); _text(_mono(), 13, o + E * 0.5 + Vector2(-60, -8), "E = %s" % _f(float(ans.E), 3), GridTheme.GOOD)
 		draw_arc(o, 40.0, -deg_to_rad(float(ans.delta)), 0.0, 16, GridTheme.GOOD, 2.0); _text(_mono(), 12, o + Vector2(46, -10), "δ = %s°" % _f(float(ans.delta), 2), GridTheme.GOOD)
 		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), "P_max = %s pu" % _f(float(ans.pmax), 3), GridTheme.GOOD)
 	else:
 		var jx2 := Vector2(cos(-deg_to_rad(53.13)), sin(-deg_to_rad(53.13))) * s * 1.2
-		_arrow(o + V, o + V + jx2, Color("#FF9A3E", 0.8), 3.0); _text(_mono(), 12, o + V + jx2 * 0.5 + Vector2(8, 0), "jX_s I", Color("#FF9A3E"))
+		_arrow(o + V, o + V + jx2, Color("#FF9A3E", 0.8), 3.0); _text(_mono(), 12, o + V + jx2 * 0.5 + Vector2(14, 8), "jX_s I", Color("#FF9A3E"))
 		draw_arc(o + V, 22.0, -deg_to_rad(53.13), deg_to_rad(36.87) if false else 0.0, 12, Color("#FF9A3E", 0.6), 1.5)
-		_text(_mono(), 11, o + V + Vector2(26.0, -24.0), T("C4_J_HINT"), Color("#FF9A3E", 0.85))
+		_text(_mono(), 11, o + V + Vector2(-110.0, -34.0), T("C4_J_HINT"), Color("#FF9A3E", 0.85))
 		_text(_semi(), 14, o + Vector2(0.0, -r.size.y * 0.32), T("C4_E_HIDDEN"), Color(GridTheme.TEXT, 0.7))
 		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 52.0), T("C4_GLOSS_PU"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 34.0), T("C4_GLOSS_XS"), Color(GridTheme.TEXT, 0.6))
 		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.7))
@@ -88,7 +88,10 @@ func _draw_night(r: Rect2) -> void:
 	var s := 150.0; var o := r.position + Vector2(48.0, r.size.y * 0.55); var n: Dictionary = q.night
 	var V := Vector2(s, 0.0); _arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V + Vector2(6, 4), "V", Color.WHITE)
 	if n.excitation == null or n.deltaDeg == null:
-		_text(_semi(), 14, o + Vector2(20, -80), T("C4_SET_EXC") if n.excitation == null else T("C4_NO_STEADY"), Color(GridTheme.TEXT, 0.6))
+		var ghost := Vector2(cos(-deg_to_rad(40.0)), sin(-deg_to_rad(40.0))) * 1.05 * s
+		for k in 10: draw_line(o + ghost * (float(k) / 10.0), o + ghost * ((float(k) + 0.5) / 10.0), Color(GridTheme.SODIUM, 0.45), 2.0)
+		_text(_mono(), 12, o + ghost + Vector2(4, -6), "E ?", Color(GridTheme.SODIUM, 0.6))
+		_text(_semi(), 14, o + ghost + Vector2(-60, -34), T("C4_SET_EXC") if n.excitation == null else T("C4_NO_STEADY"), Color(GridTheme.TEXT, 0.7))
 		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 30.0), T("C4_NIGHT_HINT1"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6)); return
 	var e := float(n.excitation); var d := deg_to_rad(float(n.deltaDeg))
 	var E := Vector2(cos(-d), sin(-d)) * e * s; _arrow(o, o + E, Color(GridTheme.GOOD) if bool(n.taskDone) else Color(GridTheme.SODIUM), 4.0); _text(_mono(), 12, o + E + Vector2(4, -6), "E = %s" % _f(e, 3), GridTheme.SODIUM)
@@ -132,7 +135,7 @@ func _draw_panel_body() -> void:
 	var lab := ["E (pu)", "δ (deg)", "P_max (pu)"]
 	for k in IDS.size():
 		var e: LineEdit = edits[IDS[k]]; e.editable = not _locked()
-		_text(mono, 11, Vector2(e.position.x - 74.0, e.position.y + 19.0), lab[k], Color(GridTheme.TEXT, 0.7))
+		_text(mono, 11, Vector2(e.position.x - 80.0, e.position.y + 19.0), lab[k], Color(GridTheme.TEXT, 0.7))
 	for h in hits:
 		if str(h.id) == "exc":
 			var v := _exc(); _stepper(h.rect, T("C4_EXC_CAP"), "E = %s pu" % _f(v, 3) if q.night.excitation != null else T("C4_UNSET"), (v - 0.5) / 1.5, "exc")
