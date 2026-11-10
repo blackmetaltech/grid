@@ -118,6 +118,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     poorSupplyGraceMin: spec.kind === 'bench' ? 60 : 0,
     blackoutLoses: spec.blackoutLoses,
     flashoverBlock: spec.flashoverBlock ?? null,
+    ...(spec.ch3 ? { ch3: structuredClone(spec.ch3) } : {}),   // a copy: the state owns its rules
     ...(spec.cableCutBlock !== undefined ? { cableCutBlock: spec.cableCutBlock, seaCableKm: spec.seaCableKm ?? null, darkLoadsLose: true } : {}),
     ...(spec.fogBlock !== undefined ? { fogBlock: spec.fogBlock, darkLoadsLose: true } : {}),   // absent keys elsewhere: the other levels' states and goldens stay as they were
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
@@ -129,7 +130,6 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
 export function makeLevel(spec: GridLevelSpec): Level<GridState> {
   const solver: PersonaFactory<GridState> = () => {
     let done = false;
-    ...(spec.ch3 ? { ch3: structuredClone(spec.ch3) } : {}),   // a copy: the state owns its rules
     return () => { if (done) return []; done = true; return spec.reference; };
   };
   return {

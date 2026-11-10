@@ -426,6 +426,11 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       }
     } },
 
+    // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).
+    { id: 'ch3', run: (s) => { ch3Step(s, getParams(s).f0); } },
+    // 13c. ch4: the L10-L13 circuits (gated on state.ch4).
+    { id: 'ch4', run: (s) => { ch4Step(s, getParams(s)); } },
+
     // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).
     { id: 'levelRules', run: (s) => {
       if (s.bench && getBench) stepBench(s, getBench(s));   // a bench level's circuit is solved here, once per block, before the verdict
@@ -437,11 +442,6 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
     // 15. explain: what needs the player now, and Codex unlocks.
     { id: 'explain', run: (s) => {
       const p = getParams(s);
-    // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).
-    { id: 'ch3', run: (s) => { ch3Step(s, getParams(s).f0); } },
-    // 13c. ch4: the L10-L13 circuits (gated on state.ch4).
-    { id: 'ch4', run: (s) => { ch4Step(s, getParams(s)); } },
-
       const needs: Note[] = [];
       if (s.block.blackout) needs.push(note('needs.blackout'));
       for (const b of s.branches) if (b.inService && b.timer && b.timer.secLeft < 1e6) needs.push(note('needs.overload', { id: b.id, sec: Math.round(b.timer.secLeft) }));
