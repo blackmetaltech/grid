@@ -26,7 +26,7 @@ RES, COM, IND = blocks(RES24), blocks(hourly(COM_A)), blocks(hourly(IND_A))
 IRR = [1.0 if (0 <= b < 20 or 40 <= b < 56) else 0.05 for b in range(96)]   # supply windows 00-04 and 10-13 hours (DESIGN 4.8)
 
 DAYS = [dict(tmin=30, tmax=44, scale={}), dict(tmin=21, tmax=26, scale={}),
-        dict(tmin=22, tmax=31, scale=dict(commercial=0.55, industrial=0.6, residential=0.9, agricultural=0.8))]
+        dict(tmin=22, tmax=31, scale=dict(commercial=0.7, industrial=0.8, residential=0.95, agricultural=0.9))]
 LOADS = [('commercial', 380), ('residential', 345), ('flat', 300), ('industrial', 320), ('commercial', 90), ('residential', 28), ('residential', 125), ('residential', 80),
          ('agricultural', 100), ('residential', 115), ('industrial', 55), ('residential', 100), ('industrial', 90), ('commercial', 140), ('industrial', 230)]
 def scale(day, b, cls):

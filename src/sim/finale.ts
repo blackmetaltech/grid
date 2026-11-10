@@ -5,6 +5,7 @@
 //   - the batteries: held for reserve (no price arbitrage), floating at the top of their window while the grid is alive (a battery on the island is the island's last resort)
 //   - the day's measurements the stars read (island never dark, share of blocks outside the standard frequency range, energy not served as a share of the demand) and the island verdict
 import { log } from '@core/kit';
+import { dmath } from '@core/numerics';
 import { t } from '../i18n';
 import type { GridState, LoadClass, Rules } from '../types';
 import { solvedOf } from './solved';
@@ -46,7 +47,7 @@ const dayOf = (f: FinaleRules, day: number): FinaleDay => f.days[Math.max(0, Mat
 /** The temperature of a block: a cosine from the 03:00 minimum to the 15:00 maximum. */
 export function finaleTemp(d: FinaleDay, block: number): number {
   const h = block / 4;
-  return d.tMinC + (d.tMaxC - d.tMinC) * (0.5 - 0.5 * Math.cos((2 * Math.PI * (h - 3)) / 24));
+  return d.tMinC + (d.tMaxC - d.tMinC) * (0.5 - 0.5 * dmath.cos((2 * Math.PI * (h - 3)) / 24));
 }
 
 /** Demand multiplier of a class on a day (1 when the level is not the finale). */

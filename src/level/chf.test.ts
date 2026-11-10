@@ -32,7 +32,7 @@ describe('L28 three-day gate', () => {
       if (region === 'global') {
         expect(l.stars).toBe(2); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.track.islandDarkBlocks).toBe(0); expect(r.track.freqViolBlocks).toBe(0); expect(r.track.lossPct!).toBeLessThanOrEqual(3);
       } else {
-        // OPEN (honest note): in the `in` pack the cheap coal ramps down too slowly at the Day 3 dawn (50.5-52 Hz for six blocks) and the U1 trip sheds ~26 MWh: both stars pass, the third is not reachable yet
+        // OPEN (honest note): in the `in` pack the cheap coal ramps down too slowly at the Day 3 dawn (fixed by easing the holiday demand) but the U1 trip still sheds ~26 MWh through the in pack's UFLS: both stars pass, the third is not reachable yet
         expect(l.stars).toBeGreaterThanOrEqual(1); expect(r.stars).toBeGreaterThanOrEqual(1); expect(r.track.islandDarkBlocks).toBe(0);
       }
     });
@@ -58,7 +58,7 @@ describe('the island through the lightning', () => {
     expect(runDesign(spec, 'global', [...base, ...secondCauseway]).status).toBe('won');
     expect(runDesign(spec, 'global', [...base, ...islandBattery('bess-4h-50')]).status).toBe('won');
   });
-  it('a 2-hour battery holds 100 MWh against the 119 MWh of nameplate the night needs (oracle F-3): it runs dry', () => {
+  it('a 2-hour battery holds 100 MWh against the 124 MWh of nameplate the night needs (oracle F-3): it runs dry', () => {
     expect(EXP['F-3'].nameplate_MWh).toBeGreaterThan(100); expect(EXP['F-3'].nameplate_MWh).toBeLessThan(125);
     const o = runDesign(spec, 'global', [...base, ...islandBattery('bess-2h-50')]);
     expect(o.status).toBe('lost'); expect(o.state.block.verdictKey).toBe('level.lost.islandStormBattery'); expect(o.state.clock.day).toBe(2); expect(o.state.clock.block).toBeLessThan(24);   // the cells ran dry in the small hours of Day 3, before the 06:00 repair
@@ -112,10 +112,10 @@ describe('lesson, hint, coach, determinism, speed', () => {
     const e = run(play(spec.reference)); const li = info(e).lesson as string;
     expect(li).toMatch(/Day 1: demand peaked at (\d+) MW and the lowest voltage was ([\d.]+) pu/);
     expect(Number(li.match(/peaked at (\d+) MW/)![1])).toBe(Math.round(e.state.metrics.track.peakDemandMW!));
-    expect(li).toMatch(/Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew [\d.]+ MWh through a battery: 119\.\d MWh of nameplate/);
+    expect(li).toMatch(/Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew [\d.]+ MWh through a battery: 124\.\d MWh of nameplate/);
     expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu; losses over the three days [\d.]+ %.*0 blocks outside 49\.90 to 50\.05 Hz/);
     const lost = run(play([])); expect(info(lost).tryHint).toMatch(/A bus fell below 0\.95 pu/);
-    const isl = run(play(spec.reference.filter((a) => a.name !== 'placeStorage'))); expect(info(isl).tryHint).toMatch(/at least 120 MWh of nameplate/);
+    const isl = run(play(spec.reference.filter((a) => a.name !== 'placeStorage'))); expect(info(isl).tryHint).toMatch(/at least 125 MWh of nameplate/);
   });
   it('coach: volt, reserve, island, run', () => {
     expect(spec.coach.map((c) => c.id)).toEqual(['volt', 'reserve', 'island', 'run']);

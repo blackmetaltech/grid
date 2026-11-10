@@ -26,7 +26,7 @@ export const BUSES: BusRow[] = [
   { key: 'windmere', name: 'Windmere wind 220', kv: 220, x: 6, y: 34, kind: 'gen', vSet: 1.0 },   // lint-ok
   { key: 'sunfield', name: 'Sunfield solar 220', kv: 220, x: 50, y: 42, kind: 'gen', vSet: 1.0 },   // lint-ok
   { key: 'capital2', name: 'Capital 220', kv: 220, x: 52, y: 22, kind: 'sub' },   // lint-ok
-  { key: 'dc', name: 'Gigawatt datacentre 220', kv: 220, x: 58, y: 18, kind: 'load' },   // lint-ok
+  { key: 'dc', name: 'Datacentre 220', kv: 220, x: 58, y: 18, kind: 'load' },   // lint-ok
   { key: 'eastgate2', name: 'Eastgate 220', kv: 220, x: 80, y: 18, kind: 'sub' },   // lint-ok
   { key: 'highfell', name: 'Highfell pumped hydro 220', kv: 220, x: 32, y: 8, kind: 'gen', vSet: 1.03 },   // lint-ok
   { key: 'westfell2', name: 'Westfell 220', kv: 220, x: 24, y: 18, kind: 'sub' },   // lint-ok
@@ -132,15 +132,15 @@ export const XFMR_IDS: Record<string, string[]> = (() => {
 export const FINALE_DAYS: FinaleDay[] = [
   { tMinC: 30, tMaxC: 44, windMs: 5, cloud: 0, scale: {} },
   { tMinC: 21, tMaxC: 26, windMs: 8, cloud: 0.8, scale: {} },
-  { tMinC: 22, tMaxC: 31, windMs: 8, cloud: 0, scale: { commercial: 0.55, industrial: 0.6, residential: 0.9, agricultural: 0.8 } },
+  { tMinC: 22, tMaxC: 31, windMs: 8, cloud: 0, scale: { commercial: 0.7, industrial: 0.8, residential: 0.95, agricultural: 0.9 } },
 ];
 
 /** Scripted trips of Day 2 (index 1). Element ids follow the placement order above: the first Capital 400/220 kV transformer is T27. */
 export const TRIP = { line: LINE_ID['capital-eastgate']!, unit: 'U1', ict: XFMR_IDS['capital-ict']![0]!, island: LINE_ID['causeway']! };
 export const EVENTS = { stormBlock: 48, stormBlocks: 48, lineBlock: 57, unitBlock: 74, ictBlock: 84, lightningBlock: 94, holidayTripBlock: 47, holidayUnit: 'U5' };
 export const REPAIRS = [{ id: TRIP.line, day: 2, block: 8 }, { id: TRIP.ict, day: 2, block: 12 }, { id: TRIP.island, day: 2, block: 24 }];
-export const ENERGY_MWH = 126200.5981669061;   // oracle F-1 (tools/oracles/chf_oracles.py)
-export const FINALE = { days: FINALE_DAYS, islandBus: BUS.saltmarsh!, repairs: REPAIRS, restorePerBlock: 0.5, lightning: { id: TRIP.island, day: 1, block: EVENTS.lightningBlock }, beats: [{ day: 0, block: 1, key: 'log.finale.day1' }, { day: 1, block: 1, key: 'log.finale.day2' }, { day: 1, block: 44, key: 'log.finale.stormWarn' }, { day: 2, block: 1, key: 'log.finale.day3' }], energyMWh: ENERGY_MWH, nightMWh: 88.5395 };
+export const ENERGY_MWH = 131237.51379137684;   // oracle F-1 (tools/oracles/chf_oracles.py)
+export const FINALE = { days: FINALE_DAYS, islandBus: BUS.saltmarsh!, repairs: REPAIRS, restorePerBlock: 0.5, lightning: { id: TRIP.island, day: 1, block: EVENTS.lightningBlock }, beats: [{ day: 0, block: 1, key: 'log.finale.day1' }, { day: 1, block: 1, key: 'log.finale.day2' }, { day: 1, block: 44, key: 'log.finale.stormWarn' }, { day: 2, block: 1, key: 'log.finale.day3' }], energyMWh: ENERGY_MWH, nightMWh: 92.141 };
 
 
 // ---- the player's parts -------------------------------------------------------------------------------------------------------------
@@ -186,7 +186,7 @@ export const L28: GridLevelSpec = {
   lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway], reference: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-4h-50')],
   // frozen from the bot population (80 designs per region; budget = 1.1 x the dearer of lesson and reference rounded up to 2 significant figures; A = median passing cost; B = 15th percentile of the passing
   // designs with no shed energy, no frequency block out of range, the island always lit and losses <= 3 %): chf.test.ts regenerates them and fails on drift > 2 %
-  frozen: { global: { budget: 70000000, starA: 59986399.573917165, starB: 54866607.82957845 }, in: { budget: 8000000000, starA: 1579729269.6560645, starB: 661324247.3353044 } },
+  frozen: { global: { budget: 70000000, starA: 59723208.50865215, starB: 53781954.76834224 }, in: { budget: 8000000000, starA: 1579729269.6560645, starB: 631133701.8030616 } },
   coach: [
     { id: 'volt', textKey: 'coach.L28.volt', whyKey: 'coach.L28.volt.why', done: (s) => s.actionLog.some((a) => a.name === 'setTapAuto') && s.shunts.length > 0 },
     { id: 'reserve', textKey: 'coach.L28.reserve', whyKey: 'coach.L28.reserve.why', done: (s) => s.actionLog.some((a) => a.name === 'spinUnit') || s.storage.length > 1 },
