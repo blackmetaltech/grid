@@ -437,6 +437,7 @@ func _view_rect() -> Rect2:
 		bt = size.y - (6.0 if CbLayout.phone else app._dock_h + 12.0) - ins.w
 		if CbLayout.phone and _has_terrain(): bt = minf(bt, size.y * 0.74)   # a long terrain map on a phone: keep both ends above the tray and the budget tag (the market sat under them)
 		elif _has_terrain(): bt = minf(bt, size.y - 128.0)   # desktop too: the harbour on the south coast sat under the tray and the budget tag
+		elif not CbLayout.phone and model.kind == "grid" and model.map.x * model.map.y > 2000.0: bt = minf(bt, size.y - 175.0)   # big grid maps (L28's state): the map's south tip (Saltmarsh Island) sat under the budget tag
 		r = size.x - cover - 14.0 - ins.z
 	return Rect2(l, t, maxf(60.0, r - l), maxf(60.0, bt - t))
 
@@ -1275,7 +1276,7 @@ func _draw_labels() -> void:
 		if s.has("v") and float(s.v) > 0.0 and s.id != "j" and not str(s.id).begins_with("c"):
 			var sp3 := to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0))
 			var vs: float = s.v; var ar := "▼ " if vs < 0.95 else ("▲ " if vs > 1.05 else "")
-			_label_free(font, fs, sp3, tr("WORLD_BUS_FMT") % [ar, vs], WorldMath.AMBER if (vs < 0.95 or vs > 1.05) else WorldMath.WHITE, placed)
+			_label_free(font, fs, sp3, tr("WORLD_BUS_FMT") % [ar, vs], WorldMath.AMBER if (vs < 0.95 or vs > 1.05) else WorldMath.WHITE, placed, true)
 	for l in model.lines:
 		if l.in_service and float(l.loading) >= 0.9 and str(l.kind) != "cable":
 			var poly := _line_poly(l, 0.0)
@@ -1317,15 +1318,18 @@ func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
 				"sad": _ci.draw_arc(m + Vector2(0, r * 0.18), r * 0.24, PI + 0.4, TAU - 0.4, 12, ink, 1.8); _ci.draw_circle(ey + Vector2(ex, r * 0.25 + fposmod(_t * 8.0, r * 0.5)), r * 0.07, Color("#7FC8FF"))
 
 ## `_label`, moved down a row at a time (up to four) until its box clears every box in `placed`; the box it ends in is appended.
-func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2]) -> void:
+## `optional`: a label that still finds no room is left out (a yard's pu: its town's label already says it).
+func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2], optional := false) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var r := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
-	for _i in 4:
-		var hit := false
+	var free := false
+	for _i in 5:
+		free = true
 		for q in placed:
-			if q.intersects(r): hit = true; break
-		if not hit: break
+			if q.intersects(r): free = false; break
+		if free: break
 		r.position.y += fs + 10.0; at.y += fs + 10.0
+	if not free and optional: return
 	placed.append(r)
 	_label(font, fs, at, txt, col)
 
