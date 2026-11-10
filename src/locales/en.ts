@@ -1,3 +1,10 @@
+import { EN_CH2 } from './ch2.en';
+import { EN_CH3 } from './ch3.en';
+import { EN_CH4 } from './ch4.en';
+import { EN_CH5 } from './ch5.en';
+import { EN_CH6 } from './ch6.en';
+import { EN_CH7 } from './ch7.en';
+import { EN_CHF } from './chf.en';
 // Every player-facing string of the game, keyed. `{name}` marks a variable. Regional names (region, places, cast…) are NOT here:
 // they come from the region pack's `strings` and are passed in as variables. Add a locale by copying this file (es.ts, hi.ts…)
 // and registering it in ../i18n.ts; `checkLocales` (see locales.test.ts) fails when a key or a placeholder is missing.
@@ -30,7 +37,7 @@ export const en: Record<string, string> = {
   'exp.a_question_id': 'a question id',
   'exp.a_number': 'a number',
   'what.bus': 'bus', 'what.unit': 'unit', 'what.load': 'load', 'what.branch': 'branch', 'what.shunt': 'shunt', 'what.element': 'element',
-  'what.generator': 'generator', 'what.line': 'line', 'what.transformer': 'transformer', 'what.compensation': 'compensation device', 'what.storage': 'storage unit',
+  'what.generator': 'generator', 'what.line': 'line', 'what.transformer': 'transformer', 'what.compensation': 'compensation device', 'what.storage': 'storage unit', 'what.cable': 'submarine cable',
   'act.unknownId': 'There is no {what} with id "{id}". Use the Inspector to see the ids on the map.',
   'act.unknownCatalog': 'The catalogue has no {what} "{id}". Open the build palette for what this region sells.',
   'act.sandboxOnly': 'This is only available in sandbox mode; in a level the load comes from the town.',
@@ -46,6 +53,8 @@ export const en: Record<string, string> = {
   'act.xfmr.ok': 'Transformer {id} ({mva} MVA, {zpct} % impedance) between {hv} and {lv}.',
   'act.xfmr.kv': 'This transformer is {kvHv}/{kvLv} kV but buses {hv} and {lv} are {busHv}/{busLv} kV.',
   'act.shunt.ok': 'Shunt {id} ({kind}, {steps} steps of {mvar} MVAr) placed at bus {bus}.',
+  'act.cable.ok': 'Submarine cable {id} laid: {km} km under the sea, no supports. It charges like a capacitor: {kvar} kvar at its voltage, whatever the load. Carries up to {amps} A. Cost {cost}.',
+  'act.cable.notSubmarine': '{id} is not a submarine cable: use a sub-11-70, sub-11-120 or sub-11-185 cable to cross the sea.',
   'act.storage.ok': 'Storage {id} ({mw} MW / {mwh} MWh) placed at bus {bus}.',
   'act.demolish.ok': 'Removed {id} and everything that was attached to it.',
   'act.commit.ok': 'Unit {id} will be {state} from block {block} on.',
@@ -270,6 +279,33 @@ export const en: Record<string, string> = {
   'coach.L29.run': 'Pull the breaker and run the night.',
   'coach.L29.run.why': 'The sea fog comes in at 04:00; the evening peak at 19:30 is still the hot hour for sag.',
   'place.L29.yard': 'Harbour yard', 'place.L29.harbour': 'The harbour',
+  'route.anchorCut': 'Cable {id} was cut by a trawler\'s anchor.',
+  'log.anchorCut': 'At {time} a trawler\'s anchor cut cable {id}, {km} km of it between the harbour and the island. The island is on its own battery.',
+  'level.lost.islandUnlit': 'The island was never lit: its load stands on a bus no source reaches. It needs a cable from the harbour yard and a transformer down to 0.42 kV.',
+  'level.lost.islandNoBattery': 'At {time} the island went dark. The anchor cut the cable at {cut} and nothing on the island could carry its {kw} kW: the cable is one line, and with it gone there was no battery.',
+  'level.lost.islandPower': 'At {time} the island went dark. After the anchor cut the cable at {cut} the island drew {kw} kW, but its inverter is rated {inv} kW: power is what the inverter can hold at one instant, and this one could not hold the load.',
+  'level.lost.islandEnergy': 'At {time} the island went dark. After the anchor cut the cable at {cut} the {inv} kW inverter held the {kw} kW load, but the cells ran dry: {used} kWh drawn of {kwh} kWh installed, only {left} kWh still deliverable. Energy is power times time.',
+  'level.L30.title': 'Bring the Island Home',
+  'level.L30.brief': 'Saltmarsh Island, 4 km offshore, is joining the mainland. Lay a submarine 11 kV cable from the harbour yard, step it down on the island, and put a battery behind the transformer. At 21:00 a trawler\'s anchor will find the cable. Keep the island lit until 23:00, inside the budget.',
+  'level.L30.place': 'Saltmarsh Island · 4 km south of the harbour, 18:00',
+  'level.L30.story1': 'ADA: Year three. The line to the harbour stands. The sea between us and the island is four kilometres of nothing to hang a pole on.',
+  'level.L30.story2': 'TOBI: Only a cable can cross it. A cable is one line, and the trawlers fish right over it. Mind the anchor.',
+  'level.L30.story3': 'VANCE: Nia\'s exam results come tonight, and the school is on that island. A cable under the sea costs six to ten times the line on land per kilometre, and every kilowatt-hour of battery is money too.',
+  'level.L30.lesson': 'Your {mm2} mm² cable runs {km} km under the sea at {perKm} per km, {ratio} times the {over} per km of the overhead line you built to the harbour. It charges like a capacitor even with no load: Q = V² × ω × C × ℓ = {kvar} kvar at {kv} kV (about {amps} A in the cable, no load).',
+  'level.L30.lessonBattery': 'When the anchor cut it at {cut}, the island ran on its battery: {used} kWh drawn from the cells by {end}, of {kwh} kWh installed (only the 10-90 % window is usable, and the round trip loses some: {margin} % of the window was left). The inverter is {inv} kW against a peak of {peak} kW. Power is what the inverter can hold at one instant; energy is power times hours, and the cells have to hold the hours.',
+  'level.L30.lessonNoBattery': 'No battery stood on the island, so when the cable went the island had nothing to run on: the inverter must hold the peak ({peak} kW) and the cells the hours.',
+  'level.L30.lessonWait': 'Run the night: at 21:00 the cable will be cut and the battery has to carry the island to 23:00.',
+  'level.L30.tryNeeds': 'Carrying {kw} kW from the cut at {cut} to 23:00 needs an inverter of at least {needKw} kW and about {needKwh} kWh of battery (the cells give only their 10-90 % window, at about 93 % one way).',
+  'level.L30.tryBudget': 'The cable is most of the bill: the thinnest one carries this island easily (a few amps against hundreds). Spend the rest on the battery, not on copper nobody uses.',
+  'coach.L30.cable': 'Lay a submarine cable from the harbour yard (11 kV) to the island yard. Only a cable can cross four kilometres of sea.',
+  'coach.L30.cable.why': 'A cable costs six to ten times an overhead line per kilometre, and its capacitance charges it with reactive power, Q = V² × ω × C × ℓ, even with no load.',
+  'coach.L30.xfmr': 'The island yard is 11 kV and its homes and school run on 0.42 kV: place a transformer between them. The island peaks at about 47 kVA.',
+  'coach.L30.xfmr.why': 'A transformer sized to the island\'s peak is enough; the island is small.',
+  'coach.L30.battery': 'The cable is one line: if it fails, what keeps the island lit? Put a battery on the island\'s 0.42 kV bus.',
+  'coach.L30.battery.why': 'The inverter (kW) must hold the island\'s peak; the cells (kWh) must hold the hours from the cut to 23:00. Only the middle 80 % of the cells is usable.',
+  'coach.L30.run': 'Pull the breaker and run the evening.',
+  'coach.L30.run.why': 'At 21:00 a trawler\'s anchor cuts the cable. Watch the battery carry the island.',
+  'place.L30.yard': 'Island yard', 'place.L30.island': 'Saltmarsh Island',
   'coach.L05.survey': 'Survey a line: start at a yard, click points on the map to bend it, finish at the other end.',
   'coach.L05.survey.why': 'Every bend needs a stronger angle pole, swamp poles need piles, rock needs anchors, and the river needs one long span from bank to bank.',
   'coach.L05.voltage': 'At 0.42 kV the market draws about 300 A. What does a transformer at each end buy you?',
@@ -279,4 +315,6 @@ export const en: Record<string, string> = {
   'place.L05.market': 'Brightwater',
   'coach.L05.run': 'Pull the breaker and run the evening.',
   'coach.L05.run.why': 'The market peaks at 19:30, the hottest, heaviest hour: that is when a line sags lowest.',
+  // chapter files (parallel builders add their strings there, never here)
+  ...EN_CH2, ...EN_CH3, ...EN_CH4, ...EN_CH5, ...EN_CH6, ...EN_CH7, ...EN_CHF,
 };

@@ -18,7 +18,8 @@ static func load_strings() -> void:
 	if _loaded: return
 	_loaded = true
 	var t := Translation.new(); t.locale = "en"
-	for k in GridStrings.S: t.add_message(k, GridStrings.S[k])
+	for tbl in [GridStrings.S, Ch2Strings.S, Ch3Strings.S, Ch4Strings.S, Ch5Strings.S, Ch6Strings.S, Ch7Strings.S, ChFStrings.S]:   # chapter tables live beside each chapter's UI
+		for k in tbl: t.add_message(k, tbl[k])
 	TranslationServer.add_translation(t)
 
 static func extend_config(cfg: Dictionary) -> Dictionary:
