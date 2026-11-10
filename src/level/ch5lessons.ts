@@ -21,6 +21,14 @@ export function l14Try(s: GridState): string {
   return t((tr(s, 'vViolV') ?? 1) < 1 ? 'level.L14.tryLow' : 'level.L14.tryHigh');
 }
 
+/** |A| of the exact line (cosh of gamma times length) for the 400 kV twin-Moose template, and the no-load receiving voltage for the sending set-point. */
+export function l15NoLoad(s: GridState): { absA: number; v0: number } {
+  const tpl = LINE_TEMPLATES.find((x) => x.id === 'l400-twinmoose')!, km = s.branches[0]?.lengthKm ?? 350;
+  const m = Math.hypot(tpl.rOhmKm, tpl.xOhmKm) * tpl.bUsKm * 1e-6, ang = (Math.atan2(tpl.xOhmKm, tpl.rOhmKm) + Math.PI / 2) / 2, g = Math.sqrt(m), a = g * Math.cos(ang) * km, b = g * Math.sin(ang) * km;
+  const A = Math.hypot(Math.cosh(a) * Math.cos(b), Math.sinh(a) * Math.sin(b));
+  return { absA: A, v0: (s.buses[0]?.vSet ?? 1) / A };
+}
+
 /** L15: the line's own constants: SIL, charging Q, |A| of the exact line and the no-load receiving voltage for the sending voltage the plant holds. */
 export function l15Lesson(s: GridState): string {
   const tpl = LINE_TEMPLATES.find((x) => x.id === 'l400-twinmoose')!, km = s.branches[0]?.lengthKm ?? 350;

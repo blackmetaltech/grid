@@ -10,6 +10,7 @@ import { specOf } from './level';
 import { buildCases, solveGS, solveCase, tryLambda } from './sim/loadflow';
 import { threeBusSaadat } from './sim/loadflow/fixtures';
 import { examTruth, loadability, n1Table } from './sim/ch5';
+import { l15NoLoad } from './level/ch5lessons';
 import { toNet } from './sim/netbuild';
 import { solvedOf } from './sim/solved';
 import type { SimParams } from './sim/params';
@@ -62,6 +63,7 @@ export function buildCh5Queries(d: { getParams: (s: GridState) => SimParams }): 
         const solved = solvedOf(s), tab = s.tick > s.levelStart ? n1Table(s) : {};
         out.lines = s.branches.map((b) => ({ id: b.id, from: b.from, to: b.to, inService: b.inService, ratingMVA: b.ratingMVA, loadingPct: Math.round(100 * (solved?.flows.branch[b.id]?.loading ?? 0)), n1Pct: tab[b.id] === undefined ? null : Math.round(100 * Math.min(tab[b.id]!, 9.99)) }));
       }
+      if (lv === 'L15') out.noLoad = l15NoLoad(s);
       if (lv === 'L17' && s.solution) out.pv = pvCurve(s, 'B3');
       if (lv === 'L18') { out.gs = gsLab(); const u = s.units[1]; out.pv3 = u ? { q: r4(u.Q), qMax: r4(u.qMax), vSet: s.buses.find((b) => b.id === 'B3')?.vSet ?? null } : null; }
       return out;

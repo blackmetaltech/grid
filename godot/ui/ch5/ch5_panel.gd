@@ -79,19 +79,24 @@ func _rebuild() -> void:
 	var g: Dictionary = app.b.g
 	_box.add_child(GridTheme.label(tx("C5_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"))
 	if (q.buses as Array).size() > 0:
+		if _level == "L14": _line(tx("C5_BASES_L14"), 12, "sans")
 		_button(tx("C5_UNIT_KV") if _pu else tx("C5_UNIT_PU"), "c5_unit", func(): _pu = not _pu; _sig = ""; refresh())
 		for b in q.buses: _box.add_child(_bus_row(b, q))
 	var tr: Dictionary = q.track
 	match _level:
 		"L14": _line(tx("C5_TAPS") % int(tr.get("tapOps", 0)), 13)
-		"L15": _line(tx("C5_OPS") % int(tr.get("switchOps", 0)), 13)
+		"L15":
+			var nl = q.get("noLoad")
+			if nl != null: _line(tx("C5_L15_NOLOAD") % [float(nl.v0), float(nl.v0) * 400.0], 13, "sans")
+			_line(tx("C5_L15_GLOSS"), 12, "sans")
+			_line(tx("C5_OPS") % int(tr.get("switchOps", 0)), 13)
 		"L16": _l16(q)
 		"L17": _l17(q)
 		"L18": _l18(q, g)
 
 func _bus_row(b: Dictionary, q: Dictionary) -> Label:
 	var pu = b.get("pu"); var txt := "%s  " % str(b.name).substr(0, 14).rpad(14)
-	if pu == null: txt += "-"
+	if pu == null: txt += tx("C5_NOT_YET")
 	elif _pu: txt += "%.3f pu" % float(pu)
 	else: txt += "%.2f kV" % float(b.kV)
 	var l := GridTheme.label(txt, 14, GridTheme.PAPER_INK, "mono")
@@ -104,16 +109,17 @@ func _l16(q: Dictionary) -> void:
 	for ln in q.lines:
 		var n = ln.get("n1Pct"); var pct := int(ln.loadingPct)
 		var bar := "#".repeat(clampi(int(round(pct / 10.0)), 0, 14))
-		var t := "%s %-14s %3d%%" % [str(ln.id), bar, pct]
+		var t := "%s %-14s %3d%% of %d MVA" % [str(ln.id), bar, pct, int(round(float(ln.ratingMVA)))]
 		if n != null: t += "  N-1 %d%%" % int(n)
 		var l := _line(t if ln.inService else str(ln.id) + "  " + tx("C5_OPEN"), 12)
 		if pct > 100: l.add_theme_color_override("font_color", Color(0.75, 0.1, 0.05))
 	var tr: Dictionary = q.track
 	if tr.has("n1Max"): _line(tx("C5_N1") % int(round(float(tr.n1Max) * 100.0)), 13, "sans")
+	_line(tx("C5_L16_GLOSS"), 12, "sans")
 
 func _l17(q: Dictionary) -> void:
 	var pv = q.get("pv")
-	if pv == null: _line(tx("C5_L17_WAIT"), 13, "sans"); return
+	if pv == null: _line(tx("C5_L17_MARGIN_NONE"), 14, "mono"); _line(tx("C5_L17_WAIT"), 13, "sans"); return
 	_chart = PvChart.new(); _chart.data = pv; _box.add_child(_chart)
 	_line(tx("C5_L17_NOSE") % [float(pv.noseMW), float(pv.loadMW), float(pv.marginPct)], 14, "mono")
 	var h := _line(tx("C5_L17_CAP"), 12, "sans"); h.modulate = Color(1, 1, 1, 0.8)
@@ -121,6 +127,8 @@ func _l17(q: Dictionary) -> void:
 func _l18(q: Dictionary, g: Dictionary) -> void:
 	var gs: Dictionary = q.gs
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
+	_line(tx("C5_L18_WHAT_GS"), 12, "sans")
+	_line(tx("C5_L18_SLACK"), 12, "sans")
 	if not locked: _line(tx("C5_L18_HIDE"), 13, "sans")   # the sweep table holds the answers: it is drawn once the predictions are locked
 	else:
 		_line(tx("C5_L18_GS") % [int(gs.gsIterations), int(gs.nrIterations)], 13, "sans")
@@ -132,9 +140,10 @@ func _l18(q: Dictionary, g: Dictionary) -> void:
 	var p3 = q.get("pv3")
 	if p3 != null:
 		_line(tx("C5_L18_Q") % [float(p3.q), float(p3.qMax), float(p3.vSet)], 13, "mono")
+		_line(tx("C5_L18_VSET_GLOSS"), 12, "sans")
 		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6); _box.add_child(h)
 		for d in [-0.01, 0.01]:
-			var b := Button.new(); b.text = ("B3  -0.01" if d < 0 else "B3  +0.01"); b.name = "c5_vset_" + ("dn" if d < 0 else "up"); b.custom_minimum_size = Vector2(120, 28); b.disabled = locked; b.focus_mode = CbKit.focus_mode()
+			var b := Button.new(); b.text = (tx("C5_VSET_DN") if d < 0 else tx("C5_VSET_UP")); b.name = "c5_vset_" + ("dn" if d < 0 else "up"); b.custom_minimum_size = Vector2(130, 28); b.add_theme_font_size_override("font_size", GridTheme.fs(12)); b.disabled = locked; b.focus_mode = CbKit.focus_mode()
 			b.pressed.connect(func(): if _do("setVSet", ["B3", snappedf(float(p3.vSet) + d, 0.001)]): _sig = ""; refresh())
 			h.add_child(b)
 
