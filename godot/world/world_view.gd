@@ -61,6 +61,7 @@ var _ghost_refused := false   # the engine refused the pending path: it is drawn
 var _ghost_bad_tile := -1
 var _ghost_pending: Array = []   # waypoints (metres) the player has already clicked
 var _town_rect := Rect2()     # tiles of the terrain's town area (the market's roofs stand on it)
+var _town_areas: Array = []   # each connected block of town tiles: {rect: Rect2, tiles: Array[Vector2i]} (the market, the harbour, ...)
 var _known_routes := {}       # branch id -> true: a route that was not here before makes a lineman climb
 var _known_level := ""
 var _lineman := {"t0": -100.0, "rid": "", "i": 0}
@@ -267,7 +268,30 @@ func _rebuild_terrain() -> void:
 				"town":
 					tx0 = minf(tx0, i); ty0 = minf(ty0, j); tx1 = maxf(tx1, i + 1); ty1 = maxf(ty1, j + 1)
 	_town_rect = Rect2(tx0, ty0, tx1 - tx0, ty1 - ty0) if tx1 > 0.0 else Rect2()
+	_town_areas = []
+	var seen := {}
+	for j in H:   # flood fill: separate towns stay separate (one bounding box over the market and the harbour would put the market's square in the fields)
+		for i in W:
+			if kinds[j * W + i] != "t" and kinds[j * W + i] != "town": continue
+			if seen.has(Vector2i(i, j)): continue
+			var q: Array = [Vector2i(i, j)]; seen[Vector2i(i, j)] = true; var tiles: Array = []; var r := Rect2(i, j, 1, 1)
+			while not q.is_empty():
+				var c: Vector2i = q.pop_back(); tiles.append(c); r = r.merge(Rect2(c.x, c.y, 1, 1))
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var n: Vector2i = c + d
+					if n.x < 0 or n.y < 0 or n.x >= W or n.y >= H or seen.has(n): continue
+					var kn := kinds[n.y * W + n.x]
+					if kn == "t" or kn == "town": seen[n] = true; q.append(n)
+			_town_areas.append({"rect": r, "tiles": tiles})
 	_rebuild_terrain_cute()
+
+## The block of town tiles a town stands in (or next to, within 14 tiles of its centre); {} when none.
+func _area_near(p: Vector2) -> Dictionary:
+	var best := {}; var bd := 14.0
+	for a in _town_areas:
+		var d := ((a.rect as Rect2).get_center()).distance_to(p)
+		if d < bd: bd = d; best = a
+	return best
 
 ## Cute mode on a terrain map: crocodiles by the pile foundations in the swamp, market stalls on the town square (lamps follow the town's energies).
 func _rebuild_terrain_cute() -> void:
@@ -287,10 +311,11 @@ func _rebuild_terrain_cute() -> void:
 		sc /= float(sw.size()); var best: Vector2 = sw[0]
 		for q in sw: if q.distance_to(sc) < best.distance_to(sc) and WorldMath.hash2(int(q.x), int(q.y), 97) > 0.5: best = q
 		_objs.append({"t": "croc", "p": best, "res": true, "rid": "", "i": 0, "v": 0.37})
-	if _town_rect.size.x > 0.0:
-		var c := _town_rect.get_center()
-		for ti in model.towns.size():
-			if (model.towns[ti].pos as Vector2).distance_to(c) > 14.0: continue
+	for ti in model.towns.size():
+		var ar := _area_near(_tc(model.towns[ti].pos))
+		if ar.is_empty(): continue
+		var c := (ar.rect as Rect2).get_center()
+		if true:
 			for k in 5:
 				var a := TAU * (float(k) / 5.0) + 0.4
 				_objs.append({"t": "stall", "ti": ti, "k": k, "p": c + Vector2(cos(a) * 2.6, sin(a) * 2.6), "v": WorldMath.hash2(ti, k, 96)})
@@ -302,8 +327,17 @@ func _rebuild_objects() -> void:
 		var rows := int(ceil(float(t.count) / float(cols)))
 		var kinds_big: bool = t.kind != "hamlet"
 		var ctr := _tc(t.pos); var tstep := 0.0; var tw_scale := 1.0
-		if _has_terrain() and t.kind == "town":   # a market town on the 50 m map: the roofs stand on the paved square, ~65 m apart
-			if _town_rect.size.x > 0.0 and ctr.distance_to(_town_rect.get_center()) < 14.0: ctr = _town_rect.get_center()
+		if _has_terrain() and t.kind == "town":   # a market town on the 50 m map: houses on its own block of town tiles, the stalls' square left open in the middle
+			var ar := _area_near(ctr)
+			if not ar.is_empty():
+				var c0 := (ar.rect as Rect2).get_center(); var n := 0
+				for tl in ar.tiles:
+					var tp := Vector2(tl.x + 0.5, tl.y + 0.5)
+					if tp.distance_to(c0) < 3.4 or WorldMath.hash2(tl.x, tl.y, 77) < 0.42: continue
+					var off := Vector2(WorldMath.hash2(tl.x, tl.y, 78) - 0.5, WorldMath.hash2(tl.x, tl.y, 79) - 0.5) * 0.3
+					_objs.append({"t": "bld", "ti": ti, "k": n % int(t.count), "p": tp + off, "h": 12.0 + 18.0 * WorldMath.hash2(tl.x, tl.y, 80), "w": 0.55 + 0.2 * WorldMath.hash2(tl.x, tl.y, 81), "role": "", "hamlet": false, "v": WorldMath.hash2(tl.x, tl.y, 82)})
+					n += 1
+				continue
 			tstep = 1.3; tw_scale = 2.0
 		for k in int(t.count):
 			var cx := k % cols; var cy := k / cols
