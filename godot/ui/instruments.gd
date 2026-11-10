@@ -11,7 +11,9 @@ var clock: Clock24View
 var volt: MeterView
 var dial: DialView
 var clear: MeterView      ## chapter 2: clearance of the worst span, m (scale -2 ... +3)
-var vil: MeterView        ## chapter 2: the village's voltage, V at the load bus (340 ... 460)
+var vil: MeterView        ## chapter 2: the village's voltage, V at the load bus (340 ... 460); on L30 the island's 0.42 kV bus
+var bat: MeterView        ## L30: the island battery's state of charge, % (small before the anchor cut, full size and warm after it)
+var bat_k := 0.78         ## its scale in the cluster: 1.0 once the cable is cut
 var _vig: GradientTexture2D
 var mode := "volt"        ## "volt" (worst home V) or "loss" (line loss %), chosen from the level's bench limits
 
@@ -28,6 +30,9 @@ func _init() -> void:
 	clear.zones = [[-2.0, 0.0, GridTheme.BAD], [0.0, 0.5, GridTheme.WARN], [0.5, 3.0, GridTheme.GOOD]]; add_child(clear)
 	vil = MeterView.new(); vil.caption = TranslationServer.translate("METER_VIL_CAPTION"); vil.units = TranslationServer.translate("METER_VIL_UNITS"); vil.decimals = 0
 	vil.set_range(340.0, 460.0, 20.0, 10.0); vil.blank = true; vil.visible = false; add_child(vil)
+	bat = MeterView.new(); bat.caption = TranslationServer.translate("METER_BAT_CAPTION"); bat.units = TranslationServer.translate("METER_BAT_UNITS"); bat.decimals = 0
+	bat.set_range(0.0, 100.0, 20.0, 5.0); bat.blank_key = "METER_BAT_NONE"; bat.blank = true; bat.visible = false
+	bat.zones = [[0.0, 10.0, GridTheme.BAD], [10.0, 30.0, GridTheme.WARN], [30.0, 90.0, GridTheme.GOOD], [90.0, 100.0, Color(GridTheme.DIM, 0.8)]]; add_child(bat)
 	for m in [volt, dial, clear, vil]: m.codex_requested.connect(func(id): codex_requested.emit(id))
 
 ## Re-read the engine and update every meter.
@@ -71,14 +76,16 @@ func refresh() -> void:
 ## the voltmeter the load bus voltage (`busInfo`: vPu x kvNom). Both blank until there is something to read.
 func refresh_route(b, w: Dictionary, on: bool, running: bool) -> void:
 	clear.visible = on; vil.visible = on
-	if not on: return
+	if not on: bat.visible = false; return
 	clear.live = running; vil.live = running
 	var rs: Array = b.g.get("routes", [])
 	var m := INF
 	for r in rs: m = minf(m, float(r.worstMarginM))
 	clear.blank = rs.is_empty(); clear.set_target(0.0 if rs.is_empty() else m)
 	var vb := {}
-	for bus in w.get("buses", []): if str(bus.kind) == "load": vb = bus
+	for bus in w.get("buses", []): if str(bus.kind) == "load" and not bool(vb.get("offshore", false)): vb = bus   # the last load bus, but an offshore island's (L30) wins
+	vil.caption = TranslationServer.translate("METER_ISL_CAPTION" if bool(vb.get("offshore", false)) else "METER_VIL_CAPTION")
+	_refresh_battery(b, w, running)
 	var bi = b.q("busInfo", [str(vb.id)]) if not vb.is_empty() else null
 	var ok: bool = bi is Dictionary and bool(bi.get("energised", false)) and bi.get("vPu") != null
 	vil.blank = not ok
@@ -92,6 +99,22 @@ func refresh_route(b, w: Dictionary, on: bool, running: bool) -> void:
 	else:
 		vil.zones = []; vil.set_target(vil.vmin)
 
+## L30: the island battery's state of charge (the lowest of the batteries on offshore buses). Shown while the level has an offshore island; blank until a battery stands there.
+## Small and cool before the anchor cut, full size and warm from the cut on (the engine's rules.cableCutBlock against the clock).
+func _refresh_battery(b, w: Dictionary, running: bool) -> void:
+	var off := {}
+	for bus in w.get("buses", []): if bool(bus.get("offshore", false)): off[str(bus.id)] = true
+	bat.visible = not off.is_empty()
+	if not bat.visible: return
+	var soc := INF
+	for st in b.g.get("storage", []): if off.has(str(st.bus)): soc = minf(soc, float(st.soc))
+	bat.blank = is_inf(soc); bat.set_target(0.0 if is_inf(soc) else soc * 100.0)
+	var rules = b.g.get("rules", {}); var cut = rules.get("cableCutBlock") if rules is Dictionary else null
+	var clk = b.g.get("clock", {}); var blk := int(clk.get("block", 0)) if clk is Dictionary else 0
+	var after: bool = cut != null and blk >= int(cut)
+	bat_k = 1.0 if after else 0.78
+	bat.live = running or after
+
 ## What-if of the route tray: the clearance gauge's ghost needle (m). NAN clears it.
 func set_clear_ghost(v: float) -> void: clear.set_ghost(v)
 
@@ -99,6 +122,7 @@ func _visible_items() -> Array:
 	var a: Array = [clock]
 	if clear.visible: a.append(clear)
 	if vil.visible: a.append(vil)
+	if bat.visible: a.append(bat)
 	if volt.visible: a.append(volt)
 	if dial.visible: a.append(dial)
 	if CbLayout.phone and a.size() > 2: a = a.slice(0, 2)   # phone: clock plus one meter
@@ -113,14 +137,17 @@ func layout() -> void:
 	if app == null: return
 	var items := _visible_items(); var sc := 0.82 if CbLayout.phone else 1.0
 	var tw := 0.0; var th := 0.0
-	for it in items: tw += (it as Control).custom_minimum_size.x * sc; th = maxf(th, (it as Control).custom_minimum_size.y * sc)
+	for it in items:
+		var kk := sc * (bat_k if it == bat else 1.0)
+		tw += (it as Control).custom_minimum_size.x * kk; th = maxf(th, (it as Control).custom_minimum_size.y * kk)
 	tw += GAP * (items.size() - 1)
 	var x := 0.0
-	for it in [clock, clear, vil, volt, dial]:
+	for it in [clock, clear, vil, bat, volt, dial]:
 		var ctl := it as Control
 		if not items.has(it): ctl.position = Vector2(-9999, -9999); continue
-		ctl.scale = Vector2(sc, sc); ctl.size = ctl.custom_minimum_size; ctl.pivot_offset = Vector2.ZERO
-		ctl.position = Vector2(x, 0); x += ctl.custom_minimum_size.x * sc + GAP
+		var k := sc * (bat_k if it == bat else 1.0)
+		ctl.scale = Vector2(k, k); ctl.size = ctl.custom_minimum_size; ctl.pivot_offset = Vector2.ZERO
+		ctl.position = Vector2(x, 0); x += ctl.custom_minimum_size.x * k + GAP
 	var top := 8.0
 	size = Vector2(tw, th); position = Vector2((app.vw() - tw) * 0.5, top)
 	queue_redraw()

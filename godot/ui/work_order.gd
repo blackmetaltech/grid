@@ -36,7 +36,7 @@ static func window_text(app: CbApp, li: Dictionary) -> String:
 	return T("WO_WINDOW") % [_hm(float(ls) * 15.0), _hm((float(ls) + float(hz)) * 15.0)]
 
 static func _th_text(key: String, v: float) -> String:
-	if key == "loadingMax": v *= 100.0
+	if key == "loadingMax" or key == "batteryMarginMin": v *= 100.0
 	return T("TH_" + key) % num(v)
 
 ## Pass conditions (everything the level checks except the third-star thresholds), as plain sentences.
@@ -52,6 +52,11 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		out.append(t)
 	if th.has("marginStar3M"): out.append(T("WO_COND_CLEARANCE"))   # route jobs: the survey refuses a span that sags too low, so clearance is a build rule the player must know up front
 	if li.get("fogBlock") != null: out.append(T("WO_COND_FOG") % str(li.get("fogTime", "")))   # L29: the fog rolls in at a set time and every insulator is tested
+	var rules = app.b.g.get("rules", {})
+	if rules is Dictionary and rules.get("cableCutBlock") != null:   # L30: the anchor cuts the cable at a set time and the island has to ride on its battery to the end of the run
+		var ls = app.b.g.get("levelStart"); var hz = li.get("horizonBlocks")
+		var end_min := (float(ls) + float(hz) + 1.0) * 15.0 if ls != null and hz != null else 1380.0   # the run ends with the last block: 23:00
+		out.append(T("WO_COND_CUT") % [_hm(float(rules.cableCutBlock) * 15.0), _hm(end_min)])
 	var fz = li.get("frozen")
 	if fz is Dictionary: out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))
 	return out

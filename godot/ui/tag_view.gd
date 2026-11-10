@@ -65,7 +65,7 @@ static func _run(det: Dictionary, run_id: String) -> Dictionary:
 ## What the tag for (kind, id) shows, from the engine only. kind: hamlet | cable | hut. {} when there is nothing to show.
 func describe(k: String, oid: String) -> Dictionary:
 	if b == null: return {}
-	if k == "support" or k == "span" or k == "yard": return describe_route(k, oid)
+	if k == "support" or k == "span" or k == "yard" or k == "seacable" or k == "battery": return describe_route(k, oid)
 	var det = b.q("benchDetail"); var kt = b.q("benchKit"); var wb := _bench_world()
 	var has: bool = det is Dictionary and det.get("active", false)
 	if wb.is_empty() or not (kt is Dictionary): return {}
@@ -158,6 +158,8 @@ const SALT_CLASS := ["", "I", "II", "III", "IV"]
 ## What a support, span or yard tag shows, from the engine only. support / span ids are "branch|index" (route_id()); yard id is the bus id.
 func describe_route(k: String, oid: String) -> Dictionary:
 	if k == "yard": return _describe_yard(oid)
+	if k == "seacable": return _describe_sea(oid)
+	if k == "battery": return _describe_battery(oid)
 	var sp := route_split(oid); var ctx := route_of(str(sp[0]))
 	if ctx.is_empty(): return {}
 	var plan: Dictionary = ctx.plan; var idx: int = sp[1]
@@ -218,7 +220,62 @@ func _describe_yard(bus_id: String) -> Dictionary:
 	var bi = b.q("busInfo", [bus_id])
 	if bi is Dictionary and bool(bi.get("energised", false)) and bi.get("vPu") != null:
 		rows.append([tx("TAG_YARD_LIVE"), tx("TAG_YARD_LIVE_V") % [_thou(float(bi.vPu) * float(bi.kvNom) * 1000.0), "%.3f" % float(bi.vPu)]])
+	var cb := _cable_at(bus_id)
+	if not cb.is_empty(): rows.append([tx("L30_YARD_CABLE"), tx("L30_YARD_CABLE_V") % [str(int(cb.mm2)), "%.1f" % float(cb.lengthKm)]])
+	elif bool(bus.get("offshore", false)) and kv >= 1.0: rows.append([tx("L30_YARD_CABLE"), tx("TAG_YARD_XF_NONE")])
+	if bool(bus.get("offshore", false)) and kv >= 1.0 and not cb.is_empty(): rows.append([tx("L30_ROW_Q"), tx("L30_ROW_Q_V") % RouteTray._kvar_text(float(cb.chargingKvar))])
 	d["rows"] = rows
+	return d
+
+## The laid sea cable that ends at a bus: {mm2, lengthKm, chargingKvar, cost, cableId, branchId}; {} when none.
+func _cable_at(bus_id: String) -> Dictionary:
+	for br in b.g.get("branches", []):
+		if str(br.kind) != "cable" or (str(br.from) != bus_id and str(br.to) != bus_id): continue
+		for c in b.g.get("cables", []):
+			if str(c.branchId) == str(br.id): return {"mm2": float(str(c.cableId).get_slice("-", 2)), "lengthKm": float(c.lengthKm), "chargingKvar": float(c.chargingKvar), "cost": float(c.cost), "cableId": str(c.cableId), "branchId": str(br.id), "from": str(br.from), "to": str(br.to)}
+	return {}
+
+func _f0() -> float:
+	var dq = b.q("dial")
+	return float(dq.f0) if dq is Dictionary and dq.has("f0") else 50.0
+
+## L30's sea cable tag: the catalogue line, the engine's charging power and the equation with the player's own numbers.
+func _describe_sea(branch_id: String) -> Dictionary:
+	var rec := {}
+	for c in b.g.get("cables", []): if str(c.branchId) == branch_id: rec = c
+	if rec.is_empty(): return {}
+	var id := str(rec.cableId); var mm2 := id.get_slice("-", 2); var kv := id.get_slice("-", 1)
+	var uf := "%.2f" % float(RouteTray.SEA_UF.get(id, 0.0)); var km := "%.1f" % float(rec.lengthKm); var q := RouteTray._kvar_text(float(rec.chargingKvar))
+	var d := {"kind": "seacable", "id": branch_id, "title": tx("L30_TAG_SEA") % mm2}
+	d["head"] = tx("L30_SEA_HEAD") % [mm2, km, uf, q]
+	d["rows"] = [[tx("L30_ROW_LEN"), tx("L30_ROW_LEN_V") % km], [tx("L30_ROW_C"), tx("L30_ROW_C_V") % uf], [tx("L30_ROW_Q"), tx("L30_ROW_Q_V") % q],
+		[tx("L30_ROW_RATED"), "%s A" % str(RouteTray.SEA_AMP.get(id, 0))], [tx("L30_ROW_COST"), CbRegion.money(float(rec.cost), false, 0)]]
+	d["eq"] = tx("L30_SEA_EQ") % [kv, _g1(_f0()), uf, _g1(float(rec.lengthKm))]
+	d["q_kvar"] = float(rec.chargingKvar)
+	return d
+
+## L30's island battery tag: kW, kWh, the live state of charge and how long the cells carry the island at its evening peak.
+func _describe_battery(sid: String) -> Dictionary:
+	var st := {}
+	for x in b.g.get("storage", []): if str(x.id) == sid: st = x
+	if st.is_empty(): return {}
+	var kw := float(st.mw) * 1000.0; var kwh := float(st.mwh) * 1000.0; var soc := float(st.soc)
+	var d := {"kind": "battery", "id": sid, "title": tx("L30_TAG_BAT") % [_g1(kw), _g1(kwh)], "soc": soc, "bus": str(st.bus)}
+	var rules = b.g.get("rules", {}); var cut = rules.get("cableCutBlock") if rules is Dictionary else null
+	var clk = b.g.get("clock", {}); var blk := int(clk.get("block", 0)) if clk is Dictionary else 0
+	var before_cut: bool = cut != null and blk < int(cut)
+	var usable := maxf(0.0, (0.9 if before_cut else soc) - 0.1) * kwh   # cell energy above the 10 % floor; on the live grid the cells float full by the cut, so before it the promise is the full window
+	var eta := sqrt(float(st.etaRt))   # one way
+	var peak := 0.0
+	var w = b.q("world")
+	if w is Dictionary: for bus in w.get("buses", []): if str(bus.id) == str(st.bus): peak = float(bus.peakMW) * 1000.0
+	var hours := usable * eta / peak if peak > 0.0 else 0.0
+	var rows: Array = [[tx("L30_ROW_INV"), tx("L30_BAT_KW") % _g1(kw)], [tx("L30_ROW_CELLS"), tx("L30_BAT_KWH") % _g1(kwh)], [tx("L30_ROW_USABLE"), tx("L30_ROW_USABLE_V") % [_g1(usable), _g1(kwh * 0.8)]]]
+	var out_kw := float(st.P) * 1000.0
+	rows.append([tx("L30_ROW_STATE"), (tx("L30_BAT_FEEDING") + " · " + tx("L30_BAT_KW") % _g1(out_kw)) if out_kw > 0.05 else tx("L30_BAT_FLOAT")])
+	d["rows"] = rows
+	d["carries"] = (tx("L30_BAT_CARRIES") % ["%.1f" % hours, _g1(peak)]) if hours > 0.0 else tx("L30_BAT_CARRIES_OUT")
+	d["hours"] = hours; d["peak_kw"] = peak; d["usable_kwh"] = usable
 	return d
 
 ## Yard names by role: the pair that holds the generator is the hydro side, the other the village; high-voltage side "yard", low side "powerhouse" / "village".
@@ -226,6 +283,7 @@ static func yard_name(w: Dictionary, bus_id: String) -> String:
 	var buses: Array = w.get("buses", []); var me := {}
 	for x in buses: if str(x.id) == bus_id: me = x
 	if me.is_empty(): return TranslationServer.translate("RT_YARD_OTHER") % bus_id
+	if bool(me.get("offshore", false)) and str(me.get("name", "")) != "": return str(me.name)   # L30: the island's own yards carry their names
 	var hydro := str(me.kind) == "gen"
 	if not hydro and float(me.kv) >= 1.0:   # the high-voltage yard nearest to the generator bus
 		var gen := {}
@@ -239,6 +297,10 @@ static func yard_name(w: Dictionary, bus_id: String) -> String:
 	var hv := float(me.kv) >= 1.0
 	return TranslationServer.translate("RT_YARD_" + ("HYDRO" if hydro else "VILLAGE") + "_" + ("HV" if hv else "LV"))
 
+func _cable_at_branch(branch_id: String) -> Dictionary:
+	for br in b.g.get("branches", []): if str(br.id) == branch_id and str(br.kind) == "cable": return {"from": str(br.from), "to": str(br.to)}
+	return {}
+
 ## Screen anchor (this control's local coordinates) of a route tag: the support's top, the span's middle, the yard's pole.
 func route_anchor(k: String, oid: String) -> Vector2:
 	var w = b.q("world")
@@ -249,6 +311,19 @@ func route_anchor(k: String, oid: String) -> Vector2:
 		return world.world_to_screen(Vector2(m.x / tm - 0.5, m.y / tm - 0.5), z_m * 3.0)
 	if k == "yard":
 		for x in w.buses: if str(x.id) == oid: return at.call(Vector2((float(x.x) + 0.5) * tm, (float(x.y) + 0.5) * tm), 9.0)
+		return Vector2(NAN, NAN)
+	if k == "seacable":
+		var cb := _cable_at_branch(oid)
+		if cb.is_empty(): return Vector2(NAN, NAN)
+		var pa := Vector2(NAN, NAN); var pc := Vector2(NAN, NAN)
+		for x in w.buses:
+			if str(x.id) == str(cb.from): pa = Vector2((float(x.x) + 0.5) * tm, (float(x.y) + 0.5) * tm)
+			if str(x.id) == str(cb.to): pc = Vector2((float(x.x) + 0.5) * tm, (float(x.y) + 0.5) * tm)
+		return at.call((pa + pc) * 0.5, 3.0) if not is_nan(pa.x) and not is_nan(pc.x) else Vector2(NAN, NAN)
+	if k == "battery":
+		for st in b.g.get("storage", []):
+			if str(st.id) != oid: continue
+			for x in w.buses: if str(x.id) == str(st.bus): return at.call(Vector2((float(x.x) + 0.5) * tm, (float(x.y) + 0.5) * tm), 9.0)
 		return Vector2(NAN, NAN)
 	var sp := route_split(oid); var ctx := route_of(str(sp[0]))
 	if ctx.is_empty(): return Vector2(NAN, NAN)
@@ -336,6 +411,22 @@ func _build(d: Dictionary) -> void:
 			for k in il.size(): _lbl(str(il[k]), 15, GridTheme.BAD.darkened(0.1) if (k == 1 and bool(d.get("short", false))) else GridTheme.PAPER_INK, "sans")
 		"yard":
 			for r in d.rows: _row(str(r[0]), str(r[1]))
+		"seacable":
+			_lbl(str(d.head), 14, Color(GridTheme.PAPER_INK, 0.85), "sans")
+			for r in d.rows: _row(str(r[0]), str(r[1]))
+			var box3 := PanelContainer.new(); box3.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sb3 := StyleBoxFlat.new(); sb3.bg_color = Color(GridTheme.PAPER_INK, 0.09); sb3.set_corner_radius_all(3); sb3.content_margin_left = 8; sb3.content_margin_right = 8; sb3.content_margin_top = 5; sb3.content_margin_bottom = 5
+			box3.add_theme_stylebox_override("panel", sb3)
+			eq_label = GridTheme.label(str(d.eq), 15, GridTheme.PAPER_INK, "mono"); eq_label.autowrap_mode = TextServer.AUTOWRAP_OFF; box3.add_child(eq_label); lines.append(eq_label)
+			_vb.add_child(box3)
+		"battery":
+			var sr := HBoxContainer.new(); sr.add_theme_constant_override("separation", 8); sr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sl := GridTheme.label(tx("L30_ROW_SOC"), 15, Color(GridTheme.PAPER_INK, 0.75), "sans"); sl.custom_minimum_size.x = 92; sr.add_child(sl); lines.append(sl)
+			var sbar := _Bar.new(); sbar.value = float(d.soc); sr.add_child(sbar)
+			var stt := GridTheme.label("%d %%" % int(round(float(d.soc) * 100.0)), 16, GridTheme.PAPER_INK, "mono"); sr.add_child(stt); lines.append(stt)
+			_vb.add_child(sr)
+			for r in d.rows: _row(str(r[0]), str(r[1]))
+			_lbl(str(d.carries), 15, GridTheme.PAPER_INK, "sans")
 		"span":
 			for r in d.rows: _row(str(r[0]), str(r[1]))
 			var dr := HBoxContainer.new(); dr.add_theme_constant_override("separation", 8); dr.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -361,7 +452,7 @@ func _clear_rects() -> Array:
 
 func _place(_snap: bool) -> void:
 	if not panel.visible or world == null or not is_inside_tree() or not world.is_inside_tree(): return
-	var a := route_anchor(kind, id) if kind == "support" or kind == "span" or kind == "yard" else world.anchor(kind, id)
+	var a := route_anchor(kind, id) if kind in ["support", "span", "yard", "seacable", "battery"] else world.anchor(kind, id)
 	if is_nan(a.x): return
 	a = _chrome_pos(a); _anchor = a
 	var sz := panel.size; var vp := get_viewport_rect().size
@@ -454,6 +545,8 @@ func objects() -> Array:
 	if w is Dictionary and w.get("terrain") != null:   # chapter 2: the yards, then every span of every line
 		for x in w.buses: out.append(["yard", str(x.id)])
 		for r in w.get("routes", []): for i in (r.spans as Array).size(): out.append(["span", route_id(str(r.branchId), i)])
+		for br in b.g.get("branches", []): if str(br.kind) == "cable": out.append(["seacable", str(br.id)])   # L30: the sea cable, then the island's battery
+		for st in b.g.get("storage", []): out.append(["battery", str(st.id)])
 	return out
 
 ## Pad Y: open the tag of the next object (wraps); on the last one it closes.

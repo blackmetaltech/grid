@@ -12,7 +12,7 @@ const build = sh('npx', ['vite', 'build', '-c', 'vite.bridge.config.ts']);
 if (build.status !== 0) { console.error(build.stdout, build.stderr); process.exit(1); }
 sh('godot', ['--headless', '--path', 'godot', '--import']);
 const want = process.argv.slice(2);
-const tests = readdirSync(join(root, 'godot/tests')).filter((f) => f.endsWith('_truth.gd') || f === 'tray_flow.gd' || f === 'route_flow.gd' || f === 'salt_flow.gd' || f === 'grid_tray_flow.gd').map((f) => f.replace(/\.gd$/, '')).filter((n) => want.length === 0 || want.includes(n));
+const tests = readdirSync(join(root, 'godot/tests')).filter((f) => f.endsWith('_truth.gd') || f === 'tray_flow.gd' || f === 'route_flow.gd' || f === 'salt_flow.gd' || f === 'island_flow.gd' || f === 'grid_tray_flow.gd').map((f) => f.replace(/\.gd$/, '')).filter((n) => want.length === 0 || want.includes(n));
 let bad = 0;
 for (const t of tests) {
   const r = sh('godot', ['--headless', '--path', 'godot', '--script', `res://tests/${t}.gd`], { timeout: 180000 });

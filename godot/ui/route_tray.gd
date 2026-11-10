@@ -31,6 +31,15 @@ const STEP_M := 50.0
 ## Insulator kit (L29): unit creepage of the whole string in mm (src/data/insulators.ts), display only; the planner computes the real numbers.
 const INS_MM := {"pin": 320, "disc2": 590, "fog1": 430}
 const INS_IDS := ["pin", "disc2", "fog1"]
+## Sea cable and island battery (L30), display only (src/data/submarine.ts, src/regions/*/route.ts, the storage catalogue): capacitance in uF/km, ampacity in A, list price per km in the global pack
+## (the `in` pack is x 8). Once a cable is laid the tray prints the engine's own price per km; the planner still checks every action and its refusal is what the player reads.
+const SEA_IDS := ["sub-11-70", "sub-11-120", "sub-11-185"]
+const SEA_UF := {"sub-11-70": 0.25, "sub-11-120": 0.30, "sub-11-185": 0.35}
+const SEA_AMP := {"sub-11-70": 215, "sub-11-120": 290, "sub-11-185": 365}
+const SEA_USD_KM := {"sub-11-70": 120000.0, "sub-11-120": 150000.0, "sub-11-185": 190000.0}
+const ISL_IDS := ["isl-25kw-50kwh", "isl-50kw-100kwh", "isl-50kw-125kwh", "isl-50kw-150kwh", "isl-100kw-200kwh"]
+const ISL_MAX_KWH := 200.0
+const ISL_MAX_KW := 100.0
 
 var b                               ## CbBridge
 var world: WorldView
@@ -42,8 +51,11 @@ var slot := Callable()              ## () -> Rect2 the tray stands in (GridChrom
 var locked := Callable()            ## () -> bool: the night runs or the level is over, so nothing laid may change
 
 var items: Array = []               ## {kind: survey|family|crossing|span|conductor|xfmr, id, rect (local)}
-var mode := ""                      ## "" | "survey" | "xfmr"
+var mode := ""                      ## "" | "survey" | "xfmr" | "sea" | "isl"
 var armed_xf := ""                  ## transformer catalogue id waiting for a yard pair
+var armed_sea := ""                 ## L30: sea cable catalogue id waiting for its yards
+var armed_isl := ""                 ## L30: island battery catalogue id waiting for the island yard
+var sea_from := ""                  ## L30: the mainland yard picked first when the crossing is ambiguous
 var kit := {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}   ## kv: the line voltage the survey connects (each site has a yard per voltage)
 var yards: Array = []               ## {id, kv, tile: Vector2, pos: Vector2 (m), label}
 var pairs: Array = []               ## {hv, lv}: the distribution transformer pairs
@@ -119,7 +131,7 @@ func refresh() -> void:
 	layout(); _layout_items(); queue_redraw()
 
 func _clear_all() -> void:
-	mode = ""; armed_xf = ""; from_id = ""; waypoints = []; hover_m = Vector2(NAN, NAN); hover_yard = ""; cursor_on = false; target_hi = -1; hover = -1
+	mode = ""; armed_xf = ""; armed_sea = ""; armed_isl = ""; sea_from = ""; from_id = ""; waypoints = []; hover_m = Vector2(NAN, NAN); hover_yard = ""; cursor_on = false; target_hi = -1; hover = -1
 	chip_text = ""; preview = {}; _ghost({}, []); if instruments != null: instruments.set_clear_ghost(NAN)
 	if world != null: world.set_site_pegs([], -1)
 
@@ -128,7 +140,7 @@ func _read_yards(w: Dictionary) -> void:
 	for bus in w.get("buses", []):
 		var kv := float(bus.kv)
 		yards.append({"id": str(bus.id), "kv": kv, "tile": Vector2(float(bus.x), float(bus.y)), "pos": Vector2((float(bus.x) + 0.5) * tile_m, (float(bus.y) + 0.5) * tile_m),
-			"label": "%s %s" % [TagView.yard_name(w, str(bus.id)), _kv_text(kv)]})
+			"label": "%s %s" % [TagView.yard_name(w, str(bus.id)), _kv_text(kv)], "offshore": bool(bus.get("offshore", false))})
 	for lv in yards:   # every low-voltage yard is joined to the nearest high-voltage one by a distribution transformer
 		if float(lv.kv) >= 1.0: continue
 		var best := ""; var bd := 1e18
@@ -165,19 +177,50 @@ func ins_parts() -> Array:
 		for a in pal.actions: if str(a.action) == "buildRoute.insulator" and not (a.parts as Array).is_empty(): return a.parts
 	return INS_IDS
 
+## Does the level list `action` in its palette? (L30 lists layCableRoute and placeStorage; a level without a palette lists nothing.)
+static func palette_has(bridge, action: String) -> bool:
+	if bridge == null: return false
+	var pal = bridge.q("palette")
+	if pal is Dictionary and pal.get("active", false):
+		for a in pal.actions: if str(a.action) == action: return true
+	return false
+
+## The survey, support and conductor groups are there unless the level has a palette that leaves buildRoute out (L30 has no poles to choose).
+static func route_allowed(bridge) -> bool:
+	if bridge == null: return true
+	var pal = bridge.q("palette")
+	if pal is Dictionary and pal.get("active", false): return palette_has(bridge, "buildRoute")
+	return true
+
+static func sea_allowed(bridge) -> bool: return palette_has(bridge, "layCableRoute")
+static func isl_allowed(bridge) -> bool: return palette_has(bridge, "placeStorage")
+
 func _build_items() -> void:
-	var out: Array = [{"kind": "survey", "id": "survey", "group": 0}]
-	if kvs().size() > 1: out.append({"kind": "kv", "id": "kv", "group": 0})
-	for f in FAMS: out.append({"kind": "family", "id": f, "group": 1})
-	for c in CROSS: out.append({"kind": "crossing", "id": c, "group": 2})
-	out.append({"kind": "span", "id": "span", "group": 3})
-	for c in _parts("buildRoute", ["weasel", "rabbit", "dog"]): out.append({"kind": "conductor", "id": str(c), "group": 4})
-	var g := 5
-	if ins_allowed(b):
-		for k in ["insulator", "coast"]:
-			for i in ins_parts(): out.append({"kind": k, "id": str(i), "group": g})
-			g += 1
-	for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250", "dt-400"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": g})
+	var out: Array = []
+	var g := 0
+	if route_allowed(b):
+		out.append({"kind": "survey", "id": "survey", "group": 0})
+		if kvs().size() > 1: out.append({"kind": "kv", "id": "kv", "group": 0})
+		for f in FAMS: out.append({"kind": "family", "id": f, "group": 1})
+		for c in CROSS: out.append({"kind": "crossing", "id": c, "group": 2})
+		out.append({"kind": "span", "id": "span", "group": 3})
+		for c in _parts("buildRoute", ["weasel", "rabbit", "dog"]): out.append({"kind": "conductor", "id": str(c), "group": 4})
+		g = 5
+		if ins_allowed(b):
+			for k in ["insulator", "coast"]:
+				for i in ins_parts(): out.append({"kind": k, "id": str(i), "group": g})
+				g += 1
+	var xf_done := false
+	if sea_allowed(b):   # L30, in the order the job is built: the sea cable reels, the island transformers, then the island batteries
+		for c in _parts("layCableRoute", SEA_IDS): out.append({"kind": "sea", "id": str(c), "mm2": str(c).get_slice("-", 2), "group": g, "wk": 1.3})
+		g += 1
+		for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": g})
+		g += 1; xf_done = true
+	if isl_allowed(b):
+		for c in _parts("placeStorage", ISL_IDS): out.append({"kind": "isl", "id": str(c), "kw": str(c).get_slice("-", 1).trim_suffix("kw"), "kwh": str(c).get_slice("-", 2).trim_suffix("kwh"), "group": g})
+		g += 1
+	if not xf_done:
+		for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250", "dt-400"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": g})
 	items = out
 
 func item_index(kind: String, id := "") -> int:
@@ -247,6 +290,8 @@ func site_of(id: String) -> String:
 func _peg_shown(y: Dictionary) -> bool:
 	if mode == "survey": return is_equal_approx(float(y.kv), float(kit.kv))
 	if mode == "xfmr": return float(y.kv) < 1.0 and pairs.any(func(p): return str(p.lv) == str(y.id))
+	if mode == "sea": return sea_pairs().any(func(p): return str(p.from) == str(y.id) or str(p.to) == str(y.id))
+	if mode == "isl": return bool(y.get("offshore", false)) and float(y.kv) < 1.0
 	return true
 
 ## The default other end of a line from `from`: the yard of the same voltage that is not it.
@@ -276,16 +321,19 @@ func _layout_items() -> void:
 	var w := size.x
 	_tag_inline = w >= WIDE
 	var avail := w - PAD * 2.0 - (TAG_W + GAP if _tag_inline else 0.0)
-	var n := items.size(); var groups := 0; var lastg := -1
-	for it in items: if int(it.group) != lastg: lastg = int(it.group); groups += 1
-	var fit := (avail - GGAP * maxf(groups - 1, 0) - GAP * maxf(n - groups, 0)) / maxf(n, 1)
+	var n := items.size(); var groups := 0; var lastg := -1; var wsum := 0.0
+	for it in items:
+		wsum += float(it.get("wk", 1.0))   # a cell with more to print (the sea cable's three lines) is wider than the rest
+		if int(it.group) != lastg: lastg = int(it.group); groups += 1
+	var fit := (avail - GGAP * maxf(groups - 1, 0) - GAP * maxf(n - groups, 0)) / maxf(wsum, 1.0)
 	var cw := clampf(fit, maxf(MIN_CELL, hit_min()), CELL_W)
 	var x := PAD - _scroll; var total := 0.0; lastg = -1
 	for it in items:
 		if lastg >= 0 and int(it.group) != lastg: x += GGAP; total += GGAP
 		elif lastg >= 0: pass
 		lastg = int(it.group)
-		it["rect"] = Rect2(Vector2(x, 5.0), Vector2(cw, H - 10.0)); x += cw + GAP; total += cw + GAP
+		var iw := cw * float(it.get("wk", 1.0))
+		it["rect"] = Rect2(Vector2(x, 5.0), Vector2(iw, H - 10.0)); x += iw + GAP; total += iw + GAP
 	_max_scroll = maxf(0.0, total - GAP - avail)
 	_scroll = clampf(_scroll, 0.0, _max_scroll)
 
@@ -311,7 +359,7 @@ func _item_at(p: Vector2) -> int:
 # ---- picking ----------------------------------------------------------------------------------------------------------------------------
 func cancel() -> bool:
 	if mode == "" and from_id == "": return false
-	mode = ""; armed_xf = ""; from_id = ""; waypoints = []; hover_m = Vector2(NAN, NAN); hover_yard = ""; cursor_on = false; target_hi = -1
+	mode = ""; armed_xf = ""; armed_sea = ""; armed_isl = ""; sea_from = ""; from_id = ""; waypoints = []; hover_m = Vector2(NAN, NAN); hover_yard = ""; cursor_on = false; target_hi = -1
 	chip_text = ""; preview = {}; _ghost({}, [])
 	if instruments != null: instruments.set_clear_ghost(NAN)
 	if world != null: world.set_site_pegs([], -1)
@@ -334,6 +382,12 @@ func activate(i: int) -> void:
 		"xfmr":
 			if mode == "xfmr" and armed_xf == str(it.id): cancel(); return
 			cancel(); mode = "xfmr"; armed_xf = str(it.id); _show_pegs(); mode_changed.emit(mode); _hint(tx("RT_HINT_XF") % str(it.kva))
+		"sea":
+			if mode == "sea" and armed_sea == str(it.id): cancel(); return
+			cancel(); mode = "sea"; armed_sea = str(it.id); _show_pegs(); _island_target(); mode_changed.emit(mode); _hint(tx("L30_HINT_SEA") % sea_km_text())
+		"isl":
+			if mode == "isl" and armed_isl == str(it.id): cancel(); return
+			cancel(); mode = "isl"; armed_isl = str(it.id); _show_pegs(); _island_target(); mode_changed.emit(mode); _hint(tx("L30_HINT_BAT"))
 	queue_redraw()
 
 func _hint(s: String) -> void:
@@ -383,7 +437,7 @@ func step_span(d: int) -> Dictionary:
 func _act(name: String, args: Array) -> Dictionary:
 	var r: Dictionary = b.act(name, args)
 	if r.get("ok", false):
-		if sfx.is_valid(): sfx.call("reel" if name == "buildRoute" else "place")
+		if sfx.is_valid(): sfx.call("reel" if name == "buildRoute" or name == "layCableRoute" else "place")
 	elif radio != null: radio.say("SYS", str(r.get("message", "")), "warn")
 	return r
 
@@ -463,7 +517,7 @@ func _show_pegs() -> void:
 	var pegs: Array = []; var at := {}
 	for i in yards.size():
 		if not _peg_shown(yards[i]): continue
-		at[i] = pegs.size(); pegs.append({"tile": yards[i].tile, "label": yards[i].label if mode != "xfmr" else tx("RT_PEG_XF") % TagView.yard_name(_wq, str(yards[i].id))})
+		at[i] = pegs.size(); pegs.append({"tile": yards[i].tile, "label": tx("RT_PEG_XF") % TagView.yard_name(_wq, str(yards[i].id)) if mode == "xfmr" else (tx("L30_PEG_BAT") % TagView.yard_name(_wq, str(yards[i].id)) if mode == "isl" else yards[i].label)})
 	var hi: int = at.get(target_hi, -1)
 	if mode == "survey" and from_id != "":
 		hi = -1
@@ -508,6 +562,8 @@ func _survey_dirty() -> void: _dirty = true
 func press_yard(id: String) -> Dictionary:
 	if is_locked(): refuse_locked(); return {}
 	if mode == "xfmr": return place_xfmr(id)
+	if mode == "sea": return place_sea(id)
+	if mode == "isl": return place_isl(id)
 	if mode != "survey": return {}
 	id = site_bus(id)   # a click on a site means its yard at the kit's line voltage
 	if from_id == "":
@@ -585,12 +641,134 @@ func place_xfmr(yard_id: String) -> Dictionary:
 	if radio != null: radio.say("SYS", tx("RT_NO_PAIR"), "warn")
 	return {}
 
+# ---- L30: the sea cable and the island battery ------------------------------------------------------------------------------------------
+func _sea_kv() -> float: return float((armed_sea if armed_sea != "" else str(SEA_IDS[0])).get_slice("-", 1))
+
+## The crossings the armed cable can make: {from: the mainland yard nearest the island, to: an offshore yard}, one per island yard of the cable's voltage.
+func sea_pairs() -> Array:
+	var out: Array = []; var kv := _sea_kv()
+	for y in yards:
+		if not bool(y.get("offshore", false)) or not is_equal_approx(float(y.kv), kv): continue
+		var best := ""; var bd := 1e18
+		for h in yards:
+			if bool(h.get("offshore", false)) or not is_equal_approx(float(h.kv), kv): continue
+			var d: float = (h.tile as Vector2).distance_to(y.tile)
+			if d < bd: bd = d; best = str(h.id)
+		if best != "": out.append({"from": best, "to": str(y.id)})
+	return out
+
+## The sea distance the level fixes for the cable, km ("" rules when the level has none).
+func sea_km() -> float:
+	var rules = b.g.get("rules", {})
+	var km = rules.get("seaCableKm") if rules is Dictionary else null
+	return float(km) if km != null else 4.0
+func sea_km_text() -> String: return "%.1f" % sea_km()
+
+## Price per km as the tray prints it: the engine's own once a cable of that kind is laid, else the pack's list price (display data).
+func sea_per_km(id: String) -> float:
+	for c in b.g.get("cables", []): if str(c.cableId) == id and float(c.lengthKm) > 0.0: return float(c.cost) / float(c.lengthKm)
+	return float(SEA_USD_KM.get(id, 0.0)) * (8.0 if CbRegion.id == "in" else 1.0)
+
+## Q = V^2 w C l of a cable of this kind over the level's sea distance, kvar: the engine's number once laid, else the same formula from the table (the tip before the player commits).
+func sea_kvar(id: String) -> float:
+	for c in b.g.get("cables", []): if str(c.cableId) == id: return float(c.chargingKvar)
+	var dq = b.q("dial"); var f0 := float(dq.f0) if dq is Dictionary and dq.has("f0") else 50.0
+	var kv := float(id.get_slice("-", 1)) * 1000.0
+	return kv * kv * TAU * f0 * float(SEA_UF.get(id, 0.0)) * 1e-6 * sea_km() / 1000.0
+
+func _sea_laid(id: String) -> bool:
+	for c in b.g.get("cables", []): if str(c.cableId) == id: return true
+	return false
+
+func _isl_placed(id: String) -> bool:
+	for st in b.g.get("storage", []): if str(st.catalogId) == id: return true
+	return false
+
+## Highlight the island's yard (Enter / pad A then finish the pick on it).
+func _island_target() -> void:
+	for i in yards.size():
+		if _peg_shown(yards[i]) and bool(yards[i].get("offshore", false)): set_target_hi(i); return
+
+## A click on a yard peg with a sea cable armed: the crossing is one tap when it is the only one (either end), else the mainland yard first, then the island's.
+func place_sea(yard_id: String) -> Dictionary:
+	if is_locked(): refuse_locked(); return {}
+	var ps := sea_pairs(); var pr := {}
+	if ps.size() == 1 and (str(ps[0].from) == yard_id or str(ps[0].to) == yard_id): pr = ps[0]
+	elif sea_from == "":
+		for p in ps:
+			if str(p.to) == yard_id: pr = p
+		if pr.is_empty() and ps.any(func(p): return str(p.from) == yard_id):
+			sea_from = yard_id; _hint(tx("L30_HINT_SEA_FROM")); _show_pegs(); queue_redraw(); return {"ok": true, "started": yard_id}
+	elif ps.any(func(p): return str(p.to) == yard_id): pr = {"from": sea_from, "to": yard_id}
+	if pr.is_empty():
+		if radio != null: radio.say("SYS", tx("L30_NO_SEA_PAIR"), "warn")
+		return {}
+	var old := ""; var old_cat := ""
+	for br in b.g.get("branches", []): if str(br.kind) == "cable" and str(br.from) == str(pr.from) and str(br.to) == str(pr.to): old = str(br.id)
+	if old != "":
+		for c in b.g.get("cables", []): if str(c.branchId) == old: old_cat = str(c.cableId)
+		if old_cat == armed_sea:
+			if radio != null: radio.say("SYS", tx("L30_SEA_SAME"))
+			cancel(); return {"ok": true, "same": true}
+		if radio != null: radio.say("SYS", tx("RT_REPLACE") % [pr.from, pr.to, old], "warn")
+		_act("demolish", [old])
+	var r := _act("layCableRoute", [str(pr.from), str(pr.to), armed_sea])
+	if not r.get("ok", false) and old != "": b.act("layCableRoute", [str(pr.from), str(pr.to), old_cat])   # put the old cable back
+	if r.get("ok", false): last_refusal_key = ""
+	cancel()
+	return r
+
+## A click on the island's low-voltage yard with a battery armed: it stands there (an old battery of that yard is replaced after the radio says so).
+func place_isl(yard_id: String) -> Dictionary:
+	if is_locked(): refuse_locked(); return {}
+	var y := _yard(yard_id)
+	if y.is_empty() or not bool(y.get("offshore", false)) or float(y.kv) >= 1.0:
+		if radio != null: radio.say("SYS", tx("L30_NO_ISL_BUS"), "warn")
+		return {}
+	var old := ""; var old_cat := ""
+	for st in b.g.get("storage", []): if str(st.bus) == yard_id: old = str(st.id); old_cat = str(st.catalogId)
+	if old != "":
+		if old_cat == armed_isl:
+			if radio != null: radio.say("SYS", tx("L30_BAT_SAME"))
+			cancel(); return {"ok": true, "same": true}
+		if radio != null: radio.say("SYS", tx("L30_REPLACE_BAT") % [yard_id, old], "warn")
+		_act("demolish", [old])
+	var r := _act("placeStorage", [yard_id, armed_isl])
+	if not r.get("ok", false) and old != "": b.act("placeStorage", [yard_id, old_cat])
+	cancel()
+	return r
+
+## The battery that stands at a yard ("" when none): a tap on that yard opens the battery's tag.
+func battery_at(yard_id: String) -> String:
+	for st in b.g.get("storage", []): if str(st.bus) == yard_id: return str(st.id)
+	return ""
+
+## The laid sea cable under a tap (screen-local), by distance to the straight run between its two yards ("" when none).
+func sea_pick(pos: Vector2) -> String:
+	if world == null: return ""
+	var best := ""; var bd := 18.0
+	if CbLayout.touch or CbLayout.kind == "phone": bd = maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5)
+	for br in b.g.get("branches", []):
+		if str(br.kind) != "cable": continue
+		var fy := _yard(str(br.from)); var ty := _yard(str(br.to))
+		if fy.is_empty() or ty.is_empty(): continue
+		var a: Vector2 = world.world_to_screen(fy.tile, 6.0); var c: Vector2 = world.world_to_screen(ty.tile, 6.0)
+		var d := Geometry2D.get_closest_point_to_segment(pos, a, c).distance_to(pos)
+		if d <= bd: bd = d; best = str(br.id)
+	return best
+
 ## A tap on the world (local coordinates). True when the tray used it.
 func on_tap(pos: Vector2) -> bool:
 	if world == null: return false
 	var yi := _yard_at(pos)
 	if mode == "":
-		if yi >= 0 and tags != null: tags.open("yard", str(yards[yi].id)); return true
+		if yi >= 0 and tags != null:
+			var bt := battery_at(str(yards[yi].id))
+			if bt != "" and tags.open("battery", bt): return true
+			tags.open("yard", str(yards[yi].id)); return true
+		if tags != null and sea_allowed(b):
+			var sc := sea_pick(pos)
+			if sc != "" and tags.open("seacable", sc): return true
 		return false
 	if yi >= 0 and not (mode == "survey" and from_id != "" and site_bus(str(yards[yi].id)) == from_id): press_yard(str(yards[yi].id)); return true
 	if mode == "survey" and from_id != "": press_ground(_metres_at(pos)); return true   # (a click near the start yard is a first bend, not a dropped click)
@@ -657,6 +835,8 @@ func tip(it: Dictionary) -> String:
 		"insulator": return tx("RT_TIP_INS") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
 		"coast": return tx("RT_TIP_COAST") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return tx("RT_TIP_XF") % str(it.kva)
+		"sea": return tx("L30_TIP_SEA") % [str(it.mm2), CbRegion.money(sea_per_km(str(it.id)), false, 0), "%.2f" % float(SEA_UF.get(str(it.id), 0.0)), _kvar_text(sea_kvar(str(it.id)))]
+		"isl": return tx("L30_TIP_BAT") % [str(it.kw), str(it.kwh), str(it.kw), str(it.kwh)]
 	return ""
 
 ## routePreview of `args`: the chip text, its dot, the clearance gauge's ghost needle. Returns the engine result.
@@ -878,6 +1058,8 @@ func _selected(it: Dictionary) -> bool:
 		"coast": return str(it.id) == str(kit.get("coast", ""))
 		"survey": return mode == "survey"
 		"xfmr": return mode == "xfmr" and armed_xf == str(it.id)
+		"sea": return (mode == "sea" and armed_sea == str(it.id)) or _sea_laid(str(it.id))
+		"isl": return (mode == "isl" and armed_isl == str(it.id)) or _isl_placed(str(it.id))
 	return false
 
 ## Cell captions: [name, sub] from the engine's ids and the part labels.
@@ -892,7 +1074,18 @@ func caption(it: Dictionary) -> Array:
 		"insulator": return [tx("RT_INS_" + str(it.id)), tx("RT_INS_SUB") % str(INS_MM.get(str(it.id), 0))]
 		"coast": return [tx("RT_INS_" + str(it.id)), tx("RT_COAST_SUB") % str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return [tx("RT_XF") % str(it.kva), tx("RT_XF_PLACED") if _xf_placed(str(it.id)) else tx("RT_XF_SUB")]
+		"sea": return [tx("RT_COND_SUB") % str(it.mm2), tx("L30_SEA_PERKM") % _short_money(sea_per_km(str(it.id))), tx("L30_SEA_UF") % ("%.2f" % float(SEA_UF.get(str(it.id), 0.0)))]
+		"isl": return [tx("L30_BAT_KW") % str(it.kw), tx("L30_BAT_KWH") % str(it.kwh)]
 	return ["", ""]
+
+## "$150K" for a cell caption: the region's compact money without a trailing ".0".
+static func _short_money(v: float) -> String:
+	var m := CbRegion.money(v, true)
+	for suf in ["K", "M", "B", " thousand", " lakh", " crore"]: m = m.replace(".0" + suf, suf)
+	return m
+
+## kvar as the tags print it: one decimal under 10, whole above.
+static func _kvar_text(q: float) -> String: return ("%.1f" % q) if q < 10.0 else str(int(round(q)))
 
 func _xf_placed(cat: String) -> bool:
 	for x in _xfmrs(): if x.cat == cat: return true
@@ -926,19 +1119,24 @@ func _draw() -> void:
 			"insulator": _icon_insulator(c, str(it.id), false)
 			"coast": _icon_insulator(c, str(it.id), true)
 			"xfmr": _icon_xfmr(c, _xf_placed(str(it.id)))
-		if sel and str(it.kind) in ["family", "crossing", "conductor", "insulator", "coast"]:
+			"sea": _icon_sea(c, float(str(it.mm2)))
+			"isl": _icon_battery(c, float(str(it.kw)), float(str(it.kwh)))
+		if sel and str(it.kind) in ["family", "crossing", "conductor", "insulator", "coast", "sea", "isl"]:
 			var dp := r.position + Vector2(r.size.x - 9.0, 9.0)
 			draw_circle(dp, 4.0, GridTheme.SODIUM); draw_arc(dp, 4.0, 0, TAU, 12, GridTheme.NIGHT, 1.0)
 		var cap := caption(it)
 		var tw := r.size.x - 4.0
 		var use_n := 13
 		while use_n > 8 and semi.get_string_size(str(cap[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_n)).x > tw: use_n -= 1
-		_text(semi, GridTheme.fs(use_n), Vector2(r.position.x + 2.0, r.position.y + 62.0), str(cap[0]), GridTheme.TEXT if (hv or sel or fc) else Color(GridTheme.TEXT, 0.92), tw)
+		var dy := -6.0 if str(it.kind) == "sea" else 0.0   # the sea cable's three lines sit a little higher and a little further apart, so none touches the next or the cell's border
+		var dy1 := dy + (3.0 if str(it.kind) == "sea" else 0.0); var dy2 := dy + (4.0 if str(it.kind) == "sea" else 0.0)
+		_text(semi, GridTheme.fs(use_n), Vector2(r.position.x + 2.0, r.position.y + 62.0 + dy), str(cap[0]), GridTheme.TEXT if (hv or sel or fc) else Color(GridTheme.TEXT, 0.92), tw)
 		var use_s := 11
-		while use_s > 7 and mono.get_string_size(str(cap[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: use_s -= 1
+		var wide_sub: String = str(cap[1]) if cap.size() < 3 or str(cap[1]).length() >= str(cap[2]).length() else str(cap[2])   # both sub lines share one size: the longer one decides
+		while use_s > 7 and mono.get_string_size(wide_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: use_s -= 1
 		var two: bool = cap.size() > 2
-		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + (72.0 if two else 76.0)), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
-		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 84.0), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
+		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + (72.0 if two else 76.0) + dy1), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
+		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 84.0 + dy2), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
 		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
 		if _scroll < _max_scroll - 1.0: draw_string(semi, Vector2(_avail_right() + 1.0, H * 0.5 + 6.0), "›", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
@@ -1135,3 +1333,31 @@ func _icon_insulator(c: Vector2, id: String, coast: bool) -> void:
 			var pts := PackedVector2Array(); var wy := c.y + 20.0 + 3.0 * k
 			for i in 9: pts.append(Vector2(c.x - 20.0 + i * 5.0, wy + (2.0 if i % 2 == 0 else -2.0)))
 			draw_polyline(pts, Color("#5FA8D3", 0.9 - 0.3 * k), 1.6)
+
+
+## A sea cable cell: the reel (its copper coil thickens with the square root of the area, as on the overhead reels) lying on a few waves; the water line is what tells it from the poles' reels.
+func _icon_sea(c: Vector2, mm2: float) -> void:
+	draw_set_transform(c + Vector2(0.0, -7.0), 0.0, Vector2(0.74, 0.74))   # a smaller reel: this cell prints three lines under it
+	_icon_reel(Vector2.ZERO, mm2)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	for k in 3:
+		var pts := PackedVector2Array(); var wy := c.y + 8.0 + 4.0 * k
+		for i in 11: pts.append(Vector2(c.x - 25.0 + i * 5.0, wy + (2.0 if i % 2 == 0 else -2.0)))
+		draw_polyline(pts, Color("#5FA8D3", 0.95 - 0.25 * k), 2.0 if k == 0 else 1.5)
+
+## An island battery cell: a cell stack whose fill is the kWh (against the largest pack) beside a small inverter box whose size is the kW (against the largest inverter).
+func _icon_battery(c: Vector2, kw: float, kwh: float) -> void:
+	var body := Rect2(c.x - 22.0, c.y - 16.0, 22.0, 34.0)
+	draw_rect(Rect2(body.position.x + 7.0, body.position.y - 3.0, 8.0, 3.0), Color("#9AA6B2"))   # the terminal
+	draw_rect(body, Color(GridTheme.NIGHT, 0.9)); draw_rect(body, Color("#9AA6B2"), false, 1.8)
+	var f := clampf(kwh / ISL_MAX_KWH, 0.08, 1.0); var inner := Rect2(body.position + Vector2(3.0, 3.0), body.size - Vector2(6.0, 6.0))
+	var fh := inner.size.y * f
+	draw_rect(Rect2(inner.position.x, inner.end.y - fh, inner.size.x, fh), GridTheme.SODIUM.lerp(GridTheme.GOOD, 0.35))
+	for k in range(1, 4): draw_line(Vector2(inner.position.x, inner.position.y + inner.size.y * k * 0.25), Vector2(inner.end.x, inner.position.y + inner.size.y * k * 0.25), Color(GridTheme.NIGHT, 0.55), 1.0)
+	var side := 8.0 + 14.0 * clampf(kw / ISL_MAX_KW, 0.1, 1.0)   # the inverter: a box, bigger for more kW, with a sine on its face
+	var inv := Rect2(c.x + 6.0, c.y + 18.0 - side, side, side)
+	draw_rect(inv, Color("#7F8A98")); draw_rect(inv, Color(GridTheme.NIGHT, 0.9), false, 1.5)
+	var pts := PackedVector2Array()
+	for i in 9: pts.append(Vector2(inv.position.x + inv.size.x * (0.15 + 0.7 * float(i) / 8.0), inv.position.y + inv.size.y * (0.5 - 0.22 * sin(TAU * float(i) / 8.0))))
+	draw_polyline(pts, GridTheme.SODIUM, 1.4)
+	draw_line(Vector2(inv.position.x + side * 0.5, inv.position.y), Vector2(inv.position.x + side * 0.5, inv.position.y - 5.0), Color("#D8C9A0"), 2.0)   # the lead to the bus

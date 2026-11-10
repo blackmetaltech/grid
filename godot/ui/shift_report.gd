@@ -7,7 +7,7 @@ extends RefCounted
 ## benchStatus, coach, solutionCode (queries only).
 
 const STAMP_DELAY := 0.42
-const CHAPTER_END := {"L03": "L05"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order)
+const CHAPTER_END := {"L03": "L05", "L30": "L07"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order). L30 closes chapter 2; L07 opens chapter 3 (src/level/chapters/ch3.ts)
 const HIST_MIN_N := 10                ## fewer designs than this and the histogram says so instead of drawing a lonely bar
 static var _d: Dictionary = {}
 
@@ -130,7 +130,7 @@ static func island_bounds(app: CbApp) -> Rect2:
 
 ## "Next job": the last job of a chapter opens the chapter-end card instead of the next work order.
 static func _next(app: CbApp, lid: String, next_id: String) -> void:
-	if CHAPTER_END.has(lid) and str(CHAPTER_END[lid]) == next_id: chapter_end(app, next_id)
+	if CHAPTER_END.has(lid) and (str(CHAPTER_END[lid]) == next_id or lid == "L30"): chapter_end(app, next_id, lid)   # the finale shows its card whatever job the campaign lists next
 	else: app.start_level(next_id, true)
 
 static func _look(app: CbApp, won: bool) -> void:
@@ -171,6 +171,9 @@ static func _grid_design(app: CbApp) -> Array:
 	for br in app.b.g.get("branches", []): br_of[str(br.id)] = br
 	for br in app.b.g.get("branches", []):
 		if str(br.kind) == "xfmr": out.append(["placeTransformer", [str(br.from), str(br.to), str(br.catalogId)]]); continue
+		if str(br.kind) == "cable":   # L30: the sea cable is part of the design (its catalogue id lives on the cable record)
+			for c in app.b.g.get("cables", []): if str(c.branchId) == str(br.id): out.append(["layCableRoute", [str(br.from), str(br.to), str(c.cableId)]])
+			continue
 		for rr in app.b.g.get("routes", []):
 			if str(rr.branchId) != str(br.id): continue
 			var rq: Dictionary = rr.request
@@ -178,6 +181,7 @@ static func _grid_design(app: CbApp) -> Array:
 			var ra := [str(br.from), str(br.to), str(rq.conductorId).trim_prefix("acsr-"), str(rq.familyId), rq.crossingFamilyId, float(rq.spanM), wp]
 			if rq.has("insulatorId"): ra.append_array([str(rq.insulatorId), str(rq.get("coastInsulatorId", rq.insulatorId))])   # L29: the insulators are part of the design ('pin' otherwise)
 			out.append(["buildRoute", ra])
+	for st in app.b.g.get("storage", []): out.append(["placeStorage", [str(st.bus), str(st.catalogId)]])   # L30: the island battery
 	return out
 
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
@@ -192,6 +196,13 @@ static func replay(app: CbApp, design: Array) -> int:
 ## Is this design step already standing (same ends and same part) in the job as it started?
 static func _standing(app: CbApp, a: Array) -> bool:
 	var args: Array = a[1]
+	if str(a[0]) == "placeStorage":
+		for st in app.b.g.get("storage", []): if str(st.bus) == str(args[0]) and str(st.catalogId) == str(args[1]): return true
+		return false
+	if str(a[0]) == "layCableRoute":
+		for c in app.b.g.get("cables", []):
+			for br in app.b.g.get("branches", []): if str(br.id) == str(c.branchId) and str(br.from) == str(args[0]) and str(br.to) == str(args[1]) and str(c.cableId) == str(args[2]): return true
+		return false
 	for br in app.b.g.get("branches", []):
 		if str(br.from) != str(args[0]) or str(br.to) != str(args[1]): continue
 		if str(a[0]) == "placeTransformer":
@@ -239,7 +250,13 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	var g: Dictionary = app.b.g
 	var m: Array = [[T("REP_COST"), CbRegion.money(float(g.get("budget", {}).get("spent", 0.0)), false, 0)]]
 	var bs = app.b.q("benchStatus")
-	if bs is Dictionary and bs.get("active", false):
+	var cb = app.b.q("ch2Bench")
+	if cb is Dictionary and cb.get("active", false):   # chapter 2's closed-form benches (L04 alternator, L06 town line) report their own numbers
+		if str(cb.kind) == "machine":
+			m.append([T("C2_REP_FREQ"), T("C2_REP_HZ") % WorkOrder.num(snappedf(float(cb.fHz), 0.01))]); m.append([T("C2_REP_VOLT"), T("REP_V") % WorkOrder.num(snappedf(float(cb.eRmsV), 0.1))])
+		else:
+			m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(cb.lossPct), 0.01))]); m.append([T("C2_REP_TOWN"), T("REP_PCT") % WorkOrder.num(snappedf(float(cb.vTownPu) * 100.0, 0.1))])
+	elif bs is Dictionary and bs.get("active", false):
 		if bool(bs.get("powered", false)): m.append([T("REP_WORST"), T("REP_V") % WorkOrder.num(snappedf(float(bs.vMinV), 0.1))])
 		m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(bs.lossPct), 0.1))])
 	else:
@@ -340,9 +357,12 @@ static func chapter_node() -> Control: return _chapter.host if chapter_is_open()
 
 ## The card after the last job of a chapter: "Saltmarsh is lit", a lit-island doodle, Nia's line, the lamps earned in the chapter, and "Chapter 2 · The Mainland,
 ## coming soon" with the next work order offered as a preview job (`preview_id`). The shift report is gone by now; Esc just leaves the card.
-static func chapter_end(app: CbApp, preview_id: String) -> void:
+static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	GridUi.load_strings()
 	if chapter_is_open(): return
+	if lid == "":   # the QA screen and old callers: the card of the job on the table (chapter 1's unless it is a finale with its own card)
+		var cur = app.b.q("levelInfo"); lid = str(cur.get("id", "")) if cur is Dictionary and cur.get("active", false) else ""
+	var finale := lid == "L30"
 	if app.end_ui != null and is_instance_valid(app.end_ui): app.end_ui.queue_free()
 	app.end_ui = null; app.end_seen = true
 	_d = {}
@@ -357,27 +377,33 @@ static func chapter_end(app: CbApp, preview_id: String) -> void:
 	vb.add_child(col)
 	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 14); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	hv.add_child(PaperKit.lbl(T("CH_TITLE").to_upper(), 38 if compact else 64, "title", PaperKit.INK, true))
-	hv.add_child(PaperKit.lbl(T("CH_SUB"), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
-	var isl := IslandDoodle.new(); isl.name = "IslandDoodle"; isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
+	var p := "CH2_" if finale else "CH_"   # strings of the card: chapter 1 keeps CH_*, the chapter 2 finale has CH2_*
+	hv.add_child(PaperKit.lbl(T(p + "TITLE").to_upper(), (34 if finale else 38) if compact else (52 if finale else 64), "title", PaperKit.INK, true))
+	hv.add_child(PaperKit.lbl(T(p + "SUB"), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
+	var isl: Control = CableDoodle.new() if finale else IslandDoodle.new(); isl.name = "CableDoodle" if finale else "IslandDoodle"; isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
 	col.add_child(PaperKit.rule())
-	var nia := _note(T("CH_NIA"), PaperPen.NIA, T("CH_NIA_TAG"), compact); nia.name = "NiaNote"; col.add_child(nia)
+	var nia := _note(T(p + "NIA"), PaperPen.NIA, T("CH_NIA_TAG"), compact); nia.name = "NiaNote"; col.add_child(nia)
+	if finale:   # Ada retires, Tobi has the last word: two notes side by side so the card still fits a 768 p screen
+		var two := HBoxContainer.new(); two.add_theme_constant_override("separation", 14); col.add_child(two)
+		var ada := _note(T("CH2_ADA"), PaperKit.SPEAKER["ADA"], T("CH2_ADA_TAG"), compact); ada.name = "AdaNote"; two.add_child(ada)
+		var tobi := _note(T("CH2_TOBI"), PaperKit.SPEAKER["TOBI"], T("CH2_TOBI_TAG"), compact); tobi.name = "TobiNote"; two.add_child(tobi)
+	var jobs: Array = _chapter_jobs(app, lid) if finale else CHAPTER_JOBS
 	var earned := 0
-	for id in CHAPTER_JOBS: earned += GridSettings.stars(id)
-	var lr := PaperKit.lbl(T("CH_LAMPS") % [earned, CHAPTER_JOBS.size() * 3], 16 if compact else 20, "semi", PaperKit.INK, true); lr.name = "ChapterLamps"; col.add_child(lr)
+	for id in jobs: earned += GridSettings.stars(id)
+	var lr := PaperKit.lbl(T(p + "LAMPS") % [earned, jobs.size() * 3], 16 if compact else 20, "semi", PaperKit.INK, true); lr.name = "ChapterLamps"; col.add_child(lr)
 	var soon := PanelContainer.new(); soon.name = "Soon"; soon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new(); sb.draw_center = false; sb.border_color = Color(PaperKit.INK, 0.55); sb.set_border_width_all(2); sb.set_corner_radius_all(6)
 	sb.content_margin_left = 14; sb.content_margin_right = 14; sb.content_margin_top = 6 if compact else 10; sb.content_margin_bottom = 6 if compact else 10
 	soon.add_theme_stylebox_override("panel", sb)
 	var sv := VBoxContainer.new(); sv.add_theme_constant_override("separation", 0); soon.add_child(sv)
-	sv.add_child(PaperKit.lbl(T("CH_NEXT"), 20 if compact else 28, "title", PaperKit.INK, true))
-	sv.add_child(PaperKit.lbl(T("CH_SOON"), 14 if compact else 16, "sans", Color(PaperKit.INK, 0.75), true))
+	sv.add_child(PaperKit.lbl(T(p + "NEXT"), 20 if compact else 28, "title", PaperKit.INK, true))
+	sv.add_child(PaperKit.lbl(T(p + "SOON"), 14 if compact else 16, "sans", Color(PaperKit.INK, 0.75), true))
 	col.add_child(soon)
 	vb.add_child(PaperKit.rule())
 	var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 12); row.add_theme_constant_override("v_separation", 8); vb.add_child(row)
-	var pv := PaperKit.btn(T("CH_PREVIEW"), true, func(): _chapter_close(app, d); app.start_level(preview_id, true), 20); pv.name = "Preview"; row.add_child(pv)
+	var pv := PaperKit.btn(T(p + "PREVIEW"), true, func(): _chapter_close(app, d); app.start_level(preview_id, true), 20); pv.name = "Preview"; row.add_child(pv)
 	var jb := PaperKit.btn(T("PAUSE_JOBS"), false, func(): _chapter_close(app, d); Jobs.open(app), 20); jb.name = "ChapterJobs"; row.add_child(jb)
-	var st := PaperKit.btn(T("CH_STAY"), false, func(): _chapter_close(app, d), 20); st.name = "Stay"; row.add_child(st)
+	var st := PaperKit.btn(T(p + "STAY"), false, func(): _chapter_close(app, d), 20); st.name = "Stay"; row.add_child(st)
 	host.primary = pv
 	PaperKit.slide_in(d, 60.0)
 	app.focus_dialog()
@@ -389,6 +415,15 @@ static func _chapter_close(app: CbApp, d: Dictionary) -> void:
 	app.end_seen = true
 
 const CHAPTER_JOBS := ["L01", "L02", "L03"]
+
+## The jobs of chapter 2 for the finale's lamp count: everything the campaign lists after L03 up to the finale itself (the engine's order).
+static func _chapter_jobs(app: CbApp, last: String) -> Array:
+	var out: Array = []; var on := false
+	for id in Jobs.chain(app):
+		if on: out.append(str(id))
+		if str(id) == "L03": on = true
+		if str(id) == last: break
+	return out
 
 ## Nia's pen colour (the speaker table of PaperKit has the same green).
 class PaperPen:
@@ -427,3 +462,44 @@ class IslandDoodle extends Control:
 			draw_rect(Rect2(hx - 9, by - 14, 18, 14), Color("#E8DDBB")); draw_rect(Rect2(hx - 9, by - 14, 18, 14), ink, false, 2.0)
 			draw_colored_polygon(PackedVector2Array([Vector2(hx - 12, by - 14), Vector2(hx, by - 26), Vector2(hx + 12, by - 14)]), Color("#B5700F")); draw_polyline(PackedVector2Array([Vector2(hx - 12, by - 14), Vector2(hx, by - 26), Vector2(hx + 12, by - 14)]), ink, 2.0, true)
 			draw_rect(Rect2(hx - 3, by - 11, 6, 7), sod)
+
+
+## Doodle of the cable that joined Saltmarsh to the mainland: harbour pole on the left, the cable running under the waves, the island's lit huts on the right,
+## and the trawler's anchor that did not get the cable (crossed out).
+class CableDoodle extends Control:
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8)
+		draw_set_transform(Vector2((size.x - 300.0 * k) * 0.5, (size.y - 150.0 * k) * 0.5), 0.0, Vector2(k, k))
+		var sod := GridTheme.SODIUM
+		for p in [Vector2(30, 16), Vector2(96, 30), Vector2(190, 14), Vector2(268, 24), Vector2(150, 40)]:   # stars
+			draw_line(p + Vector2(-4, 0), p + Vector2(4, 0), Color(PaperKit.AMBER, 0.9), 2.0, true); draw_line(p + Vector2(0, -4), p + Vector2(0, 4), Color(PaperKit.AMBER, 0.9), 2.0, true)
+		var sea_y := 100.0
+		var shore := PackedVector2Array([Vector2(14, 118), Vector2(14, 84), Vector2(40, 80), Vector2(72, 88), Vector2(92, sea_y), Vector2(104, 118)])   # the mainland
+		draw_colored_polygon(shore, Color("#C9C09F")); draw_polyline(shore, ink, 2.4, true)
+		var mound := PackedVector2Array([Vector2(196, 118), Vector2(214, 98), Vector2(244, 88), Vector2(272, 96), Vector2(288, 118)])   # the island
+		draw_colored_polygon(mound, Color("#C9C09F")); draw_polyline(mound, ink, 2.4, true)
+		draw_line(Vector2(10, 118), Vector2(292, 118), ink, 2.4, true)
+		for x in [112.0, 142.0, 172.0]:   # waves over the cable
+			draw_arc(Vector2(x, 112), 11.0, deg_to_rad(200), deg_to_rad(340), 10, Color(PaperKit.BLUE, 0.7), 2.4, true)
+			draw_arc(Vector2(x + 14, 126), 11.0, deg_to_rad(200), deg_to_rad(340), 10, Color(PaperKit.BLUE, 0.7), 2.4, true)
+		# the pole at the harbour yard and the cable from its foot, under the sea, to the island
+		draw_line(Vector2(54, 84), Vector2(54, 44), ink, 3.0, true); draw_line(Vector2(42, 50), Vector2(66, 50), ink, 3.0, true)
+		draw_polyline(PackedVector2Array([Vector2(66, 50), Vector2(84, 62), Vector2(96, 90)]), Color(PaperKit.INK, 0.65), 1.8, true)
+		var seabed := PackedVector2Array([Vector2(96, 98), Vector2(120, 134), Vector2(160, 138), Vector2(196, 122), Vector2(214, 104)])
+		for i in seabed.size() - 1:   # a dashed run: it is under the water
+			var a := seabed[i]; var b := seabed[i + 1]; var n := int(a.distance_to(b) / 8.0)
+			for j in n:
+				if j % 2 == 0: draw_line(a.lerp(b, float(j) / n), a.lerp(b, float(j + 1) / n), Color(PaperKit.RED, 0.85), 3.0, true)
+		# the anchor over the cable, crossed out: it fell short
+		var an := Vector2(148, 66)
+		draw_line(an + Vector2(0, -14), an + Vector2(0, 14), ink, 3.0, true); draw_line(an + Vector2(-8, -8), an + Vector2(8, -8), ink, 3.0, true)
+		draw_arc(an + Vector2(0, 6), 12.0, deg_to_rad(20), deg_to_rad(160), 12, ink, 3.0, true); draw_arc(an + Vector2(0, -16), 3.0, 0.0, TAU, 8, ink, 2.0, true)
+		draw_line(an + Vector2(-18, -20), an + Vector2(18, 20), Color(PaperKit.RED, 0.9), 3.4, true)
+		# huts on the island, lit
+		for hx in [222.0, 246.0, 268.0]:
+			var by := 98.0 + absf(hx - 246.0) * 0.1
+			for i in 4: draw_circle(Vector2(hx, by - 8), 16.0 - i * 3.2, Color(sod, 0.10 + 0.07 * i))
+			draw_rect(Rect2(hx - 8, by - 13, 16, 13), Color("#E8DDBB")); draw_rect(Rect2(hx - 8, by - 13, 16, 13), ink, false, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(hx - 11, by - 13), Vector2(hx, by - 24), Vector2(hx + 11, by - 13)]), Color("#B5700F")); draw_polyline(PackedVector2Array([Vector2(hx - 11, by - 13), Vector2(hx, by - 24), Vector2(hx + 11, by - 13)]), ink, 2.0, true)
+			draw_rect(Rect2(hx - 3, by - 10, 6, 6), sod)
