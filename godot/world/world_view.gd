@@ -1246,6 +1246,7 @@ func _draw_labels() -> void:
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
+	var placed: Array[Rect2] = []   # grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
 	for t in model.towns:
 		if t.kind == "school" or t.kind == "hamlet" or t.get("mascot", false):
 			if not t.has("volts"): continue
@@ -1265,16 +1266,16 @@ func _draw_labels() -> void:
 		var v: float = t.v
 		var arrow := "▼ " if v < 0.95 else ("▲ " if v > 1.05 else "")
 		var txt2 := tr("WORLD_DARK") if v <= 0.0 else tr("WORLD_BUS_FMT") % [arrow, v]
-		if not bool(model.get("solved", true)): _label(font, fs, sp2, str(t.name), WorldMath.WHITE); continue   # before the first solve: the town's name only
+		if not bool(model.get("solved", true)): _label_free(font, fs, sp2, str(t.name), WorldMath.WHITE, placed); continue   # before the first solve: the town's name only
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
-		_label(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col)
+		_label_free(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col, placed)
 	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
 	for s in model.subs:
 		if yards_quiet: break
 		if s.has("v") and float(s.v) > 0.0 and s.id != "j" and not str(s.id).begins_with("c"):
 			var sp3 := to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0))
 			var vs: float = s.v; var ar := "▼ " if vs < 0.95 else ("▲ " if vs > 1.05 else "")
-			_label(font, fs, sp3, tr("WORLD_BUS_FMT") % [ar, vs], WorldMath.AMBER if (vs < 0.95 or vs > 1.05) else WorldMath.WHITE)
+			_label_free(font, fs, sp3, tr("WORLD_BUS_FMT") % [ar, vs], WorldMath.AMBER if (vs < 0.95 or vs > 1.05) else WorldMath.WHITE, placed)
 	for l in model.lines:
 		if l.in_service and float(l.loading) >= 0.9 and str(l.kind) != "cable":
 			var poly := _line_poly(l, 0.0)
@@ -1314,6 +1315,19 @@ func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
 				"happy": _ci.draw_arc(m + Vector2(0, -r * 0.12), r * 0.3, 0.35, PI - 0.35, 12, ink, 1.8); _ci.draw_circle(c + Vector2(-r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45)); _ci.draw_circle(c + Vector2(r * 0.55, r * 0.15), r * 0.12, Color(1.0, 0.55, 0.5, 0.45))
 				"worried": _ci.draw_line(m + Vector2(-r * 0.2, 0), m + Vector2(r * 0.2, -r * 0.04), ink, 1.6); _ci.draw_circle(c + Vector2(r * 0.72, -r * 0.45), r * 0.1, Color("#7FC8FF"))
 				"sad": _ci.draw_arc(m + Vector2(0, r * 0.18), r * 0.24, PI + 0.4, TAU - 0.4, 12, ink, 1.8); _ci.draw_circle(ey + Vector2(ex, r * 0.25 + fposmod(_t * 8.0, r * 0.5)), r * 0.07, Color("#7FC8FF"))
+
+## `_label`, moved down a row at a time (up to four) until its box clears every box in `placed`; the box it ends in is appended.
+func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2]) -> void:
+	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var r := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
+	for _i in 4:
+		var hit := false
+		for q in placed:
+			if q.intersects(r): hit = true; break
+		if not hit: break
+		r.position.y += fs + 10.0; at.y += fs + 10.0
+	placed.append(r)
+	_label(font, fs, at, txt, col)
 
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
