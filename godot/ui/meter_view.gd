@@ -23,6 +23,7 @@ var _v := 0.0                   ## needle velocity
 var _have := false
 var _glow := 0.0
 var blank := false              ## no real reading (circuit incomplete): needle rests at the scale start, readout "—"
+var ghost := NAN                ## what-if value (kit tray hover): a thin ghost needle, NAN = none
 var live := false               ## breaker is running: backlight a little warmer
 
 func _init() -> void:
@@ -38,6 +39,12 @@ func set_target(v: float, instant := false) -> void:
 	queue_redraw()
 
 func snap(v: float) -> void: set_target(v, true)
+## Ghost needle: the engine's previewed value for the part under the pointer (display only; NAN clears it).
+func set_ghost(v: float) -> void:
+	if is_nan(v) and is_nan(ghost): return
+	if not is_nan(v) and not is_nan(ghost) and v == ghost: return
+	ghost = v; queue_redraw()
+func ghost_value() -> float: return NAN if is_nan(ghost) else value_of_angle(angle_deg(ghost))
 
 func angle_deg(v: float) -> float: return -SWEEP * 0.5 + SWEEP * clampf((v - vmin) / (vmax - vmin), 0.0, 1.0)
 func value_of_angle(deg: float) -> float: return vmin + (vmax - vmin) * clampf((deg + SWEEP * 0.5) / SWEEP, 0.0, 1.0)
@@ -109,6 +116,11 @@ func _draw() -> void:
 	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 10.0), Vector2(rw.x + 16.0, rsz + 8.0))
 	draw_rect(plate, GridTheme.NIGHT, true)
 	draw_string(f, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, GridTheme.SODIUM)
+	if not is_nan(ghost):   # ghost needle: where the needle would rest if the player did this, drawn under the real one
+		var ga := angle_deg(ghost)
+		draw_line(_pt(c, r - 2.0, ga) , _pt(c, 6.0, ga), Color(GridTheme.SODIUM_DIM, 0.35), 6.0, true)
+		draw_line(_pt(c, r - 2.0, ga), _pt(c, 6.0, ga), Color("#2A2418", 0.85), 1.6, true)
+		draw_circle(_pt(c, r - 2.0, ga), 3.2, GridTheme.SODIUM)
 	# needle with a short shadow and a counterweight tail
 	var na := needle_deg()
 	draw_line(c + Vector2(2, 2), _pt(c, r - 2.0, na) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)

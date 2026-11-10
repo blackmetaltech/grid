@@ -36,6 +36,7 @@ func toggle() -> void:
 	if app == null or not app.started: return
 	if running(): app.set_speed(0)
 	else: app.set_speed(rate)
+	app.sfx("breaker_close" if running() else "breaker_open")
 	toggled.emit(running()); queue_redraw()
 
 func cycle_rate() -> void:

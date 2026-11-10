@@ -36,6 +36,7 @@ func say(speaker: String, text: String, kind := "sys", step := "", why := "") ->
 	if kind == "coach" and step != "": _current = step
 	while lines.size() > 200: lines.pop_front()
 	visible = true; _rebuild()
+	if app != null: app.sfx("radio")   # the little radio blip for every new line
 
 func set_current(step_id: String) -> void: _current = step_id; _rebuild()
 

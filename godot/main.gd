@@ -3,6 +3,7 @@ extends CbApp
 ## pad, touch, smoke) comes from CbApp in addons/cobanana. The real world and drawers arrive in M2.
 var grid_world: WorldView
 var chrome: GridChrome
+var sound: GridSound   ## GridAudio wired to the screen (ui/grid_sound.gd)
 
 func game_config() -> Dictionary:
 	GridUi.load_strings()
@@ -21,12 +22,14 @@ func game_config() -> Dictionary:
 	})
 
 func game_build_world(parent: Node) -> Node:
-	grid_world = WorldView.new(); grid_world.app = self; parent.add_child(grid_world)
+	GridSettings.load_all()
+	grid_world = WorldView.new(); grid_world.app = self; grid_world.cute = GridSettings.cute; parent.add_child(grid_world)
 	return grid_world
 
 func game_on_changed() -> void:
 	if grid_world != null: grid_world.refresh(b)
 	if chrome != null: chrome.refresh()
+	if sound != null and grid_world != null: sound.on_changed(grid_world.model)
 
 func game_end_card(vb: VBoxContainer, g: Dictionary) -> void:
 	GridUi.end_card(vb, g, self)
@@ -58,21 +61,26 @@ func game_camera(spec: String) -> void:
 				else: args.append(a)
 			b.act(f[0], args)
 		elif part.begins_with("ff="): b.act("tick", [int(part.substr(3))])
+		elif part.begins_with("paper="): game_on_changed(); PaperKit.qa(self, part.substr(6))   # QA: open a paper screen (menu, jobs, workorder, report)
+		elif part.begins_with("ui="): game_on_changed(); chrome.qa_ui(part.substr(3))   # QA: tray / tag state, see GridChrome.qa_ui
 		else: cam.append(part)
 	game_on_changed()
 	if grid_world != null: grid_world.set_camera(",".join(cam))
 
 func game_unhandled_key(e: InputEventKey) -> bool:
 	if chrome != null and chrome.key(e): return true
-	match e.keycode:   # until the kit tray lands, the old drawers open as overlays on B / I / T
-		KEY_B: show_screen(home if cur == "build" else "build"); chrome.refresh(); return true
-		KEY_I: show_screen(home if cur == "inspect" else "inspect"); chrome.refresh(); return true
+	match e.keycode:   # bench levels use the kit tray and tags; the old Build / Inspect drawers remain on B / I for grid levels (L07) until their task
+		KEY_B: if chrome != null and not chrome.tray_active(): show_screen(home if cur == "build" else "build"); chrome.refresh(); return true
+		KEY_I: if chrome != null and not chrome.tray_active(): show_screen(home if cur == "inspect" else "inspect"); chrome.refresh(); return true
 		KEY_T: show_screen(home if cur == "timeline" else "timeline"); chrome.refresh(); return true
 	return grid_world != null and grid_world.key(e)
 
 # --- custom chrome hooks ---
 func game_build_chrome(r: Control) -> void:
+	audio.headless = true   # the shell's generated music stays off: GridAudio plays the music (the shell's sfx cues still work)
+	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
+	chrome.pin_pressed.connect(_on_pin)
 func game_chrome_visible(v: bool) -> void:
 	if chrome != null: chrome.set_chrome_visible(v)
 func game_relayout() -> void:
@@ -85,8 +93,32 @@ func game_coach(step: Dictionary, index: int, total: int) -> bool:
 	if str(step.get("id", "")) != "welcome": chrome.coach(step, index, total)
 	return true
 
-func game_title_demo() -> void:
-	pass   # the title backdrop is the static world until M2
+func game_title_demo() -> void:   # backdrop of the title: the first job, solved, late evening, every home lit
+	if b.act("startLevel", ["L01", 7, "learner"]).get("ok", false):
+		b.act("placeHut", [120]); b.act("layCable", ["main", 25]); b.act("tick", [14])
+	game_on_changed()
+
+# --- paper screens (ui/work_order.gd, shift_report.gd, title_screen.gd, pause_menu.gd) ---
+func game_title(r: Control) -> bool: return TitleScreen.build(self, r)
+func game_end_screen() -> bool: return ShiftReport.open(self)
+func game_menu() -> bool: return PauseMenu.toggle(self)
+
+## A job starts (new game, level start, load): the work order slides in unless the job is already under way.
+func _begin() -> void:
+	super()
+	WorkOrder.close_now()
+	if WorkOrder.auto: WorkOrder.open_fresh(self)
+
+## Top-left pin: the work order while the job runs, the report again once it has ended.
+func _on_pin() -> void:
+	if modal() != null: return
+	if str(b.g.get("status", "playing")) != "playing": end_seen = false; menus.end_card()
+	else: WorkOrder.open(self)
+
+## GRID cues go to GridAudio, everything else (click, confirm, back ...) stays with the shell's own sounds.
+func sfx(k: String) -> void:
+	if sound != null and sound.route(k): return
+	super(k)
 
 func game_smoke() -> void:
 	for id in ["P0", "L01", "L02", "L03", "L07"]:
@@ -116,7 +148,7 @@ func game_smoke() -> void:
 	CbSmoke._check(chrome.radio.lines.back().speaker == "SYS" and chrome.radio.lines.back().kind == "warn", "a toast arrives on the radio as a SYS warning")
 	b.act("startLevel", ["L03", 1, "learner"]); game_on_changed(); await get_tree().process_frame
 	CbSmoke._check(chrome.instruments.mode == "loss" and chrome.instruments.volt.units == "%" and chrome.instruments.volt.vmax == 20.0, "L03: the meter is LINE LOSS 0-20 %, not volts")
-	CbSmoke._check(chrome.instruments.volt.blank and chrome.instruments.volt.needle_value() == 0.0 and chrome.breaker.label_text() == tr("BREAKER_RUN_DAY"), "L03 before the circuit is built: blank meter at rest, breaker says Run the day")
+	CbSmoke._check(chrome.instruments.volt.blank and chrome.instruments.volt.needle_value() == 0.0 and chrome.breaker.label_text() == tr("BREAKER_RUN_NIGHT"), "L03 before the circuit is built: blank meter at rest, breaker says Run the night (the study hall starts at 18:00)")
 	b.act("startLevel", ["L07", 1, "learner"]); game_on_changed(); await get_tree().process_frame
 	CbSmoke._check(chrome.instruments.dial.visible and not chrome.instruments.volt.visible, "grid level: frequency dial, no voltmeter")
-
+	await PaperFlow.run(self)   # the paper screens end to end (godot/tests/paper_flow.gd)

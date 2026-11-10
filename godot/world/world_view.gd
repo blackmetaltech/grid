@@ -17,6 +17,18 @@ var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 
+signal tapped(pos: Vector2)         ## a click / tap that did not drag (local coordinates)
+signal long_pressed(pos: Vector2)   ## a press held in place for LONG_S (touch: opens a tag)
+signal hovered(pos: Vector2)        ## mouse moved over the world with no button held
+const TAP_PX := 10.0
+const LONG_S := 0.55
+var _pegs: Array = []               # [{tile: Vector2, label: String}] glowing site pegs (the kit tray's legal sites)
+var _peg_hi := -1
+var _press := false
+var _press_pos := Vector2.ZERO
+var _press_moved := 0.0
+var _press_t := 0.0
+var _press_long := false
 var _sig := ""
 var _flies: Array = []        # cute: firefly anchors (tile centres)
 var _tiles: Array = []        # {i, j, z, kind}
@@ -306,14 +318,23 @@ func key(e: InputEventKey) -> bool:
 	_clamp_pan(); queue_redraw(); return true
 
 func _gui_input(e: InputEvent) -> void:
-	if blocked or (app != null and app.modal() != null): return
+	if blocked or (app != null and app.modal() != null): _press = false; return
 	if e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed: _zoom_at(mb.position, 1.12 * mb.factor if mb.factor > 0.0 else 1.12)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed: _zoom_at(mb.position, 1.0 / 1.12)
-		elif mb.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]: _drag = mb.pressed and _touches.size() < 2
-	elif e is InputEventMouseMotion and _drag:
-		_pan += (e as InputEventMouseMotion).relative; _clamp_pan(); queue_redraw()
+		elif mb.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]:
+			_drag = mb.pressed and _touches.size() < 2
+			if mb.button_index == MOUSE_BUTTON_LEFT:
+				if mb.pressed: _press = true; _press_pos = mb.position; _press_moved = 0.0; _press_t = 0.0; _press_long = false
+				else:
+					if _press and not _press_long and _press_moved < TAP_PX and _touches.size() < 2: tapped.emit(mb.position)
+					_press = false
+	elif e is InputEventMouseMotion:
+		var mm := e as InputEventMouseMotion
+		if _drag: _pan += mm.relative; _clamp_pan(); queue_redraw()
+		if _press: _press_moved += mm.relative.length()
+		else: hovered.emit(mm.position)
 	elif e is InputEventMagnifyGesture:
 		_zoom_at((e as InputEventMagnifyGesture).position, (e as InputEventMagnifyGesture).factor)
 	elif e is InputEventPanGesture:
@@ -337,6 +358,9 @@ func _gui_input(e: InputEvent) -> void:
 func _process(dt: float) -> void:
 	if not is_visible_in_tree() or size.x < 4.0: return
 	_t += dt; _rot += dt
+	if _press and not _press_long and _press_moved < TAP_PX:
+		_press_t += dt
+		if _press_t >= LONG_S: _press_long = true; long_pressed.emit(_press_pos)
 	for l in model.lines:
 		var ph: float = _phase.get(l.id, 0.0)
 		_phase[l.id] = fposmod(ph + float(l.dir) * float(l.speed) * dt, 1.0)
@@ -404,6 +428,7 @@ func _draw() -> void:
 	if cute and _night > 0.35: _draw_fireflies()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	_draw_labels()
+	_draw_pegs()
 
 func _draw_sky(mn: float) -> void:
 	var top := WorldMath.sky_top(mn); var bot := WorldMath.sky_bottom(mn)
@@ -803,3 +828,133 @@ func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var p := at - Vector2(w * 0.5, 0.0)
 	draw_rect(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))
 	draw_string(font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+
+# --------------------------------------------------------------------------------------------------------------------
+# Read-only helpers for the kit tray and the tags (godot/ui/kit_tray.gd, tag_view.gd): screen positions, picking, site pegs
+# --------------------------------------------------------------------------------------------------------------------
+## Screen position (this control's local coordinates) of a tile centre, `z` px above the ground.
+func world_to_screen(tile: Vector2, z := 0.0) -> Vector2:
+	var c := _tc(tile)
+	return to_screen(_iso(c.x, c.y, _zat(c) + z))
+
+## Glowing wooden pegs on the ground: pegs = [{tile: Vector2, label: String}], `highlight` = index drawn bright (-1 none). [] clears.
+func set_site_pegs(pegs: Array, highlight := -1) -> void:
+	_pegs = pegs; _peg_hi = highlight; queue_redraw()
+
+func peg_count() -> int: return _pegs.size()
+
+func _poly_screen(pts: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var poly := _line_poly({"pts": pts, "kv": 0.048, "in_service": true, "loading": 0.0}, 0.0)
+	for q in poly: out.append(to_screen(q))
+	return out
+
+func _dist_poly(p: Vector2, poly: PackedVector2Array) -> float:
+	var best := 1e9
+	for k in range(poly.size() - 1):
+		var a := poly[k]; var c := poly[k + 1]
+		var ab := c - a; var l2 := ab.length_squared()
+		var t := 0.0 if l2 < 1e-6 else clampf((p - a).dot(ab) / l2, 0.0, 1.0)
+		best = minf(best, p.distance_to(a + ab * t))
+	return best
+
+## What is under a screen point: {kind: "peg"|"hamlet"|"hut"|"junction"|"cable"|"route", id: String or int (peg index)} or {} (nothing).
+## "route" is a surveyed run with no cable yet (id main / b / b2).
+func pick(sp: Vector2) -> Dictionary:
+	var s := _scale()
+	var best := -1; var bd := 1e9
+	for i in _pegs.size():
+		var d := sp.distance_to(world_to_screen(_pegs[i].tile) + Vector2(0, -10.0 * s))
+		if d < maxf(26.0, 18.0 * s) and d < bd: bd = d; best = i
+	if best >= 0: return {"kind": "peg", "id": best}
+	for t in model.towns:
+		if t.kind != "hamlet" and t.kind != "school": continue
+		var d := sp - world_to_screen(t.pos)
+		if absf(d.x) <= 95.0 * s and d.y >= -100.0 * s and d.y <= 48.0 * s: return {"kind": "hamlet", "id": str(t.id)}
+	for u in model.units:
+		if str(u.kind) != "hut": continue
+		var d := sp - world_to_screen(u.pos)
+		if absf(d.x) <= 40.0 * s and d.y >= -64.0 * s and d.y <= 22.0 * s: return {"kind": "hut", "id": str(u.id)}
+	for sb in model.subs:
+		if str(sb.id) != "j": continue
+		var d := sp - world_to_screen(sb.pos)
+		if absf(d.x) <= 28.0 * s and d.y >= -56.0 * s and d.y <= 22.0 * s: return {"kind": "junction", "id": "j"}
+	var cb := ""; var cd := 1e9
+	for l in model.lines:
+		if str(l.kind) != "cable": continue
+		var d := _dist_poly(sp, _poly_screen(l.pts))
+		if d < cd: cd = d; cb = str(l.id)
+	if cb != "" and cd <= 14.0: return {"kind": "cable", "id": cb}
+	var gids: Array = model.get("ghost_ids", []); var gb := ""; var gd := 1e9
+	for k in model.get("ghosts", []).size():
+		var d := _dist_poly(sp, _poly_screen(model.ghosts[k]))
+		if d < gd: gd = d; gb = str(gids[k]) if k < gids.size() else ""
+	if gb != "" and gd <= 14.0: return {"kind": "route", "id": gb}
+	return {}
+
+## Screen rectangles of the things a tag should not cover: hamlets and the hut (local coordinates, same boxes pick() uses).
+func object_rects() -> Array:
+	var s := _scale(); var out: Array = []
+	for t in model.towns:
+		if t.kind != "hamlet" and t.kind != "school": continue
+		var c := world_to_screen(t.pos); out.append(Rect2(c + Vector2(-95.0, -100.0) * s, Vector2(190.0, 148.0) * s))
+	for u in model.units:
+		if str(u.kind) != "hut": continue
+		var c2 := world_to_screen(u.pos); out.append(Rect2(c2 + Vector2(-40.0, -64.0) * s, Vector2(80.0, 86.0) * s))
+	return out
+
+## Polyline (tiles) of a run: the laid cable or its surveyed route. [] when unknown.
+func run_pts(id: String) -> Array:
+	for l in model.lines: if str(l.id) == id: return l.pts
+	var gids: Array = model.get("ghost_ids", [])
+	for k in model.get("ghosts", []).size(): if k < gids.size() and str(gids[k]) == id: return model.ghosts[k]
+	return []
+
+## Tile at half the length of a run (where its pad handle stands).
+func run_mid_tile(id: String) -> Vector2:
+	var pts := run_pts(id)
+	if pts.is_empty(): return Vector2.ZERO
+	var tot := 0.0
+	for k in range(pts.size() - 1): tot += (pts[k + 1] as Vector2).distance_to(pts[k])
+	var d := tot * 0.5
+	for k in range(pts.size() - 1):
+		var seg := (pts[k + 1] as Vector2).distance_to(pts[k])
+		if d <= seg: return (pts[k] as Vector2).lerp(pts[k + 1], d / maxf(seg, 1e-6))
+		d -= seg
+	return pts[pts.size() - 1]
+
+## Where a tag's string ties on an object: kind "hamlet" (id h1/h2), "hut", "cable" (id main/b/b2). Local coordinates; Vector2(NAN, NAN) when absent.
+func anchor(kind: String, id: String) -> Vector2:
+	match kind:
+		"hamlet":
+			for t in model.towns: if str(t.id) == id: return world_to_screen(t.pos, 20.0)
+		"hut":
+			for u in model.units: if str(u.id) == id: return world_to_screen(u.pos, 16.0)
+		"cable":
+			var pts := run_pts(id)
+			if not pts.is_empty():
+				var poly := _line_poly({"pts": pts, "kv": 0.048, "in_service": true, "loading": 0.0}, 0.0)
+				return to_screen(poly[poly.size() / 2])
+	return Vector2(NAN, NAN)
+
+func _draw_pegs() -> void:
+	if _pegs.is_empty(): return
+	var sc := clampf(_scale() * 1.15, 0.8, 1.7)
+	var font := GridTheme.font("mono"); var fsz := GridTheme.fs(13)
+	for i in _pegs.size():
+		var p := world_to_screen(_pegs[i].tile); var hi := i == _peg_hi
+		var pulse := 0.5 + 0.5 * sin(_t * 3.2 + float(i) * 0.9)
+		var ring := PackedVector2Array()
+		for k in 25: ring.append(p + Vector2(cos(TAU * k / 24.0) * 22.0 * sc, sin(TAU * k / 24.0) * 11.0 * sc))
+		draw_polyline(ring, Color(GridTheme.SODIUM, 0.35 + 0.4 * pulse + (0.25 if hi else 0.0)), 2.0, true)
+		draw_circle(p + Vector2(0, -16.0 * sc), (26.0 + 8.0 * pulse + (8.0 if hi else 0.0)) * sc, Color(GridTheme.SODIUM, 0.07 + 0.08 * pulse + (0.14 if hi else 0.0)))
+		draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(7.0 * sc, 28.0 * sc)), Color("#8A6A43"))
+		draw_rect(Rect2(p + Vector2(-3.5 * sc, -26.0 * sc), Vector2(2.5 * sc, 28.0 * sc)), Color("#B08A58"))
+		draw_circle(p + Vector2(0, -28.0 * sc), 5.5 * sc, GridTheme.SODIUM if hi else GridTheme.SODIUM.lerp(Color.WHITE, 0.25 * pulse))
+		draw_arc(p + Vector2(0, -28.0 * sc), 5.5 * sc, 0.0, TAU, 14, GridTheme.NIGHT, 1.5)
+		var lb := str(_pegs[i].label)
+		if lb != "":
+			var tw := font.get_string_size(lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz)
+			draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
+			draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)

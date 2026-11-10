@@ -28,7 +28,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       return {
         active: true, id: spec.id, kind: spec.kind, chapter: spec.chapter, title: t(spec.titleKey), brief: t(spec.briefKey), stars: spec.stars,
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
-        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks,
+        histogram: spec.histogram, horizonBlocks: spec.horizonBlocks, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
           if (!spec.story || !s.bench) return '';
           const det = benchDetail(s.bench, d.getBench(s)), run = det?.runs.find((x) => x.id === 'main');

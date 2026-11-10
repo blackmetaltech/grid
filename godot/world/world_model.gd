@@ -114,9 +114,9 @@ static func _bench(m: Dictionary, w: Dictionary) -> void:
 		m.subs.append({"id": "c0", "pos": hut_p + Vector2(1.6, -0.9), "kv": 0.38, "v": 1.0, "energised": powered})
 		m.subs.append({"id": "c1", "pos": L03_SCHOOL + Vector2(-2.2, 1.4), "kv": 0.38, "v": 1.0, "energised": powered})
 	var dirp := 1 if powered else 0
-	m["ghosts"] = []
+	m["ghosts"] = []; m["ghost_ids"] = []   # ghost_ids[k] = the run id (main / b / b2) of ghosts[k]: the tray and tags pick surveyed routes by it
 	for r in runs:
-		if r[2] == null: m.ghosts.append(r[1]); continue   # surveyed but not yet laid: a dashed route
+		if r[2] == null: m.ghosts.append(r[1]); m.ghost_ids.append(str(r[0])); continue   # surveyed but not yet laid: a dashed route
 		m.lines.append(_line(str(r[0]), r[1], amp, dirp, true, 1, 0.048, 0.0, "cable")); m.lines[-1]["mm2"] = r[2]
 
 # L02 geometry, 1 tile = 10 m. Hut on the west beach, hamlet 1 on the rise (15,10), hamlet 2 (28,10) across a lagoon: the straight line

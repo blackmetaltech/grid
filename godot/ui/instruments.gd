@@ -64,6 +64,10 @@ func _visible_items() -> Array:
 	if CbLayout.phone and a.size() > 2: a = a.slice(0, 2)   # phone: clock plus one meter
 	return a
 
+## What-if from the kit tray: the meter's ghost needle. NAN clears it. `v` is in the meter's own unit (volts, or % in the loss meter).
+func set_ghost(v: float) -> void:
+	volt.set_ghost(v)
+
 ## Centre the cluster at the top of the safe area (root is already inset).
 func layout() -> void:
 	if app == null: return

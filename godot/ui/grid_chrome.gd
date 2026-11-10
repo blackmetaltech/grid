@@ -15,6 +15,8 @@ var pin: PanelContainer
 var _pin_title: Label
 var _pin_sub: Label
 var menu_btn: Button
+var tray: KitTray                ## the kit tray (bench levels): hut, reels, price tag
+var tags: TagView                ## in-world paper tags
 var _level := ""
 var _coach_id := "<unset>"
 var _on := false
@@ -37,10 +39,61 @@ func build() -> void:
 	_pin_sub = GridTheme.label("", 14, Color(GridTheme.PAPER_INK, 0.8), "sans"); vb.add_child(_pin_sub)
 	pin.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: pin_pressed.emit(); pin.accept_event())
 	add_child(pin)
+	_build_tools()
 	menu_btn = Button.new(); menu_btn.name = "Menu"; menu_btn.text = "☰"; menu_btn.flat = true; menu_btn.focus_mode = CbKit.focus_mode()
 	menu_btn.tooltip_text = TranslationServer.translate("MENU_TIP"); menu_btn.add_theme_font_size_override("font_size", GridTheme.fs(22))
 	menu_btn.pressed.connect(func(): app.open_menu()); add_child(menu_btn)
 	set_chrome_visible(false)
+
+## Kit tray + tags: wired to the bridge, the world and the radio. The relay node (added after the core pad) hears pad / Esc first.
+func _build_tools() -> void:
+	var world: WorldView = app.get("grid_world")
+	tray = KitTray.new(); tray.b = app.b; tray.world = world; tray.radio = radio; tray.instruments = instruments
+	tray.sfx = func(cue: String): app.sfx(cue)
+	tray.slot = tray_rect; add_child(tray)
+	tags = TagView.new(); tags.b = app.b; tags.world = world; tags.instruments = instruments; tags.slot = tray_rect; add_child(tags)
+	tray.tags = tags
+	if world != null:
+		world.tapped.connect(on_world_tap); world.long_pressed.connect(on_world_long); world.hovered.connect(func(p): tray.on_hover(p))
+	var relay := KitTray.Relay.new(); relay.chrome = self; relay.name = "TrayRelay"
+	app.add_child.call_deferred(relay)
+
+## Tap on the world: the tray first (a pick in progress), then the tags.
+func on_world_tap(p: Vector2) -> void:
+	if not _on or tray == null: return
+	if tray.visible and tray.on_tap(p): return
+	if tray.visible or tags.is_open(): tags.on_tap(p)
+
+func on_world_long(p: Vector2) -> void:
+	if _on and tray != null and tags.on_long_press(p): tray.cancel()
+
+## Pad buttons and Esc, before the shell: tray first, then the open tag. True when used.
+func handle_input(e: InputEvent) -> bool:
+	if not _on or tray == null or app.modal() != null: return false
+	if e is InputEventKey:
+		if e.pressed and not e.echo and e.keycode == KEY_ESCAPE: return tray.cancel_key() or tags.close()
+		if e.pressed and not e.echo and e.keycode == KEY_X and tags.is_open(): return tags.close()
+		return false
+	if e is InputEventJoypadButton and e.pressed and CbPad.enabled:
+		var jb := e as InputEventJoypadButton
+		if jb.button_index == JOY_BUTTON_B:   # B: undo the pick, else step out of the tray, else close the tag, else leave it to the shell
+			if tray.mode != "" or tray.engaged: return tray.pad_button(jb.button_index)
+			return tags.close()
+		return tray.pad_button(jb.button_index)
+	return false
+
+## QA screenshots (CB_CAM "ui=..."): hut | reel/2.5 | hover/2.5 | peg/2 | run/0 | tag/cable/main | tag/hamlet/h1
+func qa_ui(spec: String) -> void:
+	if tray == null: return
+	var f := spec.split("/")
+	match f[0]:
+		"hut": tray.activate(tray.item_index("hut"))
+		"reel": tray.activate(tray.item_index("reel", float(f[1])))
+		"hover": tray.hover = tray.item_index("reel", float(f[1])); tray._after_hover()
+		"peg", "run": tray.set_target_hi(int(f[1]))
+		"tag": tags.open(f[1], f[2])
+
+func tray_active() -> bool: return tray != null and tray.visible
 
 func set_chrome_visible(v: bool) -> void:
 	_on = v
@@ -58,6 +111,7 @@ func refresh() -> void:
 	var id: String = str(li.id) if act else ""
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
 	instruments.refresh(); breaker.sync()
+	if tray != null: tray.refresh(); tags.refresh()
 	_poll_coach(act)
 	_home_drawer()
 	_update_pin(li if act else {})
@@ -96,6 +150,7 @@ func coach(step: Dictionary, index: int, _total: int) -> void:
 
 ## Space toggles the breaker, "." steps once. Returns true when the key was used.
 func key(e: InputEventKey) -> bool:
+	if tray != null and tray.key(e): return true
 	match e.keycode:
 		KEY_SPACE:
 			if space_steps: return false   # core then ticks once
@@ -113,6 +168,7 @@ func layout() -> void:
 	if app == null or instruments == null: return
 	var w := app.vw(); var h := app.vs_h(); var kind := CbLayout.kind
 	instruments.layout()
+	if tray != null: tray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
 	var left: float = M + (app.world_tools_w() if CbLayout.touch and app.has_method("world_tools_w") else 0.0)
 	var nl := 1 if kind == "phone" else 3; var nw := clampf(w * (0.30 if kind == "desktop" else 0.34), 300.0, 560.0)
