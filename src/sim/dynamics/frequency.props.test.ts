@@ -5,6 +5,7 @@ import type { GovKind } from './governors';
 
 const N = Number(process.env.GRID_FUZZ_N ?? 2000);
 const SEED = 20260610;
+const HYDRO_GAIN_MAX = 0.15;
 
 function randomSystem(rng: Rng): { inp: FreqInput; K: number; load: number } {
   const n = rng.int(2, 8);
@@ -19,10 +20,12 @@ function randomSystem(rng: Rng): { inp: FreqInput; K: number; load: number } {
     units.push({ id: `u${i}`, kind, S, H: rng.range(3, 7), R: rng.range(0.03, 0.08), P0: 0.5 * S, Pmin: -1e9, Pmax: 1e9 });
     sTot += S;
   }
-  const hydroS = units.filter((u) => u.kind === 'hydro').reduce((a, u) => a + u.S, 0);
-  if (hydroS > 0.2 * sTot) for (const u of units) if (u.kind === 'hydro') u.kind = 'gas';
   const load = rng.range(0.3, 0.8) * sTot;
   const K = units.reduce((a, u) => a + u.S / (u.R as number), 0);
+  // Small-signal stability precondition: the hydro water-hammer inverse response destabilises the loop when hydro carries too much
+  // of the droop gain S/R (not just of the MVA: seed 20260610 case 32916 had 19.6 % hydro MVA but 28 % of the gain and diverged).
+  const hydroGain = units.filter((u) => u.kind === 'hydro').reduce((a, u) => a + u.S / (u.R as number), 0);
+  if (hydroGain > HYDRO_GAIN_MAX * K) for (const u of units) if (u.kind === 'hydro') u.kind = 'gas';
   const inp: FreqInput = {
     f0: rng.chance(0.5) ? 50 : 60, units, bess: [], loadMW: load, disturbanceMW: rng.range(0.01, 0.08) * sTot, dLoad: rng.range(0, 2),
     gridCode: { deadbandHz: 0, ufls: [] },
@@ -32,6 +35,17 @@ function randomSystem(rng: Rng): { inp: FreqInput; K: number; load: number } {
 }
 
 describe('P16 frequency window ends at the analytic steady state', () => {
+  it('regression: seed 20260610 case 32916 (hydro-heavy droop gain made the loop diverge) now settles on the analytic value', () => {
+    const rng = new Rng(SEED);
+    let sys = randomSystem(rng);
+    for (let c = 1; c <= 32916; c++) sys = randomSystem(rng);
+    const { inp, K, load } = sys;
+    const dwA = -inp.disturbanceMW / (K + (inp.dLoad as number) * load); // case 32916 is even: no deadband
+    const r = runFrequencyWindow(inp);
+    expect(r.endReason).toBe('steady');
+    expect(Math.abs(r.fEndHz - inp.f0 * (1 + dwA))).toBeLessThan(1e-4);
+  });
+
   it(`deadband 0 / offset dead-zone, no limits hit (${N} random systems, seed ${SEED})`, () => {
     const rng = new Rng(SEED);
     let worst = 0, worstDb = 0, nDb = 0;

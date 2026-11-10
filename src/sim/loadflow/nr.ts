@@ -238,6 +238,21 @@ export function qGenAt(c: LFCase, i: number, V: number, Qcalc: number): number {
 
 /** Solve one island case: Newton from the warm start (flat retry on failure) inside the Q-limit outer loop (<= 4 passes, <= 2 switches per bus). */
 export function solveCase(c: LFCase, opts: NrOptions = {}): CaseSolution {
+  const hasWarm = !!(opts.warm && opts.warm.V.length === c.n);
+  const sol = solveCaseOnce(c, opts);
+  // Warm-start validity: Newton from a distant warm point can land on the low-voltage branch of the power-flow equations.
+  // If the warm result sits below the operating band, also solve from flat and prefer a solution with a healthier voltage floor.
+  if (hasWarm && sol.converged && minV(sol) < WARM_V_FLOOR) {
+    const flat = solveCaseOnce(c, { ...opts, warm: null, warmKinds: null });
+    if (flat.converged && minV(flat) > minV(sol)) { flat.iterations += sol.iterations; flat.usedFlatRetry = true; return flat; }
+  }
+  return sol;
+}
+
+const WARM_V_FLOOR = 0.7;
+function minV(s: CaseSolution): number { let m = Infinity; for (const v of s.V) if (v < m) m = v; return m; }
+
+function solveCaseOnce(c: LFCase, opts: NrOptions = {}): CaseSolution {
   const tol = opts.tol ?? NR_TOL, maxIt = opts.maxIt ?? NR_MAX_IT;
   const useLim = opts.qLimits !== false;
   const kinds = initialKinds(c);

@@ -39,6 +39,17 @@ describe('P14 monotonic remedies (radial, constant-power lagging loads, no charg
   });
 });
 
+describe('P25 regressions (nightly seeds): collapse with surplus dispatch', () => {
+  it.each([41000247, 41000384, 41000537])('seed %i: shedding all load at full dispatch has no solution; the dispatch runs back and the case resolves', (seed) => {
+    const net = genNetwork(seed, { maxBuses: 12, islandProb: 0, loadFactor: [1.5, 6] });
+    const sol = solveNetwork(net);
+    expect(sol.converged).toBe(true);
+    expect(Object.keys(sol.genScale).length).toBeGreaterThan(0);
+    for (const g of Object.values(sol.genScale)) { expect(g).toBeGreaterThanOrEqual(0); expect(g).toBeLessThan(1); }
+    expect(sol.ensPu).toBeGreaterThan(0);
+  });
+});
+
 describe('P25 continuation correctness', () => {
   it('when Newton fails: lambda* is convergent and lambda* + 0.01 is not (or lambda* = 1); sheds are 5 % steps', () => {
     let failing = 0, notFailing = 0, collapsed = 0, resolved = 0, unresolved = 0, shedSteps = 0;

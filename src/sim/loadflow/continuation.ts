@@ -41,6 +41,9 @@ export interface ContinuationResult {
   /** Total P shed at nominal voltage (pu). */
   shedPu: number;
   log: Msg[];
+  /** Dispatch run-back applied to the non-slack generation of the island at the final solution (1 = none). Below 1 only when
+   *  shedding every load at full dispatch still has no solution (the slack cannot absorb the surplus): generation then follows the shed. */
+  genScale: number;
   /** Number of NR solves performed. */
   solves: number;
 }
@@ -48,8 +51,8 @@ export interface ContinuationResult {
 const stOf = (s: CaseSolution | null): NrState | null => (s && s.converged ? { V: s.V, th: s.th } : null);
 
 /** Convergence of the case with loads and dispatch scaled by lam: Newton from `warm`, then flat (the P25 predicate). */
-export function tryLambda(c: LFCase, lam: number, warm: NrState | null, qLimits = true, shed?: ArrayLike<number>): CaseSolution {
-  setScale(c, lam, lam, shed);
+export function tryLambda(c: LFCase, lam: number, warm: NrState | null, qLimits = true, shed?: ArrayLike<number>, genLam: number = lam): CaseSolution {
+  setScale(c, lam, genLam, shed);
   return solveCase(c, { warm, qLimits });
 }
 
@@ -105,7 +108,7 @@ export function continuationCase(c: LFCase, opts: ContinuationOptions = {}): Con
   const { lambdaStar, sol: atStar, solves: s0 } = findLambdaStar(c, { ...opts, lamMax: 1 });
   let solves = s0;
   const shedFraction = new Array<number>(c.n).fill(0);
-  const res: ContinuationResult = { lambdaStar, collapsed: lambdaStar < 1, atLambdaStar: atStar, solution: null, sheds: [], shedFraction, shedPu: 0, log, solves };
+  const res: ContinuationResult = { lambdaStar, collapsed: lambdaStar < 1, atLambdaStar: atStar, solution: null, sheds: [], shedFraction, shedPu: 0, log, genScale: 1, solves };
   if (!atStar) { log.push({ key: 'collapse.no-zero-load-solution' }); setScale(c, 1, 1); return res; }
   if (lambdaStar >= 1) { res.solution = atStar; setScale(c, 1, 1); return res; }
   log.push({ key: 'collapse.limit', params: { pct: Math.round(lambdaStar * 1000) / 10 } });
@@ -123,6 +126,25 @@ export function continuationCase(c: LFCase, opts: ContinuationOptions = {}): Con
     log.push({ key: 'collapse.shed', params: { pct: Math.round(step * 100), bus: c.ids[bus]!, dVdLambda: Math.abs(dv[bus]!) } });
     last = tryLambda(c, 1, warm, ql, shedFraction); solves++;
     if (last.converged) break;
+  }
+  if (!(last && last.converged)) {
+    // Fallback: shedding at full dispatch left the slack with a generation surplus it cannot absorb. Re-run the same shed sequence
+    // with the non-slack dispatch running back in step with the shed load (it reaches the lambda = 0 solution at full shed).
+    const totalP = c.base.lp.reduce((a, l) => a + l[0] + l[1] + l[2], 0);
+    shedFraction.fill(0); res.sheds = []; log.length = 1;
+    warm = stOf(atStar); last = null;
+    for (let k = 0; k < maxSteps; k++) {
+      const bus = order.find((i) => shedFraction[i]! < 1 - 1e-12);
+      if (bus === undefined) break;
+      shedFraction[bus] = Math.min(1, Math.round((shedFraction[bus]! + step) * 1e9) / 1e9);
+      res.sheds.push({ bus, busId: c.ids[bus]!, fraction: shedFraction[bus]!, loadIds: c.loadIds[bus]!.slice() });
+      log.push({ key: 'collapse.shed', params: { pct: Math.round(step * 100), bus: c.ids[bus]!, dVdLambda: Math.abs(dv[bus]!) } });
+      let shedP = 0;
+      for (let i = 0; i < c.n; i++) { const [pl] = loadAt({ ...c, lp: c.base.lp }, i, 1); shedP += pl * shedFraction[i]!; }
+      const g = totalP > 0 ? Math.max(0, 1 - shedP / totalP) : 0;
+      last = tryLambda(c, 1, warm, ql, shedFraction, g); solves++;
+      if (last.converged) { res.genScale = g; break; }
+    }
   }
   res.solves = solves;
   res.solution = last && last.converged ? last : null;

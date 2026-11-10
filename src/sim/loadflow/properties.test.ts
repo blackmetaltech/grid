@@ -183,6 +183,18 @@ describe('P11 warm = flat start', () => {
   });
 });
 
+describe('P11 regression (nightly seed 20300579)', () => {
+  it('a warm start that converges to the low-voltage branch is replaced by the flat-start solution', () => {
+    const net = genNetwork(20300579);
+    const ref = solveNetwork(net);
+    const lighter: Net = { ...net, loads: net.loads.map((l) => ({ ...l, p: l.p * 0.85, q: l.q * 0.85 })) };
+    const s0 = solveNetwork(lighter, { continuation: false });
+    const warm = solveNetwork(net, { warm: s0, continuation: false });
+    expect(warm.converged).toBe(true);
+    for (const id of Object.keys(ref.V)) expect(Math.abs(warm.V[id]! - ref.V[id]!), `V ${id}`).toBeLessThan(1e-7);
+  });
+});
+
 describe('P12 Q limits honoured', () => {
   it('every PV unit stays within [Q_min(V), Q_max(V)]; limited buses sit exactly on the limit', () => {
     let pvChecked = 0, limited = 0, unsettled = 0;

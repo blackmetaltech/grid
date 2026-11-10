@@ -14,7 +14,7 @@ export interface IslandReport {
   /** Why not ok / why dark (null = fine). */
   reason: Msg | null;
   /** Voltage collapse details when continuation ran. */
-  collapse: null | { lambdaStar: number; sheds: ShedStep[]; shedPu: number; log: Msg[] };
+  collapse: null | { lambdaStar: number; sheds: ShedStep[]; shedPu: number; log: Msg[]; genScale: number };
   /** Energy not served rate in this island (pu): all load when dark, the shed load after a collapse. */
   ensPu: number;
 }
@@ -33,6 +33,8 @@ export interface NetSolution {
   islands: IslandReport[];
   /** Fraction of each load shed by the collapse sheds (id -> 0..1); empty if none. */
   shed: Record<string, number>;
+  /** Dispatch run-back of non-slack units (unit id -> scale 0..1) when a collapse could only be resolved by backing generation down with the shed; empty normally. */
+  genScale: Record<string, number>;
   /** Total energy-not-served rate (pu): dark islands + collapse sheds. */
   ensPu: number;
   /** Regulating buses whose Q is still outside its capability after the Q-limit passes (normally empty). */
@@ -66,15 +68,20 @@ function kindsFor(c: LFCase, w: SolveOptions['warm']): BusKind[] | null {
 }
 
 /** Net as solved: the collapse sheds applied (loads scaled by 1 - shed), for flows() and the sensitivities. */
-export function effectiveNet(net: Net, sol: Pick<NetSolution, 'shed'>): Net {
-  if (Object.keys(sol.shed).length === 0) return net;
-  return { ...net, loads: net.loads.map((l) => { const f = sol.shed[l.id] ?? 0; return f ? { ...l, p: l.p * (1 - f), q: l.q * (1 - f) } : l; }) };
+export function effectiveNet(net: Net, sol: Pick<NetSolution, 'shed'> & Partial<Pick<NetSolution, 'genScale'>>): Net {
+  const gs = sol.genScale ?? {};
+  if (Object.keys(sol.shed).length === 0 && Object.keys(gs).length === 0) return net;
+  return {
+    ...net,
+    loads: net.loads.map((l) => { const f = sol.shed[l.id] ?? 0; return f ? { ...l, p: l.p * (1 - f), q: l.q * (1 - f) } : l; }),
+    units: net.units.map((u) => { const g = gs[u.id]; return g === undefined ? u : { ...u, p: (u.p ?? 0) * g, ...(u.kind === 'inverter' && u.vSet === undefined && u.q !== undefined ? { q: u.q * g } : {}) }; }),
+  };
 }
 
 /** Solve every energised island; dark islands get V = 0 and all their load as ENS. Divergence becomes a collapse result, never a throw. */
 export function solveNetwork(net: Net, opts: SolveOptions = {}): NetSolution {
   const built = buildCases(net);
-  const sol: NetSolution = { V: {}, theta: {}, energised: {}, kind: {}, converged: true, iterations: 0, reason: null, islands: [], shed: {}, ensPu: 0, qUnsettled: [] };
+  const sol: NetSolution = { V: {}, theta: {}, energised: {}, kind: {}, converged: true, iterations: 0, reason: null, islands: [], shed: {}, genScale: {}, ensPu: 0, qUnsettled: [] };
   for (const b of net.buses.map((x) => x.id).sort(cmpId)) { sol.V[b] = 0; sol.theta[b] = 0; sol.energised[b] = false; sol.kind[b] = 'off'; }
   const byIsland = new Map(built.cases.map((x) => [x.island.index, x.c]));
   for (const isl of built.islands) {
@@ -86,11 +93,15 @@ export function solveNetwork(net: Net, opts: SolveOptions = {}): NetSolution {
     if (!cs.converged && opts.continuation !== false) {
       const co = continuationCase(c, { qLimits: opts.qLimits, bisections: opts.bisections });
       rep.iterations += co.solves;
-      rep.collapse = { lambdaStar: co.lambdaStar, sheds: co.sheds, shedPu: co.shedPu, log: co.log };
+      rep.collapse = { lambdaStar: co.lambdaStar, sheds: co.sheds, shedPu: co.shedPu, log: co.log, genScale: co.genScale };
       rep.ensPu = co.shedPu;
       if (co.solution) {
         cs = co.solution; rep.reason = co.log[0] ?? null;
         for (let i = 0; i < c.n; i++) if (co.shedFraction[i]!) for (const lid of c.loadIds[i]!) sol.shed[lid] = co.shedFraction[i]!;
+        if (co.genScale < 1) {
+          const isle = new Set(isl.buses);
+          for (const u of net.units) if (u.online && isle.has(u.bus) && u.id !== isl.slackUnit && (u.kind === 'sync' || u.kind === 'bess-gfm' || u.kind === 'inverter')) sol.genScale[u.id] = co.genScale;
+        }
       } else { rep.converged = false; rep.reason = co.log[co.log.length - 1] ?? cs.message; }
     }
     if (!cs.converged && !rep.collapse?.sheds.length && rep.converged) { rep.converged = false; rep.reason = cs.message; }
