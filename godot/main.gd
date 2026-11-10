@@ -118,6 +118,13 @@ func _begin() -> void:
 	WorkOrder.close_now()
 	if WorkOrder.auto: WorkOrder.open_fresh(self)
 
+## Core re-applies the drawer cover on every relayout (_cover_of(home) = drawer_w, 68 % of a handheld screen) even though GRID's home drawer is
+## blank and hidden: the island then fitted into the left third of a 1280x800 screen. Keep the world uncovered whenever no drawer shows.
+## (Core request filed in status/core-requests.md: _cover_of should be 0 while drawer_hidden.)
+func _apply_drawer_width() -> void:
+	super()
+	if drawer_hidden or cur == home: _set_cover(0.0)
+
 ## Top-left pin: the work order while the job runs, the report again once it has ended.
 func _on_pin() -> void:
 	if modal() != null: return

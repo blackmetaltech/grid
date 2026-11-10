@@ -25,11 +25,11 @@ static func open(app: CbApp) -> bool:
 	var lid := str(e.level_id)
 	var stars := int(app.b.g.get("stars", 0)) if won else 0
 	if won and lid != "": GridSettings.record_stars(lid, stars); GridSettings.record_pass(lid)
-	var compact := PaperKit.compact(app)
+	var compact := PaperKit.compact(app) or app.vs_h() < 860.0   # Deck 1280x800 / 768p laptops: the compact sheet fits without the "more" cue over ADA's note
 	var short: bool = app.vs_h() < 920.0
 	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
 	var w: float = dock.w
-	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short else 0.0, 0.34, 16.0 if compact else 30.0)
+	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.34, 16.0 if compact else 30.0)
 	_d = d
 	app.sfx("page")
 	var host: Control = d.host; var pn: PanelContainer = d.panel
