@@ -26,6 +26,51 @@ The pass before v0.3.0 is alpha-worthy, run 2026-11-10 from 17:40. Each finding 
 
 Neither tester reached a passing 11 kV line. That was the headline failure.
 
+### Re-test after the fixes (novice, 1366×768)
+| Area | before | after |
+|---|---|---|
+| First 60 s | 6 | 7 |
+| Survey and refusals | 5 | 7 |
+| Physics landing | 3 | 7 |
+| Feedback truth | 3 | 5 |
+| Polish | 4 | 6 |
+| Input | 4 | 8 |
+
+The tester built an 11 kV line and read the lesson ("305 A at 0.42 kV but only 12 A at 11 kV"). The run missed the budget by $8.6k with steel tube poles.
+
+The re-test found three more issues:
+- Switching the voltage after a 0.42 kV line existed left that line at 0.42 kV.
+- A second survey at the other voltage stacked a second line and a second bill.
+- Switching the voltage outside a survey showed both yards' pegs on top of each other.
+
+**All three are fixed**: the voltage is a kit part that moves the line to the same sites' yards, a survey between the same sites replaces the line, and pegs show only while a tool is on. route_flow tests cover all three.
+
+Still open from the re-test:
+- The incident report leads with the budget, with no checklist mirroring the work order.
+- The 115% transformer tag has no explanation.
+- A tray click is sometimes swallowed right after the work order closes. Not reproduced.
+
+### Haiku panel (8 shots, 0-50)
+| Shot | Score |
+|---|---|
+| title | 41 |
+| L01 built | 38 |
+| L03 work order | 37 |
+| L05 ghost | 30 |
+| L05 night | 31 |
+| L05 report | 33 |
+| L05 survey at 1366 | 35 |
+| Pixel L05 | 30 |
+
+The chapter 1 baseline was 34-41, average about 38. Chapter 2 is weaker on "cute" (3-6).
+
+Fixed after the panel:
+- The market town's tiles now fill with lit houses around a stall square.
+- The phone camera keeps the market above the tray.
+
+Open:
+- The report's "clears by 16.2 m" (longest span) beside the gauge's +0.6 m (tightest span) reads as a contradiction.
+
 ## Findings and status
 | # | Sev | Source | Finding | Status |
 |---|---|---|---|---|
