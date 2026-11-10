@@ -8,17 +8,17 @@ var sound: GridSound   ## GridAudio wired to the screen (ui/grid_sound.gd)
 func game_config() -> Dictionary:
 	GridUi.load_strings()
 	return GridUi.extend_config({
-		"chrome": "custom", "home": "clock",
+		"chrome": "custom", "home": "home",
 		"title": str(ProjectSettings.get_setting("application/config/name", "GRID")),
 		"tagline": tr("GRID_TAGLINE"),
 		"blurb": tr("GRID_BLURB"),
 		"accent": Color("#39E1FF"), "accent2": Color("#FFB020"),
 		"modes": [["learner", tr("MODE_LEARNER"), tr("MODE_LEARNER_DESC")], ["engineer", tr("MODE_ENGINEER"), tr("MODE_ENGINEER_DESC")], ["sandbox", tr("MODE_SANDBOX"), tr("MODE_SANDBOX_DESC")]],
-		"dock": [["clock", tr("DOCK_CLOCK"), Color("#39E1FF"), tr("DOCK_CLOCK")]],
-		"screens": {"clock": "res://screens/clock.gd"},
-		"overlay": ["clock"], "full": [],
+		"dock": [["home", tr("DOCK_HOME"), Color("#39E1FF"), tr("DOCK_HOME")]],   # the shell wants a home id; it is blank (ui/home_blank.gd), the old Operator Clock drawer is gone
+		"screens": {"home": "res://ui/home_blank.gd"},
+		"overlay": [], "full": [],
 		"tick_label": tr("TICK_BUTTON"), "tick_seconds": [0.0, 4.0, 1.6, 0.6],
-		"keys": [["Space", tr("KEY_SPACE_DESC")], ["1", tr("KEY_DOCK_DESC")]],
+		"keys": [["Space", tr("KEY_SPACE_DESC")]],
 	})
 
 func game_build_world(parent: Node) -> Node:
@@ -28,7 +28,7 @@ func game_build_world(parent: Node) -> Node:
 
 func game_on_changed() -> void:
 	if grid_world != null: grid_world.refresh(b)
-	if chrome != null: chrome.refresh()
+	if chrome != null: chrome.refresh(); _skin_pin()
 	if sound != null and grid_world != null: sound.on_changed(grid_world.model)
 
 func game_end_card(vb: VBoxContainer, g: Dictionary) -> void:
@@ -72,7 +72,7 @@ func game_unhandled_key(e: InputEventKey) -> bool:
 	match e.keycode:   # bench levels use the kit tray and tags; the old Build / Inspect drawers remain on B / I for grid levels (L07) until their task
 		KEY_B: if chrome != null and not chrome.tray_active(): show_screen(home if cur == "build" else "build"); chrome.refresh(); return true
 		KEY_I: if chrome != null and not chrome.tray_active(): show_screen(home if cur == "inspect" else "inspect"); chrome.refresh(); return true
-		KEY_T: show_screen(home if cur == "timeline" else "timeline"); chrome.refresh(); return true
+		KEY_T: if chrome != null and not chrome.tray_active(): show_screen(home if cur == "timeline" else "timeline"); chrome.refresh(); return true
 	return grid_world != null and grid_world.key(e)
 
 # --- custom chrome hooks ---
@@ -92,6 +92,8 @@ func game_chrome_visible(v: bool) -> void:
 	if chrome != null: chrome.set_chrome_visible(v)
 func game_relayout() -> void:
 	if chrome != null: chrome.layout()
+	for n in root.get_children():   # dialogs keep their scrim full-bleed behind the notch when the safe area changes
+		if n is PaperHost: PaperKit.bleed(self, n)
 func game_toast(text: String, level: String) -> bool:
 	if chrome == null: return false
 	chrome.toast(text, level); return true
@@ -122,6 +124,42 @@ func _on_pin() -> void:
 	if str(b.g.get("status", "playing")) != "playing": end_seen = false; menus.end_card()
 	else: WorkOrder.open(self)
 
+## The pin after a job has ended: a lost job turns it into a red "Incident · Retry ▸" pin (tap = the incident report with Retry again, e.g. after "Look
+## around"), a won one into "WO-xx · lit ▸" (report, Next job). GridChrome owns the pin and rewrites its text on every refresh, so this runs after each one.
+## NOTE for GridChrome's owner: a `set_pin_state(kind, title, sub)` setter would replace the label / stylebox pokes below.
+var _pin_kind := ""
+var _pin_sb0: StyleBox
+func _skin_pin() -> void:
+	if chrome == null or chrome.pin == null or not started: return
+	var pin: PanelContainer = chrome.pin
+	var st := str(b.g.get("status", "playing"))
+	var kind := "" if st == "playing" else ("done" if st == "won" else "lost")
+	var li = b.q("levelInfo"); var lid := str(li.id).trim_prefix("L") if li is Dictionary and li.get("active", false) else ""
+	if kind == "" and _pin_kind == "": return
+	var vbx := pin.get_child(0) as VBoxContainer
+	var t: Label = vbx.get_child(0); var sub: Label = vbx.get_child(1)
+	if kind == "":
+		if _pin_sb0 != null: pin.add_theme_stylebox_override("panel", _pin_sb0)
+		t.remove_theme_color_override("font_color"); sub.remove_theme_color_override("font_color"); pin.modulate = Color.WHITE; _pin_kind = ""; return
+	if _pin_sb0 == null: _pin_sb0 = pin.get_theme_stylebox("panel")
+	if _pin_kind != kind:
+		var sb := GridTheme.paper_sb(3, 12.0).duplicate() as StyleBoxFlat
+		sb.border_color = PaperKit.RED if kind == "lost" else GridTheme.SODIUM_DIM; sb.set_border_width_all(4 if kind == "lost" else 3)
+		if kind == "lost": sb.bg_color = Color("#F3D9CF")
+		pin.add_theme_stylebox_override("panel", sb); _pin_kind = kind
+		var ink: Color = PaperKit.RED if kind == "lost" else GridTheme.PAPER_INK
+		t.add_theme_color_override("font_color", ink); sub.add_theme_color_override("font_color", Color(ink, 0.85))
+	var tt: String = tr("PIN_INCIDENT") if kind == "lost" else tr("PIN_DONE") % lid
+	var ss: String = tr("PIN_INCIDENT_SUB") % lid if kind == "lost" else tr("PIN_DONE_SUB")
+	if t.text != tt: t.text = tt
+	if sub.text != ss: sub.text = ss
+
+func _process(dt: float) -> void:
+	super(dt)
+	if _pin_kind != "" and chrome != null and chrome.pin != null and started:
+		_skin_pin()   # GridChrome may have rewritten the labels
+		if _pin_kind == "lost": chrome.pin.modulate = Color.WHITE.darkened(0.06 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)))   # a slow breathing so the way back is noticed
+
 ## GRID cues go to GridAudio, everything else (click, confirm, back ...) stays with the shell's own sounds.
 func sfx(k: String) -> void:
 	if sound != null and sound.route(k): return
@@ -137,14 +175,14 @@ func game_smoke() -> void:
 	b.act("tick", [3]); await get_tree().process_frame
 	var c1: Dictionary = b.q("clock")
 	CbSmoke._check(int(c1.block) == int(c0.block) + 3 and int(c1.day) == int(c0.day), "the clock advances one block per tick")
-	show_screen("clock"); await get_tree().process_frame
 	show_screen(home); await get_tree().process_frame
+	CbSmoke._check(cur == home and not holder.visible and not screens.has("clock"), "the home screen is blank: no Operator Clock drawer exists or shows")
 	# GRID chrome: nodes exist, kit bar and dock are hidden, breaker drives the speed, radio hears the coach
 	b.act("startLevel", ["L01", 1, "learner"]); game_on_changed(); await get_tree().process_frame; _relayout(); await get_tree().process_frame
 	CbSmoke._check(chrome != null and chrome.visible and chrome.instruments != null and chrome.radio != null and chrome.breaker != null and chrome.pin != null, "GRID chrome nodes exist and are shown in a level")
 	CbSmoke._check(not top.visible and not dock_scroll.visible and _bar_h == 0.0 and _dock_h == 0.0, "kit bar and dock are hidden in custom chrome")
 	CbSmoke._check(chrome.instruments.clock.visible and chrome.instruments.volt.visible and not chrome.instruments.dial.visible, "bench level: clock and voltmeter, no frequency dial")
-	set_speed(0); chrome.breaker.toggle(); CbSmoke._check(speed == 1, "breaker run sets speed 1")
+	set_speed(0); chrome.breaker.set_rate(1); chrome.breaker.toggle(); CbSmoke._check(speed == 1, "breaker run sets speed 1")
 	chrome.breaker.cycle_rate(); CbSmoke._check(speed == 2, "rate knob moves a running night to 2x")
 	chrome.breaker.toggle(); CbSmoke._check(speed == 0, "breaker pause sets speed 0")
 	chrome.space_steps = false; var ev := InputEventKey.new(); ev.keycode = KEY_SPACE; ev.pressed = true; game_unhandled_key(ev); CbSmoke._check(speed > 0, "Space toggles run"); game_unhandled_key(ev); CbSmoke._check(speed == 0, "Space toggles pause"); chrome.space_steps = true

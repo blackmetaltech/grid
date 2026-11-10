@@ -11,10 +11,11 @@ static func toggle(app: CbApp) -> bool:
 	if app.menu_ui != null and is_instance_valid(app.menu_ui): app.menus.close_menu(); return true
 	GridUi.load_strings()
 	app.get_viewport().gui_release_focus()
-	var d := PaperKit.sheet(app, "menu", 440.0, 0.0, 0.6, 28.0)
+	var compact := PaperKit.compact(app)   # landscape phone: the card must fit the safe area, so the entries sit in two columns under a small title
+	var d := PaperKit.sheet(app, "menu", 640.0 if compact else 440.0, 0.0, 0.6, 16.0 if compact else 28.0)
 	app.menu_ui = d.host
-	var vb: VBoxContainer = d.vb; vb.add_theme_constant_override("separation", 10)
-	vb.add_child(PaperKit.lbl(T("PAUSE_TITLE").to_upper(), 52, "title", PaperKit.INK))
+	var vb: VBoxContainer = d.vb; vb.add_theme_constant_override("separation", 6 if compact else 10)
+	vb.add_child(PaperKit.lbl(T("PAUSE_TITLE").to_upper(), 36 if compact else 52, "title", PaperKit.INK))
 	vb.add_child(PaperKit.rule())
 	var in_level: bool = app.started and app.b.q("levelInfo") is Dictionary and bool((app.b.q("levelInfo") as Dictionary).get("active", false))
 	var first: Button = null
@@ -24,12 +25,19 @@ static func toggle(app: CbApp) -> bool:
 	entries.append(["PAUSE_SETTINGS", false, func(): app.menus.close_menu(); app.open_settings()])
 	entries.append(["PAUSE_JOBS", false, func(): app.menus.close_menu(); Jobs.open(app)])
 	entries.append(["PAUSE_TITLE_BTN", false, func(): app.menus.close_menu(); app.to_title()])
+	var holder: Container = vb
+	if compact:
+		var gr := GridContainer.new(); gr.columns = 2; gr.add_theme_constant_override("h_separation", 10); gr.add_theme_constant_override("v_separation", 6); gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL; vb.add_child(gr); holder = gr
 	for en in entries:
-		var b := PaperKit.btn(T(str(en[0])), bool(en[1]), en[2], 22)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; vb.add_child(b)
+		var b := PaperKit.btn(T(str(en[0])), bool(en[1]), en[2], 20 if compact else 22)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if compact: b.custom_minimum_size.y = 44.0
+		holder.add_child(b)
 		if first == null: first = b
 	vb.add_child(PaperKit.rule())
-	vb.add_child(cute_toggle(app))
+	var ct := cute_toggle(app)
+	if compact: ct.custom_minimum_size.y = 40.0
+	vb.add_child(ct)
 	PaperKit.slide_in(d, 40.0)
 	app.audio.play("open")
 	(d.host as PaperHost).primary = first

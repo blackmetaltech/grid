@@ -28,7 +28,7 @@ static func extend_config(cfg: Dictionary) -> Dictionary:
 		[ID_INSPECT, T("DOCK_INSPECT"), Color("#FFB020"), T("DOCK_INSPECT_SHORT")],
 		[ID_TIMELINE, T("DOCK_TIMELINE"), Color("#7CFFB2"), T("DOCK_TIMELINE_SHORT")],
 	]
-	for d in cfg.dock: dock.insert(0, d)   # the clock entry is the (empty) home screen; the dock itself is hidden in custom chrome
+	for d in cfg.dock: dock.insert(0, d)   # the first entry is the blank home screen (ui/home_blank.gd); the dock itself is hidden in custom chrome
 	cfg.dock = dock
 	cfg.screens[ID_BUILD] = "res://ui/build_screen.gd"
 	cfg.screens[ID_INSPECT] = "res://ui/inspect_screen.gd"

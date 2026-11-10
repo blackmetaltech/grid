@@ -252,7 +252,7 @@ func _view_rect() -> Rect2:
 	var l := 8.0; var t := 8.0; var r := size.x - cover - 8.0; var bt := size.y - 8.0
 	if app != null:
 		var ins: Vector4 = app.inset
-		l = 14.0 + (app.RAIL_W if CbLayout.phone else 0.0); t = app._bar_h + 12.0
+		l = 14.0 + ins.x + (app.RAIL_W if CbLayout.phone else 0.0); t = app._bar_h + 12.0 + ins.y   # the world itself is full-bleed; only the framed island keeps clear of the notch
 		bt = size.y - (6.0 if CbLayout.phone else app._dock_h + 12.0) - ins.w
 		r = size.x - cover - 14.0 - ins.z
 	return Rect2(l, t, maxf(60.0, r - l), maxf(60.0, bt - t))

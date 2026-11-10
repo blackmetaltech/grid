@@ -46,27 +46,51 @@ static func btn(text: String, primary: bool, cb: Callable, size := 20) -> Button
 		b.add_theme_stylebox_override("hover", _btn_sb(Color(INK, 0.1), INK))
 		b.add_theme_stylebox_override("pressed", _btn_sb(Color(INK, 0.18), INK))
 	b.add_theme_stylebox_override("focus", _focus_sb())
+	b.add_theme_stylebox_override("disabled", _btn_sb(Color(INK, 0.04), Color(INK, 0.35)))
+	b.add_theme_color_override("font_disabled_color", Color(INK, 0.6))
 	b.custom_minimum_size = Vector2(0, maxf(52.0, CbLayout.tap()))
 	b.pressed.connect(cb)
 	return b
 
-## Segmented chip: options = [[id, label], ...]; `on_pick(id)` runs when another one is chosen.
+## Segmented chip: options = [[id, label], ...]; `on_pick(id)` runs when another one is chosen. The chosen one is unmistakable: filled sodium, a heavy ink
+## border and a pencilled check at its left; the others are plain outlines.
 static func chip(options: Array, selected: String, on_pick: Callable) -> HBoxContainer:
-	var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 0)
+	var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6)
 	for o in options:
 		var id: String = str(o[0]); var on: bool = id == selected
-		var b := Button.new(); b.text = str(o[1]); b.toggle_mode = false; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		var b := Button.new(); b.text = str(o[1]); b.name = "Chip_" + id; b.toggle_mode = false; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		b.set_meta("selected", on)
 		b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(16))
-		var fc: Color = GridTheme.NIGHT if on else INK
+		var fc: Color = GridTheme.NIGHT if on else Color(INK, 0.8)
 		for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, fc)
-		var sb := _btn_sb(GridTheme.SODIUM if on else Color(INK, 0.0), INK, 2); sb.set_corner_radius_all(14); sb.content_margin_top = 4; sb.content_margin_bottom = 4; sb.content_margin_left = 16; sb.content_margin_right = 16
+		var sb := _btn_sb(GridTheme.SODIUM if on else Color(INK, 0.0), INK if on else Color(INK, 0.55), 3 if on else 2); sb.set_corner_radius_all(16)
+		sb.content_margin_top = 4; sb.content_margin_bottom = 4; sb.content_margin_left = 40 if on else 18; sb.content_margin_right = 18
 		for k in ["normal", "pressed"]: b.add_theme_stylebox_override(k, sb)
 		var hv := sb.duplicate() as StyleBoxFlat; hv.bg_color = GridTheme.SODIUM.lightened(0.15) if on else Color(INK, 0.1); b.add_theme_stylebox_override("hover", hv)
 		b.add_theme_stylebox_override("focus", _focus_sb())
 		b.custom_minimum_size.y = maxf(38.0, CbLayout.tap() * 0.8)
-		if not on: b.pressed.connect(func(): on_pick.call(id))
+		if on:
+			var ck := ChipCheck.new(); ck.set_anchors_and_offsets_preset(Control.PRESET_LEFT_WIDE); ck.offset_left = 10; ck.offset_right = 34; b.add_child(ck)
+		else: b.pressed.connect(func(): on_pick.call(id))
 		hb.add_child(b)
 	return hb
+
+## True on a phone-sized safe area (landscape phone minus the notch): the paper screens switch to their compact layouts.
+static func compact(app: CbApp) -> bool: return app.vs_h() < 600.0
+
+## The dimmed backdrop of a dialog reaches the physical screen edges: the shell insets the whole UI root by the safe area, so the scrim is pushed back out
+## by the inset (otherwise the world shows as a lit rectangle with dark bars around it).
+static func bleed(app: CbApp, host: Control) -> void:
+	if host.get_child_count() == 0 or not (host.get_child(0) is ColorRect): return
+	var dim := host.get_child(0) as ColorRect; var ins: Vector4 = app.inset
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.offset_left = -ins.x; dim.offset_top = -ins.y; dim.offset_right = ins.z; dim.offset_bottom = ins.w
+
+## A vertically scrolling column with a visible cue: when more content is hidden below, the bottom edge fades into the paper and a "more" tab with an
+## arrow shows; it vanishes at the end. Returns the box (expands to the room the sheet gives it).
+static func scroll_box(content: Control, fade: Color = GridTheme.PAPER) -> Control:
+	var box := CueBox.new(content, fade)
+	return box
 
 static func rule() -> Control: return DashedRule.new()
 
@@ -77,6 +101,7 @@ static func sheet(app: CbApp, name: String, w: float, h: float, dim := 0.8, pad 
 	var host: Control = d.host
 	host.set_script(PaperHost); host.theme = GridTheme.theme()
 	(host.get_child(0) as ColorRect).color = Color(GridTheme.NIGHT, dim)
+	(host as PaperHost).app = app; bleed(app, host)
 	var pn: PanelContainer = d.panel
 	pn.clip_contents = false
 	pn.add_theme_stylebox_override("panel", GridTheme.paper_sb(4, pad))
@@ -111,13 +136,18 @@ static func fold(d: Dictionary, target: Vector2, on_done := Callable()) -> void:
 		if is_instance_valid(host): host.queue_free()
 		if on_done.is_valid(): on_done.call())
 
-## QA screenshots: open a paper screen by name from CB_CAM (`paper=menu`, `jobs`, `workorder`, `report`).
+## QA screenshots: open a paper screen by name from CB_CAM (`paper=menu`, `jobs`, `workorder`, `report`, `chapter`, `look` = press Look around on the open report).
 static func qa(app: CbApp, what: String) -> void:
 	match what:
 		"menu": app.open_menu()
 		"jobs": Jobs.open(app)
 		"workorder": WorkOrder.open(app)
-		"report": app.end_seen = false; app.menus.end_card()
+		"report", "look":   # a fresh report once the world has settled (the job may already have ended and opened one while the QA ticks ran); `look` then presses Look around
+			app.get_tree().create_timer(1.5).timeout.connect(func():
+				if ShiftReport.is_open(): app.menus.end_look()
+				app.end_seen = false; app.menus.end_card()
+				if what == "look": app.get_tree().create_timer(0.3).timeout.connect(func(): ShiftReport._look(app, str(app.b.g.get("status", "")) == "won")))
+		"chapter": ShiftReport.chapter_end(app, "L07")
 
 # ---- hand-drawn controls -------------------------------------------------------------------------------------------------------------
 ## Strip of tape across the top edge of a sheet.
@@ -129,6 +159,43 @@ class Tape extends Control:
 		draw_rect(Rect2(-w * 0.5 + 2, -h * 0.5 + 3, w, h), Color(0, 0, 0, 0.12))
 		draw_rect(Rect2(-w * 0.5, -h * 0.5, w, h), Color(GridTheme.SODIUM, 0.55))
 		for i in 7: draw_line(Vector2(-w * 0.5, -h * 0.5 + 4 + i * 4.0), Vector2(w * 0.5, -h * 0.5 + 4 + i * 4.0), Color(1, 1, 1, 0.12), 1.0)
+
+## Scroll container with the "more" cue (see PaperKit.scroll_box). The cue is drawn by an overlay child above the scroller, so opaque content never covers it.
+class CueBox extends Control:
+	var sc: ScrollContainer
+	var ov: Control
+	var fade_col := GridTheme.PAPER
+	var _more := false
+	func _init(content: Control, fade: Color) -> void:
+		fade_col = fade; name = "CueBox"; size_flags_vertical = Control.SIZE_EXPAND_FILL; size_flags_horizontal = Control.SIZE_EXPAND_FILL; clip_contents = true
+		mouse_filter = Control.MOUSE_FILTER_PASS
+		sc = ScrollContainer.new(); sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		add_child(sc); content.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sc.add_child(content)
+		ov = Control.new(); ov.name = "Cue"; ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ov.mouse_filter = Control.MOUSE_FILTER_IGNORE; ov.draw.connect(_paint); add_child(ov)
+	## True while content is hidden below the visible part.
+	func more_below() -> bool:
+		var vs := sc.get_v_scroll_bar()
+		return vs.max_value - vs.page > 6.0 and vs.value + vs.page < vs.max_value - 6.0
+	func _process(_dt: float) -> void:
+		var m := more_below()
+		if m != _more: _more = m; ov.queue_redraw()
+	func _paint() -> void:
+		if not _more: return
+		var sz := ov.size; var h := 54.0; var y0 := sz.y - h
+		ov.draw_polygon(PackedVector2Array([Vector2(0, y0), Vector2(sz.x, y0), Vector2(sz.x, sz.y), Vector2(0, sz.y)]), PackedColorArray([Color(fade_col, 0.0), Color(fade_col, 0.0), Color(fade_col, 1.0), Color(fade_col, 1.0)]))
+		var f := GridTheme.font("mono"); var fs := GridTheme.fs(15); var txt := TranslationServer.translate("UI_MORE")
+		var ts := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+		var cx := sz.x * 0.5; var by := sz.y - 8.0
+		ov.draw_string(f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.85))
+		var ax := cx + ts.x * 0.5 + 6.0
+		ov.draw_colored_polygon(PackedVector2Array([Vector2(ax, by - 14.0), Vector2(ax + 14.0, by - 14.0), Vector2(ax + 7.0, by - 4.0)]), Color(INK, 0.85))
+
+## Pencilled check mark inside the chosen chip.
+class ChipCheck extends Control:
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		var c := Vector2(size.x * 0.5, size.y * 0.5)
+		draw_polyline(PackedVector2Array([c + Vector2(-7, 0), c + Vector2(-2, 6), c + Vector2(8, -7)]), GridTheme.NIGHT, 3.4, true)
 
 class DashedRule extends Control:
 	func _init() -> void: custom_minimum_size = Vector2(0, 8); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_horizontal = Control.SIZE_EXPAND_FILL

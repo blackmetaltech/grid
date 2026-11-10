@@ -7,6 +7,8 @@ extends RefCounted
 ## benchStatus, coach, solutionCode (queries only).
 
 const STAMP_DELAY := 0.42
+const CHAPTER_END := {"L03": "L07"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order)
+const HIST_MIN_N := 10                ## fewer designs than this and the histogram says so instead of drawing a lonely bar
 static var _d: Dictionary = {}
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
@@ -22,50 +24,108 @@ static func open(app: CbApp) -> bool:
 	var li = app.b.q("levelInfo"); var has_li: bool = li is Dictionary and li.get("active", false)
 	var lid := str(e.level_id)
 	var stars := int(app.b.g.get("stars", 0)) if won else 0
-	if won and lid != "": GridSettings.record_stars(lid, stars)
-	var at_left: bool = app.vw() >= 1000.0   # wide screens: the sheet sits at the left, the island stays visible beside it
-	var w := minf(700.0, app.vw() * (0.52 if at_left else 0.94))
+	if won and lid != "": GridSettings.record_stars(lid, stars); GridSettings.record_pass(lid)
+	var compact := PaperKit.compact(app)
 	var short: bool = app.vs_h() < 920.0
-	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 40.0) if short else 0.0, 0.34)
+	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
+	var w: float = dock.w
+	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short else 0.0, 0.34, 16.0 if compact else 30.0)
 	_d = d
 	app.sfx("page")
 	var host: Control = d.host; var pn: PanelContainer = d.panel
 	app.end_ui = host
-	# the sheet sits at the left so the lit (or dark) hamlet stays visible beside it
 	pn.remove_meta("cb_dlg")
-	var left := 24.0 if at_left else (app.vw() - w) * 0.5
+	var left: float = dock.left
 	pn.anchor_left = 0.0; pn.anchor_right = 0.0; pn.anchor_top = 0.5; pn.anchor_bottom = 0.5
 	pn.offset_left = left; pn.offset_right = left + w
-	if short: pn.offset_top = -(app.vs_h() - 40.0) * 0.5; pn.offset_bottom = (app.vs_h() - 40.0) * 0.5
+	if short: pn.offset_top = -(app.vs_h() - 24.0) * 0.5; pn.offset_bottom = (app.vs_h() - 24.0) * 0.5
 	else: pn.offset_top = 0; pn.offset_bottom = 0; pn.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var vb: VBoxContainer = d.vb
-	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 12); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if short:
-		var sc := ScrollContainer.new(); sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; vb.add_child(sc); sc.add_child(col)
+	if compact: vb.add_theme_constant_override("separation", 6)
+	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 6 if compact else 12); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if short: vb.add_child(PaperKit.scroll_box(col))
 	else: vb.add_child(col)
 	var lamps: Array = []
-	if won: lamps = _won(app, col, e, li if has_li else {}, stars, short)
-	else: _lost(app, col, e, li if has_li else {})
+	if won: lamps = _won(app, col, e, li if has_li else {}, stars, short, compact)
+	else: _lost(app, col, e, li if has_li else {}, compact)
 	vb.add_child(PaperKit.rule())
 	var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 12); row.add_theme_constant_override("v_separation", 8); vb.add_child(row)
 	var primary: Button = null
 	var retry := PaperKit.btn(T("REP_RETRY"), not won, func(): _retry(app, lid, str(e.mode)), 20); retry.name = "Retry"; row.add_child(retry)
 	if won:
 		if str(e.next_level) != "":
-			var nx := PaperKit.btn(T("REP_NEXT"), true, func(): app.start_level(str(e.next_level), true), 20); nx.name = "Next"; row.add_child(nx); primary = nx
+			var nx := PaperKit.btn(T("REP_NEXT"), true, func(): _next(app, lid, str(e.next_level)), 20); nx.name = "Next"; row.add_child(nx); primary = nx
 		var cp := PaperKit.btn(T("REP_COPY"), false, func(): pass, 20); cp.name = "Copy"
 		cp.pressed.connect(func(): _copy_code(app, cp)); row.add_child(cp)
 		if primary == null: primary = retry
 	else:
-		var lk := PaperKit.btn(T("REP_LOOK"), false, func(): app.menus.end_look(), 20); lk.name = "Look"; row.add_child(lk); primary = retry
+		var lk := PaperKit.btn(T("REP_LOOK"), false, func(): _look(app, won), 20); lk.name = "Look"; row.add_child(lk); primary = retry
 	if won and lid != "" and app.scores != null:
 		var line: String = app.scores_submit_level(lid)
 		if line != "": vb.add_child(PaperKit.lbl(line, 14, "sans", Color(PaperKit.INK, 0.6), true))
 	PaperKit.slide_in(d, 60.0)
 	(host as PaperHost).primary = primary
 	app.focus_dialog()
+	for i in 2: app.get_tree().process_frame.connect(func(): _redock(app, d, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94))), CONNECT_ONE_SHOT)   # the world may still be refitting on the frame the job ended
+	if primary != null: primary.call_deferred("grab_focus")   # won: Next job is focused; lost: Retry
 	_stamp_lamps(app, lamps)
 	return true
+
+## Where the sheet goes: {left, w} in the UI root's coordinates. It sits on the side that overlaps the built island (hamlets, hut: WorldView.object_rects) the
+## least, and gets narrower (down to 460) when neither side is clear. No island rects (grid levels): left.
+static func _dock(app: CbApp, w0: float) -> Dictionary: return dock_for(app.vw(), island_rect(app), w0, island_bounds(app))
+
+## Re-run the docking once the world has settled (the island moves a little when the model and camera refit after the last tick).
+static func _redock(app: CbApp, d: Dictionary, w0: float) -> void:
+	if not is_instance_valid(d.host) or _d != d: return
+	var dk := _dock(app, w0); var pn: Control = d.panel
+	pn.offset_left = float(dk.left); pn.offset_right = float(dk.left) + float(dk.w)
+
+## Pure part of `_dock` (unit-tested): usable width `vw`, island rect `ir` in the same coordinates, preferred sheet width `w0`.
+static func dock_for(vw: float, ir: Rect2, w0: float, isl := Rect2()) -> Dictionary:
+	var m := 24.0; var w := w0
+	if ir.size.x <= 0.0 or vw < 1000.0: return {"left": (vw - w) * 0.5 if vw < 1000.0 else m, "w": w}
+	var ov_l := _overlap(Rect2(m, 0, w, 10.0), ir); var ov_r := _overlap(Rect2(vw - m - w, 0, w, 10.0), ir)
+	if minf(ov_l, ov_r) <= 0.0 and ov_l == ov_r and isl.size.x > 0.0:   # both sides clear of the built things: take the one that covers less of the island
+		return {"left": m if _overlap(Rect2(m, 0, w, 10.0), isl) <= _overlap(Rect2(vw - m - w, 0, w, 10.0), isl) else vw - m - w, "w": w}
+	if minf(ov_l, ov_r) > 0.0:   # neither side is clear: shrink to the room the roomier side has
+		var room_l := ir.position.x - 2.0 * m; var room_r := vw - ir.end.x - 2.0 * m
+		w = clampf(maxf(room_l, room_r), 460.0, w0)
+		ov_l = _overlap(Rect2(m, 0, w, 10.0), ir); ov_r = _overlap(Rect2(vw - m - w, 0, w, 10.0), ir)
+	return {"left": m if ov_l <= ov_r else vw - m - w, "w": w}
+
+static func _overlap(a: Rect2, b: Rect2) -> float:
+	var l := maxf(a.position.x, b.position.x); var r := minf(a.end.x, b.end.x)
+	return maxf(0.0, r - l)
+
+## Screen rect (UI root coordinates) of what the player built and what it feeds: hamlets, schools, huts. Rect2() when the world shows none.
+static func island_rect(app: CbApp) -> Rect2:
+	var wv = app.get("grid_world")
+	if wv == null or not wv.has_method("object_rects"): return Rect2()
+	var rs: Array = wv.object_rects()
+	if rs.is_empty(): return Rect2()
+	var u: Rect2 = rs[0]
+	for r in rs: u = u.merge(r)
+	return Rect2(u.position - Vector2(app.inset.x, app.inset.y), u.size)
+
+## Screen rect (UI root coordinates) of the whole island slab, from the corners of the map. Rect2() when there is no map.
+static func island_bounds(app: CbApp) -> Rect2:
+	var wv = app.get("grid_world")
+	if wv == null or not wv.has_method("world_to_screen") or not wv.model.has("map") or str(wv.model.get("kind", "none")) == "none": return Rect2()
+	var mp: Vector2 = wv.model.map
+	var pts := [wv.world_to_screen(Vector2(0, 0)), wv.world_to_screen(Vector2(mp.x, 0)), wv.world_to_screen(Vector2(0, mp.y)), wv.world_to_screen(mp)]
+	var r := Rect2(pts[0], Vector2.ZERO)
+	for q in pts: r = r.expand(q)
+	return Rect2(r.position - Vector2(app.inset.x, app.inset.y), r.size)
+
+## "Next job": the last job of a chapter opens the chapter-end card instead of the next work order.
+static func _next(app: CbApp, lid: String, next_id: String) -> void:
+	if CHAPTER_END.has(lid) and str(CHAPTER_END[lid]) == next_id: chapter_end(app, next_id)
+	else: app.start_level(next_id, true)
+
+static func _look(app: CbApp, won: bool) -> void:
+	app.menus.end_look()
+	if not won: app.toast(T("REP_LOOK_HINT"), "warn")   # the radio tells the stranded player how to get back to work
 
 static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	if lid != "": app.start_level(lid, true)
@@ -81,24 +141,24 @@ static func _copy_code(app: CbApp, btn: Button) -> void:
 		btn.get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(btn): btn.text = old)
 
 # ---- won ----------------------------------------------------------------------------------------------------------------------------
-static func _head(col: VBoxContainer, title: String, sub: String, ink: Color) -> void:
+static func _head(col: VBoxContainer, title: String, sub: String, ink: Color, compact := false) -> void:
 	var head := HBoxContainer.new(); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	hv.add_child(PaperKit.lbl(title.to_upper(), 60, "title", ink, true))
-	hv.add_child(PaperKit.lbl(sub, 18, "semi", Color(PaperKit.INK, 0.75), true))
+	hv.add_child(PaperKit.lbl(title.to_upper(), 38 if compact else 60, "title", ink, true))
+	hv.add_child(PaperKit.lbl(sub, 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
 
-static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, stars: int, compact := false) -> Array:
+static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, stars: int, _short := false, compact := false) -> Array:
 	var lid := str(e.level_id)
-	_head(col, T("REP_WON"), T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)], PaperKit.INK)
+	_head(col, T("REP_WON"), T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)], PaperKit.INK, compact)
 	col.add_child(PaperKit.rule())
 	var texts := WorkOrder.lamp_texts(li)
 	var lamps: Array = []
 	var lr := HBoxContainer.new(); lr.add_theme_constant_override("separation", 10); col.add_child(lr)
 	for i in 3:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); lr.add_child(cell)
-		var lamp := PaperKit.Lamp.new(60.0 if compact else 86.0, i < stars); lamp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(lamp); lamps.append(lamp)
+		var lamp := PaperKit.Lamp.new(44.0 if compact else 86.0, i < stars); lamp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(lamp); lamps.append(lamp)
 		if i < texts.size():
-			var cap := PaperKit.lbl(str(texts[i]), 15, "sans", PaperKit.INK if i < stars else Color(PaperKit.INK, 0.55), true); cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; cell.add_child(cap)
+			var cap := PaperKit.lbl(str(texts[i]), 14 if compact else 15, "sans", PaperKit.INK if i < stars else Color(PaperKit.INK, 0.55), true); cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; cell.add_child(cap)
 	col.add_child(PaperKit.rule())
 	# metrics: cost, worst home, line loss (bench) or what the grid level tracks
 	var g: Dictionary = app.b.g
@@ -114,51 +174,54 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	for it in m:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); mr.add_child(cell)
 		cell.add_child(PaperKit.lbl(str(it[0]), 14, "mono", Color(PaperKit.INK, 0.6)))
-		cell.add_child(PaperKit.lbl(str(it[1]), 34, "title", PaperKit.INK))
+		cell.add_child(PaperKit.lbl(str(it[1]), 26 if compact else 34, "title", PaperKit.INK))
 	# histogram in print ink (only ever on a win)
 	var rc = app.b.q("resultCard")
 	if rc is Dictionary and rc.get("active", false) and not (rc.get("bins", []) as Array).is_empty():
-		col.add_child(PaperKit.lbl(str(rc.metric), 14, "mono", Color(PaperKit.INK, 0.6)))
-		var h := PaperKit.PaperHist.new(); h.name = "PaperHist"; h.custom_minimum_size = Vector2(240, 84 if compact else 120); h.set_data(rc); col.add_child(h)
-		if str(rc.get("source", "")) == "bot": col.add_child(PaperKit.lbl(str(rc.label), 14, "sans", Color(PaperKit.INK, 0.6), true))
-		if rc.get("mine") != null and rc.get("percentile") != null:
-			col.add_child(PaperKit.lbl(T("RESULT_MINE_FMT") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(round(float(rc.percentile) * 100.0)), int(rc.n)], 15, "sans", PaperKit.INK, true))
+		if int(rc.get("n", 0)) < HIST_MIN_N:   # a histogram of a handful of designs is noise: say so instead
+			var few := PaperKit.lbl(T("REP_FEW"), 15, "sans", Color(PaperKit.INK, 0.65), true); few.name = "FewDesigns"; col.add_child(few)
+		else:
+			col.add_child(PaperKit.lbl(str(rc.metric), 14, "mono", Color(PaperKit.INK, 0.6)))
+			var h := PaperKit.PaperHist.new(); h.name = "PaperHist"; h.custom_minimum_size = Vector2(240, 70 if compact else 120); h.set_data(rc); col.add_child(h)
+			if str(rc.get("source", "")) == "bot": col.add_child(PaperKit.lbl(str(rc.label), 14, "sans", Color(PaperKit.INK, 0.6), true))
+			if rc.get("mine") != null and rc.get("percentile") != null:
+				col.add_child(PaperKit.lbl(T("RESULT_MINE_FMT") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(round(float(rc.percentile) * 100.0)), int(rc.n)], 15, "sans", PaperKit.INK, true))
 	var lesson := str(li.get("lesson", ""))
-	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE))
+	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE, "", compact))
 	return lamps
 
 ## ADA's handwritten-ish note: a sticky slip, slightly crooked, in pen blue.
-static func _note(text: String, ink: Color, title := "") -> Control:
+static func _note(text: String, ink: Color, title := "", compact := false) -> Control:
 	var pc := PanelContainer.new()
 	var sb := StyleBoxFlat.new(); sb.bg_color = Color("#FBF1B6"); sb.set_corner_radius_all(3); sb.border_color = Color(PaperKit.INK, 0.2); sb.set_border_width_all(1)
-	sb.content_margin_left = 18; sb.content_margin_right = 18; sb.content_margin_top = 12; sb.content_margin_bottom = 14; sb.shadow_color = Color(0, 0, 0, 0.18); sb.shadow_size = 4; sb.shadow_offset = Vector2(1, 2)
+	sb.content_margin_left = 14 if compact else 18; sb.content_margin_right = 14 if compact else 18; sb.content_margin_top = 8 if compact else 12; sb.content_margin_bottom = 10 if compact else 14; sb.shadow_color = Color(0, 0, 0, 0.18); sb.shadow_size = 4; sb.shadow_offset = Vector2(1, 2)
 	pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2); pc.add_child(v)
 	v.add_child(PaperKit.lbl(title if title != "" else T("REP_ADA") + " ›", 14, "mono", Color(ink, 0.8)))
-	v.add_child(PaperKit.lbl(text, 18, "semi", ink, true))
+	v.add_child(PaperKit.lbl(text, 15 if compact else 18, "semi", ink, true))
 	pc.rotation = deg_to_rad(-0.8)
 	pc.name = "Note"
 	return pc
 
 # ---- lost ---------------------------------------------------------------------------------------------------------------------------
-static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary) -> void:
+static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, compact := false) -> void:
 	var lid := str(e.level_id)
 	var head := HBoxContainer.new(); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	hv.add_child(PaperKit.lbl(T("REP_LOST").to_upper(), 60, "title", PaperKit.RED, true))
-	hv.add_child(PaperKit.lbl(T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)] if lid != "" else str(e.title), 18, "semi", Color(PaperKit.INK, 0.75), true))
-	head.add_child(Stamp.new(T("REP_STAMP_LOST")))
+	hv.add_child(PaperKit.lbl(T("REP_LOST").to_upper(), 38 if compact else 60, "title", PaperKit.RED, true))
+	hv.add_child(PaperKit.lbl(T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)] if lid != "" else str(e.title), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
+	if not compact: head.add_child(Stamp.new(T("REP_STAMP_LOST")))
 	col.add_child(PaperKit.rule())
 	col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
-	col.add_child(PaperKit.lbl(str(e.reason), 23, "semi", PaperKit.RED, true))
+	col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))
 	var bs = app.b.q("benchStatus")
 	if bs is Dictionary and bs.get("active", false) and bool(bs.get("powered", false)) and (bs.bench as Dictionary).get("limits", {}).get("vMinV") != null:
 		col.add_child(PaperKit.lbl(T("REP_NUMBERS") % [WorkOrder.num(snappedf(float(bs.vMinV), 0.1)), WorkOrder.num(float(bs.bench.limits.vMinV))], 18, "sans", PaperKit.INK, true))
 	var lesson := str(li.get("lesson", ""))
-	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE))
+	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE, "", compact))
 	var co = app.b.q("coach"); var tip := T("REP_TRY_FALLBACK")
 	if co is Dictionary and co.get("active", false) and not co.get("done", true) and str(co.get("text", "")) != "": tip = str(co.text)
-	col.add_child(_note(tip, PaperKit.INK, T("REP_TRY")))
+	col.add_child(_note(tip, PaperKit.INK, T("REP_TRY"), compact))
 
 ## A rubber stamp, tilted, in red ink.
 class Stamp extends Control:
@@ -190,3 +253,99 @@ static func _stamp_lamps(app: CbApp, lamps: Array) -> void:
 		tw.tween_method(lamp.set_stamp, 0.01, 1.0, 0.22)
 		n += 1
 	if n > 0 and not PaperKit.animate(): app.sfx("stamp")
+
+# ---- chapter end --------------------------------------------------------------------------------------------------------------------
+static var _chapter: Dictionary = {}
+
+static func chapter_is_open() -> bool: return not _chapter.is_empty() and is_instance_valid(_chapter.host) and not (_chapter.host as Node).is_queued_for_deletion()
+static func chapter_node() -> Control: return _chapter.host if chapter_is_open() else null
+
+## The card after the last job of a chapter: "Saltmarsh is lit", a lit-island doodle, Nia's line, the lamps earned in the chapter, and "Chapter 2 · The Mainland,
+## coming soon" with the next work order offered as a preview job (`preview_id`). The shift report is gone by now; Esc just leaves the card.
+static func chapter_end(app: CbApp, preview_id: String) -> void:
+	GridUi.load_strings()
+	if chapter_is_open(): return
+	if app.end_ui != null and is_instance_valid(app.end_ui): app.end_ui.queue_free()
+	app.end_ui = null; app.end_seen = true
+	_d = {}
+	var compact := PaperKit.compact(app)
+	var d := PaperKit.sheet(app, "chapter", minf(780.0, app.vw() - 24.0), 0.0, 0.55, 14.0 if compact else 30.0)
+	_chapter = d
+	app.sfx("page")
+	var host: PaperHost = d.host
+	host.closer = func(): _chapter_close(app, d)
+	var vb: VBoxContainer = d.vb; vb.add_theme_constant_override("separation", 4 if compact else 10)
+	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 4 if compact else 10); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vb.add_child(col)
+	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 14); col.add_child(head)
+	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
+	hv.add_child(PaperKit.lbl(T("CH_TITLE").to_upper(), 38 if compact else 64, "title", PaperKit.INK, true))
+	hv.add_child(PaperKit.lbl(T("CH_SUB"), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
+	var isl := IslandDoodle.new(); isl.name = "IslandDoodle"; isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
+	col.add_child(PaperKit.rule())
+	var nia := _note(T("CH_NIA"), PaperPen.NIA, T("CH_NIA_TAG"), compact); nia.name = "NiaNote"; col.add_child(nia)
+	var earned := 0
+	for id in CHAPTER_JOBS: earned += GridSettings.stars(id)
+	var lr := PaperKit.lbl(T("CH_LAMPS") % [earned, CHAPTER_JOBS.size() * 3], 16 if compact else 20, "semi", PaperKit.INK, true); lr.name = "ChapterLamps"; col.add_child(lr)
+	var soon := PanelContainer.new(); soon.name = "Soon"; soon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new(); sb.draw_center = false; sb.border_color = Color(PaperKit.INK, 0.55); sb.set_border_width_all(2); sb.set_corner_radius_all(6)
+	sb.content_margin_left = 14; sb.content_margin_right = 14; sb.content_margin_top = 6 if compact else 10; sb.content_margin_bottom = 6 if compact else 10
+	soon.add_theme_stylebox_override("panel", sb)
+	var sv := VBoxContainer.new(); sv.add_theme_constant_override("separation", 0); soon.add_child(sv)
+	sv.add_child(PaperKit.lbl(T("CH_NEXT"), 20 if compact else 28, "title", PaperKit.INK, true))
+	sv.add_child(PaperKit.lbl(T("CH_SOON"), 14 if compact else 16, "sans", Color(PaperKit.INK, 0.75), true))
+	col.add_child(soon)
+	vb.add_child(PaperKit.rule())
+	var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 12); row.add_theme_constant_override("v_separation", 8); vb.add_child(row)
+	var pv := PaperKit.btn(T("CH_PREVIEW"), true, func(): _chapter_close(app, d); app.start_level(preview_id, true), 20); pv.name = "Preview"; row.add_child(pv)
+	var jb := PaperKit.btn(T("PAUSE_JOBS"), false, func(): _chapter_close(app, d); Jobs.open(app), 20); jb.name = "ChapterJobs"; row.add_child(jb)
+	var st := PaperKit.btn(T("CH_STAY"), false, func(): _chapter_close(app, d), 20); st.name = "Stay"; row.add_child(st)
+	host.primary = pv
+	PaperKit.slide_in(d, 60.0)
+	app.focus_dialog()
+	pv.call_deferred("grab_focus")
+
+static func _chapter_close(app: CbApp, d: Dictionary) -> void:
+	if is_instance_valid(d.host): (d.host as Node).queue_free()
+	if _chapter == d: _chapter = {}
+	app.end_seen = true
+
+const CHAPTER_JOBS := ["L01", "L02", "L03"]
+
+## Nia's pen colour (the speaker table of PaperKit has the same green).
+class PaperPen:
+	const NIA := Color("#2A7A52")
+
+## Doodle of Saltmarsh at night with every window lit: a mound of island, palm, huts with sodium windows, a lighthouse with its beam, stars and waves.
+class IslandDoodle extends Control:
+	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
+	func _draw() -> void:
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8)
+		draw_set_transform(Vector2((size.x - 300.0 * k) * 0.5, (size.y - 150.0 * k) * 0.5), 0.0, Vector2(k, k))
+		var sod := GridTheme.SODIUM
+		for p in [Vector2(22, 18), Vector2(70, 34), Vector2(262, 22), Vector2(214, 40), Vector2(120, 12)]:   # stars
+			draw_line(p + Vector2(-4, 0), p + Vector2(4, 0), Color(PaperKit.AMBER, 0.9), 2.0, true); draw_line(p + Vector2(0, -4), p + Vector2(0, 4), Color(PaperKit.AMBER, 0.9), 2.0, true)
+		draw_circle(Vector2(246, 56), 15.0, Color(PaperKit.INK, 0.06)); draw_arc(Vector2(246, 56), 15.0, 0.0, TAU, 28, ink, 2.2, true)   # moon
+		var mound := PackedVector2Array([Vector2(30, 118), Vector2(60, 98), Vector2(100, 84), Vector2(150, 78), Vector2(200, 86), Vector2(240, 100), Vector2(272, 118)])
+		draw_colored_polygon(mound, Color("#C9C09F")); draw_polyline(mound, ink, 2.6, true)
+		for x in [40.0, 90.0, 150.0, 210.0]:   # waves
+			draw_arc(Vector2(x, 128), 12.0, deg_to_rad(200), deg_to_rad(340), 10, Color(PaperKit.BLUE, 0.7), 2.4, true)
+			draw_arc(Vector2(x + 28, 138), 12.0, deg_to_rad(200), deg_to_rad(340), 10, Color(PaperKit.BLUE, 0.7), 2.4, true)
+		draw_line(Vector2(20, 118), Vector2(282, 118), ink, 2.4, true)
+		# lighthouse with a sodium beam
+		var lh := PackedVector2Array([Vector2(214, 90), Vector2(218, 52), Vector2(232, 52), Vector2(236, 90)])
+		draw_colored_polygon(lh, Color("#F4EEDD")); draw_polyline(lh + PackedVector2Array([lh[0]]), ink, 2.4, true)
+		draw_line(Vector2(216, 68), Vector2(234, 68), Color(PaperKit.RED, 0.8), 4.0); draw_rect(Rect2(218, 42, 14, 10), sod); draw_rect(Rect2(218, 42, 14, 10), ink, false, 2.0)
+		draw_colored_polygon(PackedVector2Array([Vector2(218, 44), Vector2(230, 40), Vector2(226, 50)]), Color(sod, 0.0)); 
+		draw_colored_polygon(PackedVector2Array([Vector2(232, 46), Vector2(284, 30), Vector2(284, 60)]), Color(sod, 0.25))
+		# palm
+		draw_polyline(PackedVector2Array([Vector2(60, 98), Vector2(56, 80), Vector2(62, 62)]), ink, 3.0, true)
+		for a in [-150.0, -110.0, -70.0, -30.0]:
+			var d := Vector2(cos(deg_to_rad(a)), sin(deg_to_rad(a))); draw_line(Vector2(62, 62), Vector2(62, 62) + d * 22.0 + Vector2(0, 6), Color("#3F7A52"), 3.0, true)
+		# huts, lit
+		for hx in [100.0, 128.0, 156.0, 182.0]:
+			var by := 96.0 + absf(hx - 142.0) * 0.12
+			for i in 4: draw_circle(Vector2(hx, by - 8), 18.0 - i * 3.5, Color(sod, 0.10 + 0.07 * i))
+			draw_rect(Rect2(hx - 9, by - 14, 18, 14), Color("#E8DDBB")); draw_rect(Rect2(hx - 9, by - 14, 18, 14), ink, false, 2.0)
+			draw_colored_polygon(PackedVector2Array([Vector2(hx - 12, by - 14), Vector2(hx, by - 26), Vector2(hx + 12, by - 14)]), Color("#B5700F")); draw_polyline(PackedVector2Array([Vector2(hx - 12, by - 14), Vector2(hx, by - 26), Vector2(hx + 12, by - 14)]), ink, 2.0, true)
+			draw_rect(Rect2(hx - 3, by - 11, 6, 7), sod)

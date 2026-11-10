@@ -107,55 +107,69 @@ static func open(app: CbApp) -> void:
 	GridUi.load_strings()
 	var fresh: bool = int(app.b.g.get("tick", 0)) <= int(app.b.g.get("levelStart", 0))
 	var w := minf(880.0, app.vw() - 40.0)
+	var compact := PaperKit.compact(app)   # landscape phone: Goal and "To pass" first, everything else scrolls under a "more" cue
 	var short: bool = app.vs_h() < 840.0
-	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 40.0) if short else 0.0)
+	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 24.0) if short else 0.0, 0.8, 18.0 if compact else 30.0)
 	_d = d
 	app.sfx("page")
 	var host: PaperHost = d.host; host.closer = func(): close(app)
 	var vb: VBoxContainer = d.vb
-	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 12); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if short:
-		var sc := ScrollContainer.new(); sc.size_flags_vertical = Control.SIZE_EXPAND_FILL; sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; vb.add_child(sc); sc.add_child(col)
+	if compact: vb.add_theme_constant_override("separation", 6)
+	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 6 if compact else 12); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if short: vb.add_child(PaperKit.scroll_box(col))
 	else: vb.add_child(col)
-	_content(app, col, li)
+	_content(app, col, li, short, compact)
 	_footer(app, vb, li, fresh)
 	if instant_next: instant_next = false
 	else: PaperKit.slide_in(d)
 	app.focus_dialog()
 
-static func _content(app: CbApp, col: VBoxContainer, li: Dictionary) -> void:
-	var num_s := str(li.id).trim_prefix("L")
-	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 12); col.add_child(head)
-	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 2); head.add_child(hv)
-	var t := PaperKit.lbl(T("WO_TITLE") % [num_s, str(li.title).to_upper()], 54, "title", PaperKit.INK, true); hv.add_child(t)
-	if str(li.get("place", "")) != "": hv.add_child(PaperKit.lbl(str(li.place), 18, "semi", Color(PaperKit.INK, 0.75), true))
-	if GridSettings.cute: head.add_child(PaperKit.Doodle.new())
-	col.add_child(PaperKit.rule())
+static func _story(col: VBoxContainer, li: Dictionary, compact: bool) -> void:
 	var story: Array = li.get("story", [])
-	if not story.is_empty():
-		col.add_child(PaperKit.lbl(T("WO_RADIO"), 14, "mono", Color(PaperKit.INK, 0.6)))
-		for line in story:
-			var sp := split_line(str(line))
-			var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 12); col.add_child(row)
-			var sl := PaperKit.lbl(sp[0], 16, "mono", PaperKit.SPEAKER.get(sp[0], PaperKit.INK)); sl.custom_minimum_size.x = 64; sl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; row.add_child(sl)
-			row.add_child(PaperKit.lbl(sp[1], 18, "sans", PaperKit.INK, true))
-			if sp[0] == "NIA" and GridSettings.cute: row.add_child(PaperKit.Tick.new())
+	if story.is_empty(): return
+	col.add_child(PaperKit.lbl(T("WO_RADIO"), 14, "mono", Color(PaperKit.INK, 0.6)))
+	for line in story:
+		var sp := split_line(str(line))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 12); col.add_child(row)
+		var sl := PaperKit.lbl(sp[0], 16, "mono", PaperKit.SPEAKER.get(sp[0], PaperKit.INK)); sl.custom_minimum_size.x = 64; sl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN; row.add_child(sl)
+		row.add_child(PaperKit.lbl(sp[1], 16 if compact else 18, "sans", PaperKit.INK, true))
+		if sp[0] == "NIA" and GridSettings.cute and not compact: row.add_child(PaperKit.Tick.new())
+
+static func _goal(app: CbApp, col: VBoxContainer, li: Dictionary, compact: bool) -> void:
 	col.add_child(PaperKit.lbl(T("WO_GOAL"), 14, "mono", Color(PaperKit.INK, 0.6)))
-	col.add_child(PaperKit.lbl(str(li.brief), 21, "semi", PaperKit.INK, true))
+	col.add_child(PaperKit.lbl(str(li.brief), 18 if compact else 21, "semi", PaperKit.INK, true))
 	var conds := conditions(app, li)
 	if not conds.is_empty():
 		col.add_child(PaperKit.lbl(T("WO_PASS"), 14, "mono", Color(PaperKit.INK, 0.6)))
 		for c in conds:
 			var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 12); col.add_child(row)
-			row.add_child(PaperKit.Check.new()); row.add_child(PaperKit.lbl(str(c), 19, "sans", PaperKit.INK, true))
+			var ck := PaperKit.Check.new(); if compact: ck.custom_minimum_size = Vector2(24, 24)
+			row.add_child(ck); row.add_child(PaperKit.lbl(str(c), 17 if compact else 19, "sans", PaperKit.INK, true))
+
+static func _lamps(col: VBoxContainer, li: Dictionary, compact: bool) -> void:
 	var lamps := lamp_texts(li)
-	if not lamps.is_empty():
-		col.add_child(PaperKit.lbl(T("WO_STARS"), 14, "mono", Color(PaperKit.INK, 0.6)))
-		var gr := HBoxContainer.new(); gr.add_theme_constant_override("separation", 14); col.add_child(gr)
-		for i in 3:
-			var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 2); gr.add_child(cell)
-			var lamp := PaperKit.Lamp.new(54.0, false); lamp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(lamp)
-			var cap := PaperKit.lbl(str(lamps[i]), 16, "sans", PaperKit.INK, true); cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; cell.add_child(cap)
+	if lamps.is_empty(): return
+	col.add_child(PaperKit.lbl(T("WO_STARS"), 14, "mono", Color(PaperKit.INK, 0.6)))
+	var gr := HBoxContainer.new(); gr.add_theme_constant_override("separation", 14); col.add_child(gr)
+	for i in 3:
+		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 2); gr.add_child(cell)
+		var lamp := PaperKit.Lamp.new(40.0 if compact else 54.0, false); lamp.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; cell.add_child(lamp)
+		var cap := PaperKit.lbl(str(lamps[i]), 15 if compact else 16, "sans", PaperKit.INK, true); cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; cell.add_child(cap)
+
+## Desktop: title, radio transcript, goal, pass list, lamps. Short screens (`short`): the goal and the pass list come right after the title, the transcript and
+## the lamps follow (they are the part that may scroll).
+static func _content(app: CbApp, col: VBoxContainer, li: Dictionary, short := false, compact := false) -> void:
+	var num_s := str(li.id).trim_prefix("L")
+	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 12); col.add_child(head)
+	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 2); head.add_child(hv)
+	var t := PaperKit.lbl(T("WO_TITLE") % [num_s, str(li.title).to_upper()], 36 if compact else 54, "title", PaperKit.INK, true); hv.add_child(t)
+	if str(li.get("place", "")) != "": hv.add_child(PaperKit.lbl(str(li.place), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
+	if GridSettings.cute and not compact: head.add_child(PaperKit.Doodle.new())
+	col.add_child(PaperKit.rule())
+	if short:
+		_goal(app, col, li, compact); _story(col, li, compact); _lamps(col, li, compact)
+	else:
+		_story(col, li, compact); _goal(app, col, li, compact); _lamps(col, li, compact)
 
 static func _footer(app: CbApp, vb: VBoxContainer, li: Dictionary, fresh: bool) -> void:
 	vb.add_child(PaperKit.rule())

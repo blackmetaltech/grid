@@ -13,14 +13,23 @@ static func build(app: CbApp, root: Control) -> bool:
 	var vw := app.vw(); var vh := app.vs_h()
 	root.theme = GridTheme.theme()
 	# legibility scrims: left (text) and bottom
-	var gl := _grad(Vector2(0, 0), Vector2(1, 0), 0.9); gl.set_anchors_preset(Control.PRESET_LEFT_WIDE); gl.anchor_right = 0.62; gl.offset_right = 0; root.add_child(gl)
-	var gb := _grad(Vector2(0, 1), Vector2(0, 0), 0.6); gb.set_anchors_preset(Control.PRESET_BOTTOM_WIDE); gb.anchor_top = 0.55; gb.offset_top = 0; root.add_child(gb)
+	var gl := _grad(Vector2(0, 0), Vector2(1, 0), 0.9); gl.set_anchors_preset(Control.PRESET_LEFT_WIDE); gl.anchor_right = 0.62; gl.offset_right = 0; gl.offset_left = -app.inset.x; gl.offset_top = -app.inset.y; gl.offset_bottom = app.inset.w; root.add_child(gl)   # scrims bleed past the safe area
+	var gb := _grad(Vector2(0, 1), Vector2(0, 0), 0.6); gb.set_anchors_preset(Control.PRESET_BOTTOM_WIDE); gb.anchor_top = 0.55; gb.offset_top = 0; gb.offset_left = -app.inset.x; gb.offset_right = app.inset.z; gb.offset_bottom = app.inset.w; root.add_child(gb)
+	var compact := PaperKit.compact(app)   # landscape phone: the wordmark sits left of the menu instead of above it (a stacked column is taller than the safe area)
 	var vb := VBoxContainer.new(); vb.name = "TitleMenu"; vb.add_theme_constant_override("separation", int(6 * k))
-	vb.set_anchors_preset(Control.PRESET_BOTTOM_LEFT); vb.grow_vertical = Control.GROW_DIRECTION_BEGIN; vb.offset_left = 72.0 * k; vb.offset_bottom = -48.0 * k; vb.offset_right = 72.0 * k + minf(760.0, vw - 100.0)
-	root.add_child(vb)
-	var logo := GridTheme.label(str(app.cfg.title), int(160 * k), GridTheme.SODIUM, "title"); logo.name = "logo"; vb.add_child(logo)
-	var sub := GridTheme.label(T("TITLE_SUB"), int(30 * k), GridTheme.TEXT, "sans"); sub.name = "tagline"; vb.add_child(sub)
-	var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 22 * k); vb.add_child(gap)
+	var head: VBoxContainer = vb
+	var box: Control = vb
+	if compact:
+		var hb := HBoxContainer.new(); hb.name = "TitleMenu"; hb.add_theme_constant_override("separation", 56)
+		head = VBoxContainer.new(); head.add_theme_constant_override("separation", 0); head.size_flags_vertical = Control.SIZE_SHRINK_END; hb.add_child(head)
+		vb.size_flags_vertical = Control.SIZE_SHRINK_END; vb.add_theme_constant_override("separation", 0); hb.add_child(vb)
+		box = hb
+	box.set_anchors_preset(Control.PRESET_BOTTOM_LEFT); box.grow_vertical = Control.GROW_DIRECTION_BEGIN; box.offset_left = 56.0 if compact else 72.0 * k; box.offset_bottom = -(16.0 if compact else 48.0 * k); box.offset_right = (56.0 if compact else 72.0 * k) + minf(760.0 if not compact else 900.0, vw - 100.0)
+	root.add_child(box)
+	var logo := GridTheme.label(str(app.cfg.title), 110 if compact else int(160 * k), GridTheme.SODIUM, "title"); logo.name = "logo"; head.add_child(logo)
+	var sub := GridTheme.label(T("TITLE_SUB"), 22 if compact else int(30 * k), GridTheme.TEXT, "sans"); sub.name = "tagline"; head.add_child(sub)
+	if not compact:
+		var gap := Control.new(); gap.custom_minimum_size = Vector2(0, 22 * k); vb.add_child(gap)
 	var saves: Array = app.b.q("saves") if app.b.q("saves") is Array else []
 	var first: TitleLine = null
 	var entries: Array = []
@@ -31,10 +40,10 @@ static func build(app: CbApp, root: Control) -> bool:
 	entries.append([T("TITLE_SETTINGS"), "settings", func(): app.open_settings()])
 	if not CbLayout.is_mobile(): entries.append([T("TITLE_QUIT"), "quit", func(): app.quit_game()])
 	for en in entries:
-		var line := TitleLine.new(str(en[0]), int(34 * k)); line.name = "Line_" + str(en[1]); line.pressed.connect(en[2]); vb.add_child(line)
+		var line := TitleLine.new(str(en[0]), 28 if compact else int(34 * k)); line.name = "Line_" + str(en[1]); line.pressed.connect(en[2]); vb.add_child(line)
 		if first == null: first = line
 	var gap2 := Control.new(); gap2.custom_minimum_size = Vector2(0, 14 * k); vb.add_child(gap2)
-	var cute := TitleLine.new(T("CUTE_ON") if GridSettings.cute else T("CUTE_OFF"), int(20 * k), true); cute.name = "Line_cute"; cute.tooltip_text = T("CUTE_HINT")
+	var cute := TitleLine.new(T("CUTE_ON") if GridSettings.cute else T("CUTE_OFF"), 18 if compact else int(20 * k), true); cute.name = "Line_cute"; cute.tooltip_text = T("CUTE_HINT")
 	cute.pressed.connect(func():
 		GridSettings.set_cute(app, not GridSettings.cute)
 		cute.text = T("CUTE_ON") if GridSettings.cute else T("CUTE_OFF"))

@@ -6,6 +6,10 @@ extends Control
 
 var closer: Callable
 var primary: Button
+var app: CbApp   ## set by PaperKit.sheet: keeps the scrim full-bleed when the safe area changes
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and app != null and is_instance_valid(app): PaperKit.bleed(app, self)
 
 func close() -> void:
 	if closer.is_valid(): closer.call()
