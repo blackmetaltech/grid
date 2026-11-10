@@ -145,4 +145,21 @@ func _initialize() -> void:
 		if mp0.blackout and (int(l.dir) != 0 or float(l.speed) > 0.0): any_pulse = true
 	T.check(not any_pulse, "blackout: no line carries pulses")
 	view.free()
+	# --- Salt Wind: the town areas stay separate, the salt is the engine's class, the fog follows the job's hour
+	T.level("L29")
+	var w29: Dictionary = T.b.q("world")
+	var v29 := WorldView.new(); v29.size = Vector2(1920, 1080)
+	var m29 := WorldModel.build(T.b); v29.set_model(m29)
+	T.check(v29._town_areas.size() == 2, "the market and the harbour are two town areas (%d)" % v29._town_areas.size())
+	var poll: PackedByteArray = m29.terrain.poll; var ps := str(w29.terrain.pollution); var bad_p := 0
+	for k in poll.size(): if int(poll[k]) != int(ps[k]): bad_p += 1
+	T.check(poll.size() == ps.length() and bad_p == 0, "every tile's salt class is the engine's (%d wrong)" % bad_p)
+	var li29: Dictionary = T.b.q("levelInfo")
+	T.check(m29.has("fog_min") and str(li29.fogTime) == "%02d:%02d" % [int(m29.fog_min) / 60, int(m29.fog_min) % 60], "the fog hour is the engine's (%s)" % str(li29.get("fogTime", "")))
+	var fm := float(m29.fog_min)
+	for pair in [[fm - 150.0, 0.0], [fm - 60.0, 0.5], [fm, 1.0], [fm + 30.0, 1.0], [fm + 90.0, 0.5], [fm + 150.0, 0.0]]:
+		v29.model.minute = fposmod(float(pair[0]), 1440.0)
+		T.check(absf(v29.fog_level() - float(pair[1])) < 1e-6, "fog at %d min from its hour is %.1f (%.3f)" % [int(float(pair[0]) - fm), float(pair[1]), v29.fog_level()])
+	T.level("L05"); var m5 := WorldModel.build(T.b); v29.set_model(m5)
+	T.check(not m5.has("fog_min") and v29.fog_level() == 0.0, "no fog and no salt on a job without a fog hour")
 	T.finish("ROUTE-WORLD-TRUTH", self)
