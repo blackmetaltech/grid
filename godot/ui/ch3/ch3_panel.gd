@@ -33,7 +33,7 @@ func refresh() -> void:
 	mode = m; d = {}
 	match m:
 		"pf":
-			var q = app.b.q("phasor", ["branch", "T1"]); d = q if q is Dictionary else {}
+			var q = app.b.q("feederPeak"); d = q if q is Dictionary else {}
 			phasor.set_data(d)
 		"harm":
 			var q = app.b.q("harmonics"); d = q if q is Dictionary else {}
@@ -45,7 +45,7 @@ func refresh() -> void:
 
 func layout() -> void:
 	if app == null: return
-	_h = {"pf": 276.0, "harm": 392.0, "series": 224.0}.get(mode, 0.0)
+	_h = {"pf": 316.0, "harm": 412.0, "series": 232.0}.get(mode, 0.0)
 	size = Vector2(W, _h)
 	position = Vector2(app.vw() - M - W, 62.0)
 	if mode == "pf": phasor.position = Vector2((W - 220.0) * 0.5, 30.0); phasor.size = Vector2(220, 200)
@@ -71,33 +71,43 @@ func _draw_pf() -> void:
 	var amps := int(round(float(d.get("iKA", 0.0)) * 1000.0))
 	_txt(tx("C3_P_PF") % [("%.2f" % float(d.get("pf", 0.0))), word, str(amps)], Vector2(14, 250), 14, _ink())
 	_txt("P %.2f MW · Q %.2f MVAr" % [float(d.get("pMW", 0.0)), float(d.get("qMVAr", 0.0))], Vector2(14, 268), 12, _ink(0.7))
+	_txt(tx("C3_P_AMPS") % [str(int(d.get("iA", 0))), str(int(d.get("ratedA", 0)))], Vector2(14, 288), 14, GridTheme.BAD if float(d.get("iA", 0)) > float(d.get("ratedA", 1)) else _ink())
+	_txt(tx("C3_P_AT") % str(d.get("blockText", "20:00")), Vector2(14, 306), 11, _ink(0.55))
 
 # ---- L08 ---------------------------------------------------------------------------------------------------------------------------------
 func _draw_harm() -> void:
 	_txt(tx("C3_P_SPEC"), Vector2(14, 22), 12, _ink(0.7))
 	if not bool(d.get("ready", false)):
 		_txt(tx("C3_P_WAIT"), Vector2(14, 60), 13, _ink(0.8)); return
-	_txt(tx("C3_P_SPEC_ASIF") if bool(d.get("asIf", false)) else tx("C3_P_SPEC_NOW"), Vector2(14, 38), 11, _ink(0.55))
+	_txt(tx("C3_P_SPEC_ASIF") if bool(d.get("asIf", false)) else tx("C3_P_SPEC_NOW"), Vector2(14, 36), 11, _ink(0.55))
+	_txt(tx("C3_P_THD_WHAT"), Vector2(14, 49), 10, _ink(0.55))
+	_txt(tx("C3_P_UNIT"), Vector2(14, 66), 11, _ink(0.75))
 	var bars: Array = d.get("bars", [])
-	var base := 128.0; var top := 52.0; var vmax := 12.0
+	var base := 138.0; var top := 74.0; var vmax := 12.0
 	for b in bars: vmax = maxf(vmax, float(b.vPct) * 1.1)
 	var thd_max := float(d.get("thdMaxPct", 5.0))
-	draw_line(Vector2(14, base), Vector2(W - 14, base), _ink(0.5), 1.5)
-	var bw := (W - 28.0) / maxf(bars.size(), 1)
+	draw_line(Vector2(30, base), Vector2(W - 14, base), _ink(0.5), 1.5)
+	for tick in [0.0, 5.0, 10.0]:   # the scale: % of the fundamental; the dashed line is the THD limit
+		var ty: float = base - (base - top) * float(tick) / vmax
+		_txt("%d" % int(tick), Vector2(14, ty + 4.0), 10, _ink(0.6)); draw_line(Vector2(28, ty), Vector2(32, ty), _ink(0.5), 1.0)
+	var ly := base - (base - top) * thd_max / vmax
+	for dx in range(32, int(W) - 14, 10): draw_line(Vector2(dx, ly), Vector2(minf(dx + 5, W - 14), ly), GridTheme.BAD, 1.5)
+	_txt(tx("C3_P_LIMIT") % ("%.0f" % thd_max), Vector2(W - 104, ly - 14.0), 10, GridTheme.BAD)
+	var bw := (W - 46.0) / maxf(bars.size(), 1)
 	for i in bars.size():
 		var v := float(bars[i].vPct); var h := (base - top) * clampf(v / vmax, 0.0, 1.0)
-		var x := 14.0 + i * bw + bw * 0.2
+		var x := 32.0 + i * bw + bw * 0.2
 		var col := GridTheme.BAD if v > thd_max else (GridTheme.WARN if v > thd_max * 0.6 else GridTheme.GOOD)
 		draw_rect(Rect2(x, base - h, bw * 0.6, h), col); draw_rect(Rect2(x, base - h, bw * 0.6, h), _ink(0.8), false, 1.2)
 		_txt(tx("C3_P_HARM") % str(int(bars[i].h)), Vector2(x - 2, base + 15), 12, _ink())
 		_txt("%.1f" % v, Vector2(x, base - h - 4), 11, _ink(0.8))
 	var thd := float(d.get("thdPct", 0.0))
-	_txt(tx("C3_P_THD") % [("%.1f" % thd), ("%.0f" % thd_max)], Vector2(14, 160), 13, GridTheme.BAD if thd > thd_max else _ink())
+	_txt(tx("C3_P_THD") % [("%.1f" % thd), ("%.0f" % thd_max)], Vector2(14, 176), 13, GridTheme.BAD if thd > thd_max else _ink())
 	# the impedance of the bus against harmonic order: the parallel resonance is the peak
-	_txt(tx("C3_P_Z"), Vector2(14, 188), 12, _ink(0.7))
+	_txt(tx("C3_P_Z"), Vector2(14, 204), 12, _ink(0.7))
 	var sw: Array = d.get("sweep", []); var zmax := 1.0
 	for p in sw: zmax = maxf(zmax, float(p.z))
-	var x0 := 14.0; var x1 := W - 14.0; var y0 := 276.0; var y1 := 202.0; var hmax := 16.0
+	var x0 := 14.0; var x1 := W - 14.0; var y0 := 292.0; var y1 := 218.0; var hmax := 16.0
 	draw_line(Vector2(x0, y0), Vector2(x1, y0), _ink(0.5), 1.2)
 	for o in d.get("orders", []):
 		var ox := x0 + (x1 - x0) * (float(o) - 1.0) / (hmax - 1.0)
@@ -112,19 +122,19 @@ func _draw_harm() -> void:
 		draw_circle(Vector2(px, y1), 4.0, GridTheme.BAD)
 		_txt(tx("C3_P_ZPEAK") % ("%.1f" % float(pk.h)), Vector2(px + 8.0 if px < W - 120.0 else px - 112.0, y1 + 4.0), 11, _ink())
 	# the bank's current against the IEC limit
-	_txt(tx("C3_P_CAP"), Vector2(14, 320), 12, _ink(0.7))
+	_txt(tx("C3_P_CAP"), Vector2(14, 336), 12, _ink(0.7))
 	var banks: Array = d.get("banks", []); var blown: Array = d.get("blown", [])
 	var lim := float(d.get("capRmsMax", 1.3))
-	var bx := 14.0; var bwid := W - 28.0; var by := 330.0
+	var bx := 14.0; var bwid := W - 28.0; var by := 346.0
 	draw_rect(Rect2(bx, by, bwid, 14.0), _ink(0.12))
 	var scale_max := 1.6
 	if banks.is_empty():
-		_txt(tx("C3_P_BLOWN") % ", ".join(PackedStringArray(blown)) if not blown.is_empty() else tx("C3_P_CAP_NONE"), Vector2(14, 366), 13, GridTheme.BAD if not blown.is_empty() else _ink(0.7))
+		_txt(tx("C3_P_BLOWN") % ", ".join(PackedStringArray(blown)) if not blown.is_empty() else tx("C3_P_CAP_NONE"), Vector2(14, 382), 13, GridTheme.BAD if not blown.is_empty() else _ink(0.7))
 	else:
 		var r := float(banks[0].ratio)
 		draw_rect(Rect2(bx, by, bwid * clampf(r / scale_max, 0.0, 1.0), 14.0), GridTheme.BAD if r > lim else GridTheme.GOOD)
-		_txt(tx("C3_P_CAP_FMT") % [("%.2f" % r), ("%.1f" % lim)], Vector2(14, 366), 13, GridTheme.BAD if r > lim else _ink())
-		_txt("h = %.1f · %d kVAr" % [float(banks[0].hParallel), int(banks[0].kvar)], Vector2(14, 384), 11, _ink(0.65))
+		_txt(tx("C3_P_CAP_FMT") % [("%.2f" % r), ("%.1f" % lim)], Vector2(14, 382), 13, GridTheme.BAD if r > lim else _ink())
+		_txt("h = %.1f · %d kVAr" % [float(banks[0].hParallel), int(banks[0].kvar)], Vector2(14, 400), 11, _ink(0.65))
 	var lx := bx + bwid * lim / scale_max
 	draw_line(Vector2(lx, by - 4.0), Vector2(lx, by + 18.0), GridTheme.BAD, 2.0)
 	draw_rect(Rect2(bx, by, bwid, 14.0), _ink(0.7), false, 1.2)
@@ -135,6 +145,7 @@ func _draw_series() -> void:
 	if not bool(d.get("active", false)): return
 	var xl := float(d.xlOhm); var xc := float(d.xcOhm)
 	_txt(tx("C3_P_RX") % [("%.1f" % float(d.rOhm)), ("%.1f" % xl), ("%.1f" % xc)], Vector2(14, 42), 12, _ink())
+	_txt(tx("C3_P_XC_WHAT"), Vector2(14, 82), 10, _ink(0.55))
 	var bx := 14.0; var bw := W - 28.0
 	draw_rect(Rect2(bx, 52, bw, 16), _ink(0.14))
 	if xl > 0.0:
@@ -143,12 +154,12 @@ func _draw_series() -> void:
 		draw_rect(Rect2(bx + bw * (1.0 - f), 52, bw * f, 16), GridTheme.GOOD)
 	draw_rect(Rect2(bx, 52, bw, 16), _ink(0.7), false, 1.2)
 	var vf = d.get("vMinPu"); var lim = d.get("farMinPu")
-	if vf == null: _txt(tx("C3_P_VFAR_NONE"), Vector2(14, 92), 13, _ink(0.75))
-	else: _txt(tx("C3_P_VFAR") % [("%.3f" % float(vf)), ("%.2f" % float(lim) if lim != null else "")], Vector2(14, 92), 13, GridTheme.BAD if lim != null and float(vf) < float(lim) else _ink())
+	if vf == null: _txt(tx("C3_P_VFAR_NONE"), Vector2(14, 104), 13, _ink(0.75))
+	else: _txt(tx("C3_P_VFAR") % [("%.3f" % float(vf)), ("%.2f" % float(lim) if lim != null else "")], Vector2(14, 104), 13, GridTheme.BAD if lim != null and float(vf) < float(lim) else _ink())
 	var t := int(d.faultBlock) * 15
 	_txt(tx("C3_P_FAULT") % ("%02d:%02d" % [t / 60, t % 60]), Vector2(14, 128), 12, _ink(0.7))
 	var rating := float(d.breakerKA); var smax := rating * 1.5
-	var fy := 138.0
+	var fy := 142.0
 	draw_rect(Rect2(bx, fy, bw, 14.0), _ink(0.12))
 	if bool(d.get("faultDone", false)):
 		var k := float(d.faultKA)
@@ -157,8 +168,11 @@ func _draw_series() -> void:
 		_txt(tx("C3_P_FAULT_PLAIN") % ("%.2f" % float(d.faultKA0)), Vector2(14, 190), 11, _ink(0.65))
 		_txt(tx("C3_P_FRES") % ("%.0f" % float(d.get("fResHz", 0.0))), Vector2(14, 206), 11, _ink(0.65))
 	else:
-		_txt(tx("C3_P_FAULT_WAIT"), Vector2(bw * 0.5, fy + 12.0), 14, _ink(0.6))
-		_txt("breaker %.2f kA" % rating, Vector2(14, 172), 12, _ink(0.7))
+		var pk = d.get("predKA")
+		if pk != null:
+			draw_rect(Rect2(bx, fy, bw * clampf(float(pk) / smax, 0.0, 1.0), 14.0), Color(GridTheme.BAD if float(pk) > rating else GridTheme.GOOD, 0.55))
+			_txt(tx("C3_P_PRED") % [("%.2f" % float(pk)), ("%.2f" % rating)], Vector2(14, 172), 13, GridTheme.BAD if float(pk) > rating else _ink())
+		_txt(tx("C3_P_PRESS") % ("%02d:%02d" % [t / 60, t % 60]), Vector2(14, 190), 11, _ink(0.65))
 	var lx := bx + bw * rating / smax
 	draw_line(Vector2(lx, fy - 4.0), Vector2(lx, fy + 18.0), GridTheme.BAD, 2.0)
 	draw_rect(Rect2(bx, fy, bw, 14.0), _ink(0.7), false, 1.2)

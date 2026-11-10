@@ -19,6 +19,7 @@ var tray: KitTray                ## the kit tray (bench levels): hut, reels, pri
 var rtray: RouteTray             ## the route tray (chapter 2 levels with a terrain): survey, supports, conductors, transformers
 var ch3: Ch3Panel                ## chapter 3's instrument card (phasor, spectrum, bank current, series capacitor and fault); drawn only on L07-L09
 var gtray: GridTray              ## the grid tray (grid levels without a terrain: chapters 3-7): placeable parts, knobs, operate tags
+var chf: ChfPanel                ## the finale's card (day, island lamp, ticker) on L28
 var ch6: Ch6Panel               ## chapter 6's control-room card for L19-L22
 var ch4: Ch4Host                 ## chapter 4's stages for L10-L13 (street, estate, hydro, exam); hidden on every other level
 var ch7: Ch7Host                 ## chapter 7's stages for L23-L27 (board, feeder, swing, merit order, exam); hidden on every other level
@@ -40,6 +41,7 @@ func build() -> void:
 	instruments = Instruments.new(); instruments.app = app; add_child(instruments)
 	ch3 = Ch3Panel.new(); ch3.app = app; add_child(ch3)
 	ch6 = Ch6Panel.new(); ch6.app = app; add_child(ch6)
+	chf = ChfPanel.new(); chf.app = app; add_child(chf)
 	instruments.codex_requested.connect(_codex)
 	radio = RadioLog.new(); radio.app = app; add_child(radio)
 	breaker = Breaker.new(); breaker.app = app; add_child(breaker)
@@ -178,6 +180,7 @@ func refresh() -> void:
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
 	if ch3 != null: ch3.refresh()
 	if ch6 != null: ch6.refresh()
+	if chf != null: chf.refresh()
 	if ch4 != null: ch4.refresh()
 	if ch7 != null: ch7.refresh()
 	instruments.refresh(); breaker.sync()
