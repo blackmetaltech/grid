@@ -248,7 +248,9 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	col.add_child(PaperKit.rule())
 	# metrics: cost, worst home, line loss (bench) or what the grid level tracks
 	var g: Dictionary = app.b.g
-	var m: Array = [[T("REP_COST"), CbRegion.money(float(g.get("budget", {}).get("spent", 0.0)), false, 0)]]
+	var score_lvl: bool = str(li.get("histogram", "")) == "score"   # judged on a score (seconds, kA, a prediction), not on what was built: no "Cost $0" and no line loss
+	var spent_ := float(g.get("budget", {}).get("spent", 0.0))
+	var m: Array = [] if score_lvl and spent_ <= 0.0 else [[T("REP_COST"), CbRegion.money(spent_, false, 0)]]
 	var bs = app.b.q("benchStatus")
 	var cb = app.b.q("ch2Bench")
 	if cb is Dictionary and cb.get("active", false):   # chapter 2's closed-form benches (L04 alternator, L06 town line) report their own numbers
@@ -262,7 +264,7 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	else:
 		var tr_: Dictionary = g.get("metrics", {}).get("track", {})
 		var r3_ = g.get("rules", {}).get("ch3"); var no_loss: bool = r3_ is Dictionary and (r3_.has("harmonics") or r3_.has("fault"))   # L08 and L09 are not judged on losses
-		if tr_.get("lossPct") != null and not no_loss and not bool(g.get("rules", {}).get("freqTrack", false)): m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])   # chapter 6 is judged on frequency, not losses
+		if tr_.get("lossPct") != null and not no_loss and not score_lvl and not bool(g.get("rules", {}).get("freqTrack", false)): m.append([T("REP_LOSS"), T("REP_PCT") % WorkOrder.num(snappedf(float(tr_.lossPct), 0.1))])   # chapter 6 is judged on frequency, not losses
 	var mr := HBoxContainer.new(); mr.add_theme_constant_override("separation", 20); col.add_child(mr)
 	for it in m:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); mr.add_child(cell)
