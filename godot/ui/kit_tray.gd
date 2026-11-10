@@ -486,7 +486,7 @@ func _draw() -> void:
 		if _scroll < _max_scroll - 1.0: draw_string(semi, Vector2(_avail_right() + 1.0, H * 0.5 + 6.0), "›", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
 	_draw_price_tag()
 	if mode != "": _draw_hint()
-	if chip_text != "":
+	if chip_text != "" and not is_locked():   # no stale what-if chip while the night runs or after it ended
 		_chip_anchor(); _draw_chip(chip_at, chip_text)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
@@ -503,7 +503,7 @@ func _draw_price_tag() -> void:
 	var tw := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw > TAG_W - 30.0 and fsz > 10: fsz -= 1; tw = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var w := TAG_W; var h := 62.0
-	var org := Vector2(size.x - PAD - w, 17.0) if _tag_inline else Vector2(size.x - PAD - w, -h + 10.0)
+	var org := Vector2(size.x - PAD - w, 17.0) if _tag_inline else Vector2(size.x - PAD - w, -h - 6.0)   # narrow trays: the tag hangs fully above the shelf, never over the reels
 	var ang := deg_to_rad(-1.6)
 	draw_set_transform(org + Vector2(w, 0.0) * 0.5, ang, Vector2.ONE)
 	var rect := Rect2(Vector2(-w * 0.5, 0.0), Vector2(w, h))
