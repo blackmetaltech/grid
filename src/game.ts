@@ -8,6 +8,11 @@ import { LEVELS } from './levels';
 import { LEVEL_SPECS, specOf } from './level';
 import { allowedGate } from './level/spec';
 import { buildBenchActions } from './level/bench';
+import { buildCh2Actions, ch2Queries } from './level/ch2/bench';
+import { buildCh4Actions } from './level/ch4/actions';
+import { buildCh4Queries } from './level/ch4/queries';
+import { buildCh7Actions } from './level/ch7/actions';
+import { buildCh7Queries } from './level/ch7/queries';
 import { buildLevelQueries } from './level/queries';
 import { PERSONAS } from './personas';
 import { t } from './i18n';
@@ -17,21 +22,16 @@ import { buildPipeline, emptyBlock } from './sim/tick';
 import { findNonFinite } from './sim/finite';
 import type { SimParams } from './sim/params';
 import { buildCostQueries } from './cost-query';
-import { buildCh2Actions, ch2Queries } from './level/ch2/bench';
-import { buildCh4Actions } from './level/ch4/actions';
-import { buildCh4Queries } from './level/ch4/queries';
-import { buildCh7Actions } from './level/ch7/actions';
-import { buildCh7Queries } from './level/ch7/queries';
 import { catalogueViewOf, simParamsOf, benchParamsOf, routeParamsOf } from './catalogue';
 import { buildRouteActions, buildRouteQueries, type RouteParams } from './route-actions';
+import { buildCh3Actions } from './ch3-actions';
+import { buildCh3Queries } from './ch3-queries';
+import { buildFreqActions } from './freq-actions';
 import type { BenchParams } from './level/bench';
 import { buildActions } from './actions';
 import { buildCh5Actions } from './ch5-actions';
 import { buildCh5Queries } from './ch5-queries';
 import type { CatalogueView } from './sim/build';
-import { buildCh3Actions } from './ch3-actions';
-import { buildCh3Queries } from './ch3-queries';
-import { buildFreqActions } from './freq-actions';
 import { buildQueries } from './queries';
 import { buildUiQueries } from './ui-queries';
 import { buildWorldQueries } from './world-query';
@@ -131,9 +131,9 @@ export const GAME: GameDef<GridState> = {
     ...buildCh7Queries(),
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
-    ...buildCh3Queries({ getParams }),
     ...buildCh5Queries({ getParams }),
     ...buildCostQueries(() => GAME),   // actionCost: what a build would cost, run on a copy
+    ...buildCh3Queries({ getParams }),
     ...buildLevelQueries({ specOf, getParams, getBench, frozenOf: (spec, region) => (spec.frozen ? spec.frozen[region] ?? null : null) }),
   },
   systems: SYSTEMS,

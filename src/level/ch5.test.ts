@@ -172,7 +172,7 @@ describe('chapter 5 rules, report and determinism', () => {
 
 describe('ch5Panel query', () => {
   it('L17: the P-V curve rises to the nose, falls in voltage, and the operating point sits under the nose by the margin; L18: GS converges to Newton', () => {
-    const spec = specOf('L17')!, e = fresh('L17', 'global', spec.reference); e.state.rules.collapseLoses = false; e.engine.act('tick', [4]);
+    const spec = specOf('L17')!, e = fresh('L17', 'global', spec.reference as never); e.state.rules.collapseLoses = false; e.engine.act('tick', [4]);
     const q = e.engine.q('ch5Panel') as any;
     expect(q.active).toBe(true); expect(q.pv.points.length).toBeGreaterThan(10);
     const pts = q.pv.points as { pMW: number; v: number }[];

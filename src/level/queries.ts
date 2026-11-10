@@ -123,15 +123,16 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, scoreUnit: spec.scoreUnit ?? 'money', horizonBlocks: spec.horizonBlocks, startBlock: spec.startBlock, flashoverBlock: spec.flashoverBlock ?? null, fogBlock: spec.fogBlock ?? null, cableCutBlock: spec.cableCutBlock ?? null, fogTime: spec.fogBlock === undefined ? null : `${String(Math.floor(spec.fogBlock / 4)).padStart(2, '0')}:${String((spec.fogBlock % 4) * 15).padStart(2, '0')}`, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
-          if (spec.story && s.ch7) return ch7Lesson(s, spec.story.lessonKey);   // chapter 7 (L23-L27)
-          if (spec.story && s.ch4) return ch4Lesson(s, spec.story.lessonKey);   // chapter 4's benches (L10-L13)
+          if (spec.story && s.ch7) return ch7Lesson(s, spec.story.lessonKey);   // chapter 7 (L23-L27): fault level, grading, swing, merit order, the exam
           if (spec.chapter === 6 && spec.story && spec.lessonText) return spec.lessonText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode));   // chapter 6: the player's own frequency numbers (ch6-text.ts)
+          if (spec.story && s.ch4) return ch4Lesson(s, spec.story.lessonKey);   // chapter 4's benches (L10-L13)
+          if (spec.lessonText && !s.bench) return spec.lessonText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode));   // chapter 5: the lesson in the player's own numbers
           if (spec.story?.lessonKind === 'finale') return finaleLesson(s);   // L28: the three days in the player's numbers
           if (spec.story?.lessonKind === 'island' && !s.bench) return islandLesson(s, spec.story.lessonKey);   // L30: the cable's charging Q and cost, then the battery's kWh and kW
-          if (spec.story?.lessonKind === 'salt' && !s.bench) return saltLesson(s, spec.story.lessonKey);   // L29: creepage of the most exposed coastal support
           if (spec.story?.lessonKind === 'pf' && !s.bench) return pfLesson(s, spec.story.lessonKey);   // chapter 3: S = P + jQ at the peak (L07), the bank's resonance (L08), the series capacitor (L09)
           if (spec.story?.lessonKind === 'harm' && !s.bench) return harmLesson(s, spec.story.lessonKey);
           if (spec.story?.lessonKind === 'series' && !s.bench) return seriesLesson(s, spec.story.lessonKey);
+          if (spec.story?.lessonKind === 'salt' && !s.bench) return saltLesson(s, spec.story.lessonKey);   // L29: creepage of the most exposed coastal support
           if (spec.story && !s.bench && s.routes.length > 0) return routeLesson(s, spec, spec.story.lessonKey, d.getParams(s));   // chapter 2: the longest span with the player's numbers (D = wL^2/8H)
           if (spec.story && (s.bench?.machine || s.bench?.town)) return ch2Lesson(s, spec.story.lessonKey);   // chapter 2's closed-form benches (L04, L06)
           if (!spec.story || !s.bench) return '';
@@ -139,7 +140,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
           if (!run) return '';
           return t(spec.id === 'L02' && s.bench.topology === 'trunk' ? 'level.L02.lessonTrunk' : spec.story.lessonKey, { mm2: run.mm2, m: run.lengthM, r: run.rLoopOhm.toFixed(3), i: run.iA.toFixed(1), drop: run.dropV.toFixed(1), v: run.vRecvV.toFixed(1), loss: det!.totals.lossPct.toFixed(1),
             i48: (L03_LOAD_W / SOURCE_V).toFixed(0), k: (L03_LOAD_W / SOURCE_V / run.iA).toFixed(1), k2: ((L03_LOAD_W / SOURCE_V / run.iA) * (L03_LOAD_W / SOURCE_V / run.iA)).toFixed(0) });
-        })(), tryHint: spec.story?.lessonKind === 'finale' ? finaleTryHint(s) : spec.story && s.ch7 ? ch7TryHint(s) : spec.chapter === 6 && spec.tryText ? spec.tryText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode)) : spec.story && s.ch4 ? ch4TryHint(s) : spec.story && isCh3(spec) ? ch3TryHint(s) : spec.story && (s.bench?.machine || s.bench?.town) ? ch2TryHint(s) : spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
+        })(), tryHint: spec.story?.lessonKind === 'finale' ? finaleTryHint(s) : (spec.chapter === 6 || spec.chapter === 5) && spec.tryText ? spec.tryText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode)) : spec.story && s.ch7 ? ch7TryHint(s) : spec.story && s.ch4 ? ch4TryHint(s) : spec.story && isCh3(spec) ? ch3TryHint(s) : spec.story && (s.bench?.machine || s.bench?.town) ? ch2TryHint(s) : spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
       };
     },
     /** The coach's current step (never advances on a timer: it reads the state), or done. */

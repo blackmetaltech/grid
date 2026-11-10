@@ -73,15 +73,15 @@ export interface GridLevelSpec {
   story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' | 'finale' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
-  /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
   /** Chapter 3 rules (src/sim/ch3): harmonic study, scripted fault, supply-point tracking. */
   ch3?: import('../sim/ch3/rules').Ch3Rules;
+  /** Block at which sea fog flashes over every support short of its tile's creepage (L29); absent = never. */
   fogBlock?: number;
   /** Block at which a trawler's anchor cuts every submarine cable (L30); absent = never. */
   cableCutBlock?: number;
   /** The sea distance of a submarine cable laid in this level, km (L30). */
   seaCableKm?: number;
-  /** Extra rules the shared pipeline reads (chapters 5 and 6), merged over the standard rules. */
+  /** Chapter 5 extras: rules the shared pipeline reads (voltage watch, loading cap, N-1 probe, collapse), merged over the standard rules. */
   extraRules?: (th: Record<string, number>) => Partial<Rules>;
   /** Shift-report lesson and incident-report "what to try" in the player's own numbers (grid levels that are not route levels). */
   lessonText?: (s: GridState, p: SimParams, th: Record<string, number>) => string;
@@ -96,7 +96,7 @@ export interface GridLevelSpec {
   /** Chapter 7: third-star tracked keys the bot population never earns (bots do not predict), so they are left out of its third-star set. */
   botIgnoreStar3?: string[];
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` };
+  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` };
   lesson: Action[];
   reference: Action[];
   /** Targets frozen per region id (null: none, e.g. the prologue). */
@@ -189,6 +189,8 @@ export function allowedGate(actions: Record<string, ActionFn<GridState>>, specOf
         if (!spec.allowed.actions.includes(name)) { const key = 'level.action.notAllowed'; return { ok: false, message: t(key, { action: name, level: spec.id }), key, params: { action: name, level: spec.id } }; }
         const pos = PART_ARG[name], list = spec.allowed.parts[name];
         if (pos !== undefined && list && !list.map(String).includes(String(args[pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
+        const maxSteps = spec.allowed.parts['placeShunt.maxSteps']?.[0];   // chapter 5: a level can cap the number of bank steps (an omitted count means the catalogue's maximum, so it counts as unlimited)
+        if (name === 'placeShunt' && maxSteps !== undefined && !(args[2] !== undefined && Number(args[2]) <= Number(maxSteps))) { const key = 'level.part.notAllowed'; const params = { part: t('level.part.stepsOver', { n: Number(maxSteps) }), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }
         for (const x of EXTRA_PART_ARG[name] ?? []) {
           const more = spec.allowed.parts[`${name}.${x.name}`];
           if (more && args[x.pos] !== null && args[x.pos] !== undefined && !more.map(String).includes(String(args[x.pos]))) { const key = 'level.part.notAllowed'; const params = { part: String(args[x.pos]), level: spec.id }; return { ok: false, message: t(key, params), key, params }; }

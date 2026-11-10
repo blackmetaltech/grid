@@ -21,9 +21,10 @@ import { ch3Step } from './ch3/systems';
 import { ch4Step } from './ch4/systems';
 import { ch7Step } from './ch7/study';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
-import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 import { freqBlockTrack } from './freqtrack';
+import { ch5Track } from './ch5';
 import { finaleWeather, finaleTrack, finaleScale } from './finale';
+import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 
 export const BLOCK_H = 0.25;
 export const BLOCK_S = 900;
@@ -411,13 +412,12 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       s.block.marginPct = d > 1e-9 ? fin((s.block.reserveMW / d) * 100, 0) : 100;
       s.metrics.minMarginPct = s.tick === s.levelStart ? s.block.marginPct : Math.min(s.metrics.minMarginPct, s.block.marginPct);
       s.metrics.nadirHz = Math.min(s.metrics.nadirHz, s.freq.fHz);
+      freqBlockTrack(s, getParams(s));   // chapter 6 levels only (rules.freqTrack): block-frequency statistics
       const solved = solvedOf(s);
       s.block.blackout = s.loads.length > 0 && !!solved && s.loads.every((l) => solved.sol.energised[l.bus] === false || l.shedFrac >= 1);
       // named level measurements for the star rules: billing power factor at the supply point (kWh over kVAh, |Q| counted in both
       // directions) and the loss share of the energy supplied
       const tr = s.metrics.track;
-      finaleTrack(s, getParams(s).gridcode.standardRangeHz);   // L28: island lights, frequency band, ENS share (only when rules.finale)
-      freqBlockTrack(s, getParams(s));   // chapter 6 levels only (rules.freqTrack): block-frequency statistics
       const pg = s.units.reduce((a, u) => a + (u.online ? u.P : 0), 0), qg = s.units.reduce((a, u) => a + (u.online ? u.Q : 0), 0);
       tr.pMWh = fin((tr.pMWh ?? 0) + pg * BLOCK_H); tr.qMVArh = fin((tr.qMVArh ?? 0) + Math.abs(qg) * BLOCK_H);
       tr.pfDay = fin(tr.pMWh / (Math.sqrt(tr.pMWh * tr.pMWh + tr.qMVArh * tr.qMVArh) || 1), 1);
@@ -433,14 +433,16 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         const vs = s.loads.filter((l) => l.P > 0).map((l) => (sol && sol.sol.energised[l.bus] !== false ? sol.sol.V[l.bus] ?? 0 : 0));
         if (vs.length > 0) tr.loadVMinPu = Math.min(tr.loadVMinPu ?? Infinity, fin(Math.min(...vs)));
       }
+      finaleTrack(s, getParams(s).gridcode.standardRangeHz);   // L28: island lights, frequency band, ENS share (only when rules.finale)
+      ch5Track(s);   // chapter 5: voltage watch, loading cap, N-1 probe, loadability margin (each only when the level's rules ask)
     } },
 
+    // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).
     // 13b. ch3: supply-point tracking, the L08 harmonic study and capacitor fuse, the L09 scripted fault (gated on rules.ch3).
     { id: 'ch3', run: (s) => { ch3Step(s, getParams(s).f0); } },
     // 13c. ch4: the L10-L13 circuits (gated on state.ch4).
     { id: 'ch4', run: (s) => { ch4Step(s, getParams(s)); } },
 
-    // 14. levelRules: the verdict (core turns it into won/lost through Level.goal / Level.fail, see src/rules.ts).
     { id: 'levelRules', run: (s) => {
       if (s.bench && getBench) stepBench(s, getBench(s));   // a bench level's circuit is solved here, once per block, before the verdict
       if (s.ch7) ch7Step(s);   // chapter 7: the study of the player's design (cost, tracked numbers, predictions' answers) before the verdict

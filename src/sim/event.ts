@@ -146,6 +146,9 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   if (rules.flashoverBlock !== null && (m.track.flashover ?? 0) > 0) return lost('level.lost.flashover', flashoverParams(s));
   if ((rules.fogBlock ?? null) !== null && (m.track.saltFlashover ?? 0) > 0) return lost('level.lost.saltFlashover', saltFlashoverParams(s));
   if ((rules.cableCutBlock ?? null) !== null && m.poorSupplyMin > 0) { const d = islandDark(s); if (d) return lost(d.key, d.params); }   // L30: say why the island went dark
+  const c4 = ch4Verdict(s, rules, ticksUsed); if (c4) return lost(c4.key, c4.params);   // chapter 4: neutral, voltage, power factor, pump start, swing, exam
+  const fv = finaleVerdict(s, rules); if (fv) return lost(fv.key, fv.params);   // L28: Saltmarsh Island went dark
+  const c3 = ch3Verdict(s, rules, ticksUsed); if (c3) return lost(c3.key, c3.params);   // chapter 3: cap fuse, THD, breaker failure, power factor at the peak
   if (rules.blackoutLoses && s.block.blackout) return lost('level.lost.blackout');
   if (rules.maxEnsMWh !== null && m.ensMWh > rules.maxEnsMWh) return lost('level.lost.ens', { ens: Math.round(m.ensMWh * 10) / 10, max: rules.maxEnsMWh });
   if (rules.maxCost !== null && m.cost > rules.maxCost) return lost('level.lost.cost', { cost: Math.round(m.cost), max: rules.maxCost });
@@ -159,9 +162,6 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
     if (s.bench?.verdict) return lost(s.bench.verdict.key, s.bench.verdict.params);   // chapter 2's benches (L04, L06) say why themselves
     if (s.bench && s.bench.limits.lossMaxPct !== null) {   // a bench judged on line losses (L03): say which way it failed
       const loss = m.track.lossPct ?? 100;
-  const c4 = ch4Verdict(s, rules, ticksUsed); if (c4) return lost(c4.key, c4.params);   // chapter 4: neutral, voltage, power factor, pump start, swing, exam
-  const fv = finaleVerdict(s, rules); if (fv) return lost(fv.key, fv.params);   // L28: Saltmarsh Island went dark
-  const c3 = ch3Verdict(s, rules, ticksUsed); if (c3) return lost(c3.key, c3.params);   // chapter 3: cap fuse, THD, breaker failure, power factor at the peak
       if (loss >= 99.99) return lost('level.lost.unpowered', {});
       return lost('level.lost.lossOver', { loss: Math.round(loss * 10) / 10, max: s.bench.limits.lossMaxPct, min: m.poorSupplyMin });
     }
@@ -175,8 +175,8 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
       if (c <= rules.starCost[0] + 1e-6) stars = 2;
       if (c <= rules.starCost[1] + 1e-6 && m.ensMWh === 0 && extra) stars = 3;
     }
-    if (rules.predStars) { const n = predictionsWithin(s, 0.5); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }
     stars = ch4Stars(s, stars);   // L13's exam rule (one star without the night task)
+    if (rules.predStars) { const n = predictionsWithin(s, 0.5); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }
     return { status: 'won', key: 'level.won', params: { stars }, stars };
   }
   return { status: 'playing', key: null, params: {}, stars: 0 };

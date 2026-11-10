@@ -32,24 +32,24 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (key.startsWith('level.lost.machine') || key === 'level.lost.townLoss') return 'brownout';   // chapter 2's benches
   if (key === 'level.lost.townOverload') return 'overload';
   if (key === 'level.lost.budget') return 'budget';
-  if (key === 'level.lost.voltageLow') return 'brownout';
-  if (key === 'level.lost.voltageHigh') return 'overvoltage';
-  if (key === 'level.lost.loading') return 'overload';
-  if (key === 'level.lost.collapse') return 'collapse';
   if (key === 'level.lost.nadir') return 'nadir';
   if (key === 'level.lost.share') return 'share';
   if (key === 'level.lost.rocof') return 'rocof';
   if (key === 'level.lost.freqBand' || key === 'level.lost.inRange') return 'freqBand';
+  if (key === 'level.lost.voltageLow') return 'brownout';
+  if (key === 'level.lost.voltageHigh') return 'overvoltage';
+  if (key === 'level.lost.loading') return 'overload';
+  if (key === 'level.lost.collapse') return 'collapse';
   if (key === 'level.lost.flashover') return 'flashover';
+  if (key === 'level.lost.saltFlashover') return 'saltFlashover';
+  if (key.startsWith('level.lost.island')) return 'islandDark';
   if (key.startsWith('level.lost.b4.')) return 'machine';   // chapter 4's benches (L10-L13)
   if (key === 'level.lost.capFuse') return 'capFuse';
   if (key === 'level.lost.thd') return 'thd';
   if (key === 'level.lost.farVoltage') return 'brownout';
   if (key === 'level.lost.pfPeak') return 'pfPeak';
   if (key === 'level.lost.breakerFail') return 'breakerFail';
-  if (key === 'level.lost.saltFlashover') return 'saltFlashover';
   if (key.startsWith('level.lost.ch7.')) return key.slice('level.lost.'.length) as FailKind;   // chapter 7's incident reports (src/sim/ch7/study.ts)
-  if (key.startsWith('level.lost.island')) return 'islandDark';
   return (s.metrics.track.overloadTrips ?? 0) > 0 || s.events.log.some((e) => e.causeKey === 'cascade.overload-trip') ? 'overload' : 'blackout';
 }
 

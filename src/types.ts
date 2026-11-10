@@ -337,6 +337,20 @@ export interface Rules {
   cableCutBlock?: number | null;
   /** The sea distance a submarine cable laid by `layCableRoute` spans, km (L30); absent = the straight distance between its buses. */
   seaCableKm?: number | null;
+  /** Chapter 5 (absent elsewhere, so other levels' states and goldens stay as they were): every energised bus of these nominal kVs must stay within [lo, hi] pu; more than `graceBlocks` blocks outside loses. */
+  vWatch?: { lo: number; hi: number; kv: number[]; graceBlocks: number; /** only these bus ids (instead of every bus of the listed kVs) */ buses?: string[] } | null;
+  /** Chapter 5: any branch above this fraction of its rating in a block loses (L16: "no line above 100 %"). */
+  maxLoading?: number | null;
+  /** Chapter 5: blocks above `maxLoading` tolerated before the loss (an overload timer, not a trip wire); absent = 0. */
+  loadingGraceBlocks?: number;
+  /** Chapter 5: probe the N-1 security of every block (worst post-outage loading of any branch, tracked as `n1Loading`); it never changes play, only the third star. */
+  n1?: boolean;
+  /** Chapter 5: a case that is beyond its maximum loadability (lambda* < 1) loses as a voltage collapse. */
+  collapseLoses?: boolean;
+  /** Chapter 5 exam bridge (L18): resolve the player's predictions against the textbook 3-bus case and count the ones within 0.5 %. */
+  exam?: boolean;
+  /** Chapter 5: track the post-trip loadability margin (percent above the load, from the continuation) once this block of the day has passed (L17). */
+  marginFromBlock?: number | null;
   /** Chapter 6 (absent elsewhere): record the frequency numbers of the event window and the blocks in `metrics.track` (nadir, RoCoF, shed MW, band share), and rate the predictions. */
   freqTrack?: boolean;
   /** Chapter 6: a 500 ms RoCoF above this (Hz/s) in the event window loses (L21: "RoCoF <= 1.0 Hz/s"). */
