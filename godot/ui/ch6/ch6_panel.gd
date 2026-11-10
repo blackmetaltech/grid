@@ -42,8 +42,10 @@ func refresh() -> void:
 
 func _layout() -> void:
 	var vp := get_viewport_rect().size
-	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0)
-	position = Vector2(vp.x - W - 14.0, 74.0)
+	custom_minimum_size = Vector2(W, 0); reset_size()
+	var w := maxf(size.x, get_combined_minimum_size().x)
+	size.x = w
+	position = Vector2(maxf(4.0, vp.x - w - 14.0), clampf(74.0, 4.0, maxf(4.0, vp.y - size.y - 24.0)))
 
 func _readout_text(g: Dictionary) -> String:
 	var tr: Dictionary = g.metrics.track
