@@ -1,6 +1,7 @@
 // Chapter 5 (Load Flow & Voltage) measurements the level rules read, tracked once per block from the block's load flow. Everything here is
 // guarded by an optional rule (`vWatch`, `maxLoading`, `n1`, `marginFromBlock`), so a level that does not ask for it keeps its state, its
 // goldens and its time budget exactly as they were. Pure functions of the state (the track is the only thing written).
+import { dmath } from '@core/numerics';
 import { buildCases, flows as computeFlows, solveNetwork, tryLambda } from './loadflow';
 import type { Net } from './network';
 import { solvedOf } from './solved';
@@ -59,7 +60,7 @@ export function examTruth(): Record<string, number> {
   const net = threeBusSaadat(), { c } = buildCases(net).cases[0]!;
   const st = gsFrom([1.05, 1, 1.05], [0, 0, 0]);
   gsSweep(c, st, 1);
-  const g1 = Math.hypot(st.re[1]!, st.im[1]!);
+  const g1 = dmath.hypot(st.re[1]!, st.im[1]!);
   const sol = solveNet(net), f = lfFlows(net, sol);
   void solveCase;
   return { [EXAM_IDS.gs1]: g1, [EXAM_IDS.v2]: sol.V['2']!, [EXAM_IDS.pslack]: f.slack['1']!.p * 100 };

@@ -1,6 +1,7 @@
 // Chapter 3's shift-report lessons and "what to try" hints (L07 power triangle, L08 harmonics, L09 series compensation), all in the player's own numbers.
 // Every printed number comes from state or from the supply-point numbers the ch3 system recorded in `metrics.track` (src/sim/ch3/systems.ts), and each sentence's arithmetic recomputes from
 // the numbers printed in it.
+import { dmath } from '@core/numerics';
 import { t } from '../i18n';
 import type { GridState } from '../types';
 import { S_BASE_MVA } from '../sim/network';
@@ -17,12 +18,12 @@ const kvOfLoad = (s: GridState): number => s.buses.find((b) => b.id === s.loads[
 export function pfLesson(s: GridState, lessonKey: string): string {
   const tr = s.metrics.track;
   if (tr.peakLoadMW === undefined || tr.peakMW === undefined) return '';
-  const pl = tr.peakLoadMW, ql = tr.peakLoadMVAr ?? 0, sl = Math.hypot(pl, ql), v = tr.peakVPu ?? 1, kv = kvOfLoad(s);
+  const pl = tr.peakLoadMW, ql = tr.peakLoadMVAr ?? 0, sl = dmath.hypot(pl, ql), v = tr.peakVPu ?? 1, kv = kvOfLoad(s);
   const i0 = sl * 1000 / (Math.sqrt(3) * kv * v);
   let out = t(lessonKey, { time: hhmm(tr.peakBlock ?? 0), pl: f2(pl), ql: f2(ql), sl: f2(sl), pfl: f2(pl / sl), i0: Math.round(i0), v: f3(v), rated: feederRatedA(s) });
   const banks = s.shunts.filter((h) => h.kind === 'cap'), qc = tr.peakBankMVAr ?? 0;
   if (banks.length > 0 && qc > 1e-9) {
-    const kvar = Math.round(banks.reduce((a, h) => a + h.mvarStep * h.steps, 0) * 1000), qf = ql - qc, sf = Math.hypot(pl, qf);
+    const kvar = Math.round(banks.reduce((a, h) => a + h.mvarStep * h.steps, 0) * 1000), qf = ql - qc, sf = dmath.hypot(pl, qf);
     out += ' ' + t('level.L07.lessonBank', { kvar, qc: f2(qc), qf: f2(qf), sf: f2(sf), pf: f2(tr.pfAtPeak ?? 0), amps: Math.round(tr.peakAmps ?? 0), t1: f2(tan(pl / sl)), t2: f2(tan(0.95)) });
   } else out += ' ' + t('level.L07.lessonNoBank', { amps: Math.round(tr.peakAmps ?? 0), pf: f2(tr.pfAtPeak ?? 0) });
   if (tr.noonAmps !== undefined && tr.noonMW !== undefined) out += ' ' + t('level.L07.lessonNoon', { nkw: Math.round(tr.noonMW * 1000), nam: Math.round(tr.noonAmps), npf: f2(tr.noonPf ?? 0) });
@@ -77,7 +78,7 @@ export function ch3TryHint(s: GridState): string {
   if (over) return t('level.L07.tryBudget');
   const pct = Math.round(Math.max(tr.peakLoading ?? 0, 0) * 100);
   if ((tr.overloadTrips ?? 0) > 0 || key === 'level.lost.blackout') {
-    const pl = tr.peakLoadMW ?? 1.7, pf = tr.peakLoadMW ? pl / Math.hypot(pl, tr.peakLoadMVAr ?? 0) : 0.77;
+    const pl = tr.peakLoadMW ?? 1.7, pf = tr.peakLoadMW ? pl / dmath.hypot(pl, tr.peakLoadMVAr ?? 0) : 0.77;
     return t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2(pl * (tan(pf) - tan(0.95))) });
   }
   if (key.startsWith('level.lost.poorSupply')) return t('level.L07.tryVoltage', { v: f3(tr.loadVMinPu ?? 0) });

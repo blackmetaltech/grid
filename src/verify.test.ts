@@ -12,6 +12,7 @@ function resolveImport(from: string, spec: string): string | null {
   const base = spec.startsWith('@core/') ? resolve(CORE_TS, spec.slice(6)) : spec.startsWith('.') ? resolve(dirname(from), spec) : null;
   if (!base) return null;
   for (const c of [base + '.ts', resolve(base, 'index.ts'), base]) if (existsSync(c) && /\.ts$/.test(c)) return c;
+  if (/\.json$/.test(base) && existsSync(base)) return '';   // static JSON data (bundled; pure)
   throw new Error(`Cannot resolve '${spec}' from ${from}`);
 }
 
@@ -20,9 +21,9 @@ function graph(entry: string) {
   const seen = new Set<string>(); const external: { file: string; spec: string }[] = []; const todo = [entry];
   while (todo.length) {
     const f = todo.pop()!; if (seen.has(f)) continue; seen.add(f);
-    const src = readFileSync(f, 'utf8');
+    const src = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');   // comments may say "from" in prose
     for (const m of src.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
-      const r = resolveImport(f, m[1]!); if (r) todo.push(r); else external.push({ file: f, spec: m[1]! });
+      const r = resolveImport(f, m[1]!); if (r === '') continue; if (r) todo.push(r); else external.push({ file: f, spec: m[1]! });
     }
     if (/\brequire\s*\(/.test(src)) external.push({ file: f, spec: 'require()' });
   }

@@ -3,6 +3,7 @@
 //   L16              every line's loading now and the worst loading after the outage of each line (the N-1 table)
 //   L17              the P-V curve of the city bus (upper branch up to the nose), the operating point, the nose and the margin
 //   L18              the textbook 3-bus case solved by Gauss-Seidel sweep by sweep next to Newton (the iteration table of the Codex lab)
+import { dmath } from '@core/numerics';
 import type { QueryFn } from '@core/kit';
 import type { GridState } from './types';
 import { resolveThresholds } from './level/spec';
@@ -31,7 +32,7 @@ export function pvCurve(s: GridState, busId: string): { points: { pMW: number; v
   let warm: { V: number[]; th: number[] } | null = null;
   const N = 28;
   for (let k = 0; k <= N; k++) {
-    const x = lam * (1 - Math.pow(1 - k / N, 2.2)) * 0.9995;   // denser near the nose, where the curve bends
+    const x = lam * (1 - dmath.pow(1 - k / N, 2.2)) * 0.9995;   // denser near the nose, where the curve bends
     const r = tryLambda(c, x, warm, true, undefined, 1);
     if (!r.converged) continue;
     warm = { V: r.V, th: r.th }; points.push({ pMW: r4(x * p0), v: r4(r.V[i]!) });

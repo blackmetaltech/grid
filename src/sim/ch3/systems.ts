@@ -1,6 +1,7 @@
 // The chapter 3 system (one entry of the pipeline, after `metrics`, before `levelRules`) and the chapter's part of the verdict. Everything is gated on
 // `state.rules.ch3`, so no other level sees it. It measures (supply-point peak and noon numbers, lowest loaded-bus voltage), runs the L08 harmonic study
 // (blowing the capacitor fuse above the IEC 60871 current limit) and the L09 scripted fault (the feeder breaker fails above its breaking current).
+import { dmath } from '@core/numerics';
 import { log } from '@core/kit';
 import type { GridState, Rules } from '../../types';
 import { t } from '../../i18n';
@@ -20,7 +21,7 @@ export function ch3Step(s: GridState, f0: number): void {
     const lit = s.loads.every((l) => solved.sol.energised[l.bus] !== false);   // a block with a dark load bus is a trip, not a peak
     const p = s.units.reduce((a, u) => a + (u.online ? u.P : 0), 0), q = s.units.reduce((a, u) => a + (u.online ? u.Q : 0), 0);
     const amps = Math.max(0, ...s.branches.map((b) => (b.inService ? (solved.flows.branch[b.id]?.iKA ?? 0) * 1000 : 0)));
-    const pf = p > 1e-9 ? p / Math.hypot(p, q) : 1;
+    const pf = p > 1e-9 ? p / dmath.hypot(p, q) : 1;
     if (lit && p > (tr.peakMW ?? -1)) {
       tr.peakMW = p; tr.peakMVAr = q; tr.pfAtPeak = pf; tr.peakAmps = amps; tr.peakBlock = s.clock.block;
       // what the loads asked for at that block, the capacitors' share of the Q, and the voltage at the first load bus (the lesson's S = P + jQ in the player's numbers)

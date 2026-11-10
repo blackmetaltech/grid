@@ -1,5 +1,6 @@
 // Chapter 7 queries: the study of the design as it stands (what the instruments draw), the kit (prices and options for the tray), and the shift report's lesson and
 // "what to try" lines in the player's own numbers. Before the scripted event runs, the numbers that ARE the prediction (fault kA, critical angle, lambda) stay hidden.
+import { dmath } from '@core/numerics';
 import type { QueryFn } from '@core/kit';
 import { t } from '../../i18n';
 import { formatMoney } from '@core/regions';
@@ -25,7 +26,7 @@ const fin = (x: number): number | null => (Number.isFinite(x) ? x : null);
 function curvePoints(curve: 'SI' | 'VI' | 'EI', tms: number, is: number, lo: number, hi: number, n = 48): [number, number][] {
   const pts: [number, number][] = [];
   for (let i = 0; i < n; i++) {
-    const a = lo * Math.pow(hi / lo, i / (n - 1)), tt = idmtTime(curve, tms, a, is);
+    const a = lo * dmath.pow(hi / lo, i / (n - 1)), tt = idmtTime(curve, tms, a, is);
     if (Number.isFinite(tt)) pts.push([r1(a), r3(tt)]);
   }
   return pts;
@@ -52,7 +53,7 @@ export function buildCh7Queries(): Record<string, QueryFn<GridState>> {
           ...base, design: d, is: st.is.map((x) => Math.round(x)), ct: SC.l24.ctA, loadA: SC.l24.loadA, ctiS: SC.l24.ctiS,
           faults: st.faults.map((f) => ({ id: f.id, section: f.section, amps: Math.round(f.amps), times: f.times.map(fin), nearestS: fin(f.nearestS), marginS: fin(f.marginS), burnt: f.burnt })),
           curves: d.relays.map((r, k) => ({ relay: `R${k + 1}`, is: Math.round(st.is[k]!), pts: curvePoints(r.curve, r.tms, st.is[k]!, lo, hi) })),
-          limits: SC.l24.sections.map((x, k) => ({ section: k + 1, mm2: x.mm2, pts: [200, 400, 800, 1600, 3200, 6400].map((i) => [i, r3((SC.l24.kAlu * x.mm2 / i) ** 2)]) })),
+          limits: SC.l24.sections.map((x, k) => ({ section: k + 1, mm2: x.mm2, pts: [200, 400, 800, 1600, 3200, 6400].map((i) => [i, r3(dmath.pow(SC.l24.kAlu * x.mm2 / i, 2))]) })),
           totalS: fin(st.totalS), minMarginS: r3(st.minMarginS), kind: st.kind, ok: st.kind === null, avoidableEnsMWh: r1(st.avoidableEnsMWh), curveConst: IDMT_CURVES,
         };
       }

@@ -1,5 +1,6 @@
 // Chapter 5 shift-report lessons and incident-report hints in the player's own numbers (referenced by the level specs; queries.ts calls them through `spec.lessonText` / `spec.tryText`).
 // Every number printed is one the reader can recompute from another printed number, as the chapter 2 cards do.
+import { dmath } from '@core/numerics';
 import { t } from '../i18n';
 import type { GridState } from '../types';
 import { LINE_TEMPLATES } from '../data/lineTemplates';
@@ -24,8 +25,8 @@ export function l14Try(s: GridState): string {
 /** |A| of the exact line (cosh of gamma times length) for the 400 kV twin-Moose template, and the no-load receiving voltage for the sending set-point. */
 export function l15NoLoad(s: GridState): { absA: number; v0: number } {
   const tpl = LINE_TEMPLATES.find((x) => x.id === 'l400-twinmoose')!, km = s.branches[0]?.lengthKm ?? 350;
-  const m = Math.hypot(tpl.rOhmKm, tpl.xOhmKm) * tpl.bUsKm * 1e-6, ang = (Math.atan2(tpl.xOhmKm, tpl.rOhmKm) + Math.PI / 2) / 2, g = Math.sqrt(m), a = g * Math.cos(ang) * km, b = g * Math.sin(ang) * km;
-  const A = Math.hypot(Math.cosh(a) * Math.cos(b), Math.sinh(a) * Math.sin(b));
+  const m = dmath.hypot(tpl.rOhmKm, tpl.xOhmKm) * tpl.bUsKm * 1e-6, ang = (dmath.atan2(tpl.xOhmKm, tpl.rOhmKm) + Math.PI / 2) / 2, g = Math.sqrt(m), a = g * dmath.cos(ang) * km, b = g * dmath.sin(ang) * km;
+  const A = dmath.hypot(dmath.cosh(a) * dmath.cos(b), dmath.sinh(a) * dmath.sin(b));
   return { absA: A, v0: (s.buses[0]?.vSet ?? 1) / A };
 }
 
@@ -33,9 +34,9 @@ export function l15NoLoad(s: GridState): { absA: number; v0: number } {
 export function l15Lesson(s: GridState): string {
   const tpl = LINE_TEMPLATES.find((x) => x.id === 'l400-twinmoose')!, km = s.branches[0]?.lengthKm ?? 350;
   // gamma = sqrt(z y), A = cosh(gamma l) = cosh(a) cos(b) + j sinh(a) sin(b)
-  const zr = tpl.rOhmKm, zx = tpl.xOhmKm, y = tpl.bUsKm * 1e-6, m = Math.hypot(zr, zx) * y, ang = (Math.atan2(zx, zr) + Math.PI / 2) / 2;
-  const g = Math.sqrt(m), gr = g * Math.cos(ang), gi = g * Math.sin(ang), a = gr * km, b = gi * km;
-  const A = Math.hypot(Math.cosh(a) * Math.cos(b), Math.sinh(a) * Math.sin(b));
+  const zr = tpl.rOhmKm, zx = tpl.xOhmKm, y = tpl.bUsKm * 1e-6, m = dmath.hypot(zr, zx) * y, ang = (dmath.atan2(zx, zr) + Math.PI / 2) / 2;
+  const g = Math.sqrt(m), gr = g * dmath.cos(ang), gi = g * dmath.sin(ang), a = gr * km, b = gi * km;
+  const A = dmath.hypot(dmath.cosh(a) * dmath.cos(b), dmath.sinh(a) * dmath.sin(b));
   const v1 = s.buses[0]?.vSet ?? 1;
   const qc = tpl.kv * tpl.kv * tpl.bUsKm * 1e-6 * km;
   const out = t('level.L15.lesson', { km, sil: Math.round(tpl.silMw), qc: Math.round(qc), a: f3(A), v1: f2(v1), v0: f3(v1 / A), kv0: Math.round((v1 / A) * 400) });

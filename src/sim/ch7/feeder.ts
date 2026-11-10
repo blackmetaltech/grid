@@ -1,5 +1,6 @@
 // L24: a radial 11 kV feeder with four IEC IDMT overcurrent relays. Fault currents come from the engine's Zbus fault study of the feeder (nodes at the
 // scripted fault sites); times from the IEC 60255-151 relay model; the conductor limit is I^2 t <= (K A)^2. Oracle: tools/oracles/ch7_oracles.py.
+import { dmath } from '@core/numerics';
 import { S_BASE_MVA, type Net } from '../network';
 import { FaultStudy, conductorAnneals, idmtTime, type FaultModel } from '../protection';
 import { SC } from './data';
@@ -61,7 +62,7 @@ export function studyL24(d: L24Design): L24Study {
     }
     const sec = c.sections[k]!;
     const b = Number.isFinite(tk) && conductorAnneals(i, tk, sec.mm2, c.kAlu);
-    if (b) { burnt = true; burntBad ??= { relay: k, fault: f.id, upS: tk, downS: tk, amps: i, limitS: ((c.kAlu * sec.mm2) / i) ** 2 }; }
+    if (b) { burnt = true; burntBad ??= { relay: k, fault: f.id, upS: tk, downS: tk, amps: i, limitS: dmath.pow((c.kAlu * sec.mm2) / i, 2) }; }
     faults.push({ id: f.id, section: f.section, amps: i, times, nearestS: tk, marginS: margin, worstUp, burnt: b });
     total += tk; if (margin < minMargin) minMargin = margin;
   });
