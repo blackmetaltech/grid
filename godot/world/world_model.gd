@@ -98,6 +98,8 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 		m.lines.append(_line(str(br.id), pts, load_f, fdir, bool(br.inService), int(br.circuits), float(kvs.get(br["from"], 11.0)), float(br.overloadFrac), str(br.kind)))
 	for u in w.units:
 		m.units.append({"id": str(u.id), "pos": pos.get(u.bus, Vector2.ZERO), "kind": str(u.kind), "online": bool(u.online), "level": 0.0 if float(u.pMax) <= 0.0 else clampf(float(u.P) / float(u.pMax), 0.0, 1.0), "rotor": WorldMath.rotor_speed(float(u.availMW), float(u.pMax))})
+	m["batteries"] = []   # batteries (L30 island): position, charge and output, drawn as a hut whose fill is the charge
+	for x in w.get("storage", []): m.batteries.append({"id": str(x.id), "pos": pos.get(x.bus, Vector2.ZERO), "soc": float(x.soc), "p": float(x.pMW), "mwh": float(x.mwh)})
 	for h in w.shunts: m.shunts.append({"id": str(h.id), "pos": pos.get(h.bus, Vector2.ZERO), "on": int(h.on), "steps": int(h.steps), "kind": str(h.kind)})
 
 static func _bench(m: Dictionary, w: Dictionary) -> void:

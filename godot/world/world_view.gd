@@ -676,6 +676,7 @@ func _paint_dynamic() -> void:
 	if cute and _night > 0.35: _draw_fireflies()
 	_draw_corona()
 	_draw_trawler()
+	_draw_island_life()
 	_draw_fog()
 	perf.dyn_us += Time.get_ticks_usec() - t0
 
@@ -721,6 +722,43 @@ func _draw_sea_cable(l: Dictionary) -> void:
 	_ci.draw_polyline(poly, Color(0.85, 0.55, 0.2, 0.85) if ok else Color(0.45, 0.4, 0.4, 0.8), 2.0, true)
 	for e in [a, c]: _ci.draw_circle(_iso(e.x, e.y, _zat(e)), 4.0, GridTheme.SODIUM if ok else Color(0.5, 0.5, 0.5))
 
+## L30 island charm that encodes the physics: the lighthouse turns its beam only while the island bus is live (cable or battery),
+## and the battery hut shows its charge as a fill bar (green > 50 %, amber, red < 20 %) with a pulsing arrow while it discharges.
+func _draw_island_life() -> void:
+	if not model.has("island_c"): return
+	var ic: Vector2 = model.island_c
+	var lit := false
+	for tw in model.towns: if Vector2(tw.pos).distance_to(ic) < 3.0 and float(tw.v) > 0.0: lit = true
+	var s := clampf(_iso(1.0, 0.0, 0.0).distance_to(_iso(0.0, 0.0, 0.0)) / 30.0, 0.7, 3.0)   # sized by the tile on screen
+	var lp := ic + Vector2(-1.7, 0.9)   # the west point of the island, clear of its label
+	var base := _iso(lp.x, lp.y, _zat(lp)); var top := base + Vector2(0, -34) * s
+	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-5, 0) * s, base + Vector2(5, 0) * s, top + Vector2(3, 0) * s, top + Vector2(-3, 0) * s]), _c(Color("#ECE6D6")))
+	for k in 2: var y := -10.0 - 12.0 * k; _ci.draw_rect(Rect2(base + Vector2(-4.4 + 0.5 * k, y - 4) * s, Vector2(8.8 - k, 4) * s), _c(Color("#B5402F")))
+	_ci.draw_rect(Rect2(top + Vector2(-4, -6) * s, Vector2(8, 6) * s), _c(Color("#2B2A33")))
+	if lit:
+		var a := _t * 1.3
+		var lamp := top + Vector2(0, -3) * s
+		for sgn in [1.0, -1.0]:
+			var d := Vector2(cos(a) * sgn, sin(a) * 0.45 * sgn)
+			var n := Vector2(-d.y, d.x) * 9.0 * s
+			_ci.draw_colored_polygon(PackedVector2Array([lamp, lamp + d * 110.0 * s + n, lamp + d * 110.0 * s - n]), Color(1.0, 0.93, 0.6, 0.16 * _night + 0.04))
+		_ci.draw_circle(lamp, 3.5 * s, Color(1.0, 0.95, 0.7))
+	for bt in model.get("batteries", []):
+		var bp: Vector2 = _tc(bt.pos) + Vector2(0.8, 0.6)
+		var b0 := _iso(bp.x, bp.y, _zat(bp))
+		var w := 22.0 * s; var h := 11.0 * s
+		var r := Rect2(b0 + Vector2(-w * 0.5, -h - 4.0 * s), Vector2(w, h))
+		_ci.draw_rect(r.grow(1.5), _c(Color("#1A1F30")))
+		_ci.draw_rect(r, _c(Color("#D9D4C3")))
+		var soc := clampf(float(bt.soc), 0.0, 1.0)
+		var col := Color("#4FB477") if soc > 0.5 else (Color("#E2A33B") if soc > 0.2 else Color("#D9483B"))
+		_ci.draw_rect(Rect2(r.position + Vector2(1.5, 1.5), Vector2((w - 3.0) * soc, h - 3.0)), col)
+		_ci.draw_rect(Rect2(r.position + Vector2(w, h * 0.3), Vector2(2.5 * s, h * 0.4)), _c(Color("#1A1F30")))
+		if float(bt.p) > 1e-4:   # discharging: a pulsing arrow out of the hut toward the houses
+			var k := 0.5 + 0.5 * sin(_t * 5.0)
+			var tip := r.position + Vector2(w * 0.5, -6.0 * s)
+			_ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-4, 0) * s, tip + Vector2(4, 0) * s, tip + Vector2(0, -6) * s]), Color(col.r, col.g, col.b, 0.5 + 0.5 * k))
+
 ## L30 (dynamic layer): the trawler steams in from the west, drags its anchor over the cable at the cut minute, steams off east; after the cut a red cross pulses.
 func _draw_trawler() -> void:
 	if not model.has("island_c"): return
@@ -735,7 +773,7 @@ func _draw_trawler() -> void:
 		if cm > 0.0 and mn > cm - 90.0 and mn < cm + 60.0:   # the trawler: in from the west 90 min before, drags its anchor over the cable at the cut, steams off east
 			var u := (mn - cm) / 60.0
 			var bp := mid + Vector2(u * 7.0, 0.4 + 0.5 * u)
-			var s := clampf(_scale(), 0.6, 2.0) * 1.6
+			var s := clampf(_iso(1.0, 0.0, 0.0).distance_to(_iso(0.0, 0.0, 0.0)) / 30.0, 0.7, 3.0) * 1.3
 			var hull := _iso(bp.x, bp.y, 0.0) + Vector2(0, sin(_t * 1.7) * 1.5)
 			var h := PackedVector2Array([hull + Vector2(-14, -2) * s, hull + Vector2(14, -4) * s, hull + Vector2(10, 4) * s, hull + Vector2(-11, 5) * s])
 			_ci.draw_colored_polygon(h, _c(Color("#7A2E2A")))

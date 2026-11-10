@@ -213,7 +213,7 @@ describe('the island on the map, determinism, lesson numbers', () => {
   });
   it('the lesson prints the cable (cost per km against the overhead line, Q recomputed) and the battery (kWh drawn vs installed, inverter vs peak) in the player\'s numbers', () => {
     expect((fresh().engine.q('levelInfo') as any).lesson).toBe('');
-    const early = play(spec.reference); expect((early.engine.q('levelInfo') as any).lesson).toMatch(/Run the night: at 21:00 the cable will be cut/);
+    const early = play(spec.reference); expect((early.engine.q('levelInfo') as any).lesson).toMatch(/The test comes at 21:00, when the cable is cut/);
     for (const [acts, id] of [[spec.reference, 'ref'], [spec.lesson, 'lesson']] as const) {
       const e = run(play(acts)); const li = (e.engine.q('levelInfo') as any).lesson as string;
       const m = li.match(/Your (\d+) mm² cable runs ([\d.]+) km under the sea at \$([\d,]+) per km, ([\d.]+) times the \$([\d,]+) per km of the overhead line.*Q = V² × ω × C × ℓ = ([\d.]+) kvar at (\d+) kV \(about ([\d.]+) A/)!;
