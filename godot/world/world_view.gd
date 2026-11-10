@@ -410,6 +410,7 @@ func _view_rect() -> Rect2:
 		var ins: Vector4 = app.inset
 		l = 14.0 + ins.x + (app.RAIL_W if CbLayout.phone else 0.0); t = app._bar_h + 12.0 + ins.y   # the world itself is full-bleed; only the framed island keeps clear of the notch
 		bt = size.y - (6.0 if CbLayout.phone else app._dock_h + 12.0) - ins.w
+		if CbLayout.phone and _has_terrain(): bt = minf(bt, size.y * 0.74)   # a long terrain map on a phone: keep both ends above the tray and the budget tag (the market sat under them)
 		r = size.x - cover - 14.0 - ins.z
 	return Rect2(l, t, maxf(60.0, r - l), maxf(60.0, bt - t))
 
