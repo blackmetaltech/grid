@@ -248,34 +248,41 @@ func _describe_sea(branch_id: String) -> Dictionary:
 	var uf := "%.2f" % float(RouteTray.SEA_UF.get(id, 0.0)); var km := "%.1f" % float(rec.lengthKm); var q := RouteTray._kvar_text(float(rec.chargingKvar))
 	var d := {"kind": "seacable", "id": branch_id, "title": tx("L30_TAG_SEA") % mm2}
 	d["head"] = tx("L30_SEA_HEAD") % [mm2, km, uf, q]
-	d["rows"] = [[tx("L30_ROW_LEN"), tx("L30_ROW_LEN_V") % km], [tx("L30_ROW_C"), tx("L30_ROW_C_V") % uf], [tx("L30_ROW_Q"), tx("L30_ROW_Q_V") % q],
+	var amps := float(rec.chargingKvar) * 1000.0 / (sqrt(3.0) * float(kv) * 1000.0)   # I = Q / (sqrt 3 V)
+	d["rows"] = [[tx("L30_ROW_LEN"), tx("L30_ROW_LEN_V") % km], [tx("L30_ROW_C"), tx("L30_ROW_C_V") % uf], [tx("L30_ROW_Q"), tx("L30_ROW_Q_V") % q], [tx("L30_ROW_I"), tx("L30_ROW_I_V") % ("%.1f" % amps)],
 		[tx("L30_ROW_RATED"), "%s A" % str(RouteTray.SEA_AMP.get(id, 0))], [tx("L30_ROW_COST"), CbRegion.money(float(rec.cost), false, 0)]]
 	d["eq"] = tx("L30_SEA_EQ") % [kv, _g1(_f0()), uf, _g1(float(rec.lengthKm))]
+	d["eq_i"] = tx("L30_SEA_EQ_I") % [q, kv, "%.1f" % amps]; d["amps"] = amps; d["note"] = tx("L30_NO_LOAD")
 	d["q_kvar"] = float(rec.chargingKvar)
 	return d
 
+## The island battery as the world query lists it (soc, pMW, mw, mwh) with the one-way efficiency of its cells: usable energy now = (soc - 10 %) x kWh x eta, the whole window = 80 % x kWh x eta,
+## hours left = usable / the island's evening peak. {} when the battery is gone.
+static func island_battery(bridge, sid: String) -> Dictionary:
+	var w = bridge.q("world")
+	if not (w is Dictionary): return {}
+	var st := {}
+	for x in w.get("storage", []): if str(x.id) == sid: st = x
+	if st.is_empty(): return {}
+	var etart := 0.86
+	for x in bridge.g.get("storage", []): if str(x.id) == sid: etart = float(x.etaRt)
+	var eta := sqrt(etart); var kwh := float(st.mwh) * 1000.0; var soc := float(st.soc)
+	var peak := 0.0
+	for bus in w.get("buses", []): if str(bus.id) == str(st.bus): peak = float(bus.peakMW) * 1000.0
+	var usable := maxf(0.0, soc - 0.1) * kwh * eta
+	return {"soc": soc, "kw": float(st.mw) * 1000.0, "kwh": kwh, "usable": usable, "cap": 0.8 * kwh * eta, "peak": peak, "hours": usable / peak if peak > 0.0 else 0.0, "out_kw": float(st.pMW) * 1000.0, "bus": str(st.bus)}
+
 ## L30's island battery tag: kW, kWh, the live state of charge and how long the cells carry the island at its evening peak.
 func _describe_battery(sid: String) -> Dictionary:
-	var st := {}
-	for x in b.g.get("storage", []): if str(x.id) == sid: st = x
-	if st.is_empty(): return {}
-	var kw := float(st.mw) * 1000.0; var kwh := float(st.mwh) * 1000.0; var soc := float(st.soc)
-	var d := {"kind": "battery", "id": sid, "title": tx("L30_TAG_BAT") % [_g1(kw), _g1(kwh)], "soc": soc, "bus": str(st.bus)}
-	var rules = b.g.get("rules", {}); var cut = rules.get("cableCutBlock") if rules is Dictionary else null
-	var clk = b.g.get("clock", {}); var blk := int(clk.get("block", 0)) if clk is Dictionary else 0
-	var before_cut: bool = cut != null and blk < int(cut)
-	var usable := maxf(0.0, (0.9 if before_cut else soc) - 0.1) * kwh   # cell energy above the 10 % floor; on the live grid the cells float full by the cut, so before it the promise is the full window
-	var eta := sqrt(float(st.etaRt))   # one way
-	var peak := 0.0
-	var w = b.q("world")
-	if w is Dictionary: for bus in w.get("buses", []): if str(bus.id) == str(st.bus): peak = float(bus.peakMW) * 1000.0
-	var hours := usable * eta / peak if peak > 0.0 else 0.0
-	var rows: Array = [[tx("L30_ROW_INV"), tx("L30_BAT_KW") % _g1(kw)], [tx("L30_ROW_CELLS"), tx("L30_BAT_KWH") % _g1(kwh)], [tx("L30_ROW_USABLE"), tx("L30_ROW_USABLE_V") % [_g1(usable), _g1(kwh * 0.8)]]]
-	var out_kw := float(st.P) * 1000.0
+	var v := island_battery(b, sid)
+	if v.is_empty(): return {}
+	var d := {"kind": "battery", "id": sid, "title": tx("L30_TAG_BAT") % [_g1(v.kw), _g1(v.kwh)], "soc": v.soc, "bus": v.bus}
+	var rows: Array = [[tx("L30_ROW_INV"), tx("L30_BAT_KW") % _g1(v.kw)], [tx("L30_ROW_CELLS"), tx("L30_BAT_KWH") % _g1(v.kwh)], [tx("L30_ROW_USABLE"), tx("L30_ROW_USABLE_V") % [_g1(v.usable), _g1(v.cap)]]]
+	var out_kw: float = v.out_kw
 	rows.append([tx("L30_ROW_STATE"), (tx("L30_BAT_FEEDING") + " · " + tx("L30_BAT_KW") % _g1(out_kw)) if out_kw > 0.05 else tx("L30_BAT_FLOAT")])
 	d["rows"] = rows
-	d["carries"] = (tx("L30_BAT_CARRIES") % ["%.1f" % hours, _g1(peak)]) if hours > 0.0 else tx("L30_BAT_CARRIES_OUT")
-	d["hours"] = hours; d["peak_kw"] = peak; d["usable_kwh"] = usable
+	d["carries"] = (tx("L30_BAT_CARRIES") % ["%.1f" % v.hours, _g1(v.peak)]) if float(v.hours) > 0.0 else tx("L30_BAT_CARRIES_OUT")
+	d["hours"] = v.hours; d["peak_kw"] = v.peak; d["usable_kwh"] = v.usable; d["cap_kwh"] = v.cap
 	return d
 
 ## Yard names by role: the pair that holds the generator is the hydro side, the other the village; high-voltage side "yard", low side "powerhouse" / "village".
@@ -413,11 +420,14 @@ func _build(d: Dictionary) -> void:
 			for r in d.rows: _row(str(r[0]), str(r[1]))
 		"seacable":
 			_lbl(str(d.head), 14, Color(GridTheme.PAPER_INK, 0.85), "sans")
+			_lbl(str(d.note), 14, Color(GridTheme.PAPER_INK, 0.85), "sans")
 			for r in d.rows: _row(str(r[0]), str(r[1]))
 			var box3 := PanelContainer.new(); box3.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			var sb3 := StyleBoxFlat.new(); sb3.bg_color = Color(GridTheme.PAPER_INK, 0.09); sb3.set_corner_radius_all(3); sb3.content_margin_left = 8; sb3.content_margin_right = 8; sb3.content_margin_top = 5; sb3.content_margin_bottom = 5
 			box3.add_theme_stylebox_override("panel", sb3)
-			eq_label = GridTheme.label(str(d.eq), 15, GridTheme.PAPER_INK, "mono"); eq_label.autowrap_mode = TextServer.AUTOWRAP_OFF; box3.add_child(eq_label); lines.append(eq_label)
+			var eqv := VBoxContainer.new(); eqv.mouse_filter = Control.MOUSE_FILTER_IGNORE; box3.add_child(eqv)
+			eq_label = GridTheme.label(str(d.eq), 15, GridTheme.PAPER_INK, "mono"); eq_label.autowrap_mode = TextServer.AUTOWRAP_OFF; eqv.add_child(eq_label); lines.append(eq_label)
+			var eq2 := GridTheme.label(str(d.eq_i), 15, GridTheme.PAPER_INK, "mono"); eq2.autowrap_mode = TextServer.AUTOWRAP_OFF; eqv.add_child(eq2); lines.append(eq2)
 			_vb.add_child(box3)
 		"battery":
 			var sr := HBoxContainer.new(); sr.add_theme_constant_override("separation", 8); sr.mouse_filter = Control.MOUSE_FILTER_IGNORE

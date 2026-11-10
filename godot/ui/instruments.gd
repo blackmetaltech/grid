@@ -13,6 +13,7 @@ var dial: DialView
 var clear: MeterView      ## chapter 2: clearance of the worst span, m (scale -2 ... +3)
 var vil: MeterView        ## chapter 2: the village's voltage, V at the load bus (340 ... 460); on L30 the island's 0.42 kV bus
 var bat: MeterView        ## L30: the island battery's state of charge, % (small before the anchor cut, full size and warm after it)
+var after_cut := false    ## L30: the anchor has cut the cable
 var bat_k := 0.78         ## its scale in the cluster: 1.0 once the cable is cut
 var _vig: GradientTexture2D
 var mode := "volt"        ## "volt" (worst home V) or "loss" (line loss %), chosen from the level's bench limits
@@ -99,21 +100,25 @@ func refresh_route(b, w: Dictionary, on: bool, running: bool) -> void:
 	else:
 		vil.zones = []; vil.set_target(vil.vmin)
 
-## L30: the island battery's state of charge (the lowest of the batteries on offshore buses). Shown while the level has an offshore island; blank until a battery stands there.
-## Small and cool before the anchor cut, full size and warm from the cut on (the engine's rules.cableCutBlock against the clock).
+## L30: the island battery's state of charge and the hours it has left at the evening peak (the world query's storage list, via TagView.island_battery). Shown while the level has an
+## offshore island; blank until a battery stands there. Small before the anchor cut, full size and warm from the cut on (levelInfo.cableCutBlock against the clock).
 func _refresh_battery(b, w: Dictionary, running: bool) -> void:
 	var off := {}
 	for bus in w.get("buses", []): if bool(bus.get("offshore", false)): off[str(bus.id)] = true
 	bat.visible = not off.is_empty()
 	if not bat.visible: return
-	var soc := INF
-	for st in b.g.get("storage", []): if off.has(str(st.bus)): soc = minf(soc, float(st.soc))
+	var soc := INF; var hours := 0.0
+	for st in w.get("storage", []):
+		if not off.has(str(st.bus)): continue
+		var v := TagView.island_battery(b, str(st.id))
+		if not v.is_empty() and float(v.soc) < soc: soc = float(v.soc); hours = float(v.hours)
 	bat.blank = is_inf(soc); bat.set_target(0.0 if is_inf(soc) else soc * 100.0)
-	var rules = b.g.get("rules", {}); var cut = rules.get("cableCutBlock") if rules is Dictionary else null
+	bat.caption = TranslationServer.translate("METER_BAT_CAPTION") if is_inf(soc) or hours <= 0.0 else TranslationServer.translate("METER_BAT_CAPTION_H") % ("%.1f" % hours)
+	var li = b.q("levelInfo"); var cut = li.get("cableCutBlock") if li is Dictionary else null
 	var clk = b.g.get("clock", {}); var blk := int(clk.get("block", 0)) if clk is Dictionary else 0
-	var after: bool = cut != null and blk >= int(cut)
-	bat_k = 1.0 if after else 0.78
-	bat.live = running or after
+	after_cut = cut != null and blk >= int(cut)
+	bat_k = 1.0 if after_cut else 0.78
+	bat.live = running or after_cut
 
 ## What-if of the route tray: the clearance gauge's ghost needle (m). NAN clears it.
 func set_clear_ghost(v: float) -> void: clear.set_ghost(v)
@@ -125,7 +130,7 @@ func _visible_items() -> Array:
 	if bat.visible: a.append(bat)
 	if volt.visible: a.append(volt)
 	if dial.visible: a.append(dial)
-	if CbLayout.phone and a.size() > 2: a = a.slice(0, 2)   # phone: clock plus one meter
+	if CbLayout.phone and a.size() > 2: a = [clock, bat] if bat.visible and after_cut else a.slice(0, 2)   # phone: clock plus one meter (the island battery once the cable is cut)
 	return a
 
 ## What-if from the kit tray: the meter's ghost needle. NAN clears it. `v` is in the meter's own unit (volts, or % in the loss meter).

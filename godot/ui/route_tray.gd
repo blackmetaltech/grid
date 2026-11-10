@@ -31,12 +31,10 @@ const STEP_M := 50.0
 ## Insulator kit (L29): unit creepage of the whole string in mm (src/data/insulators.ts), display only; the planner computes the real numbers.
 const INS_MM := {"pin": 320, "disc2": 590, "fog1": 430}
 const INS_IDS := ["pin", "disc2", "fog1"]
-## Sea cable and island battery (L30), display only (src/data/submarine.ts, src/regions/*/route.ts, the storage catalogue): capacitance in uF/km, ampacity in A, list price per km in the global pack
-## (the `in` pack is x 8). Once a cable is laid the tray prints the engine's own price per km; the planner still checks every action and its refusal is what the player reads.
+## Sea cable and island battery (L30), display only (src/data/submarine.ts): capacitance in uF/km and ampacity in A. Prices are the engine's: `actionCost` runs the build on a copy of the state.
 const SEA_IDS := ["sub-11-70", "sub-11-120", "sub-11-185"]
 const SEA_UF := {"sub-11-70": 0.25, "sub-11-120": 0.30, "sub-11-185": 0.35}
 const SEA_AMP := {"sub-11-70": 215, "sub-11-120": 290, "sub-11-185": 365}
-const SEA_USD_KM := {"sub-11-70": 120000.0, "sub-11-120": 150000.0, "sub-11-185": 190000.0}
 const ISL_IDS := ["isl-25kw-50kwh", "isl-50kw-100kwh", "isl-50kw-125kwh", "isl-50kw-150kwh", "isl-100kw-200kwh"]
 const ISL_MAX_KWH := 200.0
 const ISL_MAX_KW := 100.0
@@ -56,6 +54,7 @@ var armed_xf := ""                  ## transformer catalogue id waiting for a ya
 var armed_sea := ""                 ## L30: sea cable catalogue id waiting for its yards
 var armed_isl := ""                 ## L30: island battery catalogue id waiting for the island yard
 var sea_from := ""                  ## L30: the mainland yard picked first when the crossing is ambiguous
+var _cost_cache := {}               ## actionCost answers of this engine state (cleared by refresh())
 var kit := {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}   ## kv: the line voltage the survey connects (each site has a yard per voltage)
 var yards: Array = []               ## {id, kv, tile: Vector2, pos: Vector2 (m), label}
 var pairs: Array = []               ## {hv, lv}: the distribution transformer pairs
@@ -125,6 +124,7 @@ func refresh() -> void:
 			kit.insulator = "pin"; kit.coast = "pin"
 			var pr := player_routes()
 			if not pr.is_empty() and pr[0].request.has("insulatorId"): kit.insulator = str(pr[0].request.insulatorId); kit.coast = str(pr[0].request.get("coastInsulatorId", kit.insulator))
+	_cost_cache = {}
 	_read_yards(w); _build_items()
 	visible = true
 	if mode != "": _show_pegs()
@@ -212,7 +212,7 @@ func _build_items() -> void:
 				g += 1
 	var xf_done := false
 	if sea_allowed(b):   # L30, in the order the job is built: the sea cable reels, the island transformers, then the island batteries
-		for c in _parts("layCableRoute", SEA_IDS): out.append({"kind": "sea", "id": str(c), "mm2": str(c).get_slice("-", 2), "group": g, "wk": 1.3})
+		for c in _parts("layCableRoute", SEA_IDS): out.append({"kind": "sea", "id": str(c), "mm2": str(c).get_slice("-", 2), "group": g, "wk": 1.25})
 		g += 1
 		for x in _parts("placeTransformer", ["dt-100", "dt-160", "dt-250"]): out.append({"kind": "xfmr", "id": str(x), "kva": str(x).get_slice("-", 1), "group": g})
 		g += 1; xf_done = true
@@ -645,8 +645,8 @@ func place_xfmr(yard_id: String) -> Dictionary:
 func _sea_kv() -> float: return float((armed_sea if armed_sea != "" else str(SEA_IDS[0])).get_slice("-", 1))
 
 ## The crossings the armed cable can make: {from: the mainland yard nearest the island, to: an offshore yard}, one per island yard of the cable's voltage.
-func sea_pairs() -> Array:
-	var out: Array = []; var kv := _sea_kv()
+func sea_pairs(kv_in := -1.0) -> Array:
+	var out: Array = []; var kv := _sea_kv() if kv_in < 0.0 else kv_in
 	for y in yards:
 		if not bool(y.get("offshore", false)) or not is_equal_approx(float(y.kv), kv): continue
 		var best := ""; var bd := 1e18
@@ -664,10 +664,27 @@ func sea_km() -> float:
 	return float(km) if km != null else 4.0
 func sea_km_text() -> String: return "%.1f" % sea_km()
 
-## Price per km as the tray prints it: the engine's own once a cable of that kind is laid, else the pack's list price (display data).
+## What a build would cost, from the engine (`actionCost` runs it on a copy of the state); -1 when it cannot be priced.
+func cost_of(name: String, args: Array) -> float:
+	var key := name + JSON.stringify(args)
+	if _cost_cache.has(key): return float(_cost_cache[key])
+	var r = b.q("actionCost", [name, args]); var c := -1.0
+	if r is Dictionary and r.get("ok", false): c = float(r.cost)
+	_cost_cache[key] = c
+	return c
+
+## Price per km as the tray prints it: the engine's cost of laying that cable over the sea crossing, divided by its length.
 func sea_per_km(id: String) -> float:
 	for c in b.g.get("cables", []): if str(c.cableId) == id and float(c.lengthKm) > 0.0: return float(c.cost) / float(c.lengthKm)
-	return float(SEA_USD_KM.get(id, 0.0)) * (8.0 if CbRegion.id == "in" else 1.0)
+	var ps := sea_pairs(float(id.get_slice("-", 1)))
+	if ps.is_empty(): return 0.0
+	var c := cost_of("layCableRoute", [str(ps[0].from), str(ps[0].to), id])
+	return c / sea_km() if c >= 0.0 else 0.0
+
+## The island battery's price at the island's low-voltage yard, from the engine.
+func isl_cost(id: String) -> float:
+	for y in yards: if bool(y.get("offshore", false)) and float(y.kv) < 1.0: return cost_of("placeStorage", [str(y.id), id])
+	return -1.0
 
 ## Q = V^2 w C l of a cable of this kind over the level's sea distance, kvar: the engine's number once laid, else the same formula from the table (the tip before the player commits).
 func sea_kvar(id: String) -> float:
@@ -836,7 +853,7 @@ func tip(it: Dictionary) -> String:
 		"coast": return tx("RT_TIP_COAST") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return tx("RT_TIP_XF") % str(it.kva)
 		"sea": return tx("L30_TIP_SEA") % [str(it.mm2), CbRegion.money(sea_per_km(str(it.id)), false, 0), "%.2f" % float(SEA_UF.get(str(it.id), 0.0)), _kvar_text(sea_kvar(str(it.id)))]
-		"isl": return tx("L30_TIP_BAT") % [str(it.kw), str(it.kwh), str(it.kw), str(it.kwh)]
+		"isl": return tx("L30_TIP_BAT") % [str(it.kw), str(it.kwh), str(it.kw), str(it.kwh), CbRegion.money(maxf(isl_cost(str(it.id)), 0.0), false, 0)]
 	return ""
 
 ## routePreview of `args`: the chip text, its dot, the clearance gauge's ghost needle. Returns the engine result.
@@ -1074,7 +1091,7 @@ func caption(it: Dictionary) -> Array:
 		"insulator": return [tx("RT_INS_" + str(it.id)), tx("RT_INS_SUB") % str(INS_MM.get(str(it.id), 0))]
 		"coast": return [tx("RT_INS_" + str(it.id)), tx("RT_COAST_SUB") % str(INS_MM.get(str(it.id), 0))]
 		"xfmr": return [tx("RT_XF") % str(it.kva), tx("RT_XF_PLACED") if _xf_placed(str(it.id)) else tx("RT_XF_SUB")]
-		"sea": return [tx("RT_COND_SUB") % str(it.mm2), tx("L30_SEA_PERKM") % _short_money(sea_per_km(str(it.id))), tx("L30_SEA_UF") % ("%.2f" % float(SEA_UF.get(str(it.id), 0.0)))]
+		"sea": return [tx("RT_COND_SUB") % str(it.mm2), tx("L30_SEA_PERKM") % _short_money(sea_per_km(str(it.id)))]   # two short lines; the µF/km and the charging power are in the hover chip
 		"isl": return [tx("L30_BAT_KW") % str(it.kw), tx("L30_BAT_KWH") % str(it.kwh)]
 	return ["", ""]
 
@@ -1128,8 +1145,7 @@ func _draw() -> void:
 		var tw := r.size.x - 4.0
 		var use_n := 13
 		while use_n > 8 and semi.get_string_size(str(cap[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_n)).x > tw: use_n -= 1
-		var dy := -6.0 if str(it.kind) == "sea" else 0.0   # the sea cable's three lines sit a little higher and a little further apart, so none touches the next or the cell's border
-		var dy1 := dy + (3.0 if str(it.kind) == "sea" else 0.0); var dy2 := dy + (4.0 if str(it.kind) == "sea" else 0.0)
+		var dy := 0.0; var dy1 := 0.0; var dy2 := 0.0
 		_text(semi, GridTheme.fs(use_n), Vector2(r.position.x + 2.0, r.position.y + 62.0 + dy), str(cap[0]), GridTheme.TEXT if (hv or sel or fc) else Color(GridTheme.TEXT, 0.92), tw)
 		var use_s := 11
 		var wide_sub: String = str(cap[1]) if cap.size() < 3 or str(cap[1]).length() >= str(cap[2]).length() else str(cap[2])   # both sub lines share one size: the longer one decides

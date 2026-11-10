@@ -40,7 +40,10 @@ func _initialize() -> void:
 	T.check(tray.item_index("sea") < tray.item_index("xfmr") and tray.item_index("xfmr") < tray.item_index("isl") and gs[tray.item_index("sea")] != gs[tray.item_index("xfmr")] and gs[tray.item_index("xfmr")] != gs[tray.item_index("isl")], "sea cable group, transformer group, island battery group, in the order the job is built")
 	var i120: int = tray.item_index("sea", "sub-11-120")
 	var cap: Array = tray.caption(tray.items[i120])
-	T.check(cap[0] == "120 mm²" and cap[1] == "$150K/km" and cap[2] == "0.30 µF/km", "sea cable caption: mm², price per km, µF/km (%s)" % str(cap))
+	T.check(cap.size() == 2 and cap[0] == "120 mm²" and cap[1] == "$150K/km", "sea cable caption: two short lines, mm² and price per km (%s)" % str(cap))
+	T.near(tray.sea_per_km("sub-11-120"), 150000.0, 0.01, "price per km before purchase is the engine's actionCost / 4 km")
+	T.near(tray.isl_cost("isl-50kw-150kwh"), 67500.0, 0.01, "battery price before purchase is the engine's actionCost")
+	T.check(tray.tip(tray.items[tray.item_index("isl", "isl-50kw-150kwh")]).contains("$67,500"), "battery tip prints its price")
 	var ib: int = tray.item_index("isl", "isl-50kw-150kwh")
 	var capb: Array = tray.caption(tray.items[ib])
 	T.check(capb[0] == "50 kW" and capb[1] == "150 kWh", "battery caption: kW and kWh (%s)" % str(capb))
@@ -79,6 +82,8 @@ func _initialize() -> void:
 	T.near(float(tg.q_kvar), float(wbr.chargingKvar), 0.05, "tag charging = the world query's chargingKvar (%f vs %f)" % [float(tg.q_kvar), float(wbr.chargingKvar)])
 	T.check(tg.head == "Submarine XLPE 3c 120 mm² Cu, 4.0 km, C 0.30 µF/km → charges 46 kvar", "tag headline: %s" % str(tg.head))
 	T.check(tg.eq == RULE, "tag equation: %s" % str(tg.eq))
+	T.near(float(tg.amps), float(wbr.chargingKvar) * 1000.0 / (sqrt(3.0) * 11000.0), 0.001, "charging current I = Q / (sqrt 3 V) = %f A" % float(tg.amps))
+	T.check(str(tg.eq_i).contains("2.4 A") and str(tg.note).contains("no load"), "the tag says the charging is drawn at no load and gives the amps: %s / %s" % [str(tg.note), str(tg.eq_i)])
 	var q_hand := 11000.0 * 11000.0 * TAU * 50.0 * 0.30e-6 * 4.0 / 1000.0
 	T.near(float(wbr.chargingKvar), q_hand, 0.01, "charging = V²ωCℓ by hand (%f)" % q_hand)
 	T.check(tags.open("seacable", str(br.id)) and tags.lines.any(func(l): return str(l.text) == RULE), "the tag opens with the equation on it")
@@ -101,9 +106,13 @@ func _initialize() -> void:
 	# ---- the battery tag: live numbers ----
 	var bt: Dictionary = tags.describe("battery", str(T.b.g.storage[0].id))
 	T.check(bt.title == "Island battery 50 kW · 150 kWh", "battery tag title: %s" % str(bt.title))
-	T.near(float(bt.hours), 0.8 * 150.0 * sqrt(0.86) / 45.0, 0.01, "before the cut the cells float full: carries the island for %.2f h at 45 kW (window x one-way efficiency / peak)" % float(bt.hours))
+	var soc_now := float(T.b.g.storage[0].soc)
+	T.near(float(bt.usable_kwh), (soc_now - 0.1) * 150.0 * sqrt(0.86), 0.01, "usable now = (soc - 0.1) x kWh x eta (%f)" % float(bt.usable_kwh))
+	T.near(float(bt.cap_kwh), 0.8 * 150.0 * sqrt(0.86), 0.01, "window = 0.8 x kWh x eta")
+	T.near(float(bt.hours), float(bt.usable_kwh) / 45.0, 0.01, "hours left = usable / 45 kW peak (%f)" % float(bt.hours))
+	T.check(float(bt.usable_kwh) < float(bt.cap_kwh) - 1.0 or soc_now > 0.89, "at partial charge the usable energy is below the window")
 	T.check(absf(float(bt.soc) - float(T.b.g.storage[0].soc)) < 1e-9, "the tag's charge is the engine's")
-	T.check(str(bt.carries) == "Carries the island for %.1f h at tonight's 45 kW peak." % float(bt.hours), "battery tag sentence: %s" % str(bt.carries))
+	T.check(str(bt.carries) == "Carries the island for %.1f h more at tonight's 45 kW peak." % float(bt.hours), "battery tag sentence: %s" % str(bt.carries))
 	T.check(tray.on_tap(Vector2(-1000, -1000)) == false, "a tap far from everything opens nothing")
 	# ---- re-pick: the cable is replaced and refunded, the battery is replaced ----
 	var s2 := float(T.b.g.budget.spent)
@@ -113,8 +122,7 @@ func _initialize() -> void:
 	var s3 := float(T.b.g.budget.spent)
 	tray.activate(tray.item_index("isl", "isl-50kw-125kwh")); tray.press_yard("B8"); sync.call()
 	T.check(T.b.g.storage.size() == 1 and T.b.g.storage[0].catalogId == "isl-50kw-125kwh", "re-picking the battery leaves exactly one: the 125 kWh pack")
-	var refunded := float(T.b.g.budget.spent) - s3 < 150.0 * 50.0 + 400.0 * 125.0 - 1.0
-	print("INFO battery re-pick delta %.0f (a new pack is %.0f); refund by the engine: %s" % [float(T.b.g.budget.spent) - s3, 150.0 * 50.0 + 400.0 * 125.0, str(refunded)])
+	T.near(float(T.b.g.budget.spent) - s3, (150.0 * 50.0 + 400.0 * 125.0) - (150.0 * 50.0 + 400.0 * 150.0), 0.01, "re-picking the battery costs the difference (the old pack was refunded)")
 	# ---- work order lines ----
 	var li: Dictionary = T.b.q("levelInfo")
 	var conds: Array = WorkOrder.conditions(fake, li)
@@ -152,7 +160,7 @@ func _initialize() -> void:
 	T.check(str(T.b.g.status) == "lost" and str(T.b.g.block.verdictKey) == "level.lost.islandNoBattery" and int(T.b.g.clock.block) == 84, "the cable-only island is dark at 21:00 (%s, %s, block %s)" % [str(T.b.g.status), str(T.b.g.block.get("verdictKey", "")), str(T.b.g.clock.block)])
 	var li2: Dictionary = T.b.q("levelInfo")
 	T.check(str(li2.lesson).contains("No battery stood on the island") and str(li2.lesson).contains("Q = V²"), "the lesson reads in the player's numbers: %s" % str(li2.lesson).left(120))
-	T.check(str(li2.tryHint).begins_with("Carrying ") and str(li2.tryHint).contains("inverter of at least"), "the try hint names what carries the island: %s" % str(li2.tryHint))
+	T.check(str(li2.tryHint).begins_with("From the cut at 21:00") and str(li2.tryHint).contains("inverter must give at least"), "the try hint names what carries the island: %s" % str(li2.tryHint))
 	T.check(not ins.vil.blank or true, "voltmeter after the loss")
 	T.check(ins.bat_k == 1.0 and ins.vil.caption == "ISLAND", "after the cut the gauge is full size, and the voltmeter is the island's (%s)" % ins.vil.caption)
 	# the incident report renders the cause, the lesson and the hint
@@ -161,7 +169,7 @@ func _initialize() -> void:
 	ShiftReport._lost(fake, col, e, li2, true)
 	var out: Array = []; _texts(col, out)
 	var all := " | ".join(out)
-	T.check(all.contains("At 21:00 the island went dark") and all.contains("No battery stood on the island") and all.contains("Carrying ") and all.contains("WO-30"), "incident report: cause, lesson, hint and the job (%s)" % all.left(200))
+	T.check(all.contains("At 21:00 the island went dark") and all.contains("No battery stood on the island") and all.contains("From the cut at 21:00") and all.contains("WO-30"), "incident report: cause, lesson, hint and the job (%s)" % all.left(200))
 	# ---- the chapter-end card is wired ----
 	T.check(ShiftReport.CHAPTER_END.get("L30", "") == "L07" and GridStrings.S.has("CH2_TOBI") and GridStrings.S["CH2_TOBI"] == "Island's on the grid. Mind the anchor.", "L30 opens the chapter 2 card, Tobi has the last word")
 	T.finish("ISLAND-FLOW", self)
