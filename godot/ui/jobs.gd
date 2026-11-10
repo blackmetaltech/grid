@@ -27,6 +27,12 @@ static func lock_text(app: CbApp, id: String) -> String:
 	var ids := chain(app)
 	return T("JOBS_LOCKED") % str(ids[ids.find(id) - 1]).trim_prefix("L")
 
+## The chapter a job belongs to (DESIGN 2.5): chapter 2 holds the bench levels and the Mainland line jobs (L04 L05 L06 L29 L30); F is the finale.
+const CHAPTERS := {"P0": "1", "L01": "1", "L02": "1", "L03": "1", "L04": "2", "L05": "2", "L06": "2", "L29": "2", "L30": "2", "L07": "3", "L08": "3", "L09": "3",
+	"L10": "4", "L11": "4", "L12": "4", "L13": "4", "L14": "5", "L15": "5", "L16": "5", "L17": "5", "L18": "5", "L19": "6", "L20": "6", "L21": "6", "L22": "6",
+	"L23": "7", "L24": "7", "L25": "7", "L26": "7", "L27": "7", "L28": "F"}
+static func chapter_of(id: String) -> String: return str(CHAPTERS.get(id, "X"))
+
 static func open(app: CbApp) -> void:
 	GridUi.load_strings()
 	var compact := PaperKit.compact(app)
@@ -46,9 +52,14 @@ static func open(app: CbApp) -> void:
 	if not compact: sv.add_child(PaperKit.lbl(T("JOBS_SUB"), 16, "sans", Color(PaperKit.INK, 0.7), true))
 	var rows := VBoxContainer.new(); rows.add_theme_constant_override("separation", 6); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sv.add_child(PaperKit.scroll_box(rows))
-	var first: Button = null
+	var first: Button = null; var ch_shown := ""
 	for lv in list(app):
 		var id := str(lv.id)
+		var ch := chapter_of(id)
+		if ch != ch_shown:   # a heading per chapter: thirty work orders read as seven chapters and a finale
+			ch_shown = ch
+			var hd := PaperKit.lbl(T("JOBS_CH_" + ch).to_upper(), 15 if compact else 17, "mono", Color(PaperKit.INK, 0.62)); hd.name = "Chapter" + ch
+			rows.add_child(hd)
 		var r := _row(app, lv, host, compact); rows.add_child(r)
 		if first == null and not r.disabled: first = r
 	var close := PaperKit.btn(T("JOBS_CLOSE"), false, func(): host.queue_free(), 18); close.name = "Close"
