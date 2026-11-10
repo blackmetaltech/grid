@@ -2,20 +2,35 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
-## [1.0.0-rc] - unreleased: "Keep the Lights On" (the finale; every chapter playable)
+## [1.0.0-rc.1] - "Keep the Lights On" (tag v1.0.0-rc.1, local; the finale; every chapter playable; critique pass in docs/CRITIQUE-1.0-rc.md)
+
+Chapters 3-7 and the finale were built in parallel and land together in this tag; the 0.4.0-0.9.0 sections below describe them chapter by chapter.
 ### Added
 - **WO-28 Keep the Lights On**: the whole state for three days (26 buses at 400/220/132 kV, nine plants, a 300 MW datacentre).
   Day 1 a heatwave peak, Day 2 a storm that trips a 400 kV line, the largest unit and a transformer, then lightning on the island's
   causeway at 23:30, Day 3 a holiday full of sun and little demand. Saltmarsh Island must not go dark on the night before Nia's exam.
   A day card with the threat, the island lamp and an event ticker; the game-end card.
 - Ruleset 6 for both region packs (pins and goldens regenerated).
+### Changed
+- Every chapter card went through two or three playtest and fix waves (Haiku panels, before and after): one-line glosses for the jargon
+  (pu, X_s, THD, RoCoF, pickup, TMS, CT, lambda, zones), targets shown before Run, and panels kept clear of the clock and the budget tag.
+- Chapter 7 levels that teach a calculation (L23, L25, L26, L27) need a written prediction to pass, so there is no two-action win.
+- The work order and shift report leave out spend lines on levels with nothing to buy, and on score levels.
+### Fixed
+- Towns read "dark" before the grid had ever been solved; they now show their name only.
+- The L28 report printed the Day 2 storm sentence after a Day 1 failure.
+- The finale ticker opened with the free-play banner ("the grid is empty").
+- dmath everywhere in src/ (chapters 3, 5 and 7 and the finale used Math.hypot, pow, cos and **).
+- The Godot test runner read `CH2-FLOW OK` as a failure (a tag with a digit).
+- L13's predict panel was blank until the slider moved; L22's exam sheet ran off the right edge; L24's readout sat under the budget tag;
+  L27's answer boxes covered the formula lines; L17's B3 sat under the tray.
 ### Known gaps
 - In the `in` pack the third lamp of WO-28 is out of reach: the IEGC first under-frequency stage is 49.4 Hz, and losing the 660 MW coal unit
   from a 2.3 GW state with no tie to the national grid leaves a nadir near 49.33 Hz even with every unit spun, so some load is always shed.
   The fix is a design call (model the All-India interconnection, or make the Day 2 trip a smaller unit). The level is still winnable with two lamps.
 - Day 2's lightning opens the causeway by protection; it is not a sequence-network fault.
 
-## [0.9.0] - unreleased: "Protection and Markets" (chapter 7)
+## [0.9.0] - in 1.0.0-rc.1: "Protection and Markets" (chapter 7)
 ### Added
 - **WO-23 Fault Level**: the short-circuit current at each feeder against its breaker rating (30.2 kA at F1 once the generators join);
   split the bus, add a reactor or high-impedance transformers to bring it under the breakers.
@@ -26,14 +41,14 @@ All notable changes to GRID. The release workflow publishes the section whose he
 ### Known gaps
 - The study networks of WO-23 and WO-27 are the scenario's; the map is decoration. No bullet-time replay of the fault yet.
 
-## [0.8.0] - unreleased: "Frequency and Renewables" (chapter 6)
+## [0.8.0] - in 1.0.0-rc.1: "Frequency and Renewables" (chapter 6)
 ### Added
 - **WO-19 Fifty Hertz**: the largest unit trips at 20:00; keep a spare unit spinning so the nadir stays above the first shedding stage.
 - **WO-20 Sun Goes Down**: the evening ramp after 3 GW of solar; commit peakers in time, move the pumps to noon. A net-load curve shows the ramp.
 - **WO-21 Inertia Matters**: RoCoF without spinning mass; ride-through for rooftop inverters and grid-forming batteries.
 - **WO-22 Exam Bridge: Droop and RoCoF**: three predictions with a formula card you can open after trying.
 
-## [0.7.0] - unreleased: "Load Flow and Voltage" (chapter 5)
+## [0.7.0] - in 1.0.0-rc.1: "Load Flow and Voltage" (chapter 5)
 ### Added
 - **WO-14 Per Unit**: tap changers on a 132/33/11 kV chain; staggered automatic delays beat equal ones (about 28 tap moves instead of 140).
 - **WO-15 Long Line**: a 300 km line at light load lifts its far end (Ferranti, 1.089 pu); reactors, capacitors or an SVC at the receiving end.
@@ -45,7 +60,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - Shunt-reactor catalogue rows were read as capacitors.
 
 
-## [0.6.0] - unreleased: "Three-Phase and Machines" (chapter 4)
+## [0.6.0] - in 1.0.0-rc.1: "Three-Phase and Machines" (chapter 4)
 ### Added
 - **WO-10 Balance the Phases**: move each house's drop between phases a, b and c; the neutral carries the unbalance (160 A on one phase).
 - **WO-11 Star or Delta**: size a capacitor bank (a star bank needs three times the microfarads of a delta one) and pick the pump's starter.
@@ -53,7 +68,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
   after a line trips (P-δ curve, rotor-angle swing).
 - **WO-13 Exam Bridge**: synchronous machine phasors (E, δ, P_max) on paper.
 
-## [0.5.0] - unreleased: "Phasors and Power Factor" (chapter 3)
+## [0.5.0] - in 1.0.0-rc.1: "Phasors and Power Factor" (chapter 3)
 ### Added
 - **WO-07 The Lagging Mill** with a shift-report lesson in your numbers (S = P + jQ, the wattless current at lunch).
 - **WO-08 Resonance at the Fifth**: the plain bank resonates with the mill's drives and blows its fuse; a detuned bank or a filter
@@ -61,7 +76,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **WO-09 The Hundred-Percent Trap**: series compensation lifts the far end, but at 100 % the fault current beats the old breaker.
 - Chapter-end cards for chapters 3 to 7; the Jobs list is grouped by chapter.
 
-## [0.4.0] - unreleased: "Salt Wind" (insulation: the sea air on the insulators)
+## [0.4.0] - in 1.0.0-rc.1: "Salt Wind" (insulation: the sea air on the insulators)
 ### Added
 - **WO-29 Salt Wind.** Year two on the Mainland: your River Line still stands, and the harbour (fish market and ice plant) on the
   south coast wants power all night. Extend 11 kV from Brightwater around the town to the beach.
