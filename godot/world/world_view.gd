@@ -157,9 +157,9 @@ func _rebuild_island(W: int, H: int, infra: Array, line_tiles: Dictionary) -> vo
 ## Cute mode props: a lighthouse on the far point, villagers around each hamlet, firefly anchors over the mangrove.
 func _rebuild_cute(W: int, H: int) -> void:
 	var best := Vector2i(-1, -1); var bs := -1e9
-	var infra := _infra_points()
-	for l in model.lines: for q in l.pts: infra.append(_tc(q))
-	for t in _tiles:   # a headland: sand next to the sea, as far as possible from the hamlet, the hut and the cable
+	var infra: Array = []   # towns only: the lighthouse is a landmark and must not jump when the player moves the hut or re-lays the cable
+	for tw in model.towns: infra.append(_tc(tw.pos))
+	for t in _tiles:   # a headland: sand next to the sea, as far as possible from the towns
 		if t.kind != "sand" or _zgrid.get(Vector2i(t.i - 1, t.j), 0.0) > -1.0 and _zgrid.get(Vector2i(t.i, t.j - 1), 0.0) > -1.0: continue
 		var sc := 99.0
 		for q in infra: sc = minf(sc, Vector2(t.i + 0.5, t.j + 0.5).distance_to(q))

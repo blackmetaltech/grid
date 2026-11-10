@@ -42,7 +42,7 @@ func toggle() -> void:
 	if app == null or not app.started: return
 	if lost():
 		var lid := str((app.b.q("levelInfo") as Dictionary).get("id", ""))
-		if lid != "": app.start_level(lid, true)
+		if lid != "": ShiftReport._retry(app, lid, "")   # same as the report's Retry: the design stays on the table
 		return
 	if running(): app.set_speed(0)
 	else: app.set_speed(rate)

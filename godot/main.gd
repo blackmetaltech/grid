@@ -17,7 +17,7 @@ func game_config() -> Dictionary:
 		"dock": [["home", tr("DOCK_HOME"), Color("#39E1FF"), tr("DOCK_HOME")]],   # the shell wants a home id; it is blank (ui/home_blank.gd), the old Operator Clock drawer is gone
 		"screens": {"home": "res://ui/home_blank.gd"},
 		"overlay": [], "full": [],
-		"tick_label": tr("TICK_BUTTON"), "tick_seconds": [0.0, 4.0, 1.6, 0.6],
+		"tick_label": tr("TICK_BUTTON"), "tick_seconds": [0.0, 2.0, 0.8, 0.3],   # a 5-hour bench night (20 blocks) runs 16 s at 2x, 6 s at 4x: no dead air once the build is right
 		"keys": [["Space", tr("KEY_SPACE_DESC")]],
 	})
 

@@ -102,12 +102,15 @@ static func run(app: CbApp) -> void:
 	rep = ShiftReport.host_node()
 	# --- Retry restarts the job ---
 	var retry := _button(rep, "Retry") if rep != null else null
+	var before: Dictionary = (app.b.q("benchStatus").bench as Dictionary).duplicate(true)
 	if retry != null: retry.pressed.emit()
 	await _frames(app, 4)
 	ck.call(str(app.b.g.get("status", "")) == "playing" and int(app.b.g.get("tick", 0)) == int(app.b.g.get("levelStart", -1)) and app.end_ui == null, "paper flow: Retry starts the job again from the beginning")
-	ck.call(ShiftReport.host_node() == null and WorkOrder.is_open(), "paper flow: the report is gone and the work order is back")
+	var after: Dictionary = app.b.q("benchStatus").bench
+	ck.call(before.get("hutM") != null and after.get("hutM") == before.get("hutM") and str(after.get("cableMm2")) == str(before.get("cableMm2")), "paper flow: Retry keeps the design (hut %s m, cables %s)" % [str(after.get("hutM")), str(after.get("cableMm2"))])
+	ck.call(ShiftReport.host_node() == null and not WorkOrder.is_open(), "paper flow: the report is gone and the work order stays folded in the pin (no re-read on retry)")
+	ck.call(app.chrome.radio.lines.back().text == TranslationServer.translate("REP_RETRY_KEPT"), "paper flow: Tobi says the build is still laid")
 	ck.call(not _texts(app.chrome.pin).contains(TranslationServer.translate("PIN_INCIDENT")), "paper flow: after Retry the pin is the work-order pin again")
-	CbSmoke._key(app, KEY_ESCAPE); await _frames(app, 3)
 	# --- the reference design wins: shift report with lit stamps and the histogram ---
 	app.b.act("placeHut", [120]); app.b.act("layCable", ["main", 25]); app.game_on_changed()
 	await _play_until_over(app, 30)

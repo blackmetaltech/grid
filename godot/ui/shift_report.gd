@@ -127,9 +127,34 @@ static func _look(app: CbApp, won: bool) -> void:
 	app.menus.end_look()
 	if not won: app.toast(T("REP_LOOK_HINT"), "warn")   # the radio tells the stranded player how to get back to work
 
+## Retry keeps the player's design: the job restarts at dusk with the same hut, reels, junction and converters already laid (the work order
+## stays folded in the pin), so a failed night costs one swap and a breaker pull, not a rebuild. "Start over" (pause menu) still clears it.
 static func _retry(app: CbApp, lid: String, mode: String) -> void:
-	if lid != "": app.start_level(lid, true)
-	else: app.new_game(mode)
+	if lid == "": app.new_game(mode); return
+	var design := design_of(app)
+	WorkOrder.skip_once = not design.is_empty()
+	app.start_level(lid, true)
+	replay(app, design)
+	app.game_on_changed()
+	var ch = app.get("chrome")
+	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_KEPT"))
+
+## The bench design now on the table as a list of [action, args] (empty on grid levels or before anything is built).
+static func design_of(app: CbApp) -> Array:
+	var bs = app.b.q("benchStatus")
+	if not (bs is Dictionary and bs.get("active", false)): return []
+	var bench: Dictionary = bs.bench
+	var out: Array = []
+	if bench.get("hutM") != null: out.append(["placeHut", [float(bench.hutM)]])
+	if str(bench.get("topology", "")) == "trunk": out.append(["placeJunction", []])
+	var cm: Dictionary = bench.get("cableMm2", {})
+	for run in ["main", "b", "b2"]:
+		if cm.get(run) != null: out.append(["layCable", [run, float(cm[run])]])
+	if bool(bench.get("converters", false)): out.append(["placeConverters", [true]])
+	return out
+
+static func replay(app: CbApp, design: Array) -> void:
+	for a in design: app.b.act(str(a[0]), a[1])
 
 static func _copy_code(app: CbApp, btn: Button) -> void:
 	var code = app.b.q("solutionCode")

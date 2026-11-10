@@ -7,6 +7,7 @@ extends RefCounted
 
 static var _d: Dictionary = {}
 static var auto := not OS.has_environment("CB_SMOKE") and not OS.has_environment("CB_NOWORKORDER")   ## open on job start (smoke runs and CB_NOWORKORDER=1 skip it)
+static var skip_once := false   ## Retry with the design kept: the job restarts without the docket sliding in again (the pin still opens it)
 static var instant_next := false   ## the next open() snaps in (the mode chip restarts the job and must not replay the slide)
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
@@ -98,6 +99,7 @@ static func _nod_pin(app: CbApp) -> void:
 
 ## Job start: only a job that has not run yet gets its docket (a loaded game in progress goes straight to work).
 static func open_fresh(app: CbApp) -> void:
+	if skip_once: skip_once = false; return
 	if int(app.b.g.get("tick", 0)) <= int(app.b.g.get("levelStart", 0)): open(app)
 
 static func open(app: CbApp) -> void:
