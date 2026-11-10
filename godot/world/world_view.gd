@@ -1265,6 +1265,7 @@ func _draw_labels() -> void:
 		var v: float = t.v
 		var arrow := "▼ " if v < 0.95 else ("▲ " if v > 1.05 else "")
 		var txt2 := tr("WORLD_DARK") if v <= 0.0 else tr("WORLD_BUS_FMT") % [arrow, v]
+		if not bool(model.get("solved", true)): _label(font, fs, sp2, str(t.name), WorldMath.WHITE); continue   # before the first solve: the town's name only
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
 		_label(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col)
 	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them

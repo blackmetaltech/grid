@@ -58,7 +58,7 @@ export function buildWorldQueries(d: WorldDeps): Record<string, QueryFn<GridStat
       const terrain = tr && s.terrain ? { id: s.terrain, cols: tr.cols, nrows: tr.rows, tileM: tr.tileM, rows: known ? [] : [...(mapRows(s.terrain) ?? [])], elev: known ? [] : tr.elevM.map(r1), pollution: known ? '' : tr.pollution.join('') } : null;   // pollution: IEC 60815 class per tile (1-4), one digit each, row-major
       const routes = terrain ? replanRoutes(s as GridState, d.getRoute(s as GridState)) : [];
       const mapSize = tr ? { w: tr.cols, h: tr.rows } : { w: w + 4, h: h + 4 };
-      return { kind, level: s.level, map: mapSize, buses, branches, units, shunts, storage, bench, blackout: s.block.blackout, terrain, routes };
+      return { kind, level: s.level, map: mapSize, buses, branches, units, shunts, storage, bench, solved: !!solved, blackout: s.block.blackout, terrain, routes };
     },
   };
 }

@@ -80,6 +80,7 @@ func _rebuild_ticker(g: Dictionary) -> void:
 	for i in range(lg.size() - 1, -1, -1):
 		var e = lg[i]
 		var t := str(e.get("text", e.get("msg", ""))) if e is Dictionary else str(e)
+		if e is Dictionary and int(e.get("tick", 0)) <= int(g.levelStart): continue   # the newGame banner ("the grid is empty… place a bus") belongs to before the shift
 		if t != "": lines.append(t)
 		if lines.size() >= 5: break
 	_ticker.text = "\n".join(lines) if lines.size() > 0 else tx("CF_TICKER_EMPTY")

@@ -33,6 +33,7 @@ static func build(b) -> Dictionary:
 	if wt is Dictionary and _known_terrain != "" and not _terrain_cache.has(str(wt.id)): _known_terrain = ""; w = b.q("world")   # a stale id: ask again in full
 	elif wt is Dictionary: _known_terrain = str(wt.id)
 	m.kind = str(w.kind); m.level = str(w.get("level", "")); m.blackout = bool(w.get("blackout", false))
+	m["solved"] = bool(w.get("solved", true))   # before the first solve nothing is "dark" yet: the grid has not been worked out
 	if w.kind == "bench": _bench(m, w)
 	elif w.kind == "grid": _grid(m, w, b)
 	return m
