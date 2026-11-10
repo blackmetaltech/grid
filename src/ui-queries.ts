@@ -2,6 +2,7 @@
 // the frequency dial's numbers and the result card's histogram. The Godot side draws what these return and nothing else, so the
 // phasor-truth and dial-truth tests compare the drawn geometry with these values.
 import type { QueryFn } from '@core/kit';
+import { dmath } from '@core/numerics';
 import type { GridState } from './types';
 import { solvedOf, toMW } from './sim/solved';
 import type { SimParams } from './sim/params';
@@ -27,8 +28,8 @@ export function cachedBot(spec: GridLevelSpec, region: string): BotPopulation {
 
 /** Phasor of a complex power: current lags voltage by phi = atan2(Q, P) (Q > 0 = inductive load = lagging), so I sits at theta_V - phi. */
 export function phasorOf(vPu: number, vKV: number, thetaVDeg: number, pMW: number, qMVAr: number, iKA: number, iRefKA: number): Record<string, number | string> {
-  const sMVA = Math.hypot(pMW, qMVAr);
-  const phiDeg = sMVA > 1e-9 ? Math.atan2(qMVAr, pMW) * DEG : 0;
+  const sMVA = dmath.hypot(pMW, qMVAr);
+  const phiDeg = sMVA > 1e-9 ? dmath.atan2(qMVAr, pMW) * DEG : 0;
   const pf = sMVA > 1e-9 ? pMW / sMVA : 1;
   return {
     vPu: r3(vPu), vKV: r3(vKV), vAngDeg: r3(thetaVDeg), iKA: r3(iKA), iRefKA: r3(iRefKA), iAngDeg: r3(thetaVDeg - phiDeg), phiDeg: r3(phiDeg),
@@ -59,7 +60,7 @@ export function buildUiQueries(d: UiDeps): Record<string, QueryFn<GridState>> {
       if (kind === 'bus') {
         const b = s.buses.find((x) => x.id === id), bal = sv.flows.bus[String(id)], sol = s.solution?.buses.find((x) => x.id === id);
         if (!b || !bal || !sol) return NONE;
-        const pMW = toMW(bal.pLoad), qMVAr = toMW(bal.qLoad), sMVA = Math.hypot(pMW, qMVAr);
+        const pMW = toMW(bal.pLoad), qMVAr = toMW(bal.qLoad), sMVA = dmath.hypot(pMW, qMVAr);
         const iKA = sol.vPu > 1e-9 ? sMVA / (Math.sqrt(3) * sol.vPu * b.kvNom) : 0;
         // a bus has no rating: its reference current is the peak demand of its loads at pf 0.9 and nominal voltage
         const peak = s.loads.filter((l) => l.bus === b.id).reduce((a, l) => a + l.Ppeak, 0);
