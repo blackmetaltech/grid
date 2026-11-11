@@ -19,6 +19,7 @@ func _init() -> void:
 	TrayStrings.load_strings()
 	custom_minimum_size = Vector2(190, 168); mouse_filter = Control.MOUSE_FILTER_STOP; focus_mode = CbKit.focus_mode()
 	mouse_exited.connect(func(): _hover = false; queue_redraw())
+	tooltip_text = TranslationServer.translate("BREAKER_KEYS")   # the keyboard is not shown anywhere else: Space runs, + / − change the speed, . steps once
 
 func running() -> bool: return app != null and app.speed > 0
 ## After a lost job the handle restarts it (play-testers were stranded with a "Run the night" lever that did nothing).

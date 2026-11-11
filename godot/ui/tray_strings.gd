@@ -6,7 +6,7 @@ const S := {
 	"TRAY_HUT": "Battery hut", "TRAY_HUT_SUB_PICK": "pick site", "TRAY_HUT_SUB_AT": "at %s m",
 	"TRAY_JUNCTION": "Junction box", "TRAY_CONVERTERS": "Converters", "TRAY_CONVERTERS_ON": "fitted", "TRAY_PLACED": "placed",
 	"TRAY_REEL": "%s mm²", "TRAY_PER_M": "%s/m", "TRAY_PAIR": "pair %s", "TRAY_LOCKED": "Pause the night first to change the cable",
-	"RADIO_LOG_LINK": "log ▸", "BREAKER_SPEED": "speed %s",
+	"RADIO_LOG_LINK": "log ▸", "BREAKER_SPEED": "speed %s", "BREAKER_KEYS": "Space: run or stop · + / −: speed 1×, 2×, 4× · . (period): one step",
 	"TRAY_BUDGET_CAP": "spent / budget", "TRAY_BUDGET": "%s / %s",
 	"TRAY_HINT_HUT": "Pick a peg on the beach", "TRAY_HINT_REEL": "Pick a cable run for the %s mm² reel",
 	"CHIP_V": "→ %s V · %s", "CHIP_LOSS": "→ %s %% loss · %s", "CHIP_COST": "→ %s", "CHIP_SITE": "%s m", "CHIP_SITE_V": "%s m → %s V · %s", "CHIP_SITE_LOSS": "%s m → %s %% loss · %s",

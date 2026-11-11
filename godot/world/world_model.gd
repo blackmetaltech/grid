@@ -91,7 +91,7 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 				if li is Dictionary and li.get("thresholds") is Dictionary: lo = float((li.thresholds as Dictionary).get("villageBandLoPu", 0.94))   # the engine's band, per pack
 				tw["mood"] = "asleep" if v <= 0.0 else ("sad" if v < lo else ("worried" if v < lo + 0.02 else "happy"))
 		else:
-			m.subs.append({"id": str(bus.id), "pos": p, "kv": float(bus.kv), "v": v, "energised": v > 0.0})
+			m.subs.append({"id": str(bus.id), "name": str(bus.get("name", bus.id)), "pos": p, "kv": float(bus.kv), "v": v, "energised": v > 0.0})
 	for br in w.branches:
 		var a: Vector2 = pos.get(br["from"], Vector2.ZERO); var c: Vector2 = pos.get(br.to, Vector2.ZERO)
 		var pts: Array = [a]

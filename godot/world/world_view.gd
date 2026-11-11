@@ -1275,8 +1275,11 @@ func _draw_labels() -> void:
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
 		_label_free(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col, placed)
 	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
+	var unsolved := not bool(model.get("solved", true))
 	for s in model.subs:
 		if yards_quiet: break
+		if unsolved and s.has("name") and str(s.id) != "j" and not str(s.id).begins_with("c"):   # before the first solve a yard shows its name (L18: "B1 slack", "B3 PV"), not a voltage it does not have yet
+			_label_free(font, fs, to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0)), str(s.name), WorldMath.WHITE, placed, true); continue
 		if s.has("v") and float(s.v) > 0.0 and s.id != "j" and not str(s.id).begins_with("c"):
 			var sp3 := to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0))
 			var vs: float = s.v; var ar := "▼ " if vs < 0.95 else ("▲ " if vs > 1.05 else "")
