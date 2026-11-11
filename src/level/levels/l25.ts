@@ -34,6 +34,7 @@ export const L25: GridLevelSpec = {
   // frozen from the bot population (src/level/population.ts); ch7.test.ts regenerates it and fails on drift > 2 %
   frozen: { global: { budget: 600000, starA: 551000, starB: 551000 }, in: { budget: 50000000, starA: 45733000, starB: 45733000 } },
   coach: [
+    { id: 'predict', textKey: 'coach.L25.predict', whyKey: 'coach.L25.predict.why', done: (s) => s.metrics.predictions.some((p) => p.id === 'deltaCrDeg') || s.tick > s.levelStart },
     { id: 'relay', textKey: 'coach.L25.relay', whyKey: 'coach.L25.relay.why', done: (s) => used(s, 'setRelayType') || s.tick > s.levelStart },
     { id: 'breaker', textKey: 'coach.L25.breaker', whyKey: 'coach.L25.breaker.why', done: (s) => used(s, 'setBreakerCycles') || s.tick > s.levelStart },
     { id: 'run', textKey: 'coach.L25.run', whyKey: 'coach.L25.run.why', done: (s) => s.tick > s.levelStart || s.status !== 'playing' },

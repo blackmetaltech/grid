@@ -73,6 +73,8 @@ export const EN_CH7: Record<string, string> = {
   'level.L25.lessonSlip': 'The rotor passed the unstable angle {du}° at t = {t} s with its speed above 1 and slipped a pole.',
   'level.lost.ch7.outOfStep': 'The fault cleared after {clear} ms ({relay} ms relay and {brk} ms breaker) but the critical clearing time is {tcr} ms. The rotor was already at {peak}° when the fault cleared, passed the unstable angle {du}° at {tloss} s and slipped a pole: the plant tripped out of step.',
   'level.L25.try': 'Clear {need} ms faster or more. A zone-1 distance relay operates in 30 ms where an inverse-time relay waits tens of cycles, and a 3-cycle breaker opens in 60 ms against 100 ms for 5 cycles. Auto-reclose only helps a marginal case after the first swing.',
+  'coach.L25.predict': 'Write your prediction of the critical clearing angle, in degrees, in the box before you choose.',
+  'coach.L25.predict.why': 'Equal areas: the rotor gains speed while the fault holds and must lose it again before the angle passes delta_cr.',
   'coach.L25.relay': 'Pick the relay: zone-1 distance, zone-2 distance, or an inverse-time overcurrent setting.',
   'coach.L25.relay.why': 'A distance relay trips a fault on the first 80 % of the line in 30 ms; an inverse-time relay takes longer the smaller the current is.',
   'coach.L25.breaker': 'Pick the breaker\'s interrupting time: 2, 3 or 5 cycles.',

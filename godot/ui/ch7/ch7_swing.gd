@@ -34,7 +34,7 @@ func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_RELAY_CAP2"), Color(GridTheme.TEXT, 0.65))
 	_text(_semi(), 10, inner.position + Vector2(0, 70), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 70), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 10, inner.position + Vector2(440, 70), T("C7_PREDICT_DCR"), Color(GridTheme.TEXT, 0.8))
+	_text(_semi(), 10, inner.position + Vector2(440, 70), T("C7_PREDICT_DCR"), GridTheme.SODIUM)
 	_text(_mono(), 11, inner.position + Vector2(0, 128), T("C7_CLEAR_SUM") % [int(q.clearMs), int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], GridTheme.TEXT)
 	if _revealed():
 		var ok := bool(q.stable)

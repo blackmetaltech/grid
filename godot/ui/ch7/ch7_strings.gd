@@ -14,7 +14,7 @@ const S := {
 	"C7_LAMP_L27_2": "Right-sized breakers and a near-optimal dispatch", "C7_LAMP_L27_3": "The least-cost dispatch (equal lambda) and 4 of 5 predictions within 2 %", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
 	"C7_FN_ps17": "I = V/Z_th; kA = pu x base/(1.73 kV)", "C7_FN_ps18": "I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "equal lambda, no limits", "C7_FN_ps21": "equal lambda, then clip to limits", "C7_FN_ps24": "t = sqrt(4H(d_cr-d_0)/(w P_m))",
 	"C7_G24_PICK": "Pickup (I_s): the current at which the relay starts timing; keep it above 1.25 x the load.", "C7_G24_TMS": "TMS: the time multiplier, a dial that slides the whole curve up (slower) or down (faster).", "C7_G24_CT": "CT: the current transformer that feeds the relay; pickup is a % of its rating.",
-	"C7_G24_CURVE": "SI (standard inverse): gentle, good for grading many relays. VI/EI (very/extremely inverse): faster at big currents, good for burn limits.",
+	"C7_G24_CURVE": "SI: gentle, easy to grade but slow. VI/EI: much faster at big currents. To tighten the total, try VI or EI with smaller TMS values that still keep every gap above 0.3 s.",
 	"C7_G25_TARGET": "Target: clear in under %d ms (the critical clearing time).", "C7_G25_Z1": "Zone 1: trips a fault on the first 80 % of the line at once (30 ms).", "C7_G25_Z2": "Zone 2: reaches 120 % of the line but waits 350 ms for the next relay to act first.", "C7_G25_IDMT": "Inverse-time: the bigger the current, the faster it trips; TMS slides the curve.",
 	"C7_G26_LAMBDA": "Lambda: the price of the next MWh, the cost of the plant that would supply it.", "C7_G26_CORR": "Corridor: the one 220 kV wire between north and city; its limit is 450 MW.", "C7_MWH": "$%s/MWh", "C7_LAMP_SCORE": "Score ≤ %s", "C7_LAMP_SCORE3": "Score ≤ %s%s",
 	"C7_GLOSS_IF": "I_f: the fault current, the biggest current the breaker has to interrupt.", "C7_GLOSS_PU": "pu: per-unit, a fraction of the 100 MVA base power (1 pu of current = 1.75 kA at 33 kV).", "C7_GLOSS_REACTOR": "Reactor: a coil in the bus section that adds impedance, so a fault pulls less current.",
@@ -26,7 +26,7 @@ const S := {
 	"C7_F4": "Critical clearing (terminal fault): t = sqrt(4 H (d_cr - d_0) / (w_s P_m)), cos d_cr = (P_m (pi - 2 d_0) - P_max cos d_0 ... see equal areas).",
 	"C7_F5": "A unit at its limit is fixed; the others share the rest at one lambda. Check each limit again after the shares are found.",
 	"C7_UNIT_kA": "kA", "C7_UNIT_usd": "$/MWh", "C7_UNIT_s": "s", "C7_LEG_CURVES": "relay curves", "C7_LIMIT_ALL": "conductor I2t limits: 100, 70, 50 mm2",
-	"C7_PREDICT": "Your prediction", "C7_PREDICT_KA": "I_f at the feeder, kA", "C7_PREDICT_DCR": "critical clearing angle, deg", "C7_PREDICT_LAM": "load-area lambda at 20:00, $/MWh",
+	"C7_PREDICT": "Your prediction", "C7_PREDICT_KA": "your prediction: I_f at the feeder, kA", "C7_PREDICT_DCR": "your prediction: δ_cr, deg", "C7_PREDICT_LAM": "your prediction: city lambda at 20:00, $/MWh",
 	# L23 / L27 board
 	"C7_GRID": "grid 132 kV", "C7_SEC_A": "section A", "C7_SEC_B": "section B", "C7_COUPLER": "coupler", "C7_OPEN": "open", "C7_CLOSED": "closed", "C7_FEEDER": "feeder F1",
 	"C7_FAULT": "3-phase fault", "C7_RATED": "rated %s kA", "C7_DUTY": "must break %s kA", "C7_HIDDEN": "(run it to see it)", "C7_ESTATE_DARK": "ESTATE DARK",

@@ -28,6 +28,14 @@ func _sync_predict(key: String, qid: String) -> void:
 	var e: LineEdit = edits[key]; e.visible = true; e.editable = not _locked()
 	var cur = q.get("predictions", {}).get(qid)
 	if not e.has_focus() and cur != null: e.text = WorkOrder.num(float(cur))
+	_prompt_style(e)
+
+## A prediction box that is still empty gets a bright border: attempt first.
+func _prompt_style(e: LineEdit) -> void:
+	if e.text.strip_edges() == "":
+		var sb := StyleBoxFlat.new(); sb.bg_color = Color(GridTheme.INK).lightened(0.08); sb.set_corner_radius_all(5); sb.set_border_width_all(2); sb.border_color = GridTheme.SODIUM; sb.content_margin_left = 6; sb.content_margin_right = 6
+		e.add_theme_stylebox_override("normal", sb)
+	else: e.remove_theme_stylebox_override("normal")
 
 func refresh(st: Dictionary, k: Dictionary) -> void:
 	super.refresh(st, k)
