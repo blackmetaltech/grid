@@ -26,6 +26,14 @@ static func mode_of(level_id: String) -> String:
 		"L09": return "series"
 	return ""
 
+var _since := 0.0
+
+## The card is a what-if on the design as it stands: re-read it twice a second so a bank placed, stepped or removed in the tray never leaves a stale readout.
+func _process(dt: float) -> void:
+	if not visible or mode == "": return
+	_since += dt
+	if _since >= 0.5: _since = 0.0; refresh()
+
 func refresh() -> void:
 	if app == null or not app.started or app.b == null: return
 	var li = app.b.q("levelInfo")

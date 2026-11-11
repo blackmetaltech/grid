@@ -468,6 +468,7 @@ func op_target_at(pos: Vector2) -> Dictionary:
 		for e in op_elements(str(k)):
 			if op_rows(str(e.kind), str(e.id)).is_empty(): continue
 			var d := pos.distance_to(world.world_to_screen(e.tile, 14.0)) if world != null else 1e9
+			if str(k) == "shunt": d -= 22.0   # a bank drawn beside a building wins the tap over the generator or bus under it
 			if d <= (30.0 if not (CbLayout.touch or CbLayout.kind == "phone") else maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5)) and d < bd - 6.0: bd = d; best = e
 	return best
 

@@ -51,6 +51,15 @@ func _initialize() -> void:
 	T.level("L07"); sync.call()
 	var ph = T.b.q("feederPeak")
 	T.check(ph is Dictionary and bool(ph.get("active", false)) and int(ph.iA) > 100 and int(ph.ratedA) == 115 and float(ph.pf) < 0.8, "feederPeak reads before Run: %s" % str(ph))
+	# ---- a bank beside the generator's building wins the tap ----
+	T.level("L07"); sync.call()
+	tray.activate(tray.place_index("placeShunt", "cap-11-900")); tray.press_target("B1"); sync.call(); tray.cancel_key()
+	var btile: Vector2 = Vector2.ZERO; var utile: Vector2 = Vector2.ZERO
+	for e in tray.elements("shunt"): btile = e.tile
+	for e in tray.elements("unit"): utile = e.tile
+	var bp: Vector2 = world.world_to_screen(btile, 14.0); var up: Vector2 = world.world_to_screen(utile, 14.0)
+	var hit: Dictionary = tray.op_target_at(bp.lerp(up, 0.6))
+	T.check(str(hit.get("kind", "")) == "shunt", "a tap closer to the generator under it than to the bank opens the bank's tag: %s" % str(hit))
 	# ---- work order lines ----
 	T.level("L08")
 	var li = T.b.q("levelInfo"); var th: Dictionary = li.thresholds
