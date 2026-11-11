@@ -12,6 +12,10 @@ var _box: VBoxContainer
 var _readout: Label
 var _edits := {}
 var _card := false
+var _root: VBoxContainer
+var _scroll: ScrollContainer
+var _toggle_btn: Button
+var _collapsed := false
 var _kept := false
 var _last_tick := 1 << 30
 var _seen_level := ""
@@ -21,7 +25,12 @@ var _bar: ShareBar
 func _init() -> void:
 	name = "Ch6Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", GridTheme.paper_sb(4, 10.0))
-	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); add_child(_box)
+	_root = VBoxContainer.new(); _root.add_theme_constant_override("separation", 2); add_child(_root)
+	_toggle_btn = Button.new(); _toggle_btn.flat = true; _toggle_btn.name = "c6_collapse"; _toggle_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT; _toggle_btn.focus_mode = CbKit.focus_mode()
+	_toggle_btn.add_theme_font_size_override("font_size", GridTheme.fs(16)); _toggle_btn.add_theme_color_override("font_color", GridTheme.PAPER_INK)
+	_toggle_btn.pressed.connect(func(): _collapsed = not _collapsed; _apply_collapse()); _root.add_child(_toggle_btn)
+	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.name = "c6_scroll"; _root.add_child(_scroll)
+	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.add_child(_box)
 	GridUi.load_strings()
 
 ## True while a number is being typed into one of the fields (the chrome then leaves the keys alone).
@@ -49,14 +58,33 @@ func refresh() -> void:
 	sig += str((g.rules as Dictionary).get("derLegacyIds", []).size())
 	if sig != _sig and not editing(): _sig = sig; _rebuild()
 	_readout.text = _readout_text(g)
+	_apply_collapse()
+
+func _phone() -> bool: return CbLayout.kind == "phone"
+
+func _apply_collapse() -> void:
+	_scroll.visible = not (_phone() and _collapsed)
+	_toggle_btn.visible = _phone()
+	_toggle_btn.text = ("▸ " if _collapsed else "▾ ") + tx("C6_TITLE_" + _level) if _level != "" else ""
 	_layout()
 
 func _layout() -> void:
 	var vp := get_viewport_rect().size
-	custom_minimum_size = Vector2(W, 0); reset_size()
+	var pw := minf(W, vp.x - 16.0) if _phone() else W
+	var top := 74.0
+	if _phone():   # wholly inside the viewport: below the HUD, above the spent/budget tag; taller content scrolls (finger drag), the header collapses it
+		var maxh := maxf(60.0, vp.y - 185.0 - top)
+		_scroll.custom_minimum_size = Vector2(pw - 24.0, 0)
+		var want: float = _box.get_combined_minimum_size().y
+		var room := maxh - (_toggle_btn.get_combined_minimum_size().y + 24.0)
+		_scroll.custom_minimum_size.y = minf(want, maxf(40.0, room)) if _scroll.visible else 0.0
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	else:
+		_scroll.custom_minimum_size = Vector2.ZERO
+	custom_minimum_size = Vector2(pw, 0); reset_size()
 	var w := maxf(size.x, get_combined_minimum_size().x)
 	size.x = w
-	position = Vector2(maxf(4.0, vp.x - w - 14.0), clampf(74.0, 4.0, maxf(4.0, vp.y - size.y - 24.0)))
+	position = Vector2(maxf(4.0, vp.x - w - (8.0 if _phone() else 14.0)), clampf(top, 4.0, maxf(4.0, vp.y - size.y - 24.0)))
 
 func _readout_text(g: Dictionary) -> String:
 	var tr: Dictionary = g.metrics.track
@@ -88,7 +116,7 @@ func _rebuild() -> void:
 	for c in _box.get_children(): _box.remove_child(c); c.queue_free()
 	_edits.clear()
 	var g := _g()
-	var head := GridTheme.label(tx("C6_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"); _box.add_child(head)
+	var head := GridTheme.label(tx("C6_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"); if not _phone(): _box.add_child(head)   # on a phone the collapse header carries the title
 	_readout = GridTheme.label("", 14, GridTheme.PAPER_INK, "mono"); _box.add_child(_readout)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
 	match _level:
