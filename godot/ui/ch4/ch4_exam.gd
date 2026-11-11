@@ -65,7 +65,7 @@ func _draw_rated(r: Rect2) -> void:
 	var s := 112.0; var o := r.position + Vector2(48.0, r.size.y * 0.55)
 	var V := Vector2(s, 0.0); var a := deg_to_rad(36.87); var I := Vector2(cos(a), sin(a)) * s * 0.9   # screen y down: I lags V, so it points below the axis
 	_arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V * 0.5 + Vector2(-20, 18), "V = 1", Color.WHITE)
-	_arrow(o, o + I, Color(GridTheme.SODIUM), 3.0); _text(_mono(), 12, o + I * 0.5 + Vector2(16, 24), "I = 1, pf 0.8 lag", GridTheme.SODIUM)
+	_arrow(o, o + I, Color(GridTheme.SODIUM), 3.0); _text(_mono(), 12, o + I + Vector2(10, 20), "I = 1, pf 0.8 lag", GridTheme.SODIUM)
 	var ans = q.get("answers")
 	if ans is Dictionary:
 		var jx := Vector2(cos(-deg_to_rad(53.13)), sin(-deg_to_rad(53.13))) * s * 1.2
@@ -122,12 +122,32 @@ func _draw_gauges(r: Rect2) -> void:
 		draw_rect(Rect2(Vector2(x, dy), Vector2(wd * float(n.deltaDeg) / dm, 16.0)), _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
 		draw_line(Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy - 4.0), Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy + 20.0), Color.WHITE, 2.0)
 		_text(_mono(), 12, Vector2(x, dy + 38.0), T("C4_DELTA_LIM") % [_f(float(n.deltaDeg), 1), int(n.deltaMaxDeg)], _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
+	_draw_pdelta(Rect2(Vector2(x, gy + 184.0), Vector2(wd, maxf(r.end.y - gy - 184.0 - 62.0, 80.0))))
 	if n.q == null:
 		_text(_mono(), 12, Vector2(x, gy + 74.0), T("C4_GAUGE_HINT1"), Color(GridTheme.TEXT, 0.65)); _text(_mono(), 12, Vector2(x, gy + 94.0), T("C4_GAUGE_HINT2"), Color(GridTheme.TEXT, 0.65))
 	if bool(q.done):
 		var ans = q.get("answers"); var y := r.position.y + r.size.y - 54.0
 		if ans is Dictionary: _text(_mono(), 12, Vector2(x, y), T("C4_ANS_E") % _f(float(n.answerE), 3), Color(GridTheme.SODIUM))
 		_text(_mono(), 12, Vector2(x, y + 18.0), T("C4_PRED_ERR") % _pe(), _good(float(q.predErrPct) <= 5.0))
+
+## P = E V sin δ / X_s at the current excitation (V = 1): the night P, the 60° limit and the operating point, so δ and P_max have a picture.
+func _draw_pdelta(r: Rect2) -> void:
+	var n: Dictionary = q.night; var e := float(n.excitation) if n.excitation != null else 1.0
+	var xs := float(q.xs); var pmax := e / xs; var ymax := maxf(pmax, float(n.p) * 1.4) * 1.12
+	_text(_semi(), 11, r.position + Vector2(0, -6.0), T("C4_PD_TITLE") % [_f(e, 3), _f(pmax, 3)], Color(GridTheme.TEXT, 0.7) if n.excitation != null else Color(GridTheme.TEXT, 0.45))
+	draw_rect(r, Color("#0B1026"))
+	var X := func(d: float) -> float: return r.position.x + r.size.x * d / 180.0
+	var Y := func(p: float) -> float: return r.end.y - r.size.y * clampf(p, 0.0, ymax) / ymax
+	draw_rect(Rect2(Vector2(X.call(float(n.deltaMaxDeg)), r.position.y), Vector2(X.call(180.0) - X.call(float(n.deltaMaxDeg)), r.size.y)), Color(GridTheme.BAD, 0.12))
+	var pts := PackedVector2Array()
+	for k in 91: var d := float(k) * 2.0; pts.append(Vector2(X.call(d), Y.call(pmax * sin(deg_to_rad(d)))))
+	draw_polyline(pts, Color(GridTheme.SODIUM, 0.9 if n.excitation != null else 0.4), 2.5, true)
+	draw_line(Vector2(r.position.x, Y.call(float(n.p))), Vector2(r.end.x, Y.call(float(n.p))), Color.WHITE, 1.5)
+	_text(_mono(), 10, Vector2(r.end.x - 70.0, Y.call(float(n.p)) - 4.0), "P = %s" % WorkOrder.num(float(n.p)), Color.WHITE)
+	_text(_mono(), 10, Vector2(X.call(float(n.deltaMaxDeg)) + 4.0, r.end.y - 5.0), T("C4_PD_LIMIT") % int(n.deltaMaxDeg), Color(GridTheme.BAD, 0.9))
+	if n.deltaDeg != null: draw_circle(Vector2(X.call(float(n.deltaDeg)), Y.call(float(n.p))), 5.0, _good(bool(n.taskDone)))
+	_text(_mono(), 10, Vector2(X.call(90.0) - 40.0, Y.call(pmax) - 4.0 if Y.call(pmax) > r.position.y + 12.0 else r.position.y + 11.0), "P_max", Color(GridTheme.SODIUM, 0.8))
+	for k in [0, 90, 180]: _text(_mono(), 10, Vector2(X.call(float(k)) - 10.0, r.end.y + 12.0), "%d°" % k, Color(GridTheme.TEXT, 0.5))
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var mono := _mono()

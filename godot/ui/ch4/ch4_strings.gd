@@ -33,4 +33,5 @@ const S := {
 	"C4_CANS_FORMULA": "= 3 × %d cans × %s kVAr = %s kVAr", "C4_CANS_GLOSS": "can = one capacitor; Y: 231 V each, Δ: 400 V each", "C4_AVR_CAP2": "AVR SET-POINT (1.00 = nominal, 0.90 is low)", "C4_PEAKS2": "More excitation = bigger E′ = taller curve",
 	"C4_CUT": "Balance the phases to cut it: spread the kVA evenly.",
 	"C4_MATCHED_BEST": "Your design: %s. You matched the best of the %d designs.",
+	"C4_PD_TITLE": "P-δ at E = %s pu: P_max = E V ÷ X_s = %s pu", "C4_PD_LIMIT": "δ < %d°",
 }
