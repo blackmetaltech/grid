@@ -2,6 +2,27 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.0.0-rc.3] - played through, chapters 5-7 (tag v1.0.0-rc.3, local)
+### Added
+- Every exam and prediction level shows its givens on screen: L18 (line impedances, slack, load, PV bus, flat start, the GS update),
+  L23 (grid fault level, transformer and generator impedances on the 100 MVA base), and L27 (sequence impedances, cost curves and limits, swing data).
+- L13: a P-δ chart at the current excitation (P_max = EV/X_s, the night P line, the δ < 60° limit).
+- L22: the task and the live G1 share on the exam sheet; a real third lamp (all three answers within 1 %).
+- L28: a Tap hold cell in the tray for the Eastgate transformers.
+### Changed
+- L16 is laid out on 10 km tiles (ring sides about 70 km, the chord about 32 km): a new parallel line is no longer 1.8 km long.
+- L17: a margin under 5 % after the trip loses with its own message, and the card labels the live margin "now".
+- L15: a reactor breaker rests 45 minutes after it switches (it hunted).
+- Chapter 6: a battery nobody scheduled stands ready for frequency response; it does not trade.
+- Work orders name each level's real pass conditions and third-lamp condition; the L24 gloss says how to tighten the grading.
+- The run lever's tooltip lists its keys (Space, + / − for speed, . for one step); yards show their names before the first run.
+### Fixed
+- L21: the gauge read 52-64 Hz after a collapse (it showed a model with no machines left); a battery alone no longer holds a dead island;
+  sun beyond demand is curtailed; the rooftop sentence follows the real RoCoF; the RoCoF field takes typed digits; the toggles show ON/OFF and price.
+- A second device on the same bus can be selected (click again to walk to the next).
+- Retry / Start over clears an armed tool; a sheet folding away no longer swallows the next click.
+- No "$0 / $0" budget tag on levels with nothing to buy; degenerate world polygons are skipped.
+
 ## [1.0.0-rc.2] - "Keep the Lights On", played through (tag v1.0.0-rc.2, local)
 ### Added
 - `in` pack, WO-28: the state is tied to the All-India grid (a 1000 MW 400 kV tie at the Capital; large inertia, droop, no reactive help).
