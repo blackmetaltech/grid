@@ -889,10 +889,11 @@ func _draw_sky(mn: float) -> void:
 			var p := Vector2(WorldMath.hash2(k, 1, 77) * size.x, WorldMath.hash2(k, 2, 77) * size.y * 0.7)
 			_ci.draw_circle(p, 0.8 + 1.2 * WorldMath.hash2(k, 3, 77), Color(1, 1, 1, (_night - 0.3) * (0.4 + 0.5 * WorldMath.hash2(k, 4, 77))))
 	var a := (mn - 360.0) / 720.0 * PI      # sun: east at 06:00, west at 18:00
-	var sun := Vector2(size.x * 0.5 - cos(a) * size.x * 0.42, size.y * 0.68 - sin(a) * size.y * 0.6)   # horizon low: the sun sets behind the sea, not mid-sky
+	var sky_top := 0.27 * size.y   # the clock and frequency dial sit at the top centre: the sun and moon ride below them, not half-hidden behind them
+	var sun := Vector2(size.x * 0.5 - cos(a) * size.x * 0.42, maxf(sky_top, size.y * 0.68 - sin(a) * size.y * 0.6))   # horizon low: the sun sets behind the sea, not mid-sky
 	if sin(a) > -0.1 and sin(a) < 1.01: _ci.draw_circle(sun, 26.0, Color(1.0, 0.86, 0.55, 0.9)); _ci.draw_circle(sun, 44.0, Color(1.0, 0.8, 0.5, 0.18))
 	else:
-		var mo := Vector2(size.x * 0.5 + cos(a) * size.x * 0.42, size.y * 0.5 + sin(a) * size.y * 0.42)
+		var mo := Vector2(size.x * 0.5 + cos(a) * size.x * 0.42, maxf(sky_top, size.y * 0.5 + sin(a) * size.y * 0.42))
 		_ci.draw_circle(mo, 18.0, Color(0.9, 0.93, 1.0, 0.85 * _night)); _ci.draw_circle(mo, 32.0, Color(0.8, 0.85, 1.0, 0.12 * _night))
 
 func _draw_slab() -> void:
