@@ -49,6 +49,7 @@ const ACTIONS := {
 	"stringLine": {"icon": "line", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part", "$circuits", "$km"], "knobs": ["circuits", "km"]},
 	"switchBranch": {"icon": "breaker", "pick": ["branch"], "args": ["$0", "$flip:branch.inService"], "knobs": [], "cell": "op", "live": true},
 	"demolish": {"icon": "demolish", "pick": ["element"], "args": ["$0"], "knobs": [], "cell": "op"},
+	"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", "$vset", "$band", "$delay"], "knobs": ["vset", "band", "delay"], "cell": "op", "live": true},   # the finale (L28): the tap changer's set-point from the tray, no hunt for the transformer in the world
 	"setAutoDispatch": {"icon": "dispatch", "pick": [], "args": ["$flip:dispatch.auto"], "knobs": [], "cell": "op", "live": true},
 }
 const KNOBS := {
