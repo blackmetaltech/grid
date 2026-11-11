@@ -45,6 +45,8 @@ export const BUSES: BusRow[] = [
   { key: 'ironworks', name: 'Ironworks', kv: 132, x: 28, y: 26, kind: 'load' },   // lint-ok
   { key: 'capital1', name: 'Capital 132', kv: 132, x: 50, y: 25, kind: 'load' },   // lint-ok
 ];
+/** The town of each sub-bus (a town with several voltage levels); every other bus is its own town. */
+export const TOWN: Record<string, string> = { capital4: 'Capital', capital2: 'Capital', capital1: 'Capital', south4: 'Southplain', south2: 'Southplain', southplain: 'Southplain', eastgate4: 'Eastgate', eastgate2: 'Eastgate', eastgate1: 'Eastgate', westfell4: 'Westfell', westfell2: 'Westfell', westfell1: 'Westfell', marlow4: 'Marlow', marlowtown: 'Marlow' };
 export const BUS = Object.fromEntries(BUSES.map((b, i) => [b.key, `B${i + 1}`])) as Record<string, string>;
 
 interface LineRow { key: string; from: string; to: string; cat: string; circuits: number }
@@ -202,7 +204,7 @@ export const L28: GridLevelSpec = {
     s.terrain = null;
     s.map.tileM = TILE_M; s.map.w = MAP_W; s.map.h = MAP_H;
     for (const b of BUSES) A('placeBus', b.x, b.y, b.kv, b.kind, b.vSet);
-    s.buses.forEach((b, i) => { b.name = BUSES[i]!.name; });
+    s.buses.forEach((b, i) => { b.name = BUSES[i]!.name; b.zone = TOWN[BUSES[i]!.key] ?? BUSES[i]!.name; });   // `zone` carries the town: the sub-buses of one town (Capital 400/220/132) share it, so a map can print one label
     for (const l of LINES) A('stringLine', BUS[l.from], BUS[l.to], l.cat, l.circuits);
     for (const x of XFMRS) for (let i = 0; i < x.n; i++) A('placeTransformer', BUS[x.hv], BUS[x.lv], x.cat);
     for (const u of UNITS) for (let i = 0; i < u.n; i++) A('placeUnit', u.cat, BUS[u.bus], u.mw);
