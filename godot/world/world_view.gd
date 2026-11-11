@@ -99,6 +99,15 @@ func set_model(m: Dictionary) -> void:
 	_night = float(m.night); _gain = WorldMath.lights_gain(_night); _nl = WorldMath.ground_light(_night)
 	var key := JSON.stringify([_sig, snappedf(_night, 0.01), cute, m.lines.map(func(l): return [l.band, l.in_service, l.get("mm2")])])
 	if key != _static_key: _static_key = key; repaint_static()
+	if _homes_split():
+		var hv := PackedInt32Array()
+		for t in m.towns:
+			hv.append(roundi(float(t.v) * 100.0))
+			for e in t.energies: hv.append(roundi(float(e) * 50.0))
+		var hk := "%s|%.2f|%s|%s" % [_sig.hash(), _night, cute, hv]
+		if hk != _bld_key:
+			_bld_key = hk
+			if _bld_layer != null: _bld_layer.queue_redraw()
 	_sync_layers()
 	queue_redraw()
 
@@ -390,6 +399,9 @@ func _rebuild_objects() -> void:
 	_objs.sort_custom(func(a, b): return a.d < b.d)
 	_objs_s.clear(); _objs_d.clear()
 	for o in _objs: (_objs_s if STATIC_T.has(o.t) else _objs_d).append(o)
+	_n_bld = 0
+	for o in _objs_d: if o.t == "bld": _n_bld += 1
+	_bld_key = ""
 
 func _line_by_id(id: String) -> Dictionary:
 	for l in model.lines: if str(l.id) == id: return l
@@ -654,6 +666,10 @@ const STATIC_T := ["tree", "palm", "mangrove", "tower", "boulder", "support", "s
 var _ci: CanvasItem = self
 var _static_layer: Node2D
 var _dyn_layer: Node2D
+var _bld_layer: Node2D   # big maps (L28: ~450 buildings): homes whose town is not flickering are painted here only when their light changes, not every frame (Pixel 9a went 11 fps -> see CHANGELOG rc.4)
+var _bld_key := ""
+var _n_bld := 0
+const HOMES_SPLIT := 150   # buildings on the map above which steady homes leave the per-frame layer
 var _top_layer: Node2D
 var _static_key := ""
 var static_paints := 0
@@ -661,19 +677,21 @@ var perf := {"static_us": 0, "dyn_us": 0, "top_us": 0, "model_us": 0, "models": 
 
 func _make_layers() -> void:
 	_static_layer = Node2D.new(); _static_layer.name = "StaticIsland"; add_child(_static_layer)
+	_bld_layer = Node2D.new(); _bld_layer.name = "SteadyHomes"; add_child(_bld_layer)
 	_dyn_layer = Node2D.new(); _dyn_layer.name = "Animated"; add_child(_dyn_layer)
 	_top_layer = Node2D.new(); _top_layer.name = "Labels"; add_child(_top_layer)
 	_static_layer.draw.connect(func(): _ci = _static_layer; _paint_static(); _ci = self)
+	_bld_layer.draw.connect(func(): _ci = _bld_layer; _paint_homes(); _ci = self)
 	_dyn_layer.draw.connect(func(): _ci = _dyn_layer; _paint_dynamic(); _ci = self)
 	_top_layer.draw.connect(func(): _ci = _top_layer; _paint_top(); _ci = self)
 
 func _sync_layers() -> void:
 	if _static_layer == null: return
 	var s := _scale(); var o := to_screen(Vector2.ZERO)
-	for l in [_static_layer, _dyn_layer]: l.position = o; l.scale = Vector2(s, s)
+	for l in [_static_layer, _bld_layer, _dyn_layer]: l.position = o; l.scale = Vector2(s, s)
 
 func repaint_static() -> void:
-	if _static_layer != null: _static_layer.queue_redraw()
+	if _static_layer != null: _static_layer.queue_redraw(); _bld_layer.queue_redraw()
 
 func _paint_static() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
@@ -685,10 +703,28 @@ func _paint_static() -> void:
 	for ob in _objs_s: _draw_obj(ob)
 	perf.static_us += Time.get_ticks_usec() - t0
 
+## A town's homes flicker (brownout: 0 < V < 0.92 pu) and so must be redrawn every frame.
+func _town_flickers(ti: int) -> bool:
+	var t: Dictionary = model.towns[ti]
+	return float(t.v) > 0.0 and float(t.v) < 0.92
+
+func _homes_split() -> bool:
+	return _n_bld > HOMES_SPLIT
+
+func _paint_homes() -> void:
+	if _tiles.is_empty() or size.x < 4.0 or not _homes_split(): return
+	var t0 := Time.get_ticks_usec()
+	for ob in _objs_d:
+		if ob.t == "bld" and not _town_flickers(int(ob.ti)): _draw_obj(ob)
+	perf.static_us += Time.get_ticks_usec() - t0
+
 func _paint_dynamic() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
 	var t0 := Time.get_ticks_usec()
-	for ob in _objs_d: _draw_obj(ob)
+	var split := _homes_split()
+	for ob in _objs_d:
+		if split and ob.t == "bld" and not _town_flickers(int(ob.ti)): continue
+		_draw_obj(ob)
 	_draw_pulses()
 	_draw_route_markers()
 	_draw_lineman()
@@ -1042,8 +1078,8 @@ func _building(o: Dictionary) -> void:
 		_window_quads(_iso(x1, y1, base), _iso(x1, y0, base) - _iso(x1, y1, base), h, cols, rows, o.v + 0.37, on_v, off_v)
 		o["wm"] = [_quad_mesh(on_v), _quad_mesh(off_v)]
 	var lit_col := UNLIT.lerp(WorldMath.SODIUM, clampf(e * _gain * flick, 0.0, 1.0))
-	_ci.draw_mesh(o.wm[1], null, Transform2D.IDENTITY, UNLIT)
-	_ci.draw_mesh(o.wm[0], null, Transform2D.IDENTITY, lit_col)
+	if (o.wm[1] as ArrayMesh).get_surface_count() > 0: _ci.draw_mesh(o.wm[1], null, Transform2D.IDENTITY, UNLIT)   # an all-lit or all-dark wall leaves the other mesh empty ("Parameter mesh is null" on device)
+	if (o.wm[0] as ArrayMesh).get_surface_count() > 0: _ci.draw_mesh(o.wm[0], null, Transform2D.IDENTITY, lit_col)
 	if o.role != "":   # hipped roof; the health post carries a red cross on its front wall
 		var rc := Color("#7E3B32") if o.role == "school" else Color("#4E8C6A")
 		var ap2 := _iso(p.x, p.y, base + h + 8.0)
@@ -1251,6 +1287,7 @@ func _draw_labels() -> void:
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
+	var site_seen := {}
 	var placed: Array[Rect2] = []   # grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
 	for t in model.towns:
 		if t.kind == "school" or t.kind == "hamlet" or t.get("mascot", false):
@@ -1271,14 +1308,20 @@ func _draw_labels() -> void:
 		var v: float = t.v
 		var arrow := "▼ " if v < 0.95 else ("▲ " if v > 1.05 else "")
 		var txt2 := tr("WORLD_DARK") if v <= 0.0 else tr("WORLD_BUS_FMT") % [arrow, v]
-		if not bool(model.get("solved", true)): _label_free(font, fs, sp2, str(t.name), WorldMath.WHITE, placed); continue   # before the first solve: the town's name only
+		if not bool(model.get("solved", true)):   # before the first solve: the site's name only, once ("Capital", not "Capital 400", "Capital 220", "Capital 132")
+			var tb := _yard_base(str(t.name))
+			if not site_seen.has(tb): site_seen[tb] = true; _label_free(font, fs, sp2, tb, WorldMath.WHITE, placed)
+			continue
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
 		_label_free(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col, placed)
 	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
 	var unsolved := not bool(model.get("solved", true))
 	for s in model.subs:
 		if yards_quiet: break
-		if unsolved and s.has("name") and str(s.id) != "j" and not str(s.id).begins_with("c"):   # before the first solve a yard shows its name (L18: "B1 slack", "B3 PV"), not a voltage it does not have yet
+		if unsolved and s.has("name") and str(s.id) != "j" and not str(s.id).begins_with("c"):
+			var base := _yard_base(str(s.name))   # "Capital 400" -> "Capital": the town's own label already names the site, and a site's 400/220/132 kV yards need one label, not three
+			if site_seen.has(base): continue
+			site_seen[base] = true   # before the first solve a yard shows its name (L18: "B1 slack", "B3 PV"), not a voltage it does not have yet
 			_label_free(font, fs, to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0)), str(s.name), WorldMath.WHITE, placed, true); continue
 		if s.has("v") and float(s.v) > 0.0 and s.id != "j" and not str(s.id).begins_with("c"):
 			var sp3 := to_screen(_iso(_tc(s.pos).x, _tc(s.pos).y, 40.0))
@@ -1326,6 +1369,12 @@ func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
 
 ## `_label`, moved down a row at a time (up to four) until its box clears every box in `placed`; the box it ends in is appended.
 ## `optional`: a label that still finds no room is left out (a yard's pu: its town's label already says it).
+## A yard's site name: its name less a trailing voltage ("Gorge hydro 220" -> "Gorge hydro").
+func _yard_base(n: String) -> String:
+	var parts := n.split(" ")
+	if parts.size() > 1 and parts[parts.size() - 1].is_valid_int(): parts.remove_at(parts.size() - 1)
+	return " ".join(parts)
+
 func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2], optional := false) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var r := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
