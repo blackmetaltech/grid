@@ -170,3 +170,18 @@ describe('L21 is winnable with the controls the card shows', () => {
     for (const region of ['global', 'in']) { const o = runDesign(specOf('L21')!, region, acts); expect(o.status, o.reason).toBe('won'); expect(o.stars).toBe(3); if (region === 'global') { near(o.track.nadirHz!, 49.613, 0.01); near(o.capex, 298.3e6, 0.2e6); } }
   });
 });
+
+describe('Retry keeps the chapter 6 build with stable ids', () => {
+  it('the design the engine reports replays on a fresh level to the same unit ids, holds and storage', () => {
+    const build: Action[] = [{ name: 'placeUnit', args: ['synccon-100', 'B1', 300] }, { name: 'spinUnit', args: ['U11'] }, ...coalHold(2), { name: 'placeStorage', args: ['B1', 'bess-gfm-50'] }, ...rideThrough];
+    const a = play('L21', build);
+    const design = a.engine.q('freqDesign') as { name: string; args: unknown[] }[];
+    expect(design.map((d) => d.name)).toEqual(['placeUnit', 'spinUnit', 'spinUnit', 'spinUnit', 'upgradeRideThrough']);
+    const ids = (e: Env<GridState>): string => JSON.stringify([e.state.units.map((u) => [u.id, u.online || u.commit.schedule.length > 0]), e.state.storage.map((b) => b.id), e.state.rules.derLegacyIds]);
+    for (let round = 0; round < 2; round++) {
+      const b = play('L21', [{ name: 'placeStorage', args: ['B1', 'bess-gfm-50'] }, ...design.map((d) => ({ name: d.name, args: d.args }) as Action)]);
+      expect(ids(b), `retry ${round}`).toBe(ids(a));
+      expect(b.state.units.find((u) => u.id === 'U11')!.kind).toBe('synccon');
+    }
+  });
+});

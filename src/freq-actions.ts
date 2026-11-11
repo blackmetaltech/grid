@@ -56,7 +56,7 @@ export function buildFreqActions(d: FreqActionDeps): Record<string, ActionFn<Gri
       for (let b = s.clock.block; b < BLOCKS_PER_DAY; b++) u.commit.schedule[b] = 1;
       const left = s.rules.horizonBlocks !== null ? Math.max(1, s.rules.horizonBlocks - (s.tick - s.levelStart)) : BLOCKS_PER_DAY - s.clock.block;
       const cost = ((s.rules as { finale?: unknown }).finale ? 1 : YEAR_DAYS) * ((u.online ? 0 : u.startCost) + spinFuel(u, left / 4));   // L28: the fuel burned at minimum load for the hours spun (the three-day run), not a year of such days
-      s.budget.spent += cost;
+      s.budget.spent += cost; (s.purchases ??= {})['spin:' + unitId] = cost;   // remembered so Retry can hold the unit again (freqDesign)
       return accept(s, 'spinUnit', 'act.spin.ok', { id: unitId, mw: Math.round(u.pMax), min: Math.round(u.pMin), cost: d.money(s, cost) });
     },
     /** Put a battery on frequency response: it holds its charge (no arbitrage) and answers a frequency drop in 200 ms (grid-following) or 50 ms (grid-forming). */

@@ -182,6 +182,8 @@ static func _grid_design(app: CbApp) -> Array:
 			if rq.has("insulatorId"): ra.append_array([str(rq.insulatorId), str(rq.get("coastInsulatorId", rq.insulatorId))])   # L29: the insulators are part of the design ('pin' otherwise)
 			out.append(["buildRoute", ra])
 	for st in app.b.g.get("storage", []): out.append(["placeStorage", [str(st.bus), str(st.catalogId)]])   # L30: the island battery
+	var fd = app.b.q("freqDesign")   # chapter 6: units placed and held, store clocks, pumps, ride-through, in build order (the level places its own units first, so the ids come out the same)
+	if fd is Array: for a in fd: out.append([str(a.name), a.args])
 	return out
 
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
