@@ -134,7 +134,7 @@ func _draw_pump(r: Rect2, ground: float) -> void:
 	draw_circle(c, 30.0, Color("#2B5A7A")); draw_arc(c, 30.0, 0.0, TAU, 32, Color("#9FD8FF"), 3.0)
 	var a := _t * (3.0 + 4.0 * float(bool(q.started))); for k in 3: draw_line(c, c + Vector2(cos(a + k * TAU / 3.0), sin(a + k * TAU / 3.0)) * 24.0, Color("#CFEAFF"), 5.0)
 	_text(_semi(), 12, r.position + Vector2(0.0, 134.0), T("C4_PUMP") % [int(q.pumpKw), T("C4_ST_" + str(q.starter).to_upper())], Color(GridTheme.TEXT, 0.9))
-	var imax := maxf(float(q.iStartA), 1.0); var bx := r.position.x + 110.0; var bh := 120.0
+	var imax := maxf(float(q.iStartA), 1.0); var bx := r.position.x + 150.0; var bh := 120.0
 	draw_rect(Rect2(Vector2(bx, r.position.y + 20.0 + bh * (1.0 - float(q.iFullA) / 900.0)), Vector2(26.0, bh * float(q.iFullA) / 900.0)), Color("#7CFFB2"))
 	draw_rect(Rect2(Vector2(bx + 34.0, r.position.y + 20.0 + bh * (1.0 - imax / 900.0)), Vector2(26.0, bh * imax / 900.0)), Color("#FFB020"))
 	_text(_mono(), 10, Vector2(bx - 8.0, r.position.y + 16.0), "%d" % int(q.iFullA), Color("#7CFFB2"), 42.0, 1); _text(_mono(), 10, Vector2(bx + 26.0, r.position.y + 16.0), "%d A" % int(imax), Color("#FFB020"), 42.0, 1)
@@ -176,6 +176,8 @@ func _draw_panel_body() -> void:
 	var y := inner.position.y + 160.0
 	var hv := hover.get_slice("/", 1) if hover.begins_with("starter/") else str(q.starter)
 	_text(mono, 11, inner.position + Vector2(0, 140.0), T("C4_HINT_" + hv.to_upper()), Color(GridTheme.SODIUM, 0.85))
+	var qb := float(q.bank.qKvar) if q.get("bank") is Dictionary else 0.0
+	_text(mono, 12, inner.position + Vector2(462.0, 92.0), T("C4_BANK_RD") % [_f(qb, 0), _f(float(q.needKvar), 0)], _good(qb >= float(q.needKvar) and bool(q.pass.lead)))
 	var checks := [[T("C4_CHK_PF") % _f(float(q.pf), 3), bool(q.pass.pf) and bool(q.pass.lead)], [T("C4_CHK_CAN"), bool(q.pass.can)], [T("C4_CHK_DIP") % _f(float(q.dipPct), 1), bool(q.pass.dip)]]
 	var x := inner.position.x
 	for c in checks:

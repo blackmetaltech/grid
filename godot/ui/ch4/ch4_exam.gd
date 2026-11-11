@@ -158,7 +158,13 @@ func _draw_panel_body() -> void:
 		_text(mono, 11, Vector2(e.position.x - 80.0, e.position.y + 19.0), lab[k], Color(GridTheme.TEXT, 0.7))
 	for h in hits:
 		if str(h.id) == "exc":
+			var tkr: Rect2 = stepper_parts(h.rect).track
+			for tv in [0.5, 1.0, 1.5, 2.0]:
+				var tx2: float = tkr.position.x + tkr.size.x * (tv - 0.5) / 1.5
+				draw_line(Vector2(tx2, tkr.end.y + 2.0), Vector2(tx2, tkr.end.y + 7.0), Color(GridTheme.TEXT, 0.6), 1.0); _text(_mono(), 9, Vector2(tx2 - 12.0, tkr.end.y + 17.0), _f(tv, 1), Color(GridTheme.TEXT, 0.55), 24.0, 1)
 			var v := _exc(); _stepper(h.rect, T("C4_EXC_CAP"), "E = %s pu" % _f(v, 3) if q.night.excitation != null else T("C4_UNSET"), (v - 0.5) / 1.5, "exc")
-	var checks := [[T("C4_CHK_PRED") % _pe(), float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
+	var pp: Dictionary = q.predictions
+	var pred_txt := T("C4_ENTER") if pp.E == null or pp.delta == null or pp.pmax == null else (T("C4_CHK_PRED") % _pe() if bool(q.running) else T("C4_ENTERED"))
+	var checks := [[pred_txt, float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
 	var x := inner.position.x
 	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 168.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 210.0

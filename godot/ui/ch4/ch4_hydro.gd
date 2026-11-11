@@ -19,11 +19,11 @@ func _short(p: String) -> String:
 
 func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var x := inner.position.x
-	for k in 4: _add_chip(Rect2(Vector2(x + 72.0 * k, inner.position.y + 20.0), Vector2(66, 42)), "vref", VREFS[k])
+	for k in 4: _add_chip(Rect2(Vector2(x + 72.0 * k, inner.position.y + 26.0), Vector2(66, 40)), "vref", VREFS[k])
 	x += 72.0 * 4 + 10.0
-	for k in 3: _add_chip(Rect2(Vector2(x + 82.0 * k, inner.position.y + 20.0), Vector2(76, 42)), "series", SERIES[k])
-	_add_chip(Rect2(Vector2(inner.position.x, inner.position.y + 72.0), Vector2(140, 50)), "third", 1)
-	for k in 4: _add_chip(Rect2(Vector2(inner.position.x + 150.0 + 82.0 * k, inner.position.y + 72.0), Vector2(76, 50)), "redispatch", REDUCE[k])
+	for k in 3: _add_chip(Rect2(Vector2(x + 82.0 * k, inner.position.y + 26.0), Vector2(76, 40)), "series", SERIES[k])
+	_add_chip(Rect2(Vector2(inner.position.x, inner.position.y + 76.0), Vector2(140, 46)), "third", 1)
+	for k in 4: _add_chip(Rect2(Vector2(inner.position.x + 150.0 + 82.0 * k, inner.position.y + 76.0), Vector2(76, 46)), "redispatch", REDUCE[k])
 
 func _press(h: Dictionary, _p: Vector2) -> void:
 	match str(h.id):
@@ -149,12 +149,13 @@ func _draw_numbers(r: Rect2) -> void:
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var lock := _locked(); var b: Dictionary = q.build
-	_text(_semi(), 11, inner.position + Vector2(0, 14.0), T("C4_AVR_CAP2"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 11, inner.position + Vector2(298.0, 14.0), T("C4_SERIES_CAP"), Color(GridTheme.TEXT, 0.7))
+	var pk := float(q.swing.peak); var okp: bool = bool(q.swing.stable) and pk <= 70.0
+	_text(_semi(), 14, inner.position + Vector2(0, 15.0), T("C4_HEADLINE") % _f(pk, 0), _good(okp)); _text(_mono(), 12, inner.position + Vector2(372.0, 15.0), T("C4_EMF_NOW") % _f(float(q.E), 3), Color(GridTheme.SODIUM))
 	var l12: Dictionary = kit.get("l12", {})
 	for h in hits:
 		var id := str(h.id); var arg = h.arg
 		match id:
-			"vref": _chip(h.rect, _f(float(arg), 2), "pu", is_equal_approx(float(b.vref), float(arg)), id, arg, not lock)
+			"vref": _chip(h.rect, _f(float(arg), 2), "AVR pu", is_equal_approx(float(b.vref), float(arg)), id, arg, not lock)
 			"series":
 				var pr := ""; for s in l12.get("series", []): if int(s.pct) == int(arg): pr = str(s.price)
 				_chip(h.rect, "%d %%" % int(arg), _short(pr) if int(arg) > 0 else "", int(b.seriesPct) == int(arg), id, arg, not lock)

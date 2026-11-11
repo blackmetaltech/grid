@@ -15,7 +15,7 @@ const S := {
 	"C4_MOTORS": "Motors %d kW, pf %s", "C4_BUSV": "bus %s %% of 400 V", "C4_BANK_Y": "Bank in star (Y): each can sees the phase voltage", "C4_BANK_D": "Bank in delta (Δ): each can sees the line voltage",
 	"C4_BANK_TXT": "%d cans of %d µF = %d µF per phase", "C4_CANV": "volts on a can %d V, rated %d V", "C4_BURST": "BURST!", "C4_NOBANK": "No bank yet: pick a can size, a rating and a count.",
 	"C4_PUMP": "Pump %d kW, %s", "C4_ST_DOL": "DOL", "C4_ST_YD": "Y-Δ", "C4_ST_SOFT": "soft", "C4_TRACE": "Estate bus voltage through the pump's start", "C4_LIMIT": "limit %s %% dip", "C4_PUMP_STARTS": "pump starts",
-	"C4_DIP": "dip %s %%", "C4_IST": "starting %d A = %s × running", "C4_CAP_CAP": "CAPACITOR CANS: size, rating, connection | count | pump starter", "C4_CAN": "can", "C4_CANS": "CANS PER PHASE (± 5, right-click ± 1)",
+	"C4_DIP": "dip %s %%", "C4_IST": "starting %d A = %s × running", "C4_CAP_CAP": "CAPACITOR CANS: size, rating, connection | count | pump starter", "C4_CAN": "can", "C4_CANS": "CANS PER PHASE (±5)",
 	"C4_CHK_PF": "pf %s", "C4_CHK_CAN": "cans OK", "C4_CHK_DIP": "dip %s %%",
 	# L12 over the hill
 	"C4_KESTREL": "Highfell Falls", "C4_CITY": "the city", "C4_LINE": "%d × 300 km, 220 kV, sending %s MW", "C4_ROTOR": "Rotor angle, E′ against the bus V", "C4_PDELTA": "P-δ: before (blue), after the trip (orange), P_m (white)",
@@ -34,4 +34,5 @@ const S := {
 	"C4_CUT": "Balance the phases to cut it: spread the kVA evenly.",
 	"C4_MATCHED_BEST": "Your design: %s. You matched the best of the %d designs.",
 	"C4_PD_TITLE": "P-δ at E = %s pu: P_max = E V ÷ X_s = %s pu", "C4_PD_LIMIT": "δ < %d°",
+	"C4_BANK_RD": "bank %s / %s kVAr", "C4_HEADLINE": "KEEP THE FIRST SWING UNDER 70°  (now %s°)", "C4_EMF_NOW": "E′ = %s pu now", "C4_ENTER": "enter E, δ, P_max to score", "C4_ENTERED": "predictions in: press Run to score",
 }

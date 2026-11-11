@@ -87,7 +87,7 @@ func _draw_transformer(g: Dictionary) -> void:
 	for k in 3: draw_rect(Rect2(r.position + Vector2(8.0 + 17.0 * k, -9.0), Vector2(7, 9)), Color("#B8C0CC"))
 	_text(_mono(), 11, r.position + Vector2(0, 22.0), "11 kV", Color.WHITE, r.size.x, 1)
 	_text(_mono(), 11, r.position + Vector2(0, 38.0), "230/400", Color(GridTheme.SODIUM), r.size.x, 1)
-	_text(_semi(), 12, Vector2(tx - 60.0, float(g.ground) + 22.0), T("C4_TX"), Color(GridTheme.TEXT, 0.7), 120.0, 1)
+	_text(_semi(), 12, Vector2(4.0, float(g.ground) + 22.0), T("C4_TX"), Color(GridTheme.TEXT, 0.7), 84.0, 0)
 	if GridSettings.cute: _face(r.position + Vector2(30.0, 44.0), 11.0, bool(q.pass.neutral), 0.9)
 
 func _house_state(i: int) -> Dictionary:
@@ -168,7 +168,7 @@ func _draw_instruments() -> void:
 	_text(_mono(), 11, Vector2(bx - 4.0, by + bh + 52.0), T("C4_CUT"), Color(GridTheme.SODIUM, 0.9))
 	_text(_mono(), 12, Vector2(bx - 4.0, by + bh + 34.0), T("C4_IN_PCT") % [_f(float(q.iNpct), 1)], _good(bool(q.pass.neutral)))
 	# far-pole voltages against the supply band
-	var vx := 810.0; var vy := 150.0; var vw := 330.0
+	var vx := 850.0; var vy := 158.0; var vw := 330.0
 	if w < 1250.0: vx = 640.0; vw = w - vx - 20.0
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
 	_text(_semi(), 11, Vector2(vx, vy - 12.0), T("C4_VFAR"), Color(GridTheme.TEXT, 0.7))
