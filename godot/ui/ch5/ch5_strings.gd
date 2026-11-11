@@ -27,5 +27,9 @@ const S := {
 	"C5_G_HEAD": "Givens, 100 MVA base", "C5_G_SLACK": "B1 slack: V = %.2f ∠0°", "C5_G_LOAD": "B2 load: %.3f + j%.3f pu; tonight +%.1f + j%.1f",
 	"C5_G_PV": "B3 PV: P %.1f pu, V %.2f, Qmax %.1f pu", "C5_G_START": "Flat start: V2 = 1∠0°",
 	"C5_G_FORMULA": "GS: V_i ← (1/Y_ii)·[(P_i − jQ_i)/V_i* − Σ Y_ik·V_k]", "C5_GIVEN": "(given)",
+	"GT_OPT_shunt_cap": "Cap bank %s", "GT_OPT_shunt_reactor": "Reactor %s", "GT_OPT_shunt_svc": "SVC %s", "GT_OPT_shunt_statcom": "STATCOM %s",
+	"C5_TAG_ON": "ON", "C5_TAG_OFF": "OFF",
+	"C5_TAG_STATCOM": "%s: regulates its bus to %.2f pu within ±%.0f MVAr, at constant current (modelled as %d module(s) of 100 MVAr; 0 = off).",
+	"C5_TAG_SVC": "%s: regulates its bus to %.2f pu within ±%.0f MVAr; at its limit it acts as a fixed susceptance, Q falling with V² (modelled as %d module(s) of 100 MVAr; 0 = off).",
 	"C5_P_GS1": "V2 after GS sweep 1", "C5_P_V2": "converged |V2|", "C5_P_PS": "slack P",
 }

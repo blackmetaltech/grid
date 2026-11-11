@@ -6,6 +6,12 @@ static func op_info(b, kind: String, id: String) -> String:
 	if kind == "shunt":
 		for h in b.g.get("shunts", []):
 			if str(h.id) != id: continue
+			if str(h.get("kind", "")) == "svc" or str(h.get("kind", "")) == "statcom":   # chapter 5: a regulating device, not a stepped bank
+				var vs := 1.0
+				for bb in b.g.get("buses", []): if str(bb.id) == str(h.bus) and bb.get("vSet") != null: vs = float(bb.vSet)
+				var rng := float(h.mvarStep) * float(h.steps)
+				var state := (TranslationServer.translate("C5_TAG_ON") if int(h.on) > 0 else TranslationServer.translate("C5_TAG_OFF"))
+				return TranslationServer.translate("C5_TAG_" + str(h.kind).to_upper()) % [state, vs, rng, int(h.steps)]
 			var st: String = (TranslationServer.translate("C3_TAG_IN") % [str(int(h.on)), str(int(h.steps))]) if int(h.on) > 0 else (TranslationServer.translate("C3_TAG_OUT") % str(int(h.steps)))
 			st += "\n" + TranslationServer.translate("C3_TAG_AUTO")
 			if float(h.get("detunePct", 0.0)) <= 0.0: return st

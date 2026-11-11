@@ -586,6 +586,7 @@ func _stepper(h: HBoxContainer, val_text: String, on_minus: Callable, on_plus: C
 func _op_title() -> String:
 	var key := "GT_OPT_" + op_kind
 	if op_kind == "branch" and _elem("branch", op_id).get("tap") != null: key = "GT_OPT_xfmr"
+	if op_kind == "shunt" and tx("GT_OPT_shunt_" + str(_elem("shunt", op_id).get("kind", ""))) != "GT_OPT_shunt_" + str(_elem("shunt", op_id).get("kind", "")): key = "GT_OPT_shunt_" + str(_elem("shunt", op_id).get("kind", ""))   # chapter 5: Cap bank / Reactor / SVC / STATCOM
 	return tx(key) % op_id
 
 func _build_op() -> void:
