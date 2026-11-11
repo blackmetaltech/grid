@@ -12,6 +12,7 @@ import { buildCases, solveGS, solveCase, tryLambda } from './sim/loadflow';
 import { threeBusSaadat } from './sim/loadflow/fixtures';
 import { examTruth, loadability, n1Table } from './sim/ch5';
 import { l15NoLoad } from './level/ch5lessons';
+import { BASE, EXTRA } from './level/levels/l18';
 import { toNet } from './sim/netbuild';
 import { solvedOf } from './sim/solved';
 import type { SimParams } from './sim/params';
@@ -57,7 +58,7 @@ export function buildCh5Queries(d: { getParams: (s: GridState) => SimParams }): 
       if (!LEVELS.includes(lv)) return { active: false };
       const spec = specOf(lv), th = spec ? resolveThresholds(spec, d.getParams(s), s.mode) : {};
       const sol = new Map((s.solution?.buses ?? []).map((b) => [b.id, b.vPu]));
-      const buses = (WATCH[lv] ?? []).flatMap((id) => { const b = s.buses.find((x) => x.id === id); const v = sol.get(id); return b ? [{ id, name: b.name, kv: b.kvNom, pu: v === undefined ? null : r4(v), kV: v === undefined ? null : r4(v * b.kvNom) }] : []; });
+      const buses = (WATCH[lv] ?? []).flatMap((id) => { const b = s.buses.find((x) => x.id === id); let v = sol.get(id); let given = false; if (v === undefined && lv === 'L18' && b?.kind === 'gen' && b.vSet !== null) { v = b.vSet; given = true; } return b ? [{ id, name: b.name, kv: b.kvNom, pu: v === undefined ? null : r4(v), kV: v === undefined ? null : r4(v * b.kvNom), given }] : []; });
       const tr = s.metrics.track;
       const out: Record<string, unknown> = { active: true, level: lv, buses, lo: th.vLo ?? th.v2Min ?? null, hi: th.vHi ?? null, track: { ...tr }, tick: s.tick - s.levelStart };
       if (lv === 'L16') {
@@ -66,7 +67,7 @@ export function buildCh5Queries(d: { getParams: (s: GridState) => SimParams }): 
       }
       if (lv === 'L15') out.noLoad = l15NoLoad(s);
       if (lv === 'L17' && s.solution) out.pv = pvCurve(s, 'B3');
-      if (lv === 'L18') { out.gs = gsLab(); const u = s.units[1]; out.pv3 = u ? { q: r4(u.Q), qMax: r4(u.qMax), vSet: s.buses.find((b) => b.id === 'B3')?.vSet ?? null } : null; }
+      if (lv === 'L18') { out.givens = { lines: s.branches.map((b) => ({ id: b.id, from: b.from, to: b.to, r: r4(b.r), x: r4(b.x) })), slackV: s.buses[0]?.vSet ?? null, pvV: s.buses[2]?.vSet ?? null, pvP: 200, qMax: s.units[1] ? Math.round(s.units[1].qMax) : 0, loadP: BASE.p / 100, loadQ: BASE.q / 100, extraP: EXTRA.p / 100, extraQ: EXTRA.q / 100 }; out.gs = gsLab(); const u = s.units[1]; out.pv3 = u ? { q: r4(u.Q), qMax: r4(u.qMax), vSet: s.buses.find((b) => b.id === 'B3')?.vSet ?? null } : null; }
       return out;
     },
   };

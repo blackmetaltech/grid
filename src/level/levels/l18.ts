@@ -8,6 +8,7 @@ import type { GridLevelSpec } from '../spec';
 import { place } from '../spec';
 import { EXAM_IDS } from '../../sim/ch5';
 import { BLOCKS_PER_DAY } from '../../types';
+import { t } from '../../i18n';
 
 export const BASE = { p: 256.6, q: 110.2 }, EXTRA = { p: 100, q: 50 };
 export const RATINGS = [180, 100, 230];   // MVA of 1-2, 1-3, 2-3
@@ -54,6 +55,7 @@ export const L18: GridLevelSpec = {
     // the textbook per-unit impedances (100 MVA), no line charging, and the line ratings of the task
     const pu: [number, number][] = [[0.02, 0.04], [0.01, 0.03], [0.0125, 0.025]];
     s.branches.forEach((b, i) => { b.r = pu[i]![0]; b.x = pu[i]![1]; b.bc = 0; b.ratingMVA = RATINGS[i]!; });
+    s.buses[0]!.name = t('place.L18.slack'); s.buses[1]!.name = t('place.L18.load'); s.buses[2]!.name = t('place.L18.pv');
     A('placeLoad', 'B2', 'industrial', BASE.p + EXTRA.p, 0.9);
     const l = s.loads[0]!, tan = (BASE.q + EXTRA.q) / (BASE.p + EXTRA.p);
     l.zip = [0, 0, 1]; l.shape = { p: new Array<number>(BLOCKS_PER_DAY).fill(1), q: new Array<number>(BLOCKS_PER_DAY).fill(tan) };

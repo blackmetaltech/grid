@@ -39,7 +39,7 @@ func _initialize() -> void:
 	T.b.act("tick", [2]); p.refresh(); tx.clear(); _texts(p, tx)
 	T.check(p._chart != null and (p._chart.data.points as Array).size() > 10 and tx.any(func(s): return "nose" in str(s)), "L17: the P-V curve and the nose line")
 	T.level("L18"); p.refresh(); tx.clear(); _texts(p, tx)
-	T.check(not tx.any(func(s): return "Gauss-Seidel needs" in str(s)) and tx.any(func(s): return "after you press Run" in str(s)), "L18: the sweep table hides the answers before the run")
+	T.check(not tx.any(func(s): return "Gauss-Seidel needs" in str(s)) and tx.any(func(s): return "Givens" in str(s)), "L18: the givens, not the sweep answers, before the run")
 	T.check(_find(p, "c5_p_l18_v2") != null and _find(p, "c5_vset_up") != null, "L18: prediction fields and the set-point button")
 	p._submit("l18.v2", "pu", "1.01334"); T.check(T.b.g.metrics.predictions.size() == 1, "the prediction is taken")
 	r = T.b.act("setVSet", ["B3", 1.07]); T.check(r.ok, "setVSet goes through the bridge")

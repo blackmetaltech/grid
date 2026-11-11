@@ -12,6 +12,7 @@ var _level := ""
 var _sig := ""
 var _pu := true
 var _box: VBoxContainer
+var _scroll: ScrollContainer
 var _readout: Label
 var _chart: PvChart
 
@@ -39,7 +40,8 @@ class PvChart extends Control:
 func _init() -> void:
 	name = "Ch5Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", GridTheme.paper_sb(4, 10.0))
-	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); add_child(_box)
+	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; add_child(_scroll)   # a long card (L18's givens) scrolls inside the screen
+	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.custom_minimum_size.x = W - 26.0; _scroll.add_child(_box)
 	GridUi.load_strings()
 
 func tx(k: String) -> String: return TranslationServer.translate(k)
@@ -54,7 +56,10 @@ func refresh() -> void:
 	var sig := _level + str((g.actionLog as Array).size()) + str(g.get("status", "")) + str(g.get("tick", 0)) + str(_pu)
 	if sig != _sig: _sig = sig; _rebuild()
 	var vp := get_viewport_rect().size
-	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0); reset_size(); position = Vector2(vp.x - W - 14.0, 74.0)
+	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0)
+	var room := maxf(160.0, vp.y - 74.0 - 150.0)   # leaves the tray, the radio and the lever their rows
+	_scroll.custom_minimum_size = Vector2(W - 20.0, minf(_box.get_combined_minimum_size().y + 4.0, room))
+	reset_size(); position = Vector2(vp.x - W - 14.0, 74.0)
 
 func _do(act: String, args: Array) -> bool:
 	var r: Dictionary = app.b.act(act, args)
@@ -78,7 +83,8 @@ func _rebuild() -> void:
 	if not (q is Dictionary) or not q.get("active", false): return
 	var g: Dictionary = app.b.g
 	_box.add_child(GridTheme.label(tx("C5_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"))
-	if (q.buses as Array).size() > 0:
+	var started: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
+	if (q.buses as Array).size() > 0 and not (_level == "L18" and not started):   # L18 before Run: the givens below are the board
 		if _level == "L14": _line(tx("C5_BASES_L14"), 12, "sans")
 		_button(tx("C5_UNIT_KV") if _pu else tx("C5_UNIT_PU"), "c5_unit", func(): _pu = not _pu; _sig = ""; refresh())
 		for b in q.buses: _box.add_child(_bus_row(b, q))
@@ -99,6 +105,7 @@ func _bus_row(b: Dictionary, q: Dictionary) -> Label:
 	if pu == null: txt += tx("C5_NOT_YET")
 	elif _pu: txt += "%.3f pu" % float(pu)
 	else: txt += "%.2f kV" % float(b.kV)
+	if b.get("given", false): txt += " " + tx("C5_GIVEN")
 	var l := GridTheme.label(txt, 14, GridTheme.PAPER_INK, "mono")
 	var lo = q.get("lo"); var hi = q.get("hi")
 	if pu != null and lo != null and float(b.kv) > 1.0 and ((hi != null and float(pu) > float(hi)) or float(pu) < float(lo)) and str(b.id) in ["B4", "B5", "B6", "B2"]: l.add_theme_color_override("font_color", Color(0.75, 0.1, 0.05))
@@ -126,11 +133,19 @@ func _l17(q: Dictionary) -> void:
 
 func _l18(q: Dictionary, g: Dictionary) -> void:
 	var gs: Dictionary = q.gs
+	var gv = q.get("givens")
+	if gv != null:
+		_line(tx("C5_G_HEAD"), 13, "sans")
+		for ln in gv.lines: _line("%s  %s-%s  z = %.4f + j%.4f pu" % [str(ln.id), str(ln.from), str(ln.to), float(ln.r), float(ln.x)], 11)
+		_line(tx("C5_G_SLACK") % float(gv.slackV), 11)
+		_line(tx("C5_G_LOAD") % [float(gv.loadP), float(gv.loadQ), float(gv.extraP), float(gv.extraQ)], 11)
+		_line(tx("C5_G_PV") % [float(gv.pvP) / 100.0, float(gv.pvV), float(gv.qMax) / 100.0], 11)
+		_line(tx("C5_G_START"), 11)
+		_line(tx("C5_G_FORMULA"), 11)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
-	_line(tx("C5_L18_WHAT_GS"), 12, "sans")
-	_line(tx("C5_L18_SLACK"), 12, "sans")
-	if not locked: _line(tx("C5_L18_HIDE"), 13, "sans")   # the sweep table holds the answers: it is drawn once the predictions are locked
-	else:
+	_line(tx("C5_L18_WHAT_GS") + " " + tx("C5_L18_SLACK"), 11, "sans")
+	if locked:   # the sweep table holds the answers: it is drawn once the predictions are locked
+
 		_line(tx("C5_L18_GS") % [int(gs.gsIterations), int(gs.nrIterations)], 13, "sans")
 		for i in [1, 2, 3, 5, 8]:
 			var s: Dictionary = gs.sweeps[i]

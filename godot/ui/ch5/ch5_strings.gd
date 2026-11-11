@@ -20,9 +20,12 @@ const S := {
 	"C5_L15_NOLOAD": "Unloaded, the far end would sit at %.3f pu (%.0f kV) with this set-point.", "C5_L15_GLOSS": "A reactor absorbs VAr and pulls the voltage down; a capacitor supplies VAr and pushes it up.",
 	"C5_L16_GLOSS": "Zebra: 210 MVA. HTLS Zebra: twice the ampacity (420 MVA) at the same reactance, so the flow does not change, only the room for it.",
 	"C5_L17_MARGIN_NONE": "margin to the nose: — (press Run to trace the P-V curve)",
-	"C5_L18_WHAT_GS": "Gauss-Seidel: one bus at a time, newest voltages first, sweep after sweep. Newton: all buses at once.",
+	"C5_L18_WHAT_GS": "Newton solves all buses at once; Gauss-Seidel updates one at a time with the newest voltages.",
 	"C5_L18_SLACK": "Slack P = Σ generation − Σ load (the losses show up here).",
 	"C5_VSET_DN": "Set-point −0.01", "C5_VSET_UP": "Set-point +0.01",
 	"C5_L18_VSET_GLOSS": "Higher set-point: more Mvar from the unit, higher bus 3, until the Mvar limit.",
+	"C5_G_HEAD": "Givens, 100 MVA base", "C5_G_SLACK": "B1 slack: V = %.2f ∠0°", "C5_G_LOAD": "B2 load: %.3f + j%.3f pu; tonight +%.1f + j%.1f",
+	"C5_G_PV": "B3 PV: P %.1f pu, V %.2f, Qmax %.1f pu", "C5_G_START": "Flat start: V2 = 1∠0°",
+	"C5_G_FORMULA": "GS: V_i ← (1/Y_ii)·[(P_i − jQ_i)/V_i* − Σ Y_ik·V_k]", "C5_GIVEN": "(given)",
 	"C5_P_GS1": "V2 after GS sweep 1", "C5_P_V2": "converged |V2|", "C5_P_PS": "slack P",
 }
