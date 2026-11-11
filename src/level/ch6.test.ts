@@ -185,3 +185,13 @@ describe('Retry keeps the chapter 6 build with stable ids', () => {
     }
   });
 });
+
+describe('Retry keeps L20 peakers ordered on', () => {
+  it('freqDesign lists each peaker with its commit block and the replay reproduces ids and schedules', () => {
+    const a = play('L20', [...peakers(2), ...shift]);
+    const d = a.engine.q('freqDesign') as { name: string; args: unknown[] }[];
+    expect(d.filter((x) => x.name === 'commit').map((x) => x.args)).toEqual([['U11', true, 56], ['U12', true, 56]]);
+    const b = play('L20', d.map((x) => ({ name: x.name, args: x.args }) as Action));
+    expect(JSON.stringify(b.state.units.map((u) => [u.id, u.commit.schedule.findIndex((x) => x === 1)]))).toBe(JSON.stringify(a.state.units.map((u) => [u.id, u.commit.schedule.findIndex((x) => x === 1)])));
+  });
+});

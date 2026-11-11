@@ -61,14 +61,6 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		var c3: Dictionary = rules.ch3
 		if c3.get("harmonics") is Dictionary: out.append(T("C3_WO_DRIVES"))
 		if c3.get("fault") is Dictionary: out.append(T("C3_WO_FAULT") % _hm(float((c3.fault as Dictionary).block) * 15.0))
-	if rules is Dictionary and rules.get("finale") is Dictionary:   # the finale (L28): everything its win check uses, read from the level's own rules
-		var fr: Dictionary = rules.finale; var vw = rules.get("vWatch")
-		var isl := "Saltmarsh Island"
-		for bb in app.b.g.buses: if str(bb.id) == str(fr.get("islandBus", "")): isl = str(bb.name)
-		out.append(T("CF_WO_ISLAND") % isl)
-		if vw is Dictionary: out.append(T("CF_WO_BAND") % [str(vw.lo), str(vw.hi), int(float(vw.graceBlocks) * 15.0)])
-		if rules.get("maxEnsMWh") != null: out.append(T("CF_WO_ENS") % [int(round(float(rules.maxEnsMWh))), int(round(float(fr.get("energyMWh", 0.0))))])
-		if bool(rules.get("blackoutLoses", false)): out.append(T("CF_WO_BLACKOUT"))
 	if str(li.get("id", "")) == "L27":   # chapter 7 exam: the real pass conditions
 		for k in ["C7_WO_L27_1", "C7_WO_L27_2", "C7_WO_L27_3"]: out.append(T(k))
 	var fz = li.get("frozen")

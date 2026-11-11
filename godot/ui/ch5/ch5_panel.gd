@@ -23,14 +23,9 @@ class PvChart extends Control:
 		var r := Rect2(Vector2(34, 6), size - Vector2(44, 28))
 		draw_rect(r, Color(0, 0, 0, 0.06)); draw_rect(r, Color(0, 0, 0, 0.5), false, 1.0)
 		var pts: Array = data.get("points", [])
-		var f := ThemeDB.fallback_font
-		draw_string(f, Vector2(2, r.position.y + 10), "1.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7)); draw_string(f, Vector2(2, r.end.y), "0.4", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
-		draw_string(f, Vector2(r.position.x, r.end.y + 14), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
-		draw_string(f, Vector2(r.position.x + 4, r.position.y + 24), "V (pu)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55)); draw_string(f, Vector2(r.end.x - 52, r.end.y - 6), "P (MW)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55))
-		if pts.size() < 2:   # before the first Run: empty axes and a faint hint of where the nose will be
-			draw_polyline(PackedVector2Array([Vector2(r.position.x + 6, r.position.y + 16), Vector2(r.position.x + r.size.x * 0.55, r.position.y + r.size.y * 0.30), Vector2(r.position.x + r.size.x * 0.82, r.position.y + r.size.y * 0.55), Vector2(r.position.x + r.size.x * 0.90, r.position.y + r.size.y * 0.80)]), Color(0.1, 0.35, 0.65, 0.22), 2.0)
-			draw_string(f, Vector2(r.position.x + r.size.x * 0.66, r.position.y + r.size.y * 0.52), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.15, 0.1, 0.35)); return
+		if pts.size() < 2: return
 		var pmax := float(data.get("noseMW", 1.0)) * 1.15; pmax = maxf(pmax, float(data.get("loadMW", 1.0)) * 1.1)
+		var f := ThemeDB.fallback_font
 		var poly := PackedVector2Array()
 		for p in pts: poly.append(Vector2(r.position.x + r.size.x * float(p.pMW) / pmax, r.position.y + r.size.y * (1.0 - (float(p.v) - 0.4) / 0.7)))
 		draw_polyline(poly, Color(0.1, 0.35, 0.65), 2.0)
@@ -38,7 +33,9 @@ class PvChart extends Control:
 		draw_circle(nose, 5.0, Color(0.8, 0.15, 0.1)); draw_string(f, nose + Vector2(-26, -8), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.15, 0.1))
 		var lx := r.position.x + r.size.x * float(data.loadMW) / pmax
 		draw_line(Vector2(lx, r.position.y), Vector2(lx, r.end.y), Color(0.15, 0.5, 0.2), 1.5)
+		draw_string(f, Vector2(r.position.x, r.end.y + 14), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
 		draw_string(f, Vector2(r.end.x - 40, r.end.y + 14), "%d MW" % int(pmax), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
+		draw_string(f, Vector2(2, r.position.y + 10), "1.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7)); draw_string(f, Vector2(2, r.end.y), "0.4", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
 
 func _init() -> void:
 	name = "Ch5Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
@@ -129,9 +126,7 @@ func _l16(q: Dictionary) -> void:
 
 func _l17(q: Dictionary) -> void:
 	var pv = q.get("pv")
-	if pv == null:
-		_chart = PvChart.new(); _box.add_child(_chart)
-		_line(tx("C5_L17_MARGIN_NONE"), 14, "mono"); _line(tx("C5_L17_WAIT"), 13, "sans"); return
+	if pv == null: _line(tx("C5_L17_MARGIN_NONE"), 14, "mono"); _line(tx("C5_L17_WAIT"), 13, "sans"); return
 	_chart = PvChart.new(); _chart.data = pv; _box.add_child(_chart)
 	_line(tx("C5_L17_NOSE") % [float(pv.noseMW), float(pv.loadMW), float(pv.marginPct)], 14, "mono")
 	var h := _line(tx("C5_L17_CAP"), 12, "sans"); h.modulate = Color(1, 1, 1, 0.8)
@@ -148,9 +143,7 @@ func _l18(q: Dictionary, g: Dictionary) -> void:
 		_line(tx("C5_G_START"), 11)
 		_line(tx("C5_G_FORMULA"), 11)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
-	_line(tx("C5_L18_WHAT_GS"), 12, "sans")
-	var fl := _line(tx("C5_L18_FORMULA2"), 14, "mono"); fl.add_theme_color_override("font_color", Color(0.1, 0.25, 0.55))   # the update on a line of its own
-	_line(tx("C5_L18_SLACK"), 12, "sans")
+	_line(tx("C5_L18_WHAT_GS") + " " + tx("C5_L18_SLACK"), 11, "sans")
 	if locked:   # the sweep table holds the answers: it is drawn once the predictions are locked
 
 		_line(tx("C5_L18_GS") % [int(gs.gsIterations), int(gs.nrIterations)], 13, "sans")
@@ -171,12 +164,9 @@ func _l18(q: Dictionary, g: Dictionary) -> void:
 
 func _predict(id: String, unit: String, caption: String, locked: bool) -> void:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6)
-	var lb := GridTheme.label(("▶ " if id == "l18.v2gs1" and not locked else "") + caption, 13, GridTheme.PAPER_INK, "sans"); lb.custom_minimum_size.x = 170; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
+	var lb := GridTheme.label(caption, 13, GridTheme.PAPER_INK, "sans"); lb.custom_minimum_size.x = 170; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
 	var e := LineEdit.new(); e.placeholder_text = "?"; e.custom_minimum_size = Vector2(80, 28); e.editable = not locked; e.name = "c5_p_" + id
 	for p in app.b.g.metrics.predictions: if p.id == id: e.text = str(snappedf(float(p.predicted), 0.0001))
-	if id == "l18.v2gs1" and not locked:   # the first thing to type: an accent outline
-		var sb := StyleBoxFlat.new(); sb.bg_color = Color(1, 1, 1, 0.55); sb.border_color = Color(0.9, 0.5, 0.1); sb.set_border_width_all(3); sb.set_corner_radius_all(4); sb.content_margin_left = 6
-		e.add_theme_stylebox_override("normal", sb); e.add_theme_color_override("font_color", Color(0, 0, 0)); e.placeholder_text = "type here"; e.add_theme_color_override("font_placeholder_color", Color(0.45, 0.25, 0.05))
 	e.text_submitted.connect(func(s): _submit(id, unit, s)); e.focus_exited.connect(func(): _submit(id, unit, e.text))
 	h.add_child(e); h.add_child(GridTheme.label(unit, 13, GridTheme.PAPER_INK, "sans")); _box.add_child(h)
 

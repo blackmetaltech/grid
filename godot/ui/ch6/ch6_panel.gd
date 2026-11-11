@@ -13,6 +13,7 @@ var _readout: Label
 var _edits := {}
 var _card := false
 var _curve: NetCurve
+var _bar: ShareBar
 
 func _init() -> void:
 	name = "Ch6Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
@@ -125,7 +126,7 @@ func _kept_note(g: Dictionary) -> void:
 	if int(g.tick) <= int(g.levelStart) and float(g.budget.spent) > 0.0 and str(g.get("status", "playing")) == "playing": _note(tx("C6_KEPT"))
 
 func _l20(g: Dictionary, locked: bool) -> void:
-	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 92.0); _curve.g = g; _curve.fc = app.b.q("netForecast"); _curve.note = tx("C6_FORECAST"); _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
+	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 118.0); _curve.g = g; _curve.fc = app.b.q("netForecast"); _curve.note = tx("C6_FORECAST"); _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
 	_note(tx("C6_COMMIT_GLOSS"))
 	var r = app.b.q("actionCost", ["placeUnit", ["B1", "ocgt-105", 105]])
 	if r is Dictionary and r.get("ok", false): _note(tx("C6_PEAKER_PRICE") % [CbRegion.money(float(r.cost) / 105.0, false, 0), CbRegion.money(float(r.cost), false, 0)])
@@ -135,6 +136,7 @@ func _l20(g: Dictionary, locked: bool) -> void:
 		if str(l["class"]) == "agricultural":
 			var noon: bool = l.shape != null and float((l.shape.p as Array)[44]) > 0.5
 			_btn(tx("C6_PUMP_NIGHT") if noon else tx("C6_PUMP_NOON"), "shiftLoad", [str(l.id), "night" if noon else "noon"])
+			_note(tx("C6_PUMP_EFFECT") % int(round(float(l.Ppeak) * 0.95)))
 
 func _l21(g: Dictionary, locked: bool) -> void:
 	_kept_note(g)
@@ -156,10 +158,11 @@ func _l22(g: Dictionary, locked: bool) -> void:
 	tg.pressed.connect(func(): _card = not _card; _sig = ""; refresh())
 	_box.add_child(tg); _box.add_child(card)
 	_note(tx("C6_TASK"))
+	var bar := ShareBar.new(); bar.custom_minimum_size = Vector2(W - 24.0, 40.0); bar.name = "c6_sharebar"; bar.caption = tx("C6_TARGET"); _bar = bar; _box.add_child(bar)
 	var u1 = _unit(g, "U1"); var u2 = _unit(g, "U2")
 	if u1 != null and u2 != null:
 		var w1: float = float(u1.mva) / float(u1.droopPct); var w2: float = float(u2.mva) / float(u2.droopPct)
-		var sh := GridTheme.label(tx("C6_SHARE") % (100.0 * w1 / (w1 + w2)), 13, GridTheme.PAPER_INK, "mono"); sh.autowrap_mode = TextServer.AUTOWRAP_WORD; sh.custom_minimum_size.x = W - 24.0; sh.name = "c6_share"; _box.add_child(sh)
+		_bar.share = 100.0 * w1 / (w1 + w2)
 	for id in ["U1", "U2"]:
 		var u = _unit(g, id)
 		if u == null: continue
@@ -175,11 +178,11 @@ func _l22(g: Dictionary, locked: bool) -> void:
 
 func _predict(id: String, unit: String, caption: String, locked: bool) -> void:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6)
-	var lb := GridTheme.label(caption, 13, GridTheme.PAPER_INK, "sans"); lb.custom_minimum_size.x = 190; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
-	var e := LineEdit.new(); e.placeholder_text = "?"; e.custom_minimum_size = Vector2(80, 28); e.editable = not locked; e.name = "c6_p_" + id; e.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var lb := GridTheme.label(caption, 13, GridTheme.PAPER_INK, "sans"); lb.custom_minimum_size.x = 210; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
+	var e := LineEdit.new(); e.placeholder_text = "? " + unit; e.custom_minimum_size = Vector2(104, 28); e.editable = not locked; e.name = "c6_p_" + id; e.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	for p in _g().metrics.predictions: if p.id == id: e.text = str(snappedf(float(p.predicted), 0.0001))
 	e.text_submitted.connect(func(s): _submit(id, unit, s)); e.focus_exited.connect(func(): _submit(id, unit, e.text))
-	h.add_child(e); h.add_child(GridTheme.label(unit, 13, GridTheme.PAPER_INK, "sans")); _box.add_child(h); _edits[id] = e
+	h.add_child(e); _box.add_child(h); _edits[id] = e
 
 func _submit(id: String, unit: String, s: String) -> void:
 	var t := s.strip_edges().replace(",", ".")
@@ -188,39 +191,60 @@ func _submit(id: String, unit: String, s: String) -> void:
 	_do("predict", [id, float(t), unit])
 
 
-## L20's net load: demand minus the sun, from the day's history, with the steepest climb marked. Display only.
+## L20's net load: demand minus the sun over the day, with an MW axis, the forecast (dashed) and what has happened (solid), and the dusk ramp shaded and labelled. Display only.
 class NetCurve extends Control:
 	var g: Dictionary = {}
 	var cap := ""
 	var ramp_fmt := ""
 	var fc = null
 	var note := ""
+	const LM := 34.0
+	func _x(i: float) -> float: return LM + (size.x - LM - 6.0) * i / 95.0
 	func _draw() -> void:
-		draw_rect(Rect2(Vector2.ZERO, size), Color(GridTheme.PAPER_INK, 0.08))
-		var e: Array = g.get("history", {}).get("entries", [])
-		var f := ThemeDB.fallback_font
-		draw_string(f, Vector2(4, 12), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, GridTheme.PAPER_INK)
-		var top := 18.0; var bh := size.y - top - 14.0
+		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
+		draw_rect(Rect2(Vector2.ZERO, size), Color(ink, 0.08))
+		draw_string(f, Vector2(4, 12), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ink)
+		var top := 20.0; var bh := size.y - top - 14.0
 		var fnet: Array = fc.net if fc is Dictionary else []
-		var fhi := 1.0
-		for v in fnet: fhi = maxf(fhi, float(v))
+		var e: Array = g.get("history", {}).get("entries", [])
+		var net: Array = []
+		for x in e: net.append(float(x.demandMW) - float((x.genMW as Dictionary).get("pv", 0.0)))
+		var hi := 1.0
+		for v in fnet: hi = maxf(hi, float(v))
+		for v in net: hi = maxf(hi, float(v))
+		hi = ceilf(hi / 1000.0) * 1000.0
+		for k in 3:   # MW ticks: 0, half, full
+			var v := hi * float(k) / 2.0; var y := top + bh * (1.0 - v / hi)
+			draw_line(Vector2(LM - 3.0, y), Vector2(size.x - 4.0, y), Color(ink, 0.15), 1.0)
+			draw_string(f, Vector2(2, y + 4.0), "%d" % int(v), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(ink, 0.8))
+		for h in [0, 6, 12, 18, 24]:
+			draw_string(f, Vector2(_x(minf(float(h) * 4.0, 95.0)) - 6.0, size.y - 3.0), "%02d" % h, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(ink, 0.7))
+		if fc is Dictionary and float(fc.ramp) > 1.0:   # the dusk ramp: a shaded band around the steepest climb, labelled in MW per hour
+			var at := float(fc.at); var x0 := _x(maxf(at - 6.0, 0.0)); var x1 := _x(minf(at + 2.0, 95.0))
+			draw_rect(Rect2(Vector2(x0, top), Vector2(x1 - x0, bh)), Color("#C0392B", 0.16))
+			draw_string(f, Vector2(maxf(LM, x0 - 70.0), top + 11.0), ramp_fmt % int(round(float(fc.ramp) * 60.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#C0392B"))
 		if not fnet.is_empty():
 			var fp := PackedVector2Array()
-			for i in fnet.size(): fp.append(Vector2(4.0 + (size.x - 8.0) * float(i) / 95.0, top + bh * (1.0 - float(fnet[i]) / fhi)))
-			for i in range(0, fp.size() - 1, 2): draw_line(fp[i], fp[i + 1], Color(GridTheme.PAPER_INK, 0.45), 1.5)
-			draw_string(f, Vector2(4, size.y - 3), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(GridTheme.PAPER_INK, 0.7))
-		if e.size() < 2: return
-		var net: Array = []; var hi := fhi
-		for x in e:
-			var pv := float((x.genMW as Dictionary).get("pv", 0.0)); var n := float(x.demandMW) - pv; net.append(n); hi = maxf(hi, n)
-		var ramp := 0.0; var at := 0
-		for i in range(1, net.size()):
-			var r: float = (float(net[i]) - float(net[i - 1])) / 15.0
-			if r > ramp: ramp = r; at = i
-		var pts := PackedVector2Array()
-		for i in net.size(): pts.append(Vector2(4.0 + (size.x - 8.0) * float(i) / 95.0, top + bh * (1.0 - float(net[i]) / hi)))
-		if pts.size() > 1: draw_polyline(pts, GridTheme.PAPER_INK, 2.0)
-		if ramp > 1.0:
-			draw_circle(pts[at], 4.0, Color("#C0392B"))
-			var blk := int(e[at].block)
-			draw_string(f, Vector2(4, size.y - 15), ramp_fmt % [int(round(ramp)), blk / 4, (blk % 4) * 15], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#C0392B"))
+			for i in fnet.size(): fp.append(Vector2(_x(float(i)), top + bh * (1.0 - float(fnet[i]) / hi)))
+			for i in range(0, fp.size() - 1, 2): draw_line(fp[i], fp[i + 1], Color(ink, 0.5), 1.5)
+		if net.size() > 1:
+			var pts := PackedVector2Array()
+			for i in net.size(): pts.append(Vector2(_x(float(i)), top + bh * (1.0 - float(net[i]) / hi)))
+			draw_polyline(pts, ink, 2.0)
+
+
+## L22: the 60 % target against the share G1 would take at the droops now set (bar plus number). Display only.
+class ShareBar extends Control:
+	var share := 0.0
+	var caption := ""
+	func _draw() -> void:
+		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
+		draw_string(f, Vector2(0, 11), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ink)
+		var r := Rect2(0.0, 18.0, size.x - 56.0, 14.0)
+		draw_rect(r, Color(ink, 0.12))
+		draw_rect(Rect2(r.position.x + r.size.x * 0.58, r.position.y, r.size.x * 0.04, r.size.y), Color("#3E8E5A", 0.45))   # the 58-62 % target band
+		var ok := absf(share - 60.0) <= 2.0
+		draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(share / 100.0, 0.0, 1.0), r.size.y)), Color("#3E8E5A") if ok else Color("#C0392B"))
+		draw_line(Vector2(r.position.x + r.size.x * 0.6, r.position.y - 3.0), Vector2(r.position.x + r.size.x * 0.6, r.end.y + 3.0), ink, 2.0)
+		draw_string(f, Vector2(r.end.x + 6.0, r.position.y + 12.0), "%.0f %%" % share, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, ink)
+		draw_string(f, Vector2(r.position.x + r.size.x * 0.6 - 10.0, size.y - 1.0), "60", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(ink, 0.8))

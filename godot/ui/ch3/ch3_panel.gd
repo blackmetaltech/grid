@@ -100,7 +100,7 @@ func _draw_harm() -> void:
 		_txt("%d" % int(tick), Vector2(14, ty + 4.0), 10, _ink(0.6)); draw_line(Vector2(28, ty), Vector2(32, ty), _ink(0.5), 1.0)
 	var ly := base - (base - top) * thd_max / vmax
 	for dx in range(32, int(W) - 14, 10): draw_line(Vector2(dx, ly), Vector2(minf(dx + 5, W - 14), ly), GridTheme.BAD, 1.5)
-	draw_string(GridTheme.font("mono"), Vector2(14, 66), "╌ " + tx("C3_P_LIMIT") % ("%.0f" % thd_max), HORIZONTAL_ALIGNMENT_RIGHT, W - 28.0, GridTheme.fs(11), GridTheme.BAD)   # the key of the dashed line, inside the padding
+	_txt(tx("C3_P_LIMIT") % ("%.0f" % thd_max), Vector2(W - 104, ly - 14.0), 10, GridTheme.BAD)
 	var bw := (W - 46.0) / maxf(bars.size(), 1)
 	for i in bars.size():
 		var v := float(bars[i].vPct); var h := (base - top) * clampf(v / vmax, 0.0, 1.0)
@@ -108,7 +108,7 @@ func _draw_harm() -> void:
 		var col := GridTheme.BAD if v > thd_max else (GridTheme.WARN if v > thd_max * 0.6 else GridTheme.GOOD)
 		draw_rect(Rect2(x, base - h, bw * 0.6, h), col); draw_rect(Rect2(x, base - h, bw * 0.6, h), _ink(0.8), false, 1.2)
 		_txt(tx("C3_P_HARM") % str(int(bars[i].h)), Vector2(x - 2, base + 15), 12, _ink())
-		_txt("%.1f" % v, Vector2(x, minf(base - h - 4.0, ly - 5.0)), 11, _ink(0.8))   # above the bar, and above the limit line when the bar is near it
+		_txt("%.1f" % v, Vector2(x, base - h - 4), 11, _ink(0.8))
 	var thd := float(d.get("thdPct", 0.0))
 	_txt(tx("C3_P_THD") % [("%.1f" % thd), ("%.0f" % thd_max)], Vector2(14, 176), 13, GridTheme.BAD if thd > thd_max else _ink())
 	# the impedance of the bus against harmonic order: the parallel resonance is the peak

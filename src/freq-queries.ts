@@ -12,6 +12,7 @@ export function buildFreqQueries(d: { getParams: (s: GridState) => SimParams }):
       if (!s.rules.freqTrack) return [];
       const out: { name: string; args: unknown[] }[] = [], pur = s.purchases ?? {};
       for (const u of s.units) if (pur[u.id] !== undefined) out.push({ name: 'placeUnit', args: [u.catalogId, u.bus, u.kind === 'synccon' ? Math.round(u.mva) : Math.round(u.pMax)] });
+      for (const u of s.units) if (pur[u.id] !== undefined && u.kind !== 'synccon') { const at = u.commit.schedule.findIndex((x) => x === 1); if (at >= 0) out.push({ name: 'commit', args: [u.id, true, at] }); }   // a peaker ordered on at its block (L20)
       for (const u of s.units) if (pur['spin:' + u.id] !== undefined || (u.kind === 'synccon' && u.online && pur[u.id] !== undefined)) out.push({ name: 'spinUnit', args: [u.id] });
       for (const b of s.storage) if (b.mode === 'schedule' && b.schedule) {
         const c = b.schedule.map((v, k) => (v < 0 ? k : -1)).filter((k) => k >= 0), q = b.schedule.map((v, k) => (v > 0 ? k : -1)).filter((k) => k >= 0);
