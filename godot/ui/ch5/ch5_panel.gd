@@ -13,6 +13,9 @@ var _sig := ""
 var _pu := true
 var _box: VBoxContainer
 var _scroll: ScrollContainer
+var _title: Label
+var _fold: Button
+var _collapsed := false
 var _readout: Label
 var _chart: PvChart
 
@@ -43,7 +46,12 @@ class PvChart extends Control:
 func _init() -> void:
 	name = "Ch5Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
 	add_theme_stylebox_override("panel", GridTheme.paper_sb(4, 10.0))
-	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; add_child(_scroll)   # a long card (L18's givens) scrolls inside the screen
+	var root := VBoxContainer.new(); root.add_theme_constant_override("separation", 4); add_child(root)
+	var head := HBoxContainer.new(); root.add_child(head)
+	_title = GridTheme.label("", 18, GridTheme.PAPER_INK, "title"); _title.size_flags_horizontal = Control.SIZE_EXPAND_FILL; head.add_child(_title)
+	_fold = Button.new(); _fold.text = "▾"; _fold.name = "c5_fold"; _fold.flat = true; _fold.custom_minimum_size = Vector2(36, 28); _fold.focus_mode = CbKit.focus_mode(); _fold.add_theme_color_override("font_color", GridTheme.PAPER_INK); _fold.add_theme_color_override("font_hover_color", GridTheme.PAPER_INK); _fold.add_theme_font_size_override("font_size", GridTheme.fs(20))   # folds the card to its title so the map can be reached
+	_fold.pressed.connect(func(): _collapsed = not _collapsed; _fold.text = "▸" if _collapsed else "▾"; refresh()); head.add_child(_fold)
+	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; root.add_child(_scroll)   # a long card (L18's givens) scrolls inside the screen
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.custom_minimum_size.x = W - 26.0; _scroll.add_child(_box)
 	GridUi.load_strings()
 
@@ -59,10 +67,18 @@ func refresh() -> void:
 	var sig := _level + str((g.actionLog as Array).size()) + str(g.get("status", "")) + str(g.get("tick", 0)) + str(_pu)
 	if sig != _sig: _sig = sig; _rebuild()
 	var vp := get_viewport_rect().size
-	size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0)
-	var room := maxf(160.0, vp.y - 74.0 - 150.0)   # leaves the tray, the radio and the lever their rows
-	_scroll.custom_minimum_size = Vector2(W - 20.0, minf(_box.get_combined_minimum_size().y + 4.0, room))
-	reset_size(); position = Vector2(vp.x - W - 14.0, 74.0)
+	var phone: bool = CbLayout.kind == "phone"
+	var vw: float = float(app.vw()) if app.is_inside_tree() else vp.x
+	var vh: float = float(app.vs_h()) if app.is_inside_tree() else vp.y
+	var w := minf(W, maxf(240.0, vw * 0.32)) if phone else W   # desktop keeps its 310 px card
+	var top := 74.0 if not phone else 70.0
+	var room := maxf(120.0, (vh - top - 195.0) if phone else (vh - 74.0 - 150.0)) - (70.0 if phone else 40.0)   # leaves the tray, the radio and the lever their rows (phone: the budget tag's top)
+	_scroll.visible = not _collapsed
+	size = Vector2(w, 0); custom_minimum_size = Vector2(w, 0)
+	_box.custom_minimum_size.x = w - 26.0
+	_scroll.custom_minimum_size = Vector2(w - 20.0, minf(_box.get_combined_minimum_size().y + 4.0, room) if not _collapsed else 0.0)
+	reset_size()
+	position = Vector2(minf(vw - w - 14.0, vw - size.x - 8.0), top)   # wholly inside the screen, whatever the font scale made of the content
 
 func _do(act: String, args: Array) -> bool:
 	var r: Dictionary = app.b.act(act, args)
@@ -74,7 +90,7 @@ func _do(act: String, args: Array) -> bool:
 	return bool(r.get("ok", false))
 
 func _line(text: String, size_px := 14, font := "mono") -> Label:
-	var l := GridTheme.label(text, size_px, GridTheme.PAPER_INK, font); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size = Vector2(W - 28.0, 0); _box.add_child(l); return l
+	var l := GridTheme.label(text, size_px, GridTheme.PAPER_INK, font); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size = Vector2(maxf(160.0, size.x - 28.0 if size.x > 100.0 else W - 28.0), 0); _box.add_child(l); return l
 
 func _button(text: String, nm: String, cb: Callable) -> Button:
 	var b := Button.new(); b.text = text; b.custom_minimum_size = Vector2(0, 28); b.focus_mode = CbKit.focus_mode(); b.name = nm
@@ -85,7 +101,7 @@ func _rebuild() -> void:
 	var q = app.b.q("ch5Panel")
 	if not (q is Dictionary) or not q.get("active", false): return
 	var g: Dictionary = app.b.g
-	_box.add_child(GridTheme.label(tx("C5_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"))
+	_title.text = tx("C5_TITLE_" + _level)
 	var started: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
 	if (q.buses as Array).size() > 0 and not (_level == "L18" and not started):   # L18 before Run: the givens below are the board
 		if _level == "L14": _line(tx("C5_BASES_L14"), 12, "sans")
