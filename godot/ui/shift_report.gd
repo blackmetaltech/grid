@@ -189,8 +189,13 @@ static func _grid_design(app: CbApp) -> Array:
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
 static func replay(app: CbApp, design: Array) -> int:
 	var bad := 0
+	var base := {}; var seen := {}   # storage already standing when the job starts, and storage placed by this replay: several batteries of one kind must all come back (chapter 6)
+	for st in app.b.g.get("storage", []): var k0 := str(st.bus) + "/" + str(st.catalogId); base[k0] = int(base.get(k0, 0)) + 1
 	for a in design:
-		if _standing(app, a): continue   # a job that starts with part of the design already built (L29's district line and transformers) must not stack it twice
+		if str(a[0]) == "placeStorage":
+			var k := str((a[1] as Array)[0]) + "/" + str((a[1] as Array)[1]); seen[k] = int(seen.get(k, 0)) + 1
+			if int(seen[k]) <= int(base.get(k, 0)): continue
+		elif _standing(app, a): continue   # a job that starts with part of the design already built (L29's district line and transformers) must not stack it twice
 		var r = app.b.act(str(a[0]), a[1])
 		if not (r is Dictionary and bool(r.get("ok", false))): bad += 1
 	return bad

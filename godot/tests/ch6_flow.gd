@@ -25,6 +25,17 @@ func _initialize() -> void:
 	T.check(T.b.g.metrics.predictions.size() == 1 and absf(float(T.b.g.metrics.predictions[0].predicted) - 0.4) < 1e-9, "the prediction is taken")
 	T.level("L21"); p.refresh(); bs.clear(); _buttons(p, bs)
 	T.check(bs.has("c6_spinUnit_U6") and bs.has("c6_upgradeRideThrough_"), "L21: hold coal and ride-through (%s)" % str(bs))
+	# Retry keeps every battery and every hold (the replay used to stop at the first battery of a kind)
+	T.level("L21")
+	for i in 3: T.b.act("placeStorage", ["B1", "bess-gfm-50"])
+	T.b.act("spinUnit", ["U6"]); T.b.act("spinUnit", ["U7"]); T.b.act("upgradeRideThrough", [])
+	var design := ShiftReport.design_of(fake)
+	T.level("L21")
+	var refused := ShiftReport.replay(fake, design)
+	T.check(refused == 0 and T.b.g.storage.size() == 3, "Retry restores all three batteries (%d, refused %d)" % [T.b.g.storage.size(), refused])
+	var held := 0
+	for u in T.b.g.units: if u.id in ["U6", "U7"] and u.commit.schedule.size() > 0: held += 1
+	T.check(held == 2 and (T.b.g.rules.derLegacyIds as Array).is_empty(), "Retry holds U6 and U7 again and refits the rooftops")
 	T.level("L20"); p.refresh(); bs.clear(); _buttons(p, bs)
 	T.check(bs.has("c6_shiftLoad"), "L20: the pumps to noon (%s)" % str(bs))
 	T.level("L22"); p.refresh()

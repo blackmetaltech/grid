@@ -23,4 +23,5 @@ const S := {
 	"C6_KEPT": "Your build from the last attempt is kept (Retry keeps what you bought). Demolish what you do not want.",
 	"C6_PUMP_EFFECT": "Moves about %d MW of evening load into the solar hours (10:00-14:00).",
 	"C6_TARGET": "G1 share of the step: bar = now, line = 60 % target",
+	"C6_COSTS": "costs %s if ON",
 }

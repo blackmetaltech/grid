@@ -12,6 +12,9 @@ var _box: VBoxContainer
 var _readout: Label
 var _edits := {}
 var _card := false
+var _kept := false
+var _last_tick := 1 << 30
+var _seen_level := ""
 var _curve: NetCurve
 var _bar: ShareBar
 
@@ -37,6 +40,8 @@ func refresh() -> void:
 	visible = _level in LEVELS
 	if not visible: return
 	var g := _g()
+	if _level != _seen_level or int(g.tick) < _last_tick: _kept = float(g.budget.spent) > 0.0 and int(g.tick) <= int(g.levelStart); _seen_level = _level; _sig = ""   # a fresh start or a Retry: was a build already standing?
+	_last_tick = int(g.tick)
 	var sig := _level + str(g.budget.spent) + str((g.actionLog as Array).size()) + str((g.units as Array).size()) + str((g.storage as Array).size()) + str(g.get("status", "")) + str(g.get("tick", 0))
 	for u in g.units: sig += ("1" if u.online else "0") + str(snappedf(float(u.droopPct), 0.1))
 	for b in g.storage: sig += str(b.mode)
@@ -102,14 +107,14 @@ func _note(t: String) -> void:
 
 func _cost_text(act: String, args: Array) -> String:
 	var r = app.b.q("actionCost", [act, args])
-	if r is Dictionary and r.get("ok", false) and float(r.cost) > 0.0: return " · " + CbRegion.money(float(r.cost), false, 0)
+	if r is Dictionary and r.get("ok", false) and float(r.cost) > 0.0: return " · " + tx("C6_COSTS") % CbRegion.money(float(r.cost), true, 1)
 	return ""
 
 ## One fixed row per switch: [ON] when it is done (button disabled), [OFF] with the engine's price when it is not. Rows never appear or vanish, so nothing moves under the pointer.
 func _toggle(label: String, on: bool, act: String, args: Array) -> void:
 	var b := Button.new(); b.custom_minimum_size = Vector2(0, 30); b.focus_mode = CbKit.focus_mode(); b.name = "c6_" + act + "_" + (str(args[0]) if args.size() > 0 else "")
 	b.add_theme_font_size_override("font_size", GridTheme.fs(14)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	b.text = ("[ON]  " if on else "[OFF] ") + label + ("" if on else _cost_text(act, args)); b.disabled = on
+	b.text = ("[ON]  " if on else "[OFF] ") + label + ("" if on else _cost_text(act, args)); b.disabled = on; b.custom_minimum_size = Vector2(0, 34)
 	b.pressed.connect(func(): _do(act, args))
 	_box.add_child(b)
 
@@ -123,7 +128,7 @@ func _l19(g: Dictionary, locked: bool) -> void:
 	_predict("rocof0", "Hz/s", tx("C6_P_ROCOF"), locked)
 
 func _kept_note(g: Dictionary) -> void:
-	if int(g.tick) <= int(g.levelStart) and float(g.budget.spent) > 0.0 and str(g.get("status", "playing")) == "playing": _note(tx("C6_KEPT"))
+	if _kept: _note(tx("C6_KEPT"))
 
 func _l20(g: Dictionary, locked: bool) -> void:
 	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 118.0); _curve.g = g; _curve.fc = app.b.q("netForecast"); _curve.note = tx("C6_FORECAST"); _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
