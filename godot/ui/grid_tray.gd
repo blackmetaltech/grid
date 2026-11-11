@@ -95,6 +95,7 @@ var hover := -1
 var focus := -1
 var engaged := false
 var level := ""
+var _last_tick := 0            ## the engine tick at the last refresh: it only goes back on Retry / Start over
 var chip_text := ""
 var chip_dot := Color.TRANSPARENT
 var chip_at := Vector2.ZERO
@@ -139,9 +140,11 @@ func refresh() -> void:
 	if not on:
 		if visible: _clear_all(); close_op()
 		visible = false; level = ""; return
-	if str(li.id) != level:
+	var tk := int(b.g.get("tick", 0))
+	if str(li.id) != level or tk < _last_tick:   # a new job, or Retry / Start over (the clock went back): no tool stays armed from before (a stray click placed a bank)
 		_clear_all(); close_op(); level = str(li.id); _scroll = 0.0; focus = -1; engaged = false
 		for k in KNOBS: knobs[k] = KNOBS[k].def
+	_last_tick = tk
 	pal = p
 	build_items(p)
 	if items.is_empty(): visible = false; return   # a level with nothing to place or operate (the L22 exam) shows no empty shelf
@@ -465,12 +468,20 @@ func on_hover(pos: Vector2) -> void:
 ## The placed element under the pointer that has something to operate (banks, then generators, lines, towns with loads).
 func op_target_at(pos: Vector2) -> Dictionary:
 	var best := {}; var bd := 1e9
+	var near: Array = []   # every operable element under the pointer, nearest first (two banks, or a bank and a STATCOM, on one bus)
 	for k in OP_KINDS:
 		for e in op_elements(str(k)):
 			if op_rows(str(e.kind), str(e.id)).is_empty(): continue
 			var d := pos.distance_to(world.world_to_screen(e.tile, 14.0)) if world != null else 1e9
 			if str(k) == "shunt": d -= 22.0   # a bank drawn beside a building wins the tap over the generator or bus under it
-			if d <= (30.0 if not (CbLayout.touch or CbLayout.kind == "phone") else maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5)) and d < bd - 6.0: bd = d; best = e
+			if d <= (30.0 if not (CbLayout.touch or CbLayout.kind == "phone") else maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5)):
+				near.append([d, e])
+				if d < bd - 6.0: bd = d; best = e
+	# a second click on the same spot walks on to the next element there (shunts on one bus sit on the same tile), so every device on a bus can be reached
+	if near.size() > 1 and op_panel != null and op_panel.visible:
+		var ring: Array = near.filter(func(x): return float(x[0]) <= bd + 8.0)
+		for i in ring.size():
+			if str(ring[i][1].kind) == op_kind and str(ring[i][1].id) == op_id: return ring[(i + 1) % ring.size()][1]
 	return best
 
 func op_elements(kind: String) -> Array:
