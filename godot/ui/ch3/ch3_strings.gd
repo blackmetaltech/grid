@@ -11,7 +11,7 @@ const S := {
 	# work order
 	"C3_WO_DRIVES": "The factory's drives start at 08:00: their harmonics test the bank", "C3_WO_FAULT": "Survive a three-phase fault at the quarry bus at %s",
 	# panel
-	"C3_P_AMPS": "feeder %s A · rated %s A", "C3_P_AT": "at the 20:00 peak, as designed", "C3_P_UNIT": "% of the fundamental", "C3_P_LIMIT": "THD limit %s %%",
+	"C3_P_AMPS": "feeder %s A · rated %s A", "C3_P_AT": "at the 20:00 peak, as designed", "C3_P_UNIT": "% of fundamental", "C3_P_LIMIT": "THD limit %s %%",
 	"C3_P_THD_WHAT": "THD = how far from a clean sine", "C3_P_XC_WHAT": "X_L = line, X_C = capacitor reactance",
 	"C3_P_PRED": "prediction %s kA · breaker %s kA", "C3_P_PRESS": "press Run: the fault comes at %s",
 	"C3_P_PHASOR": "PHASORS · feeder", "C3_P_PF": "pf %s %s · %s A", "C3_P_LAG": "lagging", "C3_P_LEAD": "leading", "C3_P_SPEC": "VOLTAGE SPECTRUM", "C3_P_SPEC_ASIF": "evening peak, drives on, bank in",
