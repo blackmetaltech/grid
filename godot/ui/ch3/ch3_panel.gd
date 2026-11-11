@@ -11,6 +11,15 @@ var mode := ""                 ## "" | "pf" | "harm" | "series"
 var d: Dictionary = {}         ## the query result of the mode
 var phasor: PhasorView
 var _h := 0.0
+var collapsed := false         ## phone: the card folds to its title row so the map can be reached
+const HEAD_H := 34.0
+
+func _gui_input(e: InputEvent) -> void:
+	if CbLayout.kind != "phone": return
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and e.position.y < HEAD_H:
+		collapsed = not collapsed; accept_event(); layout(); phasor.visible = visible and mode == "pf" and not collapsed; queue_redraw()
+	elif e is InputEventScreenTouch and e.pressed and e.position.y < HEAD_H:
+		collapsed = not collapsed; accept_event(); layout(); phasor.visible = visible and mode == "pf" and not collapsed; queue_redraw()
 
 func _init() -> void:
 	name = "Ch3Panel"; mouse_filter = Control.MOUSE_FILTER_IGNORE; visible = false
@@ -47,15 +56,22 @@ func refresh() -> void:
 			var q = app.b.q("harmonics"); d = q if q is Dictionary else {}
 		"series":
 			var q = app.b.q("seriesInfo"); d = q if q is Dictionary else {}
-	visible = m != "" and CbLayout.kind != "phone"
-	phasor.visible = visible and m == "pf"
+	visible = m != ""
+	mouse_filter = Control.MOUSE_FILTER_STOP if CbLayout.kind == "phone" else Control.MOUSE_FILTER_IGNORE   # on a phone the header is a tap target (collapse)
+	phasor.visible = visible and m == "pf" and not collapsed
 	layout(); queue_redraw()
 
 func layout() -> void:
 	if app == null: return
 	_h = {"pf": 316.0, "harm": 412.0, "series": 232.0}.get(mode, 0.0)
-	size = Vector2(W, _h)
-	position = Vector2(app.vw() - M - W, 62.0)
+	if CbLayout.kind == "phone":   # wholly inside the viewport: right edge 8 px in, below the HUD, above the spent/budget tag; the drawing scales to fit
+		var avail := app.vs_h() - 185.0 - 70.0
+		var sc := clampf(avail / maxf(_h, 1.0), 0.4, 1.0)
+		scale = Vector2(sc, sc); size = Vector2(W, HEAD_H if collapsed else _h)
+		position = Vector2(app.vw() - 8.0 - W * sc, 70.0)
+	else:
+		scale = Vector2.ONE; size = Vector2(W, _h)
+		position = Vector2(app.vw() - M - W, 62.0)
 	if mode == "pf": phasor.position = Vector2((W - 220.0) * 0.5, 30.0); phasor.size = Vector2(220, 200)
 
 func _txt(s: String, at: Vector2, px: int, col: Color, font := "mono", w := -1.0) -> void:
@@ -66,6 +82,10 @@ func _ink(a := 1.0) -> Color: return Color(GridTheme.PAPER_INK, a)
 func _draw() -> void:
 	if mode == "" or not visible: return
 	draw_style_box(GridTheme.paper_sb(3, 0.0), Rect2(Vector2.ZERO, size))
+	if CbLayout.kind == "phone":   # the fold toggle in the header's corner
+		_txt("▸" if collapsed else "▾", Vector2(W - 28.0, 24.0), 18, _ink(0.8))
+		if collapsed:
+			_txt(tx({"pf": "C3_P_PHASOR", "harm": "C3_P_SPEC", "series": "C3_P_LINE"}.get(mode, "C3_P_LINE")), Vector2(14, 22), 12, _ink(0.7)); return
 	match mode:
 		"pf": _draw_pf()
 		"harm": _draw_harm()
