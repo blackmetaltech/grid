@@ -51,7 +51,7 @@ func _drag(h: Dictionary, p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
-	var w := size.x; var h := size.y; var ground := h * 0.665
+	var w := _vs().x; var h := _vs().y; var ground := h * 0.665
 	draw_rect(Rect2(0, ground, w, h - ground), Color("#1E2A2A")); draw_rect(Rect2(0, ground, w, 5), Color("#34474A"))
 	_draw_triangle(Vector2(150.0, 205.0))
 	_draw_motors(Rect2(Vector2(40.0, ground - 150.0), Vector2(250.0, 150.0)))

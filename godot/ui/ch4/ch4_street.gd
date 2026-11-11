@@ -12,7 +12,7 @@ func _init() -> void:
 	scenario = "l10"; name = "Ch4Street"
 
 func _geo() -> Dictionary:
-	var w := size.x; var h := size.y
+	var w := _vs().x; var h := _vs().y
 	var ground := h * 0.665; var wire := ground - 150.0
 	var x0 := 215.0; var x1 := w - 175.0; var sp := (x1 - x0) / 5.0
 	return {"ground": ground, "wire": wire, "x0": x0, "sp": sp, "tx": 92.0}
@@ -24,7 +24,7 @@ func _house_rect(i: int, g: Dictionary) -> Rect2:
 
 func _layout_panel() -> void:
 	_g = _geo()
-	for i in 18: hits.append({"rect": _house_rect(i, _g).grow(4.0), "kind": "item", "id": "house", "arg": i})
+	for i in 18: hits.append({"rect": _house_rect(i, _g).grow(4.0), "kind": "item", "id": "house", "arg": i, "stage": true})
 	var ns: Array = kit.get("l10", {}).get("neutrals", [])
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	var cw := 106.0; var x := inner.position.x
@@ -41,7 +41,7 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
 	var g := _g if not _g.is_empty() else _geo()
-	var w := size.x; var h := size.y; var ground: float = g.ground; var wire: float = g.wire
+	var w := _vs().x; var h := _vs().y; var ground: float = g.ground; var wire: float = g.wire
 	draw_rect(Rect2(0, ground, w, h - ground), Color("#17331F"))
 	draw_rect(Rect2(0, ground, w, 5), Color("#2B4A2C"))
 	_draw_instruments()
@@ -126,7 +126,7 @@ func _draw_far_voltage(g: Dictionary) -> void:
 
 # ---- instruments ------------------------------------------------------------------------------------------------------------------
 func _draw_instruments() -> void:
-	var w := size.x
+	var w := _vs().x
 	# the phasor chain: I_a, then I_b from its tip, then I_c: the closing side is I_N
 	var c := Vector2(150.0, 178.0); var R := 64.0
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(c - Vector2(R + 22.0, R + 30.0), Vector2((R + 22.0) * 2.0, (R + 22.0) * 2.0 + 18.0)))

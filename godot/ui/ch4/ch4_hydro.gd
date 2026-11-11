@@ -34,10 +34,10 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
-	var w := size.x
+	var w := _vs().x
 	draw_rect(Rect2(0, 300.0, w, 4), Color(1, 1, 1, 0.04))
 	_draw_line_scene(Rect2(Vector2(56.0, 150.0), Vector2(w - 90.0, 140.0)))
-	var top := 318.0; var bh := maxf(panel.position.y - top - 14.0, 200.0)
+	var top := 318.0; var bh := maxf(_stage_bottom() - top - 14.0, 200.0)
 	_draw_rotor(Rect2(Vector2(30.0, top), Vector2(250.0, bh)))
 	_draw_pdelta(Rect2(Vector2(296.0, top), Vector2(420.0, bh)))
 	_draw_swing(Rect2(Vector2(732.0, top), Vector2(minf(400.0, w - 732.0 - 220.0), bh)))

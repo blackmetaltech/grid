@@ -35,4 +35,5 @@ const S := {
 	"C4_MATCHED_BEST": "Your design: %s. You matched the best of the %d designs.",
 	"C4_PD_TITLE": "P-δ at E = %s pu: P_max = E V ÷ X_s = %s pu", "C4_PD_LIMIT": "δ < %d°",
 	"C4_BANK_RD": "bank %s / %s kVAr", "C4_HEADLINE": "KEEP THE FIRST SWING UNDER 70°  (now %s°)", "C4_EMF_NOW": "E′ = %s pu now", "C4_ENTER": "enter E, δ, P_max to score", "C4_ENTERED": "predictions in: press Run to score",
+	"C4_PANEL_TITLE": "Build panel (tap ▸ to open)",
 }

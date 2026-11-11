@@ -24,14 +24,17 @@ func _submit(k: String) -> void:
 func refresh(st: Dictionary, k: Dictionary) -> void:
 	super.refresh(st, k)
 	for key in IDS:
-		var e: LineEdit = edits[key]; e.visible = true; e.editable = not _locked()
+		var e: LineEdit = edits[key]; e.visible = not _collapsed; e.editable = not _locked()
 		var cur = st.get("predictions", {}).get(key)
 		if not e.has_focus() and cur != null: e.text = WorkOrder.num(float(cur))
+
+func _on_collapsed() -> void:
+	for k in IDS: (edits[k] as LineEdit).visible = false
 
 func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	for k in IDS.size():
-		var e: LineEdit = edits[IDS[k]]; e.position = inner.position + Vector2(84.0 + 170.0 * k, 24.0); e.size = Vector2(88, 30)
+		var e: LineEdit = edits[IDS[k]]; e.position = _scr(inner.position + Vector2(84.0 + 170.0 * k, 24.0)); e.size = Vector2(88, 30) * _sc; e.add_theme_font_size_override("font_size", int(16.0 * _sc)); e.visible = not _collapsed
 	hits.append({"rect": Rect2(Vector2(inner.position.x, inner.position.y + 66.0), Vector2(330, 70)), "kind": "slider", "id": "exc", "arg": ""})
 
 func _pe() -> String:
@@ -54,7 +57,7 @@ func _drag(h: Dictionary, p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
-	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 200.0)
+	var w := _vs().x; var top := 150.0; var bh := maxf(_stage_bottom() - top - 14.0, 200.0)
 	_draw_rated(Rect2(Vector2(30.0, top), Vector2(380.0, bh)))
 	_draw_night(Rect2(Vector2(426.0, top), Vector2(380.0, bh)))
 	_draw_gauges(Rect2(Vector2(822.0, top), Vector2(maxf(w - 822.0 - 30.0, 300.0), bh)))
@@ -155,7 +158,7 @@ func _draw_panel_body() -> void:
 	var lab := ["E (pu)", "δ (deg)", "P_max (pu)"]
 	for k in IDS.size():
 		var e: LineEdit = edits[IDS[k]]; e.editable = not _locked()
-		_text(mono, 11, Vector2(e.position.x - 80.0, e.position.y + 19.0), lab[k], Color(GridTheme.TEXT, 0.7))
+		_text(mono, 11, inner.position + Vector2(84.0 + 170.0 * k - 80.0, 43.0), lab[k], Color(GridTheme.TEXT, 0.7))
 	for h in hits:
 		if str(h.id) == "exc":
 			var tkr: Rect2 = stepper_parts(h.rect).track
