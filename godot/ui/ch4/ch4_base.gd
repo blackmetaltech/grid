@@ -180,6 +180,7 @@ func _draw_panel() -> void:
 
 func _draw_price_tag(pn: Rect2) -> void:
 	var spent := float(q.get("cost", 0.0)); var budget := float(q.get("budget", 0.0))
+	if budget <= 0.0 and spent <= 0.0: return   # nothing to buy on this level (the L13 exam): no "$0" tag
 	var over := budget > 0.0 and spent > budget + 0.0001
 	var txt := T("C4_SPENT") % [_money(spent), _money(budget)] if budget > 0.0 else _money(spent)
 	var mono := _mono(); var semi := _semi()

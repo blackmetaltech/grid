@@ -584,6 +584,7 @@ func _c(col: Color) -> Color: return Color(col.r * _nl.r, col.g * _nl.g, col.b *
 func _shade(col: Color, k: float) -> Color: return Color(col.r * k, col.g * k, col.b * k, col.a)
 
 func _ell(c: Vector2, rx: float, ry: float, col: Color) -> void:
+	if absf(rx) < 0.05 or absf(ry) < 0.05: return   # a zero-size ellipse is a degenerate polygon (Godot logs "triangulation failed")
 	var pts := PackedVector2Array()
 	for k in 18: var a := TAU * float(k) / 18.0; pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
 	_ci.draw_colored_polygon(pts, col)
@@ -591,13 +592,16 @@ func _ell(c: Vector2, rx: float, ry: float, col: Color) -> void:
 func _box(p: Vector2, w: float, d: float, h: float, col: Color, base_add: float = 0.0) -> float:
 	var x0 := p.x - w * 0.5; var y0 := p.y - d * 0.5; var x1 := x0 + w; var y1 := y0 + d
 	var base := _zat(p) + base_add; var top := base + h
-	_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
-	_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
+	if w < 0.01 or d < 0.01: return base   # degenerate footprint: nothing to draw
+	if h > 0.01:   # a flat box has no walls (zero-area wall polygons fail to triangulate)
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
+		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
 	_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y0, top), _iso(x1, y0, top), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(col))
 	return base
 
 func _cyl(c: Vector2, r: float, h: float, col: Color, taper: float = 1.0) -> void:
 	var rt := r * taper
+	if r < 0.05 or h < 0.01: _ell(c, r, r * 0.5, _c(col)); return   # no wall to draw
 	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.78)))
 	_ell(c, r, r * 0.5, _c(_shade(col, 0.7)))
 	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.82)))

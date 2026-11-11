@@ -860,6 +860,7 @@ func _draw() -> void:
 
 func _draw_price_tag() -> void:
 	var bud: Dictionary = b.g.get("budget", {}) if b != null else {}
+	if float(bud.get("capexLimit", 0.0)) <= 0.0 and float(bud.get("spent", 0.0)) <= 0.0: return   # nothing to buy (the exam bridges): no "$0 / $0" tag
 	var spent := CbRegion.money(float(bud.get("spent", 0.0)), false, 0); var budget := CbRegion.money(float(bud.get("capexLimit", 0.0)), false, 0)
 	var over: bool = float(bud.get("spent", 0.0)) > float(bud.get("capexLimit", 0.0))
 	var txt := tx("TRAY_BUDGET") % [spent, budget]
