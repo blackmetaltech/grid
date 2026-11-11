@@ -49,7 +49,7 @@ const ACTIONS := {
 	"stringLine": {"icon": "line", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part", "$circuits", "$km"], "knobs": ["circuits", "km"]},
 	"switchBranch": {"icon": "breaker", "pick": ["branch"], "args": ["$0", "$flip:branch.inService"], "knobs": [], "cell": "op", "live": true},
 	"demolish": {"icon": "demolish", "pick": ["element"], "args": ["$0"], "knobs": [], "cell": "op"},
-	"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", 1.02, 0.015, 1], "knobs": [], "cell": "op", "live": true},   # the finale (L28): the tap changer's set-point from the tray, no hunt for the transformer in the world
+	"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", "$vset", "$band", "$delay"], "knobs": ["vset", "band", "delay"], "cell": "op", "live": true},   # L14: set-point, deadband and delay are the lesson (hunting)
 	"setAutoDispatch": {"icon": "dispatch", "pick": [], "args": ["$flip:dispatch.auto"], "knobs": [], "cell": "op", "live": true},
 }
 const KNOBS := {
@@ -163,7 +163,7 @@ func _clear_all() -> void:
 func build_items(p: Dictionary) -> void:
 	var out: Array = []; var ops: Array = []; var g := 0; var used: Array = []   # the part cells in palette order, then the operate cells
 	for a in p.get("actions", []):
-		var act := str(a.action); var spec: Dictionary = ACTIONS.get(act, {}); var parts: Array = a.get("parts", [])
+		var act := str(a.action); var spec: Dictionary = (LEVEL_SPECS.get(level, {}) as Dictionary).get(act, ACTIONS.get(act, {})); var parts: Array = a.get("parts", [])
 		if not parts.is_empty() and str(spec.get("cell", "")) == "op":   # an operate action whose parts are the ids it may be used on (P0: the breaker of T5)
 			ops.append({"kind": "op", "action": act, "part": "", "id": act, "icon": str(spec.icon), "group": 90, "only": parts.map(func(x): return str(x))})
 		elif not parts.is_empty():
@@ -187,7 +187,12 @@ func place_index(action: String, part := "") -> int:
 	for i in items.size(): if items[i].kind == "place" and items[i].action == action and (part == "" or items[i].part == part): return i
 	return -1
 
-func _spec(action: String) -> Dictionary: return ACTIONS.get(action, {"icon": "part", "pick": ["bus"], "args": ["$0", "$part"], "knobs": []})
+## Per-level overrides of an action's cell: the finale's tap hold is fixed at 1.02 pu (the build kit in its card does the rest), L14 keeps the knobs.
+const LEVEL_SPECS := {"L28": {"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", 1.02, 0.015, 1], "knobs": [], "cell": "op", "live": true}}}
+func _spec(action: String) -> Dictionary:
+	var lv: Dictionary = LEVEL_SPECS.get(level, {})
+	if lv.has(action): return lv[action]
+	return ACTIONS.get(action, {"icon": "part", "pick": ["bus"], "args": ["$0", "$part"], "knobs": []})
 
 func _live(action: String) -> bool: return bool(_spec(action).get("live", false))
 
