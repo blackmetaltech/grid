@@ -2,6 +2,24 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.0.0-rc.2] - "Keep the Lights On", played through (tag v1.0.0-rc.2, local)
+### Added
+- `in` pack, WO-28: the state is tied to the All-India grid (a 1000 MW 400 kV tie at the Capital; large inertia, droop, no reactive help).
+  Losing the 660 MW unit now dips the frequency to about 49.96 Hz instead of 49.26 Hz, so the third lamp can be reached. The voltage is still the player's job.
+### Changed
+- L10: each house shows its kVA. The star targets were re-frozen from designs a player reaches by hand (the third lamp needs 8 moves or fewer).
+- L11: the cans step by 5 (right-click by 1). L13: the excitation ± buttons step 0.001 pu, and the predictions read "—" until Run.
+- Chapter 3: a placed capacitor bank starts switched in, and its tag shows IN n/N or OUT. The mill bus is labelled ("banks go here").
+  A second bank on a bus is refused. The L08 reactor steps through presets.
+### Fixed
+- The L07 incident report printed a current that did not follow from its own S and V (1.71 MVA at 0.946 pu is 95 A, not 119 A).
+  The "what to try" text now says when the bank stood on the wrong bus or was switched out.
+- The world labels at L28's capital (400/220/132 kV and the datacentre) printed on top of each other.
+- Saltmarsh Island (L28) and the quarry (L09) sat under the budget tag.
+- Tray captions are shrunk before they are elided ("ICT 400/220", "Twinmoose").
+- Exam bridges with nothing to buy no longer list "Spend ≤ $0".
+- A chapter 3 commit had silently reverted the chapter 4 fixes; they are restored.
+
 ## [1.0.0-rc.1] - "Keep the Lights On" (tag v1.0.0-rc.1, local; the finale; every chapter playable; critique pass in docs/CRITIQUE-1.0-rc.md)
 
 Chapters 3-7 and the finale were built in parallel and land together in this tag; the 0.4.0-0.9.0 sections below describe them chapter by chapter.
