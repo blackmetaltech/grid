@@ -53,6 +53,7 @@ export function freqWindowTrack(s: GridState, fr: FreqResult, f0: number, lostGe
   tr.rocof0 = fin(Math.abs(fr.rocof0));
   tr.maxRocof = Math.max(tr.maxRocof ?? 0, fin(fr.maxRocof500));
   tr.shedMW = fin((tr.shedMW ?? 0) + fr.shedMW);
+  { const f = fr.trace.fHz, t = fr.trace.t, k = t.length > 1 ? Math.max(1, Math.round(0.5 / (t[1]! - t[0]!))) : 25; let w = 0; for (let i = k; i < f.length; i++) w = Math.max(w, Math.abs((f[i]! - f[i - k]!) / 0.5)); tr.rocof500 = fin(w); }   // the slope over a full 500 ms window: what a rooftop relay sees
   tr.fEndHz = fin(fr.fEndHz, f0);
   tr.hSys = fin(fr.hSys); tr.sSys = fin(fr.sSys);
   tr.tNadirS = fin(fr.tNadir);

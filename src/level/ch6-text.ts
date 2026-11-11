@@ -21,7 +21,10 @@ export function freqLesson(s: GridState, p: SimParams, th: Record<string, number
   if (id === 'L19') return t('level.L19.lesson', base) + ' ' + ((tr.reserveCover ?? 0) < 1 ? t('level.L19.lessonShort', base) : t('level.L19.lessonOk', base));
   const hs = Math.round((tr.hSys ?? 0) * (tr.sSys ?? 0));
   const l21 = t('level.L21.lesson', { ...base, hs, rocof: f2((base.lost * p.f0) / (2 * Math.max(1, hs))) });
-  return l21 + ' ' + ((tr.derTripped ?? 0) > 0 ? t('level.L21.lessonDer', { der: Math.round(tr.derMW ?? 0), total: base.lost + Math.round(tr.derMW ?? 0), nadir: base.nadir }) : t('level.L21.lessonNoDer', { nadir: base.nadir }));
+  const slope = f2(tr.rocof500 ?? 0);
+  const tail = (tr.derTripped ?? 0) > 0 ? t('level.L21.lessonDer', { slope, der: Math.round(tr.derMW ?? 0), total: base.lost + Math.round(tr.derMW ?? 0), nadir: base.nadir })
+    : (tr.rideFitted ?? 0) > 0 ? t('level.L21.lessonRide', { slope, nadir: base.nadir }) : (tr.rocof500 ?? 0) > 1 ? t('level.L21.lessonStill', { slope, nadir: base.nadir }) : t('level.L21.lessonNoDer', { slope, nadir: base.nadir });
+  return l21 + ' ' + tail;
 }
 
 /** L20: curtailment at noon, the net-load ramp at dusk (from the day's history), the share of blocks in range and the worst block. */

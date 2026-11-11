@@ -321,7 +321,8 @@ export function runFrequencyWindow(input: FreqInput): FreqResult {
         derLegacyLeft = 0; derDone = true;
       }
     }
-    if (!(sSys > 0) || !(hNum > 0)) { addEvent(tn, 'blackout', 'system', { fHz: fz }); endReason = 'blackout'; break; }
+    // no machine left online (all tripped on under-frequency): a battery alone does not hold an island together here, the system is dark
+    if (!(sSys > 0) || !(hNum > 0) || (n > 0 && !uOn.some((x) => x))) { addEvent(tn, 'blackout', 'system', { fHz: fz }); endReason = 'blackout'; break; }
   }
 
   // ---- outputs

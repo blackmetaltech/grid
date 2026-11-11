@@ -20,6 +20,11 @@ func _init() -> void:
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); add_child(_box)
 	GridUi.load_strings()
 
+## True while a number is being typed into one of the fields (the chrome then leaves the keys alone).
+func editing() -> bool:
+	for k in _edits: if is_instance_valid(_edits[k]) and (_edits[k] as LineEdit).has_focus(): return true
+	return false
+
 func tx(k: String) -> String: return TranslationServer.translate(k)
 
 func _g() -> Dictionary: return app.b.g
@@ -36,7 +41,7 @@ func refresh() -> void:
 	for b in g.storage: sig += str(b.mode)
 	for l in g.loads: sig += str(l.get("shape") != null)
 	sig += str((g.rules as Dictionary).get("derLegacyIds", []).size())
-	if sig != _sig: _sig = sig; _rebuild()
+	if sig != _sig and not editing(): _sig = sig; _rebuild()
 	_readout.text = _readout_text(g)
 	_layout()
 
@@ -91,19 +96,33 @@ func _unit(g: Dictionary, id: String):
 	for u in g.units: if u.id == id: return u
 	return null
 
-func _l19(g: Dictionary, locked: bool) -> void:
-	var sp = _unit(g, "U17")
-	if sp != null and not sp.online and sp.commit.schedule.size() == 0: _btn(tx("C6_SPIN"), "spinUnit", ["U17"]); _note(tx("C6_SPIN_WHY"))
-	_ffr_buttons(g)
-	_predict("rocof0", "Hz/s", tx("C6_P_ROCOF"), locked)
-	_note(tx("C6_BARS"))
-
 func _note(t: String) -> void:
 	var l := GridTheme.label(t, 12, Color(GridTheme.PAPER_INK, 0.75), "sans"); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size.x = W - 24.0; _box.add_child(l)
 
-func _ffr_buttons(g: Dictionary) -> void:
-	for b in g.storage:
-		if str(b.mode) != "ffr": _btn(tx("C6_FFR") % [str(b.id), int(round(float(b.mw)))], "setFfr", [str(b.id)])
+func _cost_text(act: String, args: Array) -> String:
+	var r = app.b.q("actionCost", [act, args])
+	if r is Dictionary and r.get("ok", false) and float(r.cost) > 0.0: return " · " + CbRegion.money(float(r.cost), false, 0)
+	return ""
+
+## One fixed row per switch: [ON] when it is done (button disabled), [OFF] with the engine's price when it is not. Rows never appear or vanish, so nothing moves under the pointer.
+func _toggle(label: String, on: bool, act: String, args: Array) -> void:
+	var b := Button.new(); b.custom_minimum_size = Vector2(0, 30); b.focus_mode = CbKit.focus_mode(); b.name = "c6_" + act + "_" + (str(args[0]) if args.size() > 0 else "")
+	b.add_theme_font_size_override("font_size", GridTheme.fs(14)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	b.text = ("[ON]  " if on else "[OFF] ") + label + ("" if on else _cost_text(act, args)); b.disabled = on
+	b.pressed.connect(func(): _do(act, args))
+	_box.add_child(b)
+
+func _held(u) -> bool: return u != null and (u.online or u.commit.schedule.size() > 0)
+
+func _l19(g: Dictionary, locked: bool) -> void:
+	_kept_note(g)
+	var sp = _unit(g, "U17")
+	if sp != null: _toggle(tx("C6_SPIN"), _held(sp), "spinUnit", ["U17"]); _note(tx("C6_SPIN_WHY"))
+	_note(tx("C6_BATT_READY"))
+	_predict("rocof0", "Hz/s", tx("C6_P_ROCOF"), locked)
+
+func _kept_note(g: Dictionary) -> void:
+	if int(g.tick) <= int(g.levelStart) and float(g.budget.spent) > 0.0 and str(g.get("status", "playing")) == "playing": _note(tx("C6_KEPT"))
 
 func _l20(g: Dictionary, locked: bool) -> void:
 	_curve = NetCurve.new(); _curve.custom_minimum_size = Vector2(W - 24.0, 92.0); _curve.g = g; _curve.fc = app.b.q("netForecast"); _curve.note = tx("C6_FORECAST"); _curve.cap = tx("C6_NET"); _curve.ramp_fmt = tx("C6_RAMP"); _box.add_child(_curve)
@@ -118,13 +137,15 @@ func _l20(g: Dictionary, locked: bool) -> void:
 			_btn(tx("C6_PUMP_NIGHT") if noon else tx("C6_PUMP_NOON"), "shiftLoad", [str(l.id), "night" if noon else "noon"])
 
 func _l21(g: Dictionary, locked: bool) -> void:
+	_kept_note(g)
 	for id in ["U6", "U7", "U8"]:
 		var u = _unit(g, id)
-		if u != null and not u.online and u.commit.schedule.size() == 0: _btn(tx("C6_COAL") % id, "spinUnit", [id]); break
+		if u != null: _toggle(tx("C6_COAL") % id, _held(u), "spinUnit", [id])
 	for u in g.units:
-		if str(u.kind) == "synccon" and not u.online: _btn(tx("C6_COND") % [str(u.id), int(round(float(u.mva)))], "spinUnit", [str(u.id)])
-	_ffr_buttons(g)
-	if (g.rules as Dictionary).get("derLegacyIds", []).size() > 0: _btn(tx("C6_RIDE"), "upgradeRideThrough", []); _note(tx("C6_RIDE_GLOSS"))
+		if str(u.kind) == "synccon": _toggle(tx("C6_COND") % [str(u.id), int(round(float(u.mva)))], u.online, "spinUnit", [str(u.id)])
+	var ids: Array = (g.rules as Dictionary).get("derLegacyIds", [])
+	_toggle(tx("C6_RIDE"), ids.size() == 0, "upgradeRideThrough", [])
+	_note(tx("C6_RIDE_GLOSS")); _note(tx("C6_BATT_READY"))
 	_predict("rocof0", "Hz/s", tx("C6_P_ROCOF"), locked)
 	_note(tx("C6_BARS"))
 

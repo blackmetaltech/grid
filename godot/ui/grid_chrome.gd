@@ -229,6 +229,7 @@ func coach(step: Dictionary, index: int, _total: int) -> void:
 
 ## Space toggles the breaker, "." steps once. Returns true when the key was used.
 func key(e: InputEventKey) -> bool:
+	if ch6 != null and ch6.editing(): return false   # a number being typed into the exam or prediction field is not a tray shortcut
 	if tray != null and (rtray.key(e) if rtray.visible else (gtray.key(e) if gtray.visible else tray.key(e))): return true
 	match e.keycode:
 		KEY_SPACE:

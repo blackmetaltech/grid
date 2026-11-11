@@ -175,6 +175,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       const held = heldByStorage(toNet(s), s.storage), holding = held.forming;   // a battery that holds an island is run by the island's load (settled after the load flow), not by the price
       storageMW += held.loadMW;                                                // and what it carries is not the thermal fleet's to cover
       for (const b of s.storage) {
+        if (s.rules.freqTrack && b.mode === 'threshold') { b.P = 0; continue; }   // chapter 6: a battery nobody scheduled stands ready for frequency response, it does not trade
         if (s.rules.cableCutBlock != null || holding.has(b.id) || held.orphans.has(b.id)) { b.P = 0; continue; }   // L30's backup battery floats on the live grid
         const sp: StorageParams = { energyMWh: b.mwh, pChMaxMW: b.mw, pDisMaxMW: b.mw, etaRt: b.etaRt, socMin: 0.1, socMax: 0.9 };
         let ch = 0, dis = 0;
@@ -201,7 +202,8 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
           pOut = r.p; lambda = r.lambda; shortfall = r.shortfallMW; surplus = r.surplusMW;
         }
       } else shortfall = thermalDemand;
-      const curtail = Math.min(surplus, rMW);
+      const renewExcess = Math.max(0, rMW - Math.max(0, demand + s.block.lossMW - storageMW));   // sun beyond what the town and the stores can take, even with every thermal unit at zero
+      const curtail = Math.min(surplus + renewExcess, rMW);
       const keep = rMW > 0 ? 1 - curtail / rMW : 1;
       thermal.forEach((u, i) => { u.P = fin(pOut[i]!); u.Pset = u.P; });
       for (const u of s.units) {

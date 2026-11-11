@@ -103,7 +103,7 @@ export function runEventWindow(input: Readonly<GridState>, params: SimParams, tr
         const tot = pool.reduce((a, l) => a + l.P * (1 - l.shedFrac), 0);
         if (tot > 0) for (const l of pool) l.shedFrac = Math.min(1, l.shedFrac + ((fr.shedMW / tot) * (1 - l.shedFrac)));
       }
-      s.freq = { fHz: fin(fr.fEndHz, params.f0), rocof: fin(fr.rocof0) };
+      s.freq = { fHz: fin(fr.endReason === 'blackout' ? fr.nadirHz : fr.fEndHz, params.f0), rocof: fin(fr.rocof0) };   // a collapsed island shows where it died, not the number a model with no machines left would settle at
       s.metrics.nadirHz = Math.min(s.metrics.nadirHz, fin(fr.nadirHz, params.f0));
       s.metrics.maxRocof = Math.max(s.metrics.maxRocof, fin(fr.maxRocof500));
       // trace: decimated to fit; angle = integral of 360 deg x df

@@ -99,7 +99,7 @@ export function buildFreqActions(d: FreqActionDeps): Record<string, ActionFn<Gri
       const pv = d.cat(s).generator('pv-100');
       const cost = 0.06 * (pv?.capexPerKw ?? 0) * mw * 1000;
       s.budget.spent += cost;
-      s.rules.derLegacyIds = [];
+      s.rules.derLegacyIds = []; s.metrics.track.rideFitted = 1;
       return accept(s, 'upgradeRideThrough', 'act.ride.ok', { mw: Math.round(mw), cost: d.money(s, cost) });
     },
   };

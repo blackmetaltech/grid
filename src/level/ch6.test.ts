@@ -9,7 +9,7 @@ import { runDesign } from './run';
 import { spin, ffr } from './levels/l19';
 import { makeLevel } from './spec';
 import { spinFuel } from '../freq-actions';
-import { coalHold, gfm, rideThrough } from './levels/l21';
+import { coalHold, condensers, gfm, rideThrough } from './levels/l21';
 import { peakers, shift } from './levels/l20';
 import { droops, ORACLE_ANSWERS, answers } from './levels/l22';
 import { examTruth } from '../sim/freqtrack';
@@ -104,9 +104,9 @@ describe('L21 Inertia Matters against the oracle', () => {
   it('RoCoF = dP f0 / (2 H S) on the naive grid is 3.54 Hz/s (500 x 50 / (2 x 3529)) and the lesson prints it', () => {
     near(EXP.L21.global.naive.rocof0, -500 * 50 / (2 * 3529.4118), 1e-3);
     const e = run(play('L21', [])); const li = info(e).lesson as string;
-    console.log('LI', li); expect(li).toMatch(/= 3\.5\d Hz\/s/); expect(li).toMatch(/rooftop PV went off/);
+    console.log('LI', li); expect(li).toMatch(/= 3\.5\d Hz\/s/); expect(li).toMatch(/rooftop PV went off/); expect(li).not.toMatch(/stayed on/);
     expect(info(e).tryHint).toMatch(/grid-forming battery adds 50 MW in 50 ms/);
-    const w = run(play('L21', [...coalHold(2), ...gfm(10)])); expect(w.state.stars).toBe(3); expect(info(w).lesson).toMatch(/rooftops stayed on/);
+    const w = run(play('L21', [...coalHold(2), ...gfm(10)])); expect(w.state.stars).toBe(3); expect(info(w).lesson).toMatch(/under their 1.0 Hz\/s, so the rooftops stayed on/);
   });
   it('ride-through is paid in the pack\'s PV price, condensers spin without fuel', () => {
     const e = play('L21', []); const r = e.step(rideThrough[0]!); expect(r.info.ok).toBe(true);
@@ -135,5 +135,38 @@ describe('L22 Exam Bridge against the oracle', () => {
   it('the lesson and the try hint', () => {
     const e = run(play('L22', droops(4, 3.6))); expect(info(e).lesson).toMatch(/= 1\.200 Hz\/s.*G1 took 60\.0 % of the step/);
     const f = run(play('L22', [])); expect(info(f).tryHint).toMatch(/= 4 x 300 x 3 \/ \(500 x 2\) = 3\.60 %/);
+  });
+});
+
+describe('L21 engine invariants: shed within the load, a sane gauge, more help never hurts the nadir', () => {
+  const spec = specOf('L21')!;
+  const designsL21 = (): { name: string; acts: Action[]; c: number; k: number; g: number; r: number }[] => {
+    const out = [];
+    for (const c of [0, 2]) for (const k of [0, 2]) for (const g of [0, 4, 8]) for (const r of [0, 1]) out.push({ name: `coal${c} cond${k} gfm${g} ride${r}`, acts: [...coalHold(c), ...condensers(k), ...gfm(g), ...(r ? rideThrough : [])], c, k, g, r });
+    return out;
+  };
+  for (const region of ['global', 'in']) {
+    it(`${region}: shed <= load, the gauge stays between 40 and 52 Hz, and each added help (coal, condenser, battery, ride-through) leaves the nadir no worse`, () => {
+      const res = new Map<string, number>();
+      for (const d of designsL21()) {
+        const o = runDesign(spec, region, d.acts, { frozen: null });
+        expect(o.track.shedMW!, d.name).toBeLessThanOrEqual(5200 + 1e-6);
+        expect(o.state.freq.fHz, d.name).toBeGreaterThan(40); expect(o.state.freq.fHz, d.name).toBeLessThan(52);
+        res.set(`${d.c}/${d.k}/${d.g}/${d.r}`, o.track.nadirHz!);
+      }
+      for (const [key, v] of res) {
+        const [c, k, g, r] = key.split('/').map(Number) as [number, number, number, number];
+        for (const nxt of [`${c === 0 ? 2 : c}/${k}/${g}/${r}`, `${c}/${k === 0 ? 2 : k}/${g}/${r}`, `${c}/${k}/${g === 0 ? 4 : g === 4 ? 8 : g}/${r}`, `${c}/${k}/${g}/1`]) {
+          const w = res.get(nxt); if (w !== undefined && v >= 47.5) expect(w, `${key} -> ${nxt}`).toBeGreaterThanOrEqual(v - 0.005);
+        }
+      }
+    });
+  }
+});
+
+describe('L21 is winnable with the controls the card shows', () => {
+  it('two coal units held and ten grid-forming batteries placed (no per-battery setting) earn three stars at the reference price', () => {
+    const acts: Action[] = [...coalHold(2), ...Array.from({ length: 10 }, () => ({ name: 'placeStorage', args: ['B1', 'bess-gfm-50'] }) as Action)];
+    for (const region of ['global', 'in']) { const o = runDesign(specOf('L21')!, region, acts); expect(o.status, o.reason).toBe('won'); expect(o.stars).toBe(3); if (region === 'global') { near(o.track.nadirHz!, 49.613, 0.01); near(o.capex, 298.3e6, 0.2e6); } }
   });
 });
