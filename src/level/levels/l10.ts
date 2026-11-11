@@ -12,6 +12,8 @@ import type { GridState } from '../../types';
 export const ASSIGN = {
   none: 'a'.repeat(18), rr: 'abcabcabcabcabcabc', ab: 'ab'.repeat(9), kw: 'ccabaccababbabcbac', kva: 'bbaaabcbcaccaccbab', min: 'cabacacaaabacaabaa',
   top6: 'babaaabaaacacaacaa', top8: 'babacababacacaacaa', bypole: 'bcacabacbbacabcacb', revrr: 'cbacbacbacbacbacba',
+  // the kVA greedy over only the heaviest N houses (the small ones stay on a): 8 to 11 crew visits, the designs a player reaches by hand
+  k9: 'babacacaaabacaacab', k11: 'aabaaacacababbacac', k12: 'aabaabcacbbabaacac', k16: 'babbcaaaabccacacbb', k17: 'cabbcaaabbacbcacba',
 } as const;
 export const assignActions = (a: string): Action[] => [...a].flatMap((p, i) => (p === 'a' ? [] : [{ name: 'assignPhase', args: [`H${i + 1}`, p] }]));
 const run = (s: Readonly<GridState>): boolean => s.tick > s.levelStart;
@@ -39,7 +41,7 @@ export const L10: GridLevelSpec = {
   reference: assignActions(ASSIGN.min),
   // frozen from the bot population (src/level/population.ts); tools/oracles/ch4_oracles.py replays the street independently; level.test.ts fails on drift > 2 %
   // frozen from the bot population (src/level/population.ts); tools/oracles/ch4_oracles.py replays the circuit independently; level.test.ts fails on drift > 2 %
-  frozen: { global: { budget: 1200, starA: 850, starB: 633.25 }, in: { budget: 11000, starA: 7650, starB: 5699.25 } },
+  frozen: { global: { budget: 1200, starA: 765, starB: 680 }, in: { budget: 11000, starA: 6885, starB: 6120 } },
   coach: [
     { id: 'read', textKey: 'coach.L10.read', whyKey: 'coach.L10.read.why', done: (s) => phases(s).some((p) => p !== 'a') },
     { id: 'balance', textKey: 'coach.L10.balance', whyKey: 'coach.L10.balance.why', done: (s) => (live(s)?.iNpct ?? 100) <= (s.ch4?.limits.neutralMaxPct ?? 20) },

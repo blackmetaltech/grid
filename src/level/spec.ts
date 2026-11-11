@@ -150,7 +150,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
 export function makeLevel(spec: GridLevelSpec): Level<GridState> {
   const solver: PersonaFactory<GridState> = () => {
     let done = false;
-    return () => { if (done) return []; done = true; return spec.reference; };
+    return (s) => { if (done) return []; done = true; return spec.byRegion?.[(s as Readonly<GridState>).region]?.reference ?? spec.reference; };   // a pack may have its own reference (L28 in `in`: the national tie makes the line the cheapest pass)
   };
   return {
     id: spec.id, title: t(spec.titleKey), brief: t(spec.briefKey), concepts: spec.concepts,

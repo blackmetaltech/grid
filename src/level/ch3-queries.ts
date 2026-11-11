@@ -79,7 +79,7 @@ export function ch3TryHint(s: GridState): string {
   const pct = Math.round(Math.max(tr.peakLoading ?? 0, 0) * 100);
   const banks = s.shunts.filter((h) => h.kind === 'cap'), load = s.loads[0]?.bus;
   const whyBank = banks.length === 0 ? t('level.L07.tryNoBank') + ' ' : banks.every((h) => h.bus !== load) ? t('level.L07.tryBankWrong', { bus: banks[0]!.bus }) + ' ' : (tr.peakBankMVAr ?? 0) <= 1e-9 ? t('level.L07.tryBankOut') + ' ' : '';
-  if (whyBank && (key === 'level.lost.blackout' || (tr.overloadTrips ?? 0) > 0 || key.startsWith('level.lost.poorSupply'))) return whyBank + t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2((tr.peakLoadMW ?? 1.7) * (tan((tr.peakLoadMW ?? 1.7) / Math.hypot(tr.peakLoadMW ?? 1.7, tr.peakLoadMVAr ?? 1.4)) - tan(0.95))) });
+  if (whyBank && (key === 'level.lost.blackout' || (tr.overloadTrips ?? 0) > 0 || key.startsWith('level.lost.poorSupply'))) return whyBank + t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2((tr.peakLoadMW ?? 1.7) * (tan((tr.peakLoadMW ?? 1.7) / dmath.hypot(tr.peakLoadMW ?? 1.7, tr.peakLoadMVAr ?? 1.4)) - tan(0.95))) });
   if ((tr.overloadTrips ?? 0) > 0 || key === 'level.lost.blackout') {
     const pl = tr.peakLoadMW ?? 1.7, pf = tr.peakLoadMW ? pl / dmath.hypot(pl, tr.peakLoadMVAr ?? 0) : 0.77;
     return t('level.L07.tryOverload', { pct, time: hhmm(tr.peakBlock ?? 80), qc: f2(pl * (tan(pf) - tan(0.95))) });
