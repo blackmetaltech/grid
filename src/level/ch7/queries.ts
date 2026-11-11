@@ -42,7 +42,9 @@ export function buildCh7Queries(): Record<string, QueryFn<GridState>> {
       if (c.id === 'L23') {
         const d = c.l23!, st = studyL23(d), f = st.fault;
         return {
-          ...base, design: d, ratingKA: d.rating, n1: { secure: st.n1Secure, vPu: r3(st.n1VPu) }, preGensKA: r1(preGensKA()), gens: SC.l23.gen.count,
+          ...base, design: d, ratingKA: d.rating,
+          givens: { baseMVA: SC.l23.baseMVA, kv: SC.l23.kv, gridMVA: SC.l23.gridSscMVA, gridZ: r3(SC.l23.baseMVA / SC.l23.gridSscMVA), xfmrMVA: SC.l23.xfmr.mva, uk: d.uk, xfmrZ: r3((d.uk / 100) * SC.l23.baseMVA / SC.l23.xfmr.mva), genMVA: SC.l23.gen.mva, xdd: SC.l23.gen.xdd, genZ: r3(SC.l23.gen.xdd * SC.l23.baseMVA / SC.l23.gen.mva), kaPerPu: r3(SC.l23.baseMVA / (Math.sqrt(3) * SC.l23.kv)), reactor: d.reactor, coupler: d.coupler },
+          n1: { secure: st.n1Secure, vPu: r3(st.n1VPu) }, preGensKA: r1(preGensKA()), gens: SC.l23.gen.count,
           // the prediction stays hidden until the run: fault kA, MVA, impedance and the duty table
           ...(revealed ? { faultKA: r2(f.threePhKA), faultMVA: Math.round(f.mva), zthPu: r3(f.zth), ok: st.ok, dutyRatio: r3(st.dutyRatio), duty: f.duty.map((x) => ({ id: x.id, role: x.role, kA: r2(x.kA), over: x.kA > d.rating })), sequence: st.sequence.map((e) => ({ ...e, tS: r3(e.tS) })), ensMWh: Math.round(st.ensMWh) } : {}),
         };
@@ -87,7 +89,9 @@ export function buildCh7Queries(): Record<string, QueryFn<GridState>> {
       const d = c.l27!, st = studyL27(d), engineer = s.mode === 'engineer';
       const qs = examQuestions(engineer);
       return {
-        ...base, design: d, ratings: SC.l27.breakerRatingsKA, units: SC.l27.ed.units, demandMW: SC.l27.ed.demandMW,
+        ...base, design: d, ratings: SC.l27.breakerRatingsKA,
+        givens: { ps17: SC.l27.textbook.ps17, ps18: SC.l27.textbook.ps18, ps24: SC.l27.textbook.ps24, units: SC.l27.ed.units, demandNoLimitsMW: SC.l27.ed.demandNoLimitsMW, demandMW: SC.l27.ed.demandMW, tonightH: SC.l27.ed.tonightH, ps22: SC.l27.textbook.ps22 },
+        units: SC.l27.ed.units, demandMW: SC.l27.ed.demandMW,
         questions: qs.map((q) => { const p = s.metrics.predictions.find((x) => x.id === q.id); return { id: q.id, unitKey: q.unitKey, predicted: p ? p.predicted : null, ...(revealed ? { actual: Number(q.actual.toFixed(q.dp)), within: p ? Math.abs((p.predicted - q.actual) / q.actual) * 100 <= SC.l27.predictTolPct : false } : {}) }; }),
         ...(revealed ? { boardKA: { threePh: r2(st.boardKA.threePh), slg: r2(st.boardKA.slg) }, ratingOk: st.ratingOk, dispatch: { sumMW: r1(st.dispatch.sumMW), costPerH: r2(st.dispatch.costPerH), optCostPerH: r2(st.dispatch.optCostPerH), ok: st.dispatch.ok } } : {}),
       };

@@ -2,8 +2,17 @@ class_name Ch7Strings
 extends RefCounted
 ## Chapter 7 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C7_.
 const S := {
-	"C7_SPENT": "%s of %s", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
-	"C7_FN_ps17": "formula: I = V / Z_th, then kA = pu x base MVA / (1.732 x kV)", "C7_FN_ps18": "formula: I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "formula: equal lambda, no limits (sum P = demand)", "C7_FN_ps21": "formula: equal lambda, then fix units at their limits", "C7_FN_ps24": "formula: equal-area, t = sqrt(4H (d_cr - d_0) / (w P_m))",
+	"C7_SPENT": "%s of %s", "C7_HIDE_NOTE": "The formulas are hidden: try the numbers from the givens first.",
+	"C7_GIV_CAP": "GIVENS (everything you need)", "C7_GIV_BASE": "Base %d MVA, %d kV: 1 pu of current = %s kA.", "C7_GIV_GRID": "Grid at 132 kV: fault level %d MVA, so Z = %s pu.", "C7_GIV_T": "Each of 2 transformers: %d MVA, Z = %s %%, so Z = %s pu.",
+	"C7_GIV_G": "Each of 2 generators: %s MVA, X''d = %s, so Z = %s pu.", "C7_GIV_COUPLER": "Coupler %s%s.", "C7_GIV_CHAIN": "Think: the grid and its transformer are one source branch, each generator another. Z_th = all branches in parallel at the busbar; I_f = 1 / Z_th pu, then x kA per pu.",
+	"C7_GIV_R": ", reactor %s pu",
+	"C7_G27_A": "Faults (100 MVA base, pre-fault V = 1.0 pu): gen X''d %s, X2 %s, X0 %s (blocked by the delta); transformer X = %s; line X1 = %s ohm, X0 = %s ohm at %d kV.", "C7_G27_A2": "3-phase at the line end: Z1 = gen + T + line. SLG: Z1 + Z2 + Z0, with the line X0 and the transformer X0 = its X.",
+	"C7_G27_B": "Unit %d: C = %s + %s P + %s P^2 ($/h), %d to %d MW.", "C7_G27_B2": "Lambda no limits: demand %d MW, ignore the limits. Lambda with limits: demand %d MW, clip each unit to its range, then re-solve the rest.",
+	"C7_G27_C": "Swing at %d Hz: H = %s s, P_m = %s pu, P_max = %s pu before and after, a terminal fault (P during = 0). delta_0 = asin(P_m / P_max); the critical angle comes from equal areas.",
+	"C7_G27_D": "Grown board: the L23 board plus one more 80 MVA transformer and one more 31.25 MVA generator, coupler closed. Rate for the larger of the 3-phase and the SLG fault.",
+	"C7_WO_L27_1": "Breakers rated at least the larger of the 3-phase and the SLG fault of the grown board", "C7_WO_L27_2": "Tonight's dispatch adds up to 1000 MW with every unit inside its limits", "C7_WO_L27_3": "A prediction written before you run",
+	"C7_LAMP_L27_2": "Right-sized breakers and a near-optimal dispatch", "C7_LAMP_L27_3": "The least-cost dispatch (equal lambda) and 4 of 5 predictions within 2 %", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
+	"C7_FN_ps17": "I = V/Z_th; kA = pu x base/(1.73 kV)", "C7_FN_ps18": "I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "equal lambda, no limits", "C7_FN_ps21": "equal lambda, then clip to limits", "C7_FN_ps24": "t = sqrt(4H(d_cr-d_0)/(w P_m))",
 	"C7_G24_PICK": "Pickup (I_s): the current at which the relay starts timing; keep it above 1.25 x the load.", "C7_G24_TMS": "TMS: the time multiplier, a dial that slides the whole curve up (slower) or down (faster).", "C7_G24_CT": "CT: the current transformer that feeds the relay; pickup is a % of its rating.",
 	"C7_G24_CURVE": "SI (standard inverse): gentle, good for grading many relays. VI/EI (very/extremely inverse): faster at big currents, good for burn limits.",
 	"C7_G25_TARGET": "Target: clear in under %d ms (the critical clearing time).", "C7_G25_Z1": "Zone 1: trips a fault on the first 80 % of the line at once (30 ms).", "C7_G25_Z2": "Zone 2: reaches 120 % of the line but waits 350 ms for the next relay to act first.", "C7_G25_IDMT": "Inverse-time: the bigger the current, the faster it trips; TMS slides the curve.",

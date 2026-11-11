@@ -61,6 +61,8 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		var c3: Dictionary = rules.ch3
 		if c3.get("harmonics") is Dictionary: out.append(T("C3_WO_DRIVES"))
 		if c3.get("fault") is Dictionary: out.append(T("C3_WO_FAULT") % _hm(float((c3.fault as Dictionary).block) * 15.0))
+	if str(li.get("id", "")) == "L27":   # chapter 7 exam: the real pass conditions
+		for k in ["C7_WO_L27_1", "C7_WO_L27_2", "C7_WO_L27_3"]: out.append(T(k))
 	var fz = li.get("frozen")
 	if fz is Dictionary and float(fz.budget) > 0.0: out.append(T("WO_COND_BUDGET") % CbRegion.money(float(fz.budget), false, 0))   # a level without a build budget (score levels L24/L26, the exam bridges) has no spend line
 	return out
@@ -68,6 +70,7 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 ## The three lamp captions: pass, cost star A, cost star B plus the extra third-star conditions. Empty when the job awards no stars.
 static func lamp_texts(li: Dictionary) -> Array:
 	if not bool(li.get("stars", false)): return []
+	if str(li.get("id", "")) == "L27": return [T("LAMP_1"), T("C7_LAMP_L27_2"), T("C7_LAMP_L27_3")]   # chapter 7 exam: say what the stars mean
 	var fz = li.get("frozen")
 	var l2 := T("LAMP_NO_COST"); var l3 := T("LAMP_NO_COST")
 	if fz is Dictionary:

@@ -79,13 +79,19 @@ func _draw_stage() -> void:
 		_text(_mono(), 10, Vector2(r.position.x + 14.0, gy2), T(g), Color(GridTheme.TEXT, 0.6)); gy2 += 15.0
 	# right: the table of who breaks what, and N-1
 	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), tr)
-	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE"), Color(GridTheme.TEXT, 0.7))
+	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE") if _revealed() else T("C7_GIV_CAP"), Color(GridTheme.TEXT, 0.7))
 	if _revealed():
 		_text(_mono(), 11, tr.position + Vector2(12, 38), T("C7_ZTH") % WorkOrder.num(float(q.zthPu)), Color(GridTheme.TEXT, 0.8))
 		var y := tr.position.y + 60.0
 		for d in q.duty:
 			_text(_mono(), 12, Vector2(tr.position.x + 12, y), "%s  %s kA" % [str(d.id), WorkOrder.num(float(d.kA))], GridTheme.BAD if bool(d.over) else GridTheme.TEXT)
 			y += 18.0
-	else: _text(_mono(), 12, tr.position + Vector2(12, 44), T("C7_HIDDEN"), GridTheme.DIM)
+	else:
+		var g: Dictionary = q.givens; var y2 := tr.position.y + 44.0
+		var lines := [T("C7_GIV_BASE") % [int(g.baseMVA), int(g.kv), WorkOrder.num(g.kaPerPu)], T("C7_GIV_GRID") % [int(g.gridMVA), WorkOrder.num(g.gridZ)], T("C7_GIV_T") % [int(g.xfmrMVA), WorkOrder.num(g.uk), WorkOrder.num(g.xfmrZ)],
+			T("C7_GIV_G") % [WorkOrder.num(g.genMVA), WorkOrder.num(g.xdd), WorkOrder.num(g.genZ)], T("C7_GIV_COUPLER") % [T("C7_OPEN") if str(g.coupler) == "open" else T("C7_CLOSED"), (T("C7_GIV_R") % WorkOrder.num(g.reactor)) if float(g.reactor) > 0.0 and str(g.coupler) != "open" else ""]]
+		for ln in lines:
+			draw_multiline_string(_mono(), Vector2(tr.position.x + 12, y2 + 12.0), ln, HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 24.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.85)); y2 += 34.0
+		draw_multiline_string(_mono(), Vector2(tr.position.x + 12, y2 + 18.0), T("C7_GIV_CHAIN"), HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 24.0, GridTheme.fs(11), -1, GridTheme.SODIUM)
 	var n1: Dictionary = q.n1; var sec := bool(n1.secure) and float(n1.vPu) >= 0.94
 	_text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))
