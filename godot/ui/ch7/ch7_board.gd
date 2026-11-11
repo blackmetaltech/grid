@@ -25,6 +25,7 @@ func _layout_panel() -> void:
 	var e: LineEdit = edits["faultKA"]; e.position = Vector2(inner.position.x + 300.0, inner.position.y + 84.0); e.size = Vector2(84, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
+	if str(h.id) == "fold": folded = not folded; layout(); queue_redraw(); return
 	match str(h.id):
 		"rating": _act("setBreakerRating", [float(h.arg)])
 		"coupler": _act("setBusCoupler", [str(h.arg) == "open"])
@@ -41,7 +42,7 @@ func _draw_panel_body() -> void:
 		_text(_mono(), 14, inner.position + Vector2(260, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
+	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
 	var r := Rect2(Vector2(30.0, top), Vector2(minf(w * 0.58, 760.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	var cx := r.position.x + r.size.x * 0.5; var gy := r.position.y + 28.0; var by := r.position.y + bh * 0.56
 	var ax := cx - r.size.x * 0.22; var bx := cx + r.size.x * 0.22
@@ -78,8 +79,9 @@ func _draw_stage() -> void:
 		draw_colored_polygon(PackedVector2Array([bp + Vector2(-6, -8), bp + Vector2(4, -8), bp + Vector2(-2, 2), bp + Vector2(8, 2), bp + Vector2(-8, 18), bp + Vector2(-2, 5), bp + Vector2(-8, 5)]), Color(GridTheme.WARN, pulse))
 		if dark: _text(_semi(), 22, Vector2(r.position.x, r.position.y + 24), T("C7_ESTATE_DARK"), GridTheme.BAD, r.size.x, 1)
 	var gy2 := r.end.y - 52.0
-	for g in ["C7_GLOSS_IF", "C7_GLOSS_PU", "C7_GLOSS_REACTOR"]:
-		_text(_mono(), 10, Vector2(r.position.x + 14.0, gy2), T(g), Color(GridTheme.TEXT, 0.6)); gy2 += 15.0
+	if not _phone():
+		for g in ["C7_GLOSS_IF", "C7_GLOSS_PU", "C7_GLOSS_REACTOR"]:
+			_text(_mono(), 10, Vector2(r.position.x + 14.0, gy2), T(g), Color(GridTheme.TEXT, 0.6)); gy2 += 15.0
 	# right: the table of who breaks what, and N-1
 	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), tr)
 	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE") if _revealed() else T("C7_GIV_CAP"), Color(GridTheme.TEXT, 0.7))
@@ -90,11 +92,15 @@ func _draw_stage() -> void:
 			_text(_mono(), 12, Vector2(tr.position.x + 12, y), "%s  %s kA" % [str(d.id), WorkOrder.num(float(d.kA))], GridTheme.BAD if bool(d.over) else GridTheme.TEXT)
 			y += 18.0
 	else:
-		var g: Dictionary = q.givens; var y2 := tr.position.y + 44.0
+		var g: Dictionary = q.givens
 		var lines := [T("C7_GIV_BASE") % [int(g.baseMVA), int(g.kv), WorkOrder.num(g.kaPerPu)], T("C7_GIV_GRID") % [int(g.gridMVA), WorkOrder.num(g.gridZ)], T("C7_GIV_T") % [int(g.xfmrMVA), WorkOrder.num(g.uk), WorkOrder.num(g.xfmrZ)],
 			T("C7_GIV_G") % [WorkOrder.num(g.genMVA), WorkOrder.num(g.xdd), WorkOrder.num(g.genZ)], T("C7_GIV_COUPLER") % [T("C7_OPEN") if str(g.coupler) == "open" else T("C7_CLOSED"), (T("C7_GIV_R") % WorkOrder.num(g.reactor)) if float(g.reactor) > 0.0 and str(g.coupler) != "open" else ""]]
-		for ln in lines:
-			draw_multiline_string(_mono(), Vector2(tr.position.x + 12, y2 + 12.0), ln, HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 24.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.85)); y2 += 34.0
-		draw_multiline_string(_mono(), Vector2(tr.position.x + 12, y2 + 18.0), T("C7_GIV_CHAIN"), HORIZONTAL_ALIGNMENT_LEFT, tr.size.x - 24.0, GridTheme.fs(11), -1, GridTheme.SODIUM)
+		var cl := []
+		for ln in lines: cl.append([ln, Color(GridTheme.TEXT, 0.85)])
+		cl.append([T("C7_GIV_CHAIN"), GridTheme.SODIUM])
+		if _phone():
+			var n1p: Dictionary = q.n1; var secp := bool(n1p.secure) and float(n1p.vPu) >= 0.94
+			cl.append([(T("C7_N1_OK") % WorkOrder.num(float(n1p.vPu))) if secp else T("C7_N1_BAD"), _good(secp)])
+		_card_text(tr, cl, 11, 8.0, 36.0)
 	var n1: Dictionary = q.n1; var sec := bool(n1.secure) and float(n1.vPu) >= 0.94
-	_text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))
+	if not (_phone() and not _revealed()): _text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))

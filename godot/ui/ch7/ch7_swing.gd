@@ -18,13 +18,14 @@ func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var ids := _relay_ids(); var cw := minf(78.0, (inner.size.x - 40.0) / maxf(ids.size(), 1.0))
 	var labs := []
 	for i in ids: labs.append(str(i).replace("idmt-", "").replace("dist-", "").replace("si-", "SI ").replace("ei-", "EI ").replace("z1", "zone 1").replace("z2", "zone 2"))
-	_chip_row(inner.position.x, inner.position.y + 20.0, cw, 40.0, 4.0, labs, "relay", ids, str(q.design.relay))
-	var y := inner.position.y + 76.0
-	_chip_row(inner.position.x, y + 8.0, 52.0, 36.0, 5.0, ["2", "3", "5"], "cycles", [2.0, 3.0, 5.0], q.design.cycles)
-	_chip_row(inner.position.x + 190.0, y + 8.0, 62.0, 36.0, 5.0, [T("C7_OFF"), "on"], "reclose", [false, true], q.design.reclose)
+	_chip_row(inner.position.x, inner.position.y + 20.0, cw, (40.0 if not _phone() else 30.0), 4.0, labs, "relay", ids, str(q.design.relay))
+	var y := inner.position.y + (76.0 if not _phone() else 64.0)
+	_chip_row(inner.position.x, y + 8.0, 52.0, (36.0 if not _phone() else 30.0), 5.0, ["2", "3", "5"], "cycles", [2.0, 3.0, 5.0], q.design.cycles)
+	_chip_row(inner.position.x + 190.0, y + 8.0, 62.0, (36.0 if not _phone() else 30.0), 5.0, [T("C7_OFF"), "on"], "reclose", [false, true], q.design.reclose)
 	var e: LineEdit = edits["deltaCrDeg"]; e.position = Vector2(inner.position.x + 440.0, y + 6.0); e.size = Vector2(84, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
+	if str(h.id) == "fold": folded = not folded; layout(); queue_redraw(); return
 	match str(h.id):
 		"relay": _act("setRelayType", [str(h.arg)])
 		"cycles": _act("setBreakerCycles", [int(h.arg)])
@@ -33,16 +34,16 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_RELAY_CAP2"), Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 10, inner.position + Vector2(0, 76), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 76), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 10, inner.position + Vector2(440, 76), T("C7_PREDICT_DCR"), GridTheme.SODIUM)
-	_text(_mono(), 11, inner.position + Vector2(0, 138), T("C7_VS") % [int(q.clearMs), int(q.tCrMs)], _good(int(q.clearMs) <= int(q.tCrMs)))
-	_text(_mono(), 10, inner.position + Vector2(0, 152), T("C7_CLEAR_SUM") % [int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], Color(GridTheme.TEXT, 0.7))
+	_text(_semi(), 10, inner.position + Vector2(0, 76 if not _phone() else 64), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 76 if not _phone() else 64), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
+	_text(_semi(), 10, inner.position + Vector2(440, 76 if not _phone() else 64), T("C7_PREDICT_DCR"), GridTheme.SODIUM)
+	_text(_mono(), 11, inner.position + Vector2(0, 138 if not _phone() else 128), T("C7_VS") % [int(q.clearMs), int(q.tCrMs)], _good(int(q.clearMs) <= int(q.tCrMs)))
+	_text(_mono(), 10, inner.position + Vector2(0, 152 if not _phone() else 146), T("C7_CLEAR_SUM") % [int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], Color(GridTheme.TEXT, 0.7))
 	if _revealed():
 		var ok := bool(q.stable)
 		_text(_mono(), 12, inner.position + Vector2(300, 152), (T("C7_TCR") % int(q.tCrMs)) + "   " + (T("C7_MARGIN_MS") % int(q.marginMs)), _good(ok))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
+	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
 	var pw := minf(w * 0.55, 640.0); var r := Rect2(Vector2(30.0, top), Vector2(pw, bh))
 	_frame(r, 0.0, 180.0, 0.0, 2.0, false, false, "delta, deg", T("C7_PDELTA"))
 	var c: Dictionary = q.curves
@@ -81,11 +82,9 @@ func _draw_stage() -> void:
 		_text(_semi(), 20, Vector2(sr.position.x, sr.end.y - 40.0), T("C7_STABLE") if bool(q.stable) else T("C7_SLIPS"), _good(bool(q.stable)), sr.size.x, 1)
 	else:
 		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), sr); _text(_mono(), 12, sr.position + Vector2(14, 28), T("C7_HIDDEN"), GridTheme.DIM)
-		_text(_mono(), 12, sr.position + Vector2(14, 52), T("C7_G25_TARGET") % int(q.tCrMs), GridTheme.SODIUM)
-		var gy: float = sr.position.y + 80.0
-		for g in ["C7_G25_Z1", "C7_G25_Z2", "C7_G25_IDMT"]:
-			draw_multiline_string(_mono(), Vector2(sr.position.x + 14.0, gy), T(g), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75)); gy += 34.0
-		draw_multiline_string(_mono(), sr.position + Vector2(14, gy + 10.0), T("C7_GLOSS_PM"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(12), -1, Color(GridTheme.TEXT, 0.75))
+		var cl := [[T("C7_G25_TARGET") % int(q.tCrMs), GridTheme.SODIUM]]
+		for g in ["C7_G25_Z1", "C7_G25_Z2", "C7_G25_IDMT", "C7_GLOSS_PM"]: cl.append([T(g), Color(GridTheme.TEXT, 0.75)])
+		_card_text(sr, cl, 11, 8.0, 40.0)
 
 func _interp(pts: Array, d: float) -> float:
 	for i in range(1, pts.size()):

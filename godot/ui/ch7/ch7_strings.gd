@@ -2,7 +2,7 @@ class_name Ch7Strings
 extends RefCounted
 ## Chapter 7 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C7_.
 const S := {
-	"C7_SPENT": "%s of %s", "C7_PREVIEW_NONE": "the plants appear after Run (hydro and solar are fixed for the day)", "C7_UNIT_MW": "MW", "C7_VS": "clears at %d ms vs target %d ms", "C7_PREVIEW": "preview: solar and hydro only; the other plants appear after Run",
+	"C7_SPENT": "%s of %s", "C7_PANEL": "Chapter 7 controls", "C7_PREVIEW_NONE": "the plants appear after Run (hydro and solar are fixed for the day)", "C7_UNIT_MW": "MW", "C7_VS": "clears at %d ms vs target %d ms", "C7_PREVIEW": "preview: solar and hydro only; the other plants appear after Run",
 	"C7_Z": "Z = %s pu", "C7_T1": "T1, T2: Z = %s pu each", "C7_G27_GLOSS": "pu: a fraction of the 100 MVA base. X''d: the generator's sub-transient reactance, how hard it feeds a fault (pu). P_m: turbine power (pu). P_max: the most electrical power the network can carry (pu). delta_0: the rotor's starting angle (deg). lambda: the price of the next MWh ($/MWh).",
 	"C7_LEG_TOTALS": "total clearing time %s s", "C7_LEG_SPARE": "spare over the 0.3 s interval: %s s", "C7_HIDE_NOTE": "The formulas are hidden: try the numbers from the givens first.",
 	"C7_GIV_CAP": "GIVENS (everything you need)", "C7_GIV_BASE": "Base %d MVA, %d kV: 1 pu of current = %s kA.", "C7_GIV_GRID": "Grid at 132 kV: fault level %d MVA, so Z = %s pu.", "C7_GIV_T": "Each of 2 transformers: %d MVA, Z = %s %%, so Z = %s pu.",

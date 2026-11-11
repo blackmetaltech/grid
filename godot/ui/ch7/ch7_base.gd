@@ -40,6 +40,7 @@ func _prompt_style(e: LineEdit) -> void:
 func refresh(st: Dictionary, k: Dictionary) -> void:
 	super.refresh(st, k)
 	_after_refresh()
+	if _phone() and folded: for e in edits.values(): (e as LineEdit).visible = false
 
 func _after_refresh() -> void: pass
 func _revealed() -> bool: return bool(q.get("revealed", false))
@@ -87,10 +88,55 @@ func _poly(pts: Array, col: Color, wd := 2.0) -> void:
 	if a.size() > 1: draw_polyline(a, col, wd, true)
 
 var rows: Array = []   ## chip rows recorded by _layout_panel, drawn after the panel body
+var folded := false    ## phone only: the panel collapsed to its title row so the stage can be reached
+var scroll := 0.0      ## phone: vertical drag-scroll offset of the stage's text cards
+var scroll_max := 0.0
+
+func _phone() -> bool: return CbLayout.kind == "phone"
+func _stage_top() -> float: return 128.0 if _phone() else 150.0
+func _stage_h(minh: float) -> float: return maxf(panel.position.y - _stage_top() - 10.0, 150.0 if _phone() else minh)
+
+## Draw `lines` ([text, color] pairs) wrapped in `r`, shifted by the scroll offset on a phone; lines that would cross the card edge are left out (a drag scrolls them in).
+func _card_text(r: Rect2, lines: Array, fsz: int, gap: float, top_pad: float) -> void:
+	var f := _mono(); var fs := GridTheme.fs(fsz); var y := r.position.y + top_pad - (scroll if _phone() else 0.0); var total := 0.0
+	for ln in lines:
+		var h: float = f.get_multiline_string_size(str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs).y
+		if y >= r.position.y + top_pad - 1.0 and y + h <= r.end.y - 6.0: draw_multiline_string(f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
+		y += h + gap; total += h + gap
+	scroll_max = maxf(0.0, total - (r.size.y - top_pad - 8.0))
+	if _phone() and scroll_max > 0.0: _text(_mono(), 9, Vector2(r.end.x - 90.0, r.end.y - 8.0), "drag to scroll", Color(GridTheme.TEXT, 0.4))
+
+func _gui_input(e: InputEvent) -> void:
+	if visible and _phone():
+		if e is InputEventMouseMotion and (e.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 and drag_id == "" and hit_at(e.position).is_empty() and scroll_max > 0.0:
+			scroll = clampf(scroll - e.relative.y, 0.0, scroll_max); queue_redraw(); accept_event(); return
+		if e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP):
+			scroll = clampf(scroll + (24.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else -24.0), 0.0, scroll_max); queue_redraw(); accept_event(); return
+	super._gui_input(e)
+
+var _last_slot := Rect2()
+
+## The tray slot moves when the window or the phone insets settle: lay out again whenever it does (the chip rows are recorded at layout time).
+func _process(dt: float) -> void:
+	super._process(dt)
+	if not visible or app == null: return
+	var ch = app.get("chrome")
+	if ch != null:
+		var sl: Rect2 = ch.tray_rect()
+		if sl != _last_slot: _last_slot = sl; layout()
+
+func _draw() -> void:
+	if visible and app != null: layout()   # the chip rows and boxes are recorded at layout time: lay out against the panel that is drawn now
+	super._draw()
 
 func layout() -> void:
 	rows.clear()
 	super.layout()
+	if _phone() and visible:
+		if folded:   # only the title row stays: tap it to open the panel again
+			var slot_end := panel.end.y; panel = Rect2(Vector2(panel.position.x, slot_end - 34.0), Vector2(panel.size.x, 34.0)); hits.clear(); rows.clear()
+			for e in edits.values(): (e as LineEdit).visible = false
+		hits.append({"rect": Rect2(panel.position + Vector2(panel.size.x - 150.0, 0.0), Vector2(150.0, 34.0)), "kind": "chip", "id": "fold", "arg": ""})
 
 func _chip_row(x: float, y: float, w: float, h: float, gap: float, labels: Array, id: String, args: Array, on_arg) -> void:
 	for k in labels.size():
@@ -98,7 +144,11 @@ func _chip_row(x: float, y: float, w: float, h: float, gap: float, labels: Array
 		rows.append({"r": r, "label": str(labels[k]), "on": str(args[k]) == str(on_arg), "id": id, "arg": args[k]})
 
 func _draw_panel() -> void:
+	if _phone() and folded:
+		draw_style_box(GridTheme.ink_sb(0.94, 10, 0.0), panel); _text(_semi(), 12, panel.position + Vector2(12.0, 22.0), T("C7_PANEL") + "  (%s)" % scenario, Color(GridTheme.TEXT, 0.85)); _text(_semi(), 14, panel.position + Vector2(panel.size.x - 40.0, 23.0), "▸", GridTheme.SODIUM)
+		return
 	super._draw_panel()
+	if _phone(): _text(_semi(), 14, panel.position + Vector2(panel.size.x - 40.0, 23.0), "▾", GridTheme.SODIUM)
 	for c in rows: _chip(c.r, c.label, "", c.on, c.id, c.arg)
 
 ## The price tag, with a caption that says what the number is: the starting kit (the build the level begins with) is already on the bill.

@@ -30,16 +30,19 @@ func _after_refresh() -> void:
 		var e: LineEdit = edits["disp%d" % k]; e.visible = true; e.editable = not _locked()
 		if not e.has_focus(): e.text = WorkOrder.num(float(q.design.dispatch[k]))
 
+func _row() -> float: return 30.0 if _phone() else 40.0
+
 func _layout_panel() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0)); var rs := []; var ra := []
 	for r in kit.get("ratings", []): rs.append(WorkOrder.num(float(r.kA))); ra.append(float(r.kA))
 	_chip_row(inner.position.x, inner.position.y + 20.0, 56.0, 40.0, 5.0, rs, "rating", ra, q.design.rating)
-	_add_chip(Rect2(Vector2(32.0, 420.0), Vector2(150, 30)), "card", "")
-	rows.append({"r": Rect2(Vector2(32.0, 420.0), Vector2(150, 30)), "label": T("C7_HIDE") if show_card else T("C7_SHOW"), "on": show_card, "id": "card", "arg": ""})
+	if not _phone(): _add_chip(Rect2(Vector2(32.0, 420.0), Vector2(150, 30)), "card", "")
+	if not _phone(): rows.append({"r": Rect2(Vector2(32.0, 420.0), Vector2(150, 30)), "label": T("C7_HIDE") if show_card else T("C7_SHOW"), "on": show_card, "id": "card", "arg": ""})
 	for k in 3:
 		var e: LineEdit = edits["disp%d" % k]; e.position = Vector2(inner.position.x + 340.0 + 90.0 * k, inner.position.y + 26.0); e.size = Vector2(80, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
+	if str(h.id) == "fold": folded = not folded; layout(); queue_redraw(); return
 	if str(h.id) == "card": show_card = not show_card; layout(); queue_redraw(); return
 	if str(h.id) == "rating": _act("setBreakerRating", [float(h.arg)])
 
@@ -55,36 +58,35 @@ func _draw_panel_body() -> void:
 		_text(_mono(), 12, inner.position + Vector2(0, 84), T("C7_BOARD_KA") % [WorkOrder.num(float(q.boardKA.threePh)), WorkOrder.num(float(q.boardKA.slg))], _good(bool(q.ratingOk)))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 240.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(minf(w - 60.0, 800.0), 250.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	var w := size.x; var top := _stage_top(); var bh := _stage_h(240.0)
+	var r := Rect2(Vector2(30.0, top), Vector2(minf(w - 60.0, 800.0) if not _phone() else minf(w * 0.52, 620.0), 250.0 if not _phone() else 5.0 * _row() + 44.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	_text(_semi(), 12, r.position + Vector2(14, 22), T("C7_EXAM"), Color(GridTheme.TEXT, 0.75))
-	var y := r.position.y + 46.0; var i := 0
+	var y := r.position.y + (46.0 if not _phone() else 30.0); var i := 0
 	for qq in q.questions:
 		var id := str(qq.id)
 		_text(_mono(), 12, Vector2(r.position.x + 14, y + 20), T("C7_Q_" + id), GridTheme.TEXT)
 		if edits.has(id):
-			var e: LineEdit = edits[id]; e.position = Vector2(r.position.x + 330, y + 2); e.size = Vector2(90, 30)
+			var e: LineEdit = edits[id]; e.position = Vector2(r.position.x + 330, y + 2 if not _phone() else y - 1); e.size = Vector2(90, 30 if not _phone() else 26)
 		if _revealed() and qq.get("actual") != null:
-			var ok := bool(qq.get("within", false)); _text(_mono(), 13, Vector2(r.position.x + 480, y + 24), (T("C7_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗"), _good(ok))
+			var ok := bool(qq.get("within", false)); _text(_mono(), 13, Vector2(r.position.x + (480 if not _phone() else 466), y + 24 if not _phone() else y + 19), (T("C7_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗"), _good(ok))
 		_text(_mono(), 12, Vector2(r.position.x + 428, y + 20), str(UNITS[id]) if false else T("C7_UNIT_" + ("kA" if id in ["ps17", "ps18"] else "s" if id == "ps24" else "usd")), Color(GridTheme.TEXT, 0.7))
-		if not _revealed(): _text(_mono(), 9, Vector2(r.position.x + 480, y + 24), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
-		y += 40.0; i += 1
+		if not _revealed() and not _phone(): _text(_mono(), 9, Vector2(r.position.x + 480, y + 24), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
+		y += _row(); i += 1
 	var cr := Rect2(Vector2(30.0, 412.0), Vector2(minf(w - 60.0, 800.0), maxf(panel.position.y - 412.0 - 12.0, 60.0)))
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), cr)
-	if show_card: _text(_semi(), 11, cr.position + Vector2(200.0, 26.0), T("C7_FORMULA_CAP"), Color(GridTheme.TEXT, 0.7))
-	if not show_card: _text(_mono(), 11, cr.position + Vector2(200.0, 26.0), T("C7_HIDE_NOTE"), Color(GridTheme.TEXT, 0.5))
+	if not _phone():
+		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), cr)
+		if show_card: _text(_semi(), 11, cr.position + Vector2(200.0, 26.0), T("C7_FORMULA_CAP"), Color(GridTheme.TEXT, 0.7))
+		else: _text(_mono(), 11, cr.position + Vector2(200.0, 26.0), T("C7_HIDE_NOTE"), Color(GridTheme.TEXT, 0.5))
 	var gr := Rect2(Vector2(r.end.x + 14.0, top), Vector2(maxf(w - r.end.x - 44.0, 240.0), panel.position.y - top - 12.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), gr)
 	var g: Dictionary = q.givens; var u: Array = g.units; var a: Dictionary = g.ps17; var b: Dictionary = g.ps18; var c: Dictionary = g.ps24
 	var lines := [T("C7_G27_A") % [WorkOrder.num(a.genX), WorkOrder.num(b.genX2), WorkOrder.num(b.genX0), WorkOrder.num(a.xfmrX), WorkOrder.num(a.lineXOhm), WorkOrder.num(b.lineX0Ohm), int(a.kv)]]
 	for k in 3: lines.append(T("C7_G27_B") % [k + 1, WorkOrder.num(u[k].a), WorkOrder.num(u[k].b), WorkOrder.num(u[k].c), int(u[k].pMin), int(u[k].pMax)])
 	lines.append(T("C7_G27_B2") % [int(g.demandNoLimitsMW), int(g.demandMW)]); lines.append(T("C7_G27_C") % [int(c.f0), WorkOrder.num(c.H), WorkOrder.num(c.Pm), WorkOrder.num(c.Pmax)]); lines.append(T("C7_G27_D"))
 	_text(_semi(), 11, gr.position + Vector2(12.0, 20.0), T("C7_GIV_CAP"), GridTheme.SODIUM)
-	lines.append(T("C7_G27_GLOSS"))
-	var gy3 := gr.position.y + 36.0; var gfs := GridTheme.fs(10)
-	for ln in lines:
-		var hh := _mono().get_multiline_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x - 24.0, gfs).y
-		draw_multiline_string(_mono(), Vector2(gr.position.x + 12.0, gy3 + 10.0), ln, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x - 24.0, gfs, -1, Color(GridTheme.TEXT, 0.82)); gy3 += hh + 4.0
-	if show_card:
+	var cl := []
+	for ln in lines: cl.append([ln, Color(GridTheme.TEXT, 0.82)])
+	_card_text(gr, cl, 10, 4.0, 30.0)
+	if show_card and not _phone():
 		var fy := cr.position.y + 58.0
 		for f in ["C7_F1", "C7_F2", "C7_F3", "C7_F5"]:
 			_text(_mono(), 11, Vector2(cr.position.x + 14.0, fy), T(f), Color(GridTheme.TEXT, 0.85)); fy += 18.0

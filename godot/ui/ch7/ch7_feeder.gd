@@ -18,6 +18,7 @@ func _tms(k: int) -> float: return float(q.design.relays[k].tms)
 func _set_tms(k: int, v: float) -> void: _act("setRelayTms", ["R%d" % (k + 1), snappedf(clampf(v, 0.025, 1.2), 0.025)])
 
 func _press(h: Dictionary, p: Vector2) -> void:
+	if str(h.id) == "fold": folded = not folded; layout(); queue_redraw(); return
 	match str(h.id):
 		"curve": _act("setRelayCurve", ["all", str(h.arg)])
 		"pickup": _act("setRelayPickup", ["all", float(h.arg)])
@@ -41,7 +42,7 @@ func _draw_panel_body() -> void:
 	_text(_semi(), 10, inner.position + Vector2(0, 102), T("C7_CURVE_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(250, 102), T("C7_PICKUP_CAP"), Color(GridTheme.TEXT, 0.65))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
+	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
 	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w - 60.0 - 250.0, 420.0), bh))
 	_frame(r, 80.0, 8000.0, 0.01, 30.0, true, true, T("C7_TC_X"), T("C7_TC_Y"))
 	for L in q.limits:
@@ -63,7 +64,7 @@ func _draw_stage() -> void:
 		draw_multiline_string(_mono(), Vector2(lx, by2 + 76.0), T("C7_LEG_SPARE") % WorkOrder.num(snappedf(float(q.get("minMarginS", 0.0)), 0.001)), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 24.0, GridTheme.fs(12), -1, okc)
 	var lx2: float = float((plot.r as Rect2).position.x) + 12.0
 	var gy: float = float((plot.r as Rect2).end.y) - 96.0; var gw: float = float((plot.r as Rect2).size.x) - 24.0
-	for g in ["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"]:
+	for g in (["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"] if not _phone() else []):
 		var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10)).y
 		draw_multiline_string(_mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
 	for f in q.faults:
