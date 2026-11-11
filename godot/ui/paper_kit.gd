@@ -124,6 +124,8 @@ static func fold(d: Dictionary, target: Vector2, on_done := Callable()) -> void:
 	var host: Control = d.host
 	if not is_instance_valid(host) or host.has_meta("folding"): return
 	host.set_meta("folding", true)
+	_mouse_through(host)   # while it folds away (0.3 s) the sheet and its dim must not eat the player's next click
+	if host.has_meta("cb_modal"): host.remove_meta("cb_modal")   # nor count as an open dialog (the game ignores world clicks behind a modal)
 	if not animate():
 		host.queue_free()
 		if on_done.is_valid(): on_done.call()
@@ -135,6 +137,10 @@ static func fold(d: Dictionary, target: Vector2, on_done := Callable()) -> void:
 	tw.chain().tween_callback(func():
 		if is_instance_valid(host): host.queue_free()
 		if on_done.is_valid(): on_done.call())
+
+static func _mouse_through(n: Node) -> void:
+	if n is Control: (n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in n.get_children(): _mouse_through(c)
 
 ## QA screenshots: open a paper screen by name from CB_CAM (`paper=menu`, `jobs`, `workorder`, `report`, `chapter`, `look` = press Look around on the open report).
 static func qa(app: CbApp, what: String) -> void:
