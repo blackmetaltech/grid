@@ -176,7 +176,7 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
       if (c <= rules.starCost[1] + 1e-6 && m.ensMWh === 0 && extra) stars = 3;
     }
     stars = ch4Stars(s, stars);   // L13's exam rule (one star without the night task)
-    if (rules.predStars) { const n = predictionsWithin(s, 0.5); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }
+    if (rules.predStars) { const n = predictionsWithin(s, 1); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }
     return { status: 'won', key: 'level.won', params: { stars }, stars };
   }
   return { status: 'playing', key: null, params: {}, stars: 0 };

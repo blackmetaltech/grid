@@ -143,6 +143,7 @@ func refresh() -> void:
 		for k in KNOBS: knobs[k] = KNOBS[k].def
 	pal = p
 	build_items(p)
+	if items.is_empty(): visible = false; return   # a level with nothing to place or operate (the L22 exam) shows no empty shelf
 	visible = true
 	if mode == "pick": _show_pegs()
 	_refresh_op()

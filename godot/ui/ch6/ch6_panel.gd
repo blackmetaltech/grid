@@ -134,6 +134,11 @@ func _l22(g: Dictionary, locked: bool) -> void:
 	var tg := Button.new(); tg.text = tx("C6_FORMULAS_HIDE") if _card else tx("C6_FORMULAS"); tg.name = "c6_toggle"; tg.focus_mode = CbKit.focus_mode(); tg.add_theme_font_size_override("font_size", GridTheme.fs(13))
 	tg.pressed.connect(func(): _card = not _card; _sig = ""; refresh())
 	_box.add_child(tg); _box.add_child(card)
+	_note(tx("C6_TASK"))
+	var u1 = _unit(g, "U1"); var u2 = _unit(g, "U2")
+	if u1 != null and u2 != null:
+		var w1: float = float(u1.mva) / float(u1.droopPct); var w2: float = float(u2.mva) / float(u2.droopPct)
+		var sh := GridTheme.label(tx("C6_SHARE") % (100.0 * w1 / (w1 + w2)), 13, GridTheme.PAPER_INK, "mono"); sh.autowrap_mode = TextServer.AUTOWRAP_WORD; sh.custom_minimum_size.x = W - 24.0; sh.name = "c6_share"; _box.add_child(sh)
 	for id in ["U1", "U2"]:
 		var u = _unit(g, id)
 		if u == null: continue

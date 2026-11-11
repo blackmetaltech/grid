@@ -90,7 +90,7 @@ export const EN_CH6: Record<string, string> = {
   'level.L22.lessonTask': 'Your droops: G1 {r1} %, G2 {r2} %. Shares go as S/R: {w1} : {w2}, so G1 took {share} % of the step ({g1} MW against {g2} MW).',
   'level.L22.tryShare': 'Sharing goes with S/R. For 60 : 40 you need S1/R1 : S2/R2 = 3 : 2, that is R2 = R1 x S2 x 3 / (S1 x 2) = {r1} x 300 x 3 / (500 x 2) = {need} % for a G1 droop of {r1} %.',
   'coach.L22.predict': 'Answer the three questions: examA (RoCoF, Hz/s), examB (df, Hz) and examC (G1 share, MW) before you run.',
-  'coach.L22.predict.why': 'A prediction made first is worth more than a result read afterwards. The stars are for the answers within half a percent.',
+  'coach.L22.predict.why': 'A prediction made first is worth more than a result read afterwards. The stars are for the answers within one percent.',
   'coach.L22.droops': 'Set the droops of G1 and G2 so that they share the 100 MW step 60 to 40.',
   'coach.L22.droops.why': 'A machine takes its share of the step in proportion to S/R: rating over droop.',
   'coach.L22.run': 'Run to the trip of G3, the 100 MW step.',

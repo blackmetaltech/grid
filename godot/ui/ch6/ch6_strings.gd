@@ -17,4 +17,6 @@ const S := {
 		"C6_SPIN_WHY": "Keep U17: it adds a 13th unit's headroom (about 500 MW), spread over all the units so each takes a small share of a trip.",
 	"C6_PEAKER_PRICE": "Gas peaker: %s per MW (a 105 MW unit costs %s)", "C6_COMMIT_GLOSS": "Place = buy the unit. Commit (tap it, press Start) = order it onto the grid; until then it stands idle.",
 	"C6_FORECAST": "dashed: forecast with no help; solid: what has happened",
+	"C6_TASK": "Task: set the droops so G1 takes 60 % of a 100 MW step (within 2 %). G1 is 500 MVA, G2 is 300 MVA.",
+	"C6_SHARE": "G1 share at these droops: %.0f %%  (S1/R1) / (S1/R1 + S2/R2)",
 }

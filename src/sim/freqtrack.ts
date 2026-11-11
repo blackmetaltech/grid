@@ -74,7 +74,9 @@ export function predictionsWithin(s: Readonly<GridState>, tolPct: number): numbe
 /** One operator block: frequency statistics (L20) and the shared nadir. Called by the pipeline's metrics system, only on frequency levels. */
 export function freqBlockTrack(s: GridState, p: SimParams): void {
   if (!s.rules.freqTrack) return;
-  if (s.rules.freqExam) { const e = examTruth(); const m: Record<string, number> = { examA: e.examA, examB: e.examB, examC: e.examC }; for (const q of s.metrics.predictions) { const a = m[q.id]; if (a !== undefined) q.actual = a; } }
+  if (s.rules.freqExam) { const e = examTruth(); const m: Record<string, number> = { examA: e.examA, examB: e.examB, examC: e.examC }; for (const q of s.metrics.predictions) { const a = m[q.id]; if (a !== undefined) q.actual = a; }
+    const ps = s.metrics.predictions.filter((q) => q.actual !== null && m[q.id] !== undefined);
+    if (ps.length >= 3) s.metrics.track.predErrPct = Math.max(...ps.map((q) => (100 * Math.abs(q.predicted - (q.actual as number))) / Math.max(1e-12, Math.abs(q.actual as number)))); }
   const tr = s.metrics.track, f = s.freq.fHz, [lo, hi] = p.gridcode.standardRangeHz;
   tr.nadirHz = Math.min(tr.nadirHz ?? p.f0, fin(s.metrics.nadirHz, p.f0));
   if (s.block.eventWindow) return;   // the window's own frequency is a transient, not a block of the day
