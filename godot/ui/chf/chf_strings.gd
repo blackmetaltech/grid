@@ -2,12 +2,15 @@ class_name ChFStrings
 extends RefCounted
 ## Chapter F UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them CF_.
 const S := {
-	"GT_SUB_setTapAuto": "Tap hold", "GT_TIP_setTapAuto": "Tap changer set-point: step the Set-point cell to 1.02 pu, pick this cell, then click an Eastgate 220/132 kV transformer (the pair east of the capital that feeds Eastgate and Harbour).",
+	"GT_SUB_setTapAuto": "Hold 1.02", "GT_TIP_setTapAuto": "Tap changer holds 1.02 pu: pick this cell, then click an Eastgate 220/132 kV ICT (T34 or T35, the pair that feeds Eastgate and Harbour).",
 	"GT_PART_ict-400-220-315": "ICT", "GT_SUB_ict-400-220-315": "400/220", "GT_PART_ict-220-132-160": "ICT", "GT_SUB_ict-220-132-160": "220/132",
 	"GT_PART_cap-400-50": "Cap bank", "GT_SUB_cap-400-50": "50 MVAr", "GT_PART_cap-220-50": "Cap bank", "GT_SUB_cap-220-50": "50 MVAr 220", "GT_PART_reactor-400-125": "Reactor", "GT_SUB_reactor-400-125": "125 MVAr",
 	"GT_PART_statcom-200": "STATCOM", "GT_SUB_statcom-200": "200 MVAr", "GT_PART_bess-2h-50": "Battery 2h", "GT_SUB_bess-2h-50": "50 MW", "GT_PART_bess-4h-50": "Battery 4h", "GT_SUB_bess-4h-50": "50 MW", "GT_PART_bess-gfm-50": "GFM", "GT_SUB_bess-gfm-50": "50 MW",
 	"CF_WO_ISLAND": "%s never goes dark, not even on the night of Day 2", "CF_WO_BAND": "Every bus stays within %s to %s pu (out of band for more than %d minutes loses)",
 	"CF_WO_ENS": "Energy not served at most 0.1 %% of the energy the province uses (%d of %d MWh)", "CF_WO_BLACKOUT": "No total blackout",
+	"CF_B_TAP": "Eastgate ICTs T34+T35 hold 1.02 pu", "CF_B_CAP": "Eastgate 400 kV: auto capacitor",
+	"CF_B_SPIN": "Keep spare gas unit U4 spinning", "CF_B_LINE": "Second causeway line to Saltmarsh", "CF_B_BATT": "4-hour battery on Saltmarsh",
+	"CF_B_HEAD": "Build kit (one click each)", "CF_B_DONE": "done",
 	"CF_TITLE": "Keep the lights on", "CF_DAY": "DAY %d of 3", "CF_CLOCK": "%02d:%02d",
 	"CF_DAY1": "Heatwave: record demand, the voltage sags at the far ends",
 	"CF_DAY2": "Storm: wind farms cut out, a line, the biggest unit and a transformer trip, lightning at night",

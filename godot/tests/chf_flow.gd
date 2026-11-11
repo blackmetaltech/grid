@@ -18,9 +18,15 @@ func _initialize() -> void:
 	var pal = T.b.q("palette")
 	var names: Array = []
 	for a in pal.actions: names.append(str(a.action) + ":" + str((a.parts as Array).size()))
-	T.check(names.has("placeStorage:3") and names.has("placeShunt:4") and names.has("stringLine:3"), "the engine offers the finale's parts to the tray (%s)" % str(names))
-	for a in [["setTapAuto", ["T34", 1.02, 0.015, 1]], ["setTapAuto", ["T35", 1.02, 0.015, 1]], ["placeShunt", ["B4", "cap-400-50", 4]], ["setShuntSteps", ["C1", 2]], ["setShuntAuto", ["C1", 0.975, 1.03, 1]], ["spinUnit", ["U4"]], ["placeStorage", ["B18", "bess-4h-50"]]]:
-		var r: Dictionary = T.b.act(a[0], a[1]); T.check(r.ok, "%s goes through the bridge: %s" % [a[0], str(r.get("message", ""))])
+	T.check(names.has("placeStorage:3") and names.has("placeShunt:3") and names.has("stringLine:3"), "the engine offers the finale's parts to the tray (%s)" % str(names))
+	var kit: Array = []
+	for c in p._kit.get_children(): kit.append(str(c.name))
+	T.check(kit.has("cf_tap") and kit.has("cf_cap") and kit.has("cf_spin") and kit.has("cf_line") and kit.has("cf_batt"), "the build kit has its five buttons (%s)" % str(kit))
+	for id in ["tap", "cap", "spin", "batt"]:   # the recipe by clicks only: the lesson with a battery on the island
+		(p._kit.get_node("cf_" + id) as Button).pressed.emit()
+		p.refresh()
+	T.check(float(T.b.g.budget.spent) > 1.0e6 and float(T.b.g.budget.spent) <= 7.0e7, "the recipe is within the budget (%s)" % str(T.b.g.budget.spent))
+	T.check((p._kit.get_node("cf_line") as Button).disabled and (p._kit.get_node("cf_tap") as Button).text.begins_with("✓"), "done buttons are marked and the island's second choice is closed")
 	for i in 100: T.b.act("tick", [1])
 	p.refresh()
 	T.check(str(p._day_lbl.text).begins_with("DAY 2 of 3"), "Day 2 after a day of ticks (%s)" % p._day_lbl.text)
@@ -28,4 +34,7 @@ func _initialize() -> void:
 	for i in 94: T.b.act("tick", [1])
 	p.refresh()
 	T.check("battery" in str(p._island.text), "after the lightning the island is on its battery (%s)" % p._island.text)
+	var n := 0
+	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
+	T.check(str(T.b.g.get("status", "")) == "won", "the clicked recipe wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
 	T.finish("CHF-FLOW", self)

@@ -49,7 +49,7 @@ const ACTIONS := {
 	"stringLine": {"icon": "line", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part", "$circuits", "$km"], "knobs": ["circuits", "km"]},
 	"switchBranch": {"icon": "breaker", "pick": ["branch"], "args": ["$0", "$flip:branch.inService"], "knobs": [], "cell": "op", "live": true},
 	"demolish": {"icon": "demolish", "pick": ["element"], "args": ["$0"], "knobs": [], "cell": "op"},
-	"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", "$vset", "$band", "$delay"], "knobs": ["vset", "band", "delay"], "cell": "op", "live": true},   # the finale (L28): the tap changer's set-point from the tray, no hunt for the transformer in the world
+	"setTapAuto": {"icon": "transformer", "pick": ["xfmr"], "args": ["$0", 1.02, 0.015, 1], "knobs": [], "cell": "op", "live": true},   # the finale (L28): the tap changer's set-point from the tray, no hunt for the transformer in the world
 	"setAutoDispatch": {"icon": "dispatch", "pick": [], "args": ["$flip:dispatch.auto"], "knobs": [], "cell": "op", "live": true},
 }
 const KNOBS := {
@@ -95,6 +95,7 @@ var hover := -1
 var focus := -1
 var engaged := false
 var level := ""
+var _last_log := 0             ## the length of the engine's action log at the last refresh: it only shrinks on Retry (a Retry at tick 0 leaves the tick where it was)
 var _last_tick := 0            ## the engine tick at the last refresh: it only goes back on Retry / Start over
 var chip_text := ""
 var chip_dot := Color.TRANSPARENT
@@ -141,10 +142,11 @@ func refresh() -> void:
 		if visible: _clear_all(); close_op()
 		visible = false; level = ""; return
 	var tk := int(b.g.get("tick", 0))
-	if str(li.id) != level or tk < _last_tick:   # a new job, or Retry / Start over (the clock went back): no tool stays armed from before (a stray click placed a bank)
+	var nlog := int((b.g.get("actionLog", []) as Array).size())
+	if str(li.id) != level or tk < _last_tick or nlog < _last_log:   # a new job, or Retry / Start over (the clock went back): no tool stays armed from before (a stray click placed a bank)
 		_clear_all(); close_op(); level = str(li.id); _scroll = 0.0; focus = -1; engaged = false
 		for k in KNOBS: knobs[k] = KNOBS[k].def
-	_last_tick = tk
+	_last_tick = tk; _last_log = nlog
 	pal = p
 	build_items(p)
 	if items.is_empty(): visible = false; return   # a level with nothing to place or operate (the L22 exam) shows no empty shelf

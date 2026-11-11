@@ -63,7 +63,7 @@ static func open(app: CbApp) -> bool:
 	var primary: Button = null
 	var retry := PaperKit.btn(T("REP_RETRY"), not won, func(): _retry(app, lid, str(e.mode)), 20); retry.name = "Retry"; row.add_child(retry)
 	if won:
-		if str(e.next_level) != "":
+		if str(e.next_level) != "" or lid == "L28":   # the finale has no next job: its Next opens the game-end card
 			var nx := PaperKit.btn(T("REP_NEXT"), true, func(): _next(app, lid, str(e.next_level)), 20); nx.name = "Next"; row.add_child(nx); primary = nx
 		var cp := PaperKit.btn(T("REP_COPY"), false, func(): pass, 20); cp.name = "Copy"
 		cp.pressed.connect(func(): _copy_code(app, cp)); row.add_child(cp)
@@ -130,6 +130,7 @@ static func island_bounds(app: CbApp) -> Rect2:
 
 ## "Next job": the last job of a chapter opens the chapter-end card instead of the next work order.
 static func _next(app: CbApp, lid: String, next_id: String) -> void:
+	if lid == "L28": ChfEnd.open(app); return   # the finale: the game-end card, no next chapter
 	if CHAPTER_END.has(lid): chapter_end(app, next_id if next_id != "" else str(CHAPTER_END[lid]), lid)   # the finale shows its card whatever job the campaign lists next
 	else: app.start_level(next_id, true)
 
