@@ -185,3 +185,26 @@ describe('ch5Panel query', () => {
     expect((fresh('L07').engine.q('ch5Panel') as any).active).toBe(false);
   });
 });
+
+describe('chapter 5 fix wave: reactor dwell, thin margins, new-line length', () => {
+  it('an automatic reactor rests after each operation: operations are at least REACTOR_DWELL + 1 blocks apart, and it switches IN on high voltage', async () => {
+    const { REACTOR_DWELL } = await import('../sim/tick');
+    const e = fresh('L15', 'global', [{ name: 'placeShunt', args: ['B2', 'reactor-400-80', 3] }, { name: 'setShuntSteps', args: ['C1', 0] }, { name: 'setShuntAuto', args: ['C1', 0.975, 1.005, 1] }]);
+    e.state.rules.vWatch = null;
+    const ops: number[] = []; let last = e.state.shunts[0]!.on, first = -1;
+    for (let i = 0; i < 90; i++) { e.step(TICK); const on = e.state.shunts[0]!.on; if (on !== last) { ops.push(i); if (first < 0) first = on - last; last = on; } }
+    expect(first, 'the first move is IN (more reactors) because the night voltage is high').toBeGreaterThan(0);
+    expect(ops.length).toBeGreaterThan(1);
+    for (let k = 1; k < ops.length; k++) expect(ops[k]! - ops[k - 1]!, `ops ${ops}`).toBeGreaterThanOrEqual(REACTOR_DWELL + 1);
+  });
+  it('L17: a margin that is positive but thin is reported as thin, with the number and the floor, and a negative one as past the nose', () => {
+    const spec = specOf('L17')!, run = (id: string) => runDesign(spec, 'global', spec.sites[0]!.options.find((x) => x.id === id)!.actions, { frozen: null });
+    const thin = run('statcom100'); expect(thin.status).toBe('lost'); expect(thin.state.block.verdictKey).toBe('level.lost.collapseThin');
+    expect(thin.reason).toMatch(/only 3\.6 %.*under the 5 %/); expect(thin.failKind).toBe('collapse');
+    const gone = run('caps100'); expect(gone.state.block.verdictKey).toBe('level.lost.collapse'); expect(gone.reason).toMatch(/was -2\.4 %/);
+  });
+  it('L16: a line the player strings takes its length from the map distance of its buses (10 km tiles): B2-B5 about 63 km, a parallel chord about 32 km', () => {
+    const e = fresh('L16'); e.engine.act('stringLine', ['B1', 'B4', 'l220-zebra-htls', 1]);
+    const b = e.state.branches[e.state.branches.length - 1]!; near(b.lengthKm, 31.6, 1, 'chord km'); expect(b.x).toBeGreaterThan(0.02);
+  });
+});

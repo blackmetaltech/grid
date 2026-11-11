@@ -39,7 +39,7 @@ export function failKindOf(s: Readonly<GridState>): FailKind | null {
   if (key === 'level.lost.voltageLow') return 'brownout';
   if (key === 'level.lost.voltageHigh') return 'overvoltage';
   if (key === 'level.lost.loading') return 'overload';
-  if (key === 'level.lost.collapse') return 'collapse';
+  if (key === 'level.lost.collapse' || key === 'level.lost.collapseThin') return 'collapse';
   if (key === 'level.lost.flashover') return 'flashover';
   if (key === 'level.lost.saltFlashover') return 'saltFlashover';
   if (key.startsWith('level.lost.island')) return 'islandDark';

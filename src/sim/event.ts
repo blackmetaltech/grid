@@ -137,7 +137,10 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
   const m = s.metrics;
   const c7 = ch7Verdict(s, rules, ticksUsed); if (c7) return c7;   // chapter 7 (L23-L27): one-block studies, their own incident reports and score-based stars
   if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit + 1e-9) return lost('level.lost.budget', { spent: Math.round(s.budget.spent), max: Math.round(s.budget.capexLimit) });
-  if (rules.collapseLoses && (s.loads.some((l) => l.shedFrac > 1e-9) || (s.solution !== null && s.solution.lambdaStar !== null && s.solution.lambdaStar < 1 - 1e-9))) return lost('level.lost.collapse', { margin: Math.round((m.track.marginPct ?? 0) * 10) / 10, shed: Math.round(100 * Math.max(0, ...s.loads.map((l) => l.shedFrac))), hh: String(Math.floor(s.clock.block / 4)).padStart(2, '0'), mm: String((s.clock.block % 4) * 15).padStart(2, '0') });   // chapter 5: the collapse sheds (the engine's 5 % steps, largest dV/dlambda first) are the loss
+  if (rules.collapseLoses && (s.loads.some((l) => l.shedFrac > 1e-9) || (s.solution !== null && s.solution.lambdaStar !== null && s.solution.lambdaStar < 1 - 1e-9) || (rules.marginFloorPct != null && m.track.marginMinPct !== undefined && m.track.marginMinPct < rules.marginFloorPct))) {   // chapter 5: a collapse (the engine's sheds) or a margin under the floor
+    const margin = Math.round((m.track.marginMinPct ?? 0) * 10) / 10;
+    return lost(margin < 0 ? 'level.lost.collapse' : 'level.lost.collapseThin', { margin, floor: rules.marginFloorPct ?? 0, shed: Math.round(100 * Math.max(0, ...s.loads.map((l) => l.shedFrac))), hh: String(Math.floor(s.clock.block / 4)).padStart(2, '0'), mm: String((s.clock.block % 4) * 15).padStart(2, '0') });
+  }
   if (rules.vWatch && (m.track.vViolBlocks ?? 0) > rules.vWatch.graceBlocks) {   // chapter 5: a bus outside its band for longer than the grace
     const b = s.buses[m.track.vViolBus ?? 0], v = m.track.vViolV ?? 0, blk = m.track.vViolBlock ?? 0, low = v < (rules.vWatch.lo + rules.vWatch.hi) / 2;
     return lost(low ? 'level.lost.voltageLow' : 'level.lost.voltageHigh', { bus: b?.id ?? '', v: Math.round(v * 1000) / 1000, lo: rules.vWatch.lo, hi: rules.vWatch.hi, hh: String(Math.floor(blk / 4)).padStart(2, '0'), mm: String((blk % 4) * 15).padStart(2, '0'), n: m.track.vViolBlocks ?? 0 });

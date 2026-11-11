@@ -27,6 +27,8 @@ import { finaleWeather, finaleTrack, finaleScale } from './finale';
 import { SOC_MAX, heldByStorage, settleIslandStorage, windowShare } from './islandStorage';
 
 export const BLOCK_H = 0.25;
+/** Blocks a reactor breaker rests after switching (45 minutes). */
+export const REACTOR_DWELL = 3;
 export const BLOCK_S = 900;
 /** A scripted load surge lasts this many blocks. */
 export const SURGE_BLOCKS = 4;
@@ -234,6 +236,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       }
       for (const h of s.shunts) {
         if (!h.auto || (h.kind !== 'cap' && h.kind !== 'reactor')) continue;
+        if (h.kind === 'reactor' && h.auto.counter < 0) { h.auto.counter += 1; continue; }   // a reactor breaker rests REACTOR_DWELL blocks after an operation (chapter 5: a step wider than the band otherwise hunts)
         const vm = v.get(h.bus);
         if (vm === undefined) continue;
         const want = vm < h.auto.vLowPu ? 1 : vm > h.auto.vHighPu ? -1 : 0;
@@ -241,8 +244,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
         h.auto.counter += 1;
         if (h.auto.counter >= h.auto.delayBlocks) {
           const next = Math.max(0, Math.min(h.steps, h.on + (h.kind === 'cap' ? want : -want)));
-          if (next !== h.on) { h.on = next; s.metrics.switchOps += 1; }
-          h.auto.counter = 0;
+          if (next !== h.on) { h.on = next; s.metrics.switchOps += 1; h.auto.counter = h.kind === 'reactor' ? -REACTOR_DWELL : 0; } else h.auto.counter = 0;
         }
       }
     } },

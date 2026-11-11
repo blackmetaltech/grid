@@ -34,7 +34,7 @@ export const L17: GridLevelSpec = {
   thresholds: { marginFloorPct: 5, marginStar3Pct: 12 },
   decisive: { key: 'marginMinPct', limit: 'marginFloorPct', dir: 'min' },
   star3: [{ key: 'marginMinPct', min: 'marginStar3Pct' }],
-  extraRules: () => ({ collapseLoses: true, marginFromBlock: TRIP_BLOCK }),
+  extraRules: (th) => ({ collapseLoses: true, marginFloorPct: th.marginFloorPct!, marginFromBlock: TRIP_BLOCK }),
   lessonText: (s) => l17Lesson(s), tryText: (s) => l17Try(s),
   story: { placeKey: 'level.L17.place', lineKeys: ['level.L17.story1', 'level.L17.story2', 'level.L17.story3'], lessonKey: 'level.L17.lesson' },
   brownoutLoses: false, blackoutLoses: true, stars: true, histogram: 'capex',

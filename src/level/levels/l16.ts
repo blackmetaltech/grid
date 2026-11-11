@@ -44,7 +44,9 @@ export const L16: GridLevelSpec = {
   ],
   place: (s, sc) => {
     const A = (name: string, ...a: unknown[]): void => place(sc, s, name, ...a);
-    const pos: [number, number][] = [[10, 4], [18, 2], [26, 4], [26, 12], [18, 14], [10, 12]];
+    // tiles are 10 km on this map, so a line a player strings takes its length from the distance between its buses: the ring sides come out near 70 km and the chord 32 km, as built
+    s.map.tileM = 10000;
+    const pos: [number, number][] = [[10, 2], [7, 8], [2, 3], [9, 5], [3, 9], [10, 9]];
     pos.forEach(([x, y]) => A('placeBus', x, y, 220, 'junction', 1.0));
     s.buses[0]!.kind = 'gen'; s.buses[3]!.kind = 'gen'; s.buses[0]!.vSet = 1.0; s.buses[3]!.vSet = 1.0;
     for (let i = 0; i < 6; i++) A('stringLine', `B${i + 1}`, `B${((i + 1) % 6) + 1}`, 'l220-zebra', 1, RING_KM);

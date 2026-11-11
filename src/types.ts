@@ -347,6 +347,8 @@ export interface Rules {
   n1?: boolean;
   /** Chapter 5: a case that is beyond its maximum loadability (lambda* < 1) loses as a voltage collapse. */
   collapseLoses?: boolean;
+  /** Chapter 5 (L17): the post-trip margin to the nose (percent) the grid must keep; below it the run is lost as a collapse even when Newton still converges. */
+  marginFloorPct?: number;
   /** Chapter 5 exam bridge (L18): resolve the player's predictions against the textbook 3-bus case and count the ones within 0.5 %. */
   exam?: boolean;
   /** Chapter 5: track the post-trip loadability margin (percent above the load, from the continuation) once this block of the day has passed (L17). */
