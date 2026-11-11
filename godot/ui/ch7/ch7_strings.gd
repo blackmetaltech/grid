@@ -2,14 +2,16 @@ class_name Ch7Strings
 extends RefCounted
 ## Chapter 7 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C7_.
 const S := {
-	"C7_SPENT": "%s of %s", "C7_HIDE_NOTE": "The formulas are hidden: try the numbers from the givens first.",
+	"C7_SPENT": "%s of %s", "C7_PREVIEW_NONE": "the plants appear after Run (hydro and solar are fixed for the day)", "C7_UNIT_MW": "MW", "C7_VS": "clears at %d ms vs target %d ms", "C7_PREVIEW": "preview: solar and hydro only; the other plants appear after Run",
+	"C7_Z": "Z = %s pu", "C7_T1": "T1, T2: Z = %s pu each", "C7_G27_GLOSS": "pu: a fraction of the 100 MVA base. X''d: the generator's sub-transient reactance, how hard it feeds a fault (pu). P_m: turbine power (pu). P_max: the most electrical power the network can carry (pu). delta_0: the rotor's starting angle (deg). lambda: the price of the next MWh ($/MWh).",
+	"C7_LEG_TOTALS": "total clearing time %s s", "C7_LEG_SPARE": "spare over the 0.3 s interval: %s s", "C7_HIDE_NOTE": "The formulas are hidden: try the numbers from the givens first.",
 	"C7_GIV_CAP": "GIVENS (everything you need)", "C7_GIV_BASE": "Base %d MVA, %d kV: 1 pu of current = %s kA.", "C7_GIV_GRID": "Grid at 132 kV: fault level %d MVA, so Z = %s pu.", "C7_GIV_T": "Each of 2 transformers: %d MVA, Z = %s %%, so Z = %s pu.",
 	"C7_GIV_G": "Each of 2 generators: %s MVA, X''d = %s, so Z = %s pu.", "C7_GIV_COUPLER": "Coupler %s%s.", "C7_GIV_CHAIN": "Think: the grid and its transformer are one source branch, each generator another. Z_th = all branches in parallel at the busbar; I_f = 1 / Z_th pu, then x kA per pu.",
 	"C7_GIV_R": ", reactor %s pu",
 	"C7_G27_A": "Faults (100 MVA base, pre-fault V = 1.0 pu): gen X''d %s, X2 %s, X0 %s (blocked by the delta); transformer X = %s; line X1 = %s ohm, X0 = %s ohm at %d kV.", "C7_G27_A2": "3-phase at the line end: Z1 = gen + T + line. SLG: Z1 + Z2 + Z0, with the line X0 and the transformer X0 = its X.",
 	"C7_G27_B": "Unit %d: C = %s + %s P + %s P^2 ($/h), %d to %d MW.", "C7_G27_B2": "Lambda no limits: demand %d MW, ignore the limits. Lambda with limits: demand %d MW, clip each unit to its range, then re-solve the rest.",
-	"C7_G27_C": "Swing at %d Hz: H = %s s, P_m = %s pu, P_max = %s pu before and after, a terminal fault (P during = 0). delta_0 = asin(P_m / P_max); the critical angle comes from equal areas.",
-	"C7_G27_D": "Grown board: the L23 board plus one more 80 MVA transformer and one more 31.25 MVA generator, coupler closed. Rate for the larger of the 3-phase and the SLG fault.",
+	"C7_G27_C": "Swing at %d Hz: H = %s s, P_m = %s pu, P_max = %s pu before and after, terminal fault (P during = 0).",
+	"C7_G27_D": "Grown board: the L23 board plus one 80 MVA transformer and one 31.25 MVA generator.",
 	"C7_WO_L27_1": "Breakers rated at least the larger of the 3-phase and the SLG fault of the grown board", "C7_WO_L27_2": "Tonight's dispatch adds up to 1000 MW with every unit inside its limits", "C7_WO_L27_3": "A prediction written before you run",
 	"C7_LAMP_L27_2": "Right-sized breakers and a near-optimal dispatch", "C7_LAMP_L27_3": "The least-cost dispatch (equal lambda) and 4 of 5 predictions within 2 %", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
 	"C7_FN_ps17": "I = V/Z_th; kA = pu x base/(1.73 kV)", "C7_FN_ps18": "I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "equal lambda, no limits", "C7_FN_ps21": "equal lambda, then clip to limits", "C7_FN_ps24": "t = sqrt(4H(d_cr-d_0)/(w P_m))",
@@ -18,7 +20,7 @@ const S := {
 	"C7_G25_TARGET": "Target: clear in under %d ms (the critical clearing time).", "C7_G25_Z1": "Zone 1: trips a fault on the first 80 % of the line at once (30 ms).", "C7_G25_Z2": "Zone 2: reaches 120 % of the line but waits 350 ms for the next relay to act first.", "C7_G25_IDMT": "Inverse-time: the bigger the current, the faster it trips; TMS slides the curve.",
 	"C7_G26_LAMBDA": "Lambda: the price of the next MWh, the cost of the plant that would supply it.", "C7_G26_CORR": "Corridor: the one 220 kV wire between north and city; its limit is 450 MW.", "C7_MWH": "$%s/MWh", "C7_LAMP_SCORE": "Score ≤ %s", "C7_LAMP_SCORE3": "Score ≤ %s%s",
 	"C7_GLOSS_IF": "I_f: the fault current, the biggest current the breaker has to interrupt.", "C7_GLOSS_PU": "pu: per-unit, a fraction of the 100 MVA base power (1 pu of current = 1.75 kA at 33 kV).", "C7_GLOSS_REACTOR": "Reactor: a coil in the bus section that adds impedance, so a fault pulls less current.",
-	"C7_GLOSS_PM": "P_m: the push of the turbine (mechanical power). delta: how far the rotor runs ahead of the grid. Faster clearing keeps delta small.", "C7_CLEAR_SUM": "clears at %d ms = relay %d ms + breaker %d ms (%d cycles)",
+	"C7_GLOSS_PM": "P_m: the push of the turbine (mechanical power). delta: how far the rotor runs ahead of the grid. Faster clearing keeps delta small.", "C7_CLEAR_SUM": "= relay %d + breaker %d ms (%d cycles)",
 	"C7_FORMULA_CAP": "FORMULA CARD (try the numbers first)", "C7_SHOW": "show formulas", "C7_HIDE": "hide formulas",
 	"C7_F1": "3-phase fault: I_f = V / Z_th, then kA = pu x 100 MVA / (1.732 x kV). Z_th = Z_grid + Z_transformer + Z_line, in per-unit.",
 	"C7_F2": "SLG fault: I_a = 3 V / (Z1 + Z2 + Z0). A delta winding blocks Z0, so only the grounded path counts.",
@@ -26,7 +28,7 @@ const S := {
 	"C7_F4": "Critical clearing (terminal fault): t = sqrt(4 H (d_cr - d_0) / (w_s P_m)), cos d_cr = (P_m (pi - 2 d_0) - P_max cos d_0 ... see equal areas).",
 	"C7_F5": "A unit at its limit is fixed; the others share the rest at one lambda. Check each limit again after the shares are found.",
 	"C7_UNIT_kA": "kA", "C7_UNIT_usd": "$/MWh", "C7_UNIT_s": "s", "C7_LEG_CURVES": "relay curves", "C7_LIMIT_ALL": "conductor I2t limits: 100, 70, 50 mm2",
-	"C7_PREDICT": "Your prediction", "C7_PREDICT_KA": "your prediction: I_f at the feeder, kA", "C7_PREDICT_DCR": "your prediction: δ_cr, deg", "C7_PREDICT_LAM": "your prediction: city lambda at 20:00, $/MWh",
+	"C7_PREDICT": "Your prediction", "C7_PREDICT_KA": "your prediction: I_f at the feeder", "C7_PREDICT_DCR": "your prediction: δ_cr, deg", "C7_PREDICT_LAM": "your prediction: city lambda at 20:00, $/MWh",
 	# L23 / L27 board
 	"C7_GRID": "grid 132 kV", "C7_SEC_A": "section A", "C7_SEC_B": "section B", "C7_COUPLER": "coupler", "C7_OPEN": "open", "C7_CLOSED": "closed", "C7_FEEDER": "feeder F1",
 	"C7_FAULT": "3-phase fault", "C7_RATED": "rated %s kA", "C7_DUTY": "must break %s kA", "C7_HIDDEN": "(run it to see it)", "C7_ESTATE_DARK": "ESTATE DARK",

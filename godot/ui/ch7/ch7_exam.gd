@@ -45,6 +45,8 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
+	for k in 3:
+		var de: LineEdit = edits["disp%d" % k]; _text(_mono(), 10, de.position + Vector2(8.0, 19.0), T("C7_UNIT_MW"), Color(GridTheme.TEXT, 0.5))
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_BREAKERS"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(340, 12), T("C7_DISPATCH_CAP"), Color(GridTheme.TEXT, 0.65))
 	var s := 0.0
 	for k in 3: s += float(q.design.dispatch[k])
@@ -73,14 +75,15 @@ func _draw_stage() -> void:
 	if not show_card: _text(_mono(), 11, cr.position + Vector2(200.0, 26.0), T("C7_HIDE_NOTE"), Color(GridTheme.TEXT, 0.5))
 	var gr := Rect2(Vector2(r.end.x + 14.0, top), Vector2(maxf(w - r.end.x - 44.0, 240.0), panel.position.y - top - 12.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), gr)
 	var g: Dictionary = q.givens; var u: Array = g.units; var a: Dictionary = g.ps17; var b: Dictionary = g.ps18; var c: Dictionary = g.ps24
-	var lines := [T("C7_G27_A") % [WorkOrder.num(a.genX), WorkOrder.num(b.genX2), WorkOrder.num(b.genX0), WorkOrder.num(a.xfmrX), WorkOrder.num(a.lineXOhm), WorkOrder.num(b.lineX0Ohm), int(a.kv)], T("C7_G27_A2")]
+	var lines := [T("C7_G27_A") % [WorkOrder.num(a.genX), WorkOrder.num(b.genX2), WorkOrder.num(b.genX0), WorkOrder.num(a.xfmrX), WorkOrder.num(a.lineXOhm), WorkOrder.num(b.lineX0Ohm), int(a.kv)]]
 	for k in 3: lines.append(T("C7_G27_B") % [k + 1, WorkOrder.num(u[k].a), WorkOrder.num(u[k].b), WorkOrder.num(u[k].c), int(u[k].pMin), int(u[k].pMax)])
 	lines.append(T("C7_G27_B2") % [int(g.demandNoLimitsMW), int(g.demandMW)]); lines.append(T("C7_G27_C") % [int(c.f0), WorkOrder.num(c.H), WorkOrder.num(c.Pm), WorkOrder.num(c.Pmax)]); lines.append(T("C7_G27_D"))
 	_text(_semi(), 11, gr.position + Vector2(12.0, 20.0), T("C7_GIV_CAP"), GridTheme.SODIUM)
+	lines.append(T("C7_G27_GLOSS"))
 	var gy3 := gr.position.y + 36.0; var gfs := GridTheme.fs(10)
 	for ln in lines:
 		var hh := _mono().get_multiline_string_size(ln, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x - 24.0, gfs).y
-		draw_multiline_string(_mono(), Vector2(gr.position.x + 12.0, gy3 + 10.0), ln, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x - 24.0, gfs, -1, Color(GridTheme.TEXT, 0.82)); gy3 += hh + 6.0
+		draw_multiline_string(_mono(), Vector2(gr.position.x + 12.0, gy3 + 10.0), ln, HORIZONTAL_ALIGNMENT_LEFT, gr.size.x - 24.0, gfs, -1, Color(GridTheme.TEXT, 0.82)); gy3 += hh + 4.0
 	if show_card:
 		var fy := cr.position.y + 58.0
 		for f in ["C7_F1", "C7_F2", "C7_F3", "C7_F5"]:

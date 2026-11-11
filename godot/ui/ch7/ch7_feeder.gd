@@ -39,27 +39,33 @@ func _draw_panel_body() -> void:
 		_stepper(r, T("C7_RELAY") % (k + 1) + "  " + T("C7_IS") % str(q.is[k]), WorkOrder.num(_tms(k)), (_tms(k) - 0.025) / 1.175, "tms%d" % k)
 		draw_rect(Rect2(r.position + Vector2(r.size.x - 14, 6), Vector2(8, 8)), COLS[k])
 	_text(_semi(), 10, inner.position + Vector2(0, 102), T("C7_CURVE_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(250, 102), T("C7_PICKUP_CAP"), Color(GridTheme.TEXT, 0.65))
-	var tot = q.get("totalS"); var mg := float(q.get("minMarginS", 0.0))
-	if tot != null: _text(_mono(), 11, inner.position + Vector2(340, 10), (T("C7_TOTAL") % WorkOrder.num(snappedf(float(tot), 0.001))) + "  |  " + (T("C7_MARGIN2") % WorkOrder.num(snappedf(mg, 0.001))), _good(bool(q.get("ok", false))))
 
 func _draw_stage() -> void:
 	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w - 60.0, 420.0), bh))
+	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w - 60.0 - 250.0, 420.0), bh))
 	_frame(r, 80.0, 8000.0, 0.01, 30.0, true, true, T("C7_TC_X"), T("C7_TC_Y"))
 	for L in q.limits:
 		_poly(L.pts, Color(GridTheme.BAD, 0.35), 1.0)
 	for k in q.curves.size():
 		_poly(q.curves[k].pts, COLS[k], 2.5)
 		var ip := _pt(float(q.curves[k].is), 30.0); draw_line(ip, ip + Vector2(0, 14), COLS[k], 2.0)
-	var lx: float = float((plot.r as Rect2).position.x) + 12.0; var ly: float = float((plot.r as Rect2).position.y) + 40.0
+	var lg := Rect2(Vector2(r.end.x + 12.0, top), Vector2(maxf(w - r.end.x - 42.0, 200.0), bh)); draw_style_box(GridTheme.ink_sb(0.9, 10, 0.0), lg)
+	var lx: float = lg.position.x + 12.0; var ly: float = lg.position.y + 38.0
 	_text(_semi(), 10, Vector2(lx, ly - 14.0), T("C7_LEG_CURVES"), Color(GridTheme.TEXT, 0.7))
 	for k in 4:
-		draw_rect(Rect2(Vector2(lx, ly + 16.0 * k - 8.0), Vector2(14, 6)), COLS[k]); _text(_mono(), 10, Vector2(lx + 20.0, ly + 16.0 * k), "R%d  I_s %s A" % [k + 1, str(q.is[k])], GridTheme.TEXT)
-	var by2: float = ly + 16.0 * 4
-	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); _text(_mono(), 10, Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), Color(GridTheme.BAD, 0.85))
-	var gy: float = float((plot.r as Rect2).end.y) - 70.0
+		draw_rect(Rect2(Vector2(lx, ly + 18.0 * k - 8.0), Vector2(14, 6)), COLS[k]); _text(_mono(), 10, Vector2(lx + 20.0, ly + 18.0 * k), "R%d  I_s %s A" % [k + 1, str(q.is[k])], GridTheme.TEXT)
+	var by2: float = ly + 18.0 * 4 + 6.0
+	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); draw_multiline_string(_mono(), Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 36.0, GridTheme.fs(10), -1, Color(GridTheme.BAD, 0.85))
+	var tot = q.get("totalS")
+	if tot != null:
+		var okc := _good(bool(q.get("ok", false)))
+		_text(_mono(), 12, Vector2(lx, by2 + 56.0), T("C7_LEG_TOTALS") % WorkOrder.num(snappedf(float(tot), 0.001)), okc)
+		draw_multiline_string(_mono(), Vector2(lx, by2 + 76.0), T("C7_LEG_SPARE") % WorkOrder.num(snappedf(float(q.get("minMarginS", 0.0)), 0.001)), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 24.0, GridTheme.fs(12), -1, okc)
+	var lx2: float = float((plot.r as Rect2).position.x) + 12.0
+	var gy: float = float((plot.r as Rect2).end.y) - 96.0; var gw: float = float((plot.r as Rect2).size.x) - 24.0
 	for g in ["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"]:
-		_text(_mono(), 10, Vector2(lx, gy), T(g), Color(GridTheme.TEXT, 0.65)); gy += 15.0
+		var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10)).y
+		draw_multiline_string(_mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
 	for f in q.faults:
 		var x := _pt(float(f.amps), 0.01).x; var pr: Rect2 = plot.r
 		draw_line(Vector2(x, pr.position.y), Vector2(x, pr.end.y), Color(GridTheme.TEXT, 0.35), 1.0)

@@ -22,7 +22,7 @@ func _layout_panel() -> void:
 	_chip_row(x, y, 46.0, 40.0, 5.0, ["0", "0.1", "0.2"], "reactor", [0.0, 0.1, 0.2], q.design.reactor)
 	x += 148.0 + 12.0
 	_chip_row(x, y, 46.0, 40.0, 5.0, ["10", "14"], "uk", [10.0, 14.0], q.design.uk)
-	var e: LineEdit = edits["faultKA"]; e.position = Vector2(inner.position.x + 150.0, inner.position.y + 84.0); e.size = Vector2(84, 30)
+	var e: LineEdit = edits["faultKA"]; e.position = Vector2(inner.position.x + 300.0, inner.position.y + 84.0); e.size = Vector2(84, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
 	match str(h.id):
@@ -34,7 +34,8 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	_text(_semi(), 10, inner.position + Vector2(0, 14), "%s  |  %s  |  %s  |  %s" % [T("C7_BREAKERS"), T("C7_COUPLER_CAP"), T("C7_REACTOR_CAP"), T("C7_XFMR_CAP")], Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 11, inner.position + Vector2(0, 104), T("C7_PREDICT_KA"), Color(GridTheme.TEXT, 0.8))
+	_text(_semi(), 11, inner.position + Vector2(0, 104), T("C7_PREDICT_KA"), GridTheme.SODIUM)
+	_text(_mono(), 12, inner.position + Vector2(392, 104), T("C7_UNIT_kA"), Color(GridTheme.TEXT, 0.8))
 	if _revealed():
 		var ok := bool(q.get("ok", false))
 		_text(_mono(), 14, inner.position + Vector2(260, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
@@ -46,9 +47,11 @@ func _draw_stage() -> void:
 	var ax := cx - r.size.x * 0.22; var bx := cx + r.size.x * 0.22
 	var dark := _revealed() and not bool(q.get("ok", true)); var wire := GridTheme.LIVE if not dark else Color(GridTheme.DIM, 0.6)
 	# grid and transformers
-	_text(_semi(), 11, Vector2(cx - 60, gy - 8.0), T("C7_GRID"), Color(GridTheme.TEXT, 0.8), 120.0, 1)
+	var gv: Dictionary = q.givens
+	_text(_semi(), 11, Vector2(cx - 130, gy - 8.0), T("C7_GRID") + "  " + (T("C7_Z") % WorkOrder.num(float(gv.gridZ))), Color(GridTheme.TEXT, 0.8), 260.0, 1)
 	draw_line(Vector2(ax - 20, gy), Vector2(bx + 20, gy), wire, 3.0)
 	for sx in [ax, bx]:
+		_text(_mono(), 10, Vector2(sx + 18.0, gy + 50.0), T("C7_Z") % WorkOrder.num(float(gv.xfmrZ)), Color(GridTheme.TEXT, 0.75))
 		draw_line(Vector2(sx, gy), Vector2(sx, gy + 30), wire, 2.0); draw_arc(Vector2(sx, gy + 42), 12.0, 0, TAU, 20, wire, 2.0); draw_arc(Vector2(sx, gy + 54), 12.0, 0, TAU, 20, wire, 2.0)
 		draw_line(Vector2(sx, gy + 66), Vector2(sx, by), wire, 2.0)
 	# busbars and coupler
@@ -63,7 +66,7 @@ func _draw_stage() -> void:
 	_text(_semi(), 10, Vector2(ax - 70, by + 26), T("C7_SEC_A"), Color(GridTheme.TEXT, 0.7)); _text(_semi(), 10, Vector2(bx + 20, by + 26), T("C7_SEC_B"), Color(GridTheme.TEXT, 0.7))
 	# generators and the feeder breaker
 	for gx in [ax - 40.0, bx + 40.0]:
-		draw_line(Vector2(gx, by), Vector2(gx, by + 46), wire, 2.0); draw_circle(Vector2(gx, by + 62), 16.0, Color(GridTheme.INK)); draw_arc(Vector2(gx, by + 62), 16.0, 0, TAU, 24, wire, 2.0); _text(_semi(), 13, Vector2(gx - 8, by + 67), "G", GridTheme.TEXT, 16.0, 1)
+		draw_line(Vector2(gx, by), Vector2(gx, by + 46), wire, 2.0); draw_circle(Vector2(gx, by + 62), 16.0, Color(GridTheme.INK)); draw_arc(Vector2(gx, by + 62), 16.0, 0, TAU, 24, wire, 2.0); _text(_semi(), 13, Vector2(gx - 8, by + 67), "G", GridTheme.TEXT, 16.0, 1); _text(_mono(), 10, Vector2(gx - 38.0, by + 92.0), T("C7_Z") % WorkOrder.num(float(gv.genZ)), Color(GridTheme.TEXT, 0.75), 76.0, 1)
 	var fx := ax + 40.0; draw_line(Vector2(fx, by), Vector2(fx, by + 40), wire, 2.0)
 	var br := Rect2(Vector2(fx - 11, by + 40), Vector2(22, 22)); var over := _revealed() and not bool(q.get("ok", true))
 	draw_rect(br, Color(GridTheme.BAD, 0.85) if over else Color(GridTheme.GOOD, 0.75) if _revealed() else Color(GridTheme.SODIUM, 0.6))

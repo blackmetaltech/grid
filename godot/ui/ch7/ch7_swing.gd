@@ -20,8 +20,8 @@ func _layout_panel() -> void:
 	for i in ids: labs.append(str(i).replace("idmt-", "").replace("dist-", "").replace("si-", "SI ").replace("ei-", "EI ").replace("z1", "zone 1").replace("z2", "zone 2"))
 	_chip_row(inner.position.x, inner.position.y + 20.0, cw, 40.0, 4.0, labs, "relay", ids, str(q.design.relay))
 	var y := inner.position.y + 76.0
-	_chip_row(inner.position.x, y, 52.0, 40.0, 5.0, ["2", "3", "5"], "cycles", [2.0, 3.0, 5.0], q.design.cycles)
-	_chip_row(inner.position.x + 190.0, y, 62.0, 40.0, 5.0, [T("C7_OFF"), "on"], "reclose", [false, true], q.design.reclose)
+	_chip_row(inner.position.x, y + 8.0, 52.0, 36.0, 5.0, ["2", "3", "5"], "cycles", [2.0, 3.0, 5.0], q.design.cycles)
+	_chip_row(inner.position.x + 190.0, y + 8.0, 62.0, 36.0, 5.0, [T("C7_OFF"), "on"], "reclose", [false, true], q.design.reclose)
 	var e: LineEdit = edits["deltaCrDeg"]; e.position = Vector2(inner.position.x + 440.0, y + 6.0); e.size = Vector2(84, 30)
 
 func _press(h: Dictionary, _p: Vector2) -> void:
@@ -33,12 +33,13 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_RELAY_CAP2"), Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 10, inner.position + Vector2(0, 70), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 70), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
-	_text(_semi(), 10, inner.position + Vector2(440, 70), T("C7_PREDICT_DCR"), GridTheme.SODIUM)
-	_text(_mono(), 11, inner.position + Vector2(0, 128), T("C7_CLEAR_SUM") % [int(q.clearMs), int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], GridTheme.TEXT)
+	_text(_semi(), 10, inner.position + Vector2(0, 76), T("C7_BREAKER_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(190, 76), T("C7_RECLOSE_CAP"), Color(GridTheme.TEXT, 0.65))
+	_text(_semi(), 10, inner.position + Vector2(440, 76), T("C7_PREDICT_DCR"), GridTheme.SODIUM)
+	_text(_mono(), 11, inner.position + Vector2(0, 138), T("C7_VS") % [int(q.clearMs), int(q.tCrMs)], _good(int(q.clearMs) <= int(q.tCrMs)))
+	_text(_mono(), 10, inner.position + Vector2(0, 152), T("C7_CLEAR_SUM") % [int(q.relayMs), int(q.breakerMs), int(q.design.cycles)], Color(GridTheme.TEXT, 0.7))
 	if _revealed():
 		var ok := bool(q.stable)
-		_text(_mono(), 12, inner.position + Vector2(440, 130), (T("C7_TCR") % int(q.tCrMs)) + "   " + (T("C7_MARGIN_MS") % int(q.marginMs)), _good(ok))
+		_text(_mono(), 12, inner.position + Vector2(300, 152), (T("C7_TCR") % int(q.tCrMs)) + "   " + (T("C7_MARGIN_MS") % int(q.marginMs)), _good(ok))
 
 func _draw_stage() -> void:
 	var w := size.x; var top := 150.0; var bh := maxf(panel.position.y - top - 14.0, 220.0)
