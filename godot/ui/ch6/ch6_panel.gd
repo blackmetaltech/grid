@@ -69,7 +69,7 @@ func _apply_collapse() -> void:
 	_layout()
 
 func _layout() -> void:
-	var vp := get_viewport_rect().size
+	var vp := Vector2(app.vw(), app.vs_h()) if app != null and app.has_method("vw") else get_viewport_rect().size   # the app's usable area: the safe-area inset is already taken off
 	var pw := minf(W, vp.x - 16.0) if _phone() else W
 	var top := 74.0
 	if _phone():   # wholly inside the viewport: below the HUD, above the spent/budget tag; taller content scrolls (finger drag), the header collapses it
