@@ -389,9 +389,12 @@ func args_of(it: Dictionary) -> Array:
 		if s == "$part": out.append(_part_arg(str(it.part)))
 		elif s.begins_with("$flip:"): out.append(not _flag(s.trim_prefix("$flip:")))
 		elif s.length() == 2 and s.begins_with("$") and s[1].is_valid_int(): out.append(str(picks[int(s[1])]) if int(s[1]) < picks.size() else "")
+		elif s == "$steps" and _one_piece(str(it.part)): out.append(1)   # a STATCOM / SVC is one controlled device sized by its rating: the "Bank steps" knob is the capacitor bank's (a 2-step STATCOM was two devices at twice the price)
 		elif s.begins_with("$") and KNOBS.has(s.trim_prefix("$")): var k := s.trim_prefix("$"); out.append(int(knobs[k]) if KNOBS[k].get("int", false) else float(knobs[k]))
 		else: out.append(a)
 	return out
+
+static func _one_piece(part: String) -> bool: return part.begins_with("statcom") or part.begins_with("svc")
 
 func _part_arg(part: String):
 	return float(part) if part.is_valid_float() else part   # sizes (mm2) are numbers in the engine, catalogue ids are strings

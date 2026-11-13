@@ -52,7 +52,7 @@ export const en: Record<string, string> = {
   'act.line.kv': 'The line is rated {lineKv} kV but bus {bus} is {busKv} kV. Use a transformer to change voltage level.',
   'act.xfmr.ok': 'Transformer {id} ({mva} MVA, {zpct} % impedance) between {hv} and {lv}.',
   'act.xfmr.kv': 'This transformer is {kvHv}/{kvLv} kV but buses {hv} and {lv} are {busHv}/{busLv} kV.',
-  'act.shunt.ok': 'Shunt {id} ({kind}, {steps} steps of {mvar} MVAr) placed at bus {bus}.',
+  'act.shunt.ok': 'Shunt {id} ({kind}, {steps} × {mvar} MVAr) placed at bus {bus}.',
   'act.cable.ok': 'Submarine cable {id} laid: {km} km under the sea, no supports. It charges like a capacitor: {kvar} kvar at its voltage, whatever the load. Carries up to {amps} A. Cost {cost}.',
   'act.cable.notSubmarine': '{id} is not a submarine cable: use a sub-11-70, sub-11-120 or sub-11-185 cable to cross the sea.',
   'act.storage.ok': 'Storage {id} ({mw} MW / {mwh} MWh) placed at bus {bus}.',
