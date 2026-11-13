@@ -192,7 +192,7 @@ func _predict(id: String, unit: String, caption: String, locked: bool) -> void:
 	for p in app.b.g.metrics.predictions: if p.id == id: e.text = str(snappedf(float(p.predicted), 0.0001))
 	if id == "l18.v2gs1" and not locked:   # the first thing to type: an accent outline
 		var sb := StyleBoxFlat.new(); sb.bg_color = Color(1, 1, 1, 0.55); sb.border_color = Color(0.9, 0.5, 0.1); sb.set_border_width_all(3); sb.set_corner_radius_all(4); sb.content_margin_left = 6
-		e.add_theme_stylebox_override("normal", sb); e.add_theme_color_override("font_color", Color(0, 0, 0)); e.placeholder_text = "type here"; e.add_theme_color_override("font_placeholder_color", Color(0.45, 0.25, 0.05))
+		e.add_theme_stylebox_override("normal", sb); e.add_theme_color_override("font_color", Color(0, 0, 0)); e.placeholder_text = tx("C5_TYPE_HERE"); e.add_theme_color_override("font_placeholder_color", Color(0.45, 0.25, 0.05))
 	e.text_submitted.connect(func(s): _submit(id, unit, s)); e.focus_exited.connect(func(): _submit(id, unit, e.text))
 	h.add_child(e); h.add_child(GridTheme.label(unit, 13, GridTheme.PAPER_INK, "sans")); _box.add_child(h)
 

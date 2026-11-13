@@ -3,7 +3,7 @@ extends RefCounted
 ## Chapter 5 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C5_.
 const S := {
 	"C5_TITLE_L14": "Substation board", "C5_TITLE_L15": "Receiving station", "C5_TITLE_L16": "Control room", "C5_TITLE_L17": "City substation", "C5_TITLE_L18": "Exam sheet",
-	"C5_UNIT_KV": "Show kilovolts", "C5_UNIT_PU": "Show per unit",
+	"C5_UNIT_KV": "Show kilovolts", "C5_TYPE_HERE": "type here", "C5_UNIT_PU": "Show per unit",
 	"C5_TAPS": "tap changes so far: %d", "C5_OPS": "switching operations so far: %d", "C5_OPEN": "open",
 	"C5_L16_HEAD": "loading now, and the worst line if this one were lost now",
 	"C5_N1": "worst line after any one outage, at its worst moment today: %d %%",
