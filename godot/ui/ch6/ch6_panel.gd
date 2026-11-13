@@ -72,15 +72,14 @@ func _layout() -> void:
 	var vp := Vector2(app.vw(), app.vs_h()) if app != null and app.has_method("vw") else get_viewport_rect().size   # the app's usable area: the safe-area inset is already taken off
 	var pw := minf(W, vp.x - 16.0) if _phone() else W
 	var top := 74.0
-	if _phone():   # wholly inside the viewport: below the HUD, above the spent/budget tag; taller content scrolls (finger drag), the header collapses it
-		var maxh := maxf(60.0, vp.y - 185.0 - top)
-		_scroll.custom_minimum_size = Vector2(pw - 24.0, 0)
-		var want: float = _box.get_combined_minimum_size().y
-		var room := maxh - (_toggle_btn.get_combined_minimum_size().y + 24.0)
-		_scroll.custom_minimum_size.y = minf(want, maxf(40.0, room)) if _scroll.visible else 0.0
-		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	else:
-		_scroll.custom_minimum_size = Vector2.ZERO
+	# wholly inside the viewport: below the HUD, above the spent/budget tag; taller content scrolls (finger drag or wheel), on the phone the header collapses it.
+	# The scroll box needs an explicit height on every layout: a ScrollContainer in AUTO mode has no minimum height of its own (the desktop card shrank to a 0 px strip).
+	var maxh := maxf(60.0, vp.y - 185.0 - top)
+	_scroll.custom_minimum_size = Vector2(pw - 24.0, 0)
+	var want: float = _box.get_combined_minimum_size().y
+	var room := maxh - ((_toggle_btn.get_combined_minimum_size().y if _toggle_btn.visible else 0.0) + 24.0)
+	_scroll.custom_minimum_size.y = minf(want, maxf(40.0, room)) if _scroll.visible else 0.0
+	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	custom_minimum_size = Vector2(pw, 0); reset_size()
 	var w := maxf(size.x, get_combined_minimum_size().x)
 	size.x = w
