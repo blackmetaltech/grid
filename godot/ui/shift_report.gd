@@ -143,13 +143,14 @@ static func _look(app: CbApp, won: bool) -> void:
 static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	if lid == "": app.new_game(mode); return
 	var design := design_of(app)
+	var bs = app.b.q("benchStatus"); var bench_job: bool = bs is Dictionary and bool(bs.get("active", false))   # chapter 1's bench (hut, reels, breaker) has its own line; every other job gets the plain one
 	WorkOrder.skip_once = not design.is_empty()
 	app.start_level(lid, true)
 	var refused := replay(app, design)
 	app.game_on_changed()
 	var ch = app.get("chrome")
 	var grid_job: bool = design.any(func(a): return str(a[0]) == "buildRoute")
-	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_PARTIAL") % refused if refused > 0 else T("REP_RETRY_KEPT_GRID" if grid_job else "REP_RETRY_KEPT"))
+	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_PARTIAL") % refused if refused > 0 else T("REP_RETRY_KEPT_GRID" if grid_job else ("REP_RETRY_KEPT" if bench_job else "REP_RETRY_KEPT_BUILD")))
 
 ## The bench design now on the table as a list of [action, args] (empty on grid levels or before anything is built).
 static func design_of(app: CbApp) -> Array:

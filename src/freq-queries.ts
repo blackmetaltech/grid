@@ -11,12 +11,20 @@ export function buildFreqQueries(d: { getParams: (s: GridState) => SimParams }):
     freqDesign: (s) => {
       if (!s.rules.freqTrack) return [];
       const out: { name: string; args: unknown[] }[] = [], pur = s.purchases ?? {};
+      // The ids the replay will hand out: the level's own units keep theirs, each bought unit gets the next free id in build order (the engine's nextId rule).
+      // A unit bought, another taken down and a third bought leaves a gap (U12 with no U11): the replay's U11 is that unit, so holds and orders follow the remapped id.
+      const re = (prefix: string, items: { id: string }[]): Map<string, string> => {
+        const ids = items.filter((x) => pur[x.id] === undefined).map((x) => x.id), m = new Map<string, string>();
+        for (const x of items) if (pur[x.id] !== undefined) { const used = new Set(ids); let n = ids.length + 1; while (used.has(`${prefix}${n}`)) n++; m.set(x.id, `${prefix}${n}`); ids.push(`${prefix}${n}`); }
+        return m;
+      };
+      const uid = re('U', s.units), sid = re('S', s.storage), U = (id: string): string => uid.get(id) ?? id, S = (id: string): string => sid.get(id) ?? id;
       for (const u of s.units) if (pur[u.id] !== undefined) out.push({ name: 'placeUnit', args: [u.catalogId, u.bus, u.kind === 'synccon' ? Math.round(u.mva) : Math.round(u.pMax)] });
-      for (const u of s.units) if (pur[u.id] !== undefined && u.kind !== 'synccon') { const at = u.commit.schedule.findIndex((x) => x === 1); if (at >= 0) out.push({ name: 'commit', args: [u.id, true, at] }); }   // a peaker ordered on at its block (L20)
-      for (const u of s.units) if (pur['spin:' + u.id] !== undefined || (u.kind === 'synccon' && u.online && pur[u.id] !== undefined)) out.push({ name: 'spinUnit', args: [u.id] });
+      for (const u of s.units) if (pur[u.id] !== undefined && u.kind !== 'synccon') { const at = u.commit.schedule.findIndex((x) => x === 1); if (at >= 0) out.push({ name: 'commit', args: [U(u.id), true, at] }); }   // a peaker ordered on at its block (L20)
+      for (const u of s.units) if (pur['spin:' + u.id] !== undefined || (u.kind === 'synccon' && u.online && pur[u.id] !== undefined)) out.push({ name: 'spinUnit', args: [U(u.id)] });
       for (const b of s.storage) if (b.mode === 'schedule' && b.schedule) {
         const c = b.schedule.map((v, k) => (v < 0 ? k : -1)).filter((k) => k >= 0), q = b.schedule.map((v, k) => (v > 0 ? k : -1)).filter((k) => k >= 0);
-        out.push({ name: 'setStoreClock', args: [b.id, (c[0] ?? 0) / 4, ((c[c.length - 1] ?? -1) + 1) / 4, (q[0] ?? 0) / 4, ((q[q.length - 1] ?? -1) + 1) / 4] });
+        out.push({ name: 'setStoreClock', args: [S(b.id), (c[0] ?? 0) / 4, ((c[c.length - 1] ?? -1) + 1) / 4, (q[0] ?? 0) / 4, ((q[q.length - 1] ?? -1) + 1) / 4] });
       }
       for (const l of s.loads) if (l.class === 'agricultural' && l.shape && (l.shape.p[44] ?? 0) > 0.5) out.push({ name: 'shiftLoad', args: [l.id, 'noon'] });
       if ((s.metrics.track.rideFitted ?? 0) > 0) out.push({ name: 'upgradeRideThrough', args: [] });

@@ -17,6 +17,7 @@ var _scroll: ScrollContainer
 var _toggle_btn: Button
 var _collapsed := false
 var _kept := false
+var _reset_frame := -1
 var _last_tick := 1 << 30
 var _seen_level := ""
 var _curve: NetCurve
@@ -49,7 +50,10 @@ func refresh() -> void:
 	visible = _level in LEVELS
 	if not visible: return
 	var g := _g()
-	if _level != _seen_level or int(g.tick) < _last_tick: _kept = float(g.budget.spent) > 0.0 and int(g.tick) <= int(g.levelStart); _seen_level = _level; _sig = ""   # a fresh start or a Retry: was a build already standing?
+	if _level != _seen_level or int(g.tick) < _last_tick: _reset_frame = Engine.get_process_frames(); _seen_level = _level   # a fresh start or a Retry
+	if Engine.get_process_frames() == _reset_frame:   # Retry restarts the job and replays the build in the same frame: was a build already standing once it is back?
+		var k := float(g.budget.spent) > 0.0 and int(g.tick) <= int(g.levelStart)
+		_kept = k; _sig = ""
 	_last_tick = int(g.tick)
 	var sig := _level + str(g.budget.spent) + str((g.actionLog as Array).size()) + str((g.units as Array).size()) + str((g.storage as Array).size()) + str(g.get("status", "")) + str(g.get("tick", 0))
 	for u in g.units: sig += ("1" if u.online else "0") + str(snappedf(float(u.droopPct), 0.1))
@@ -75,11 +79,15 @@ func _layout() -> void:
 	# wholly inside the viewport: below the HUD, above the spent/budget tag; taller content scrolls (finger drag or wheel), on the phone the header collapses it.
 	# The scroll box needs an explicit height on every layout: a ScrollContainer in AUTO mode has no minimum height of its own (the desktop card shrank to a 0 px strip).
 	var maxh := maxf(60.0, vp.y - 185.0 - top)
-	_scroll.custom_minimum_size = Vector2(pw - 24.0, 0)
+	_scroll.custom_minimum_size = Vector2(pw - 24.0 if _phone() else 0.0, 0)   # desktop: as wide as its widest row (the button captions stay on one line)
 	var want: float = _box.get_combined_minimum_size().y
 	var room := maxh - ((_toggle_btn.get_combined_minimum_size().y if _toggle_btn.visible else 0.0) + 24.0)
-	_scroll.custom_minimum_size.y = minf(want, maxf(40.0, room)) if _scroll.visible else 0.0
-	_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	var fits := want <= maxf(40.0, room)
+	if not _phone() and fits:   # desktop card that fits: no scroll box behaviour at all, the card is exactly its content (as before the phone layout)
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.custom_minimum_size.y = 0.0
+	else:
+		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		_scroll.custom_minimum_size.y = minf(want, maxf(40.0, room)) if _scroll.visible else 0.0
 	custom_minimum_size = Vector2(pw, 0); reset_size()
 	var w := maxf(size.x, get_combined_minimum_size().x)
 	size.x = w

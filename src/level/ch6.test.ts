@@ -186,6 +186,20 @@ describe('Retry keeps the chapter 6 build with stable ids', () => {
   });
 });
 
+describe('Retry keeps the chapter 6 build when a bought unit was taken down', () => {
+  it('a condenser bought after another was demolished replays under the id the fresh level gives it, still held', () => {
+    const build: Action[] = [{ name: 'placeUnit', args: ['synccon-100', 'B1', 300] }, { name: 'placeUnit', args: ['synccon-100', 'B1', 300] }, { name: 'demolish', args: ['U11'] }, { name: 'spinUnit', args: ['U12'] }, ...coalHold(2)];
+    const a = play('L21', build);
+    expect(a.state.units.map((u) => u.id)).toContain('U12');
+    const design = a.engine.q('freqDesign') as { name: string; args: unknown[] }[];
+    expect(design.filter((d) => d.name === 'spinUnit').map((d) => String(d.args[0])).sort()).toEqual(['U11', 'U6', 'U7']);
+    const b = play('L21', design.map((d) => ({ name: d.name, args: d.args }) as Action));
+    const held = (e: Env<GridState>): string[] => e.state.units.filter((u) => u.online || u.commit.schedule.length > 0).map((u) => u.kind + (u.kind === 'coal' ? u.id : '')).sort();
+    expect(held(b)).toEqual(held(a));
+    expect(b.state.units.find((u) => u.id === 'U11')!.kind).toBe('synccon');
+  });
+});
+
 describe('Retry keeps L20 peakers ordered on', () => {
   it('freqDesign lists each peaker with its commit block and the replay reproduces ids and schedules', () => {
     const a = play('L20', [...peakers(2), ...shift]);
