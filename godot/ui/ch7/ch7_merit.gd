@@ -3,7 +3,7 @@ extends Ch7Base
 ## L26 Merit Order: the day's merit-order stack. Before the run: demand, solar and the hydro unit's water-value schedule. After it: generation by plant hour by hour, the
 ## demand line, the corridor flow against its limit, and the two prices (north / city) that split when the wire is full. The panel picks the dispatch rule and each
 ## plant's hours (click a plant to step through the windows the kit offers).
-const PCOL := {"coalsub": Color("#8A7F6A"), "coalsc": Color("#B8894A"), "ccgt": Color("#39E1FF"), "ocgt": Color("#FF4FD8"), "hydro": Color("#4C7DFF"), "solar": Color("#FFE066")}
+const PCOL := {"coalsub": Color("#8A7F6A"), "coalsc": Color("#E0703A"), "ccgt": Color("#39E1FF"), "ocgt": Color("#FF4FD8"), "hydro": Color("#4C7DFF"), "solar": Color("#FFE066")}
 const ORDER := ["coalsub", "coalsc", "hydro", "solar", "ccgt", "ocgt"]
 
 func _init() -> void:

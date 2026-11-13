@@ -155,6 +155,10 @@ func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, w := -1.0, 
 	if w > 0.0: x = at.x + (w - tw) * (0.5 if align == 1 else 1.0 if align == 2 else 0.0)
 	draw_string(font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, f, col)
 
+## Text wrapped to the width w (the boxes of the estate are 220 px wide; a long gloss ran out of its box at 1080p).
+func _wrap(font: Font, fsz: int, at: Vector2, s: String, col: Color, w: float) -> void:
+	draw_multiline_string(font, at, s, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(fsz), -1, col)
+
 func _money(x: float) -> String: return CbRegion.money(x, false, 0)
 func _f(x: float, d: int) -> String: return String.num(x, d)
 func _good(ok: bool) -> Color: return GridTheme.GOOD if ok else GridTheme.BAD

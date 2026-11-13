@@ -76,7 +76,7 @@ export const EN_CH6: Record<string, string> = {
   'level.L21.tryNeeds': 'The frequency reached {nadir} Hz. The nadir is decided by how much power arrives in the first second: each 50 MW grid-forming battery adds 50 MW in 50 ms and 200 MW s of inertia, a coal unit held hot adds 2 058 MW s and 80 MW of headroom. Ride-through only stops the cascade. A build that reaches the third lamp: two coal units held hot and ten 50 MW grid-forming batteries (about 500 MW of fast response), without ride-through.',
   'coach.L21.add': 'Bring inertia and fast response back: hold a coal unit hot, add condensers, grid-forming batteries, or fit the rooftops with ride-through.',
   'coach.L21.add.why': 'Machines store energy in their rotors. A grid-forming battery acts like a machine for a few seconds. Ride-through only stops the rooftops from adding to the loss.',
-  'coach.L21.predict': 'Before you run: predict the RoCoF at the instant of the trip, in Hz per second (question id rocof0).',
+  'coach.L21.predict': 'Before you run: predict the RoCoF at the instant of the trip, in Hz per second, in the box on the control-room card.',
   'coach.L21.predict.why': 'RoCoF = dP x f0 / (2 H S), with S and H of the machines that are left after the trip.',
   'coach.L21.run': 'Run the shift to 14:30.',
   'coach.L21.run.why': 'The nadir has to stay above 49.4 Hz; the third lamp asks for a shallower swing.',

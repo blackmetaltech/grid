@@ -26,6 +26,7 @@ const ROUTE_HIT_PX := 12.0
 const PXM := RouteDraw.PX_PER_M
 const TAP_PX := 10.0
 const LONG_S := 0.55
+var _town_boxes: Array[Rect2] = []   # town / yard label boxes of the last frame
 var _pegs: Array = []               # [{tile: Vector2, label: String}] glowing site pegs (the kit tray's legal sites)
 var _peg_hi := -1
 var _press := false
@@ -1289,7 +1290,7 @@ func _draw_labels() -> void:
 	var fs := 13 if size.x < 1400.0 else 15
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	var site_seen := {}
-	var placed: Array[Rect2] = []   # grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
+	var placed: Array[Rect2] = []; _town_boxes = placed   # (kept for the pegs, which leave a town name readable) grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
 	for t in model.towns:
 		if t.kind == "school" or t.kind == "hamlet" or t.get("mascot", false):
 			if not t.has("volts"): continue
@@ -1508,6 +1509,9 @@ func _draw_pegs() -> void:
 	if _pegs.is_empty(): return
 	var sc := clampf(_scale() * 1.15, 0.8, 1.7)
 	var font := GridTheme.font("mono"); var fsz := GridTheme.fs(13)
+	var boxes: Array[Rect2] = []   # peg labels already drawn: on a big map (the L28 Remove tool lists ~50 elements) a label that would cover another is left to the hover
+	if _peg_hi >= 0 and _peg_hi < _pegs.size(): boxes.append(_peg_box(_peg_hi, sc, font, fsz))
+	if _pegs.size() > 12: boxes.append_array(_town_boxes)   # many pegs: the town names stay readable, the hovered peg still shows its label
 	for i in _pegs.size():
 		var p := world_to_screen(_pegs[i].tile); var hi := i == _peg_hi
 		var pulse := 0.5 + 0.5 * sin(_t * 3.2 + float(i) * 0.9)
@@ -1520,12 +1524,20 @@ func _draw_pegs() -> void:
 		_ci.draw_circle(p + Vector2(0, -28.0 * sc), 5.5 * sc, GridTheme.SODIUM if hi else GridTheme.SODIUM.lerp(Color.WHITE, 0.25 * pulse))
 		_ci.draw_arc(p + Vector2(0, -28.0 * sc), 5.5 * sc, 0.0, TAU, 14, GridTheme.NIGHT, 1.5)
 		var lb := str(_pegs[i].label)
+		if lb != "" and not hi:
+			var bx := _peg_box(i, sc, font, fsz)
+			if boxes.any(func(o: Rect2): return o.intersects(bx)): lb = ""
+			else: boxes.append(bx)
 		if lb != "":
 			var tw := font.get_string_size(lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz)
 			_ci.draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
 			_ci.draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
 
+
+func _peg_box(i: int, sc: float, font: Font, fsz: int) -> Rect2:
+	var p := world_to_screen(_pegs[i].tile); var tw := font.get_string_size(str(_pegs[i].label), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	return Rect2(p + Vector2(-tw * 0.5 - 5.0, 22.0 * sc - 1.0), Vector2(tw + 10.0, fsz + 8.0))
 
 ## Prologue: the open line's breaker glows at the middle of the line (the only legal action). Tap it to close the line.
 func _breaker_points() -> Array:

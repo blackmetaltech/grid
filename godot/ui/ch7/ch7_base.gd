@@ -58,7 +58,7 @@ func _frame(r: Rect2, xlo: float, xhi: float, ylo: float, yhi: float, logx: bool
 	for v in ys:
 		var p := _pt(xlo, float(v)); draw_line(Vector2(pr.position.x, p.y), Vector2(pr.end.x, p.y), Color(GridTheme.TEXT, 0.08), 1.0)
 		_text(_mono(), 9, Vector2(r.position.x + 4.0, p.y + 3.0), WorkOrder.num(float(v)), Color(GridTheme.TEXT, 0.6), 34.0, 2)
-	if xcap != "": _text(_mono(), 10, Vector2(pr.position.x, r.end.y - 2.0), xcap, Color(GridTheme.TEXT, 0.55), pr.size.x, 2)
+	if xcap != "": _text(_mono(), 10, Vector2(pr.position.x, r.end.y - 6.0), xcap, Color(GridTheme.TEXT, 0.55), pr.size.x, 2)
 	if ycap != "": _text(_semi(), 10, Vector2(r.position.x + 14.0, r.position.y + 15.0), ycap, Color(GridTheme.TEXT, 0.7))
 
 func _ticks(lo: float, hi: float, lg: bool) -> Array:
@@ -85,7 +85,26 @@ func _pt(x: float, y: float) -> Vector2:
 func _poly(pts: Array, col: Color, wd := 2.0) -> void:
 	var a := PackedVector2Array()
 	for p in pts: a.append(_pt(float(p[0]), float(p[1])))
-	if a.size() > 1: draw_polyline(a, col, wd, true)
+	if a.size() < 2: return
+	var pr = plot.get("r") if plot is Dictionary else null
+	if not (pr is Rect2): draw_polyline(a, col, wd, true); return
+	for i in a.size() - 1:   # clipped to the plot frame: a curve past the axis range (the I2t limits above 30 s) no longer runs over the frame and its labels
+		var seg := _clip(a[i], a[i + 1], pr)
+		if seg.size() == 2: draw_line(seg[0], seg[1], col, wd, true)
+
+## The part of the segment p0-p1 inside r (Liang-Barsky); empty when it is wholly outside.
+static func _clip(p0: Vector2, p1: Vector2, r: Rect2) -> PackedVector2Array:
+	var d := p1 - p0; var t0 := 0.0; var t1 := 1.0
+	for e in [[-d.x, p0.x - r.position.x], [d.x, r.end.x - p0.x], [-d.y, p0.y - r.position.y], [d.y, r.end.y - p0.y]]:
+		var pp: float = e[0]; var qq: float = e[1]
+		if absf(pp) < 1e-9:
+			if qq < 0.0: return PackedVector2Array()
+		else:
+			var t := qq / pp
+			if pp < 0.0: t0 = maxf(t0, t)
+			else: t1 = minf(t1, t)
+	if t0 > t1: return PackedVector2Array()
+	return PackedVector2Array([p0 + d * t0, p0 + d * t1])
 
 var rows: Array = []   ## chip rows recorded by _layout_panel, drawn after the panel body
 var folded := false    ## phone only: the panel collapsed to its title row so the stage can be reached

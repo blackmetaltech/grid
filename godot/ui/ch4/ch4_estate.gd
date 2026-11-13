@@ -93,9 +93,9 @@ func _draw_motors(r: Rect2) -> void:
 func _draw_bank(c: Vector2, ground: float) -> void:
 	var b = q.get("bank"); var conn := str(b.conn) if b is Dictionary else sel_conn
 	var by := ground - 28.0
-	draw_style_box(GridTheme.ink_sb(0.55, 10, 0.0), Rect2(c + Vector2(-110.0, -130.0), Vector2(220.0, 244.0)))
+	draw_style_box(GridTheme.ink_sb(0.55, 10, 0.0), Rect2(c + Vector2(-110.0, -134.0), Vector2(320.0, 276.0)))
 	draw_line(Vector2(c.x - 120.0, by), Vector2(c.x - 120.0, c.y - 80.0), Color("#C9CED6"), 3.0); draw_line(Vector2(c.x - 120.0, c.y - 80.0), Vector2(c.x - 100.0, c.y - 80.0), Color("#C9CED6"), 3.0)
-	_text(_semi(), 11, c + Vector2(-100.0, -112.0), T("C4_BANK_Y") if conn == "Y" else T("C4_BANK_D"), Color(GridTheme.TEXT, 0.75))
+	_wrap(_semi(), 11, c + Vector2(-100.0, -114.0), T("C4_BANK_Y") if conn == "Y" else T("C4_BANK_D"), Color(GridTheme.TEXT, 0.75), 300.0)
 	var burst: bool = b is Dictionary and bool(b.burst)
 	var col := Color("#D8483F") if burst else Color("#7AA7FF")
 	if conn == "Y":
@@ -126,8 +126,8 @@ func _draw_bank(c: Vector2, ground: float) -> void:
 		_text(_mono(), 11, Vector2(gx, gy + 28.0), T("C4_CANV") % [int(cv), int(rv)], _good(not burst))
 		if burst:
 			_text(_semi(), 16, Vector2(c.x - 100.0, c.y - 138.0), T("C4_BURST"), GridTheme.BAD, 200.0, 1)
-	else: _text(_mono(), 11, c + Vector2(-100.0, 6.0), T("C4_NOBANK"), Color(GridTheme.TEXT, 0.6))
-	_text(_mono(), 10, c + Vector2(-104.0, 100.0), T("C4_CANS_GLOSS"), Color(GridTheme.TEXT, 0.6))
+	else: _wrap(_mono(), 11, c + Vector2(-100.0, 6.0), T("C4_NOBANK"), Color(GridTheme.TEXT, 0.6), 300.0)
+	_wrap(_mono(), 10, c + Vector2(-100.0, 102.0), T("C4_CANS_GLOSS"), Color(GridTheme.TEXT, 0.6), 300.0)
 
 func _draw_pump(r: Rect2, ground: float) -> void:
 	var c := r.position + Vector2(60.0, 76.0)
