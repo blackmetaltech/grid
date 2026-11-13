@@ -10,7 +10,7 @@ const S := {
 	"CF_WO_ENS": "Energy not served at most 0.1 %% of the energy the province uses (%d of %d MWh)", "CF_WO_BLACKOUT": "No total blackout",
 	"CF_B_TAP": "Eastgate ICTs T34+T35 hold 1.02 pu", "CF_B_CAP": "Eastgate 400 kV: auto capacitor",
 	"CF_B_SPIN": "Keep spare gas unit U4 spinning", "CF_B_LINE": "Second causeway line to Saltmarsh", "CF_B_BATT": "4-hour battery on Saltmarsh",
-	"CF_B_HEAD": "Build kit (one click each)", "CF_B_DONE": "done",
+	"CF_B_HEAD": "Build kit (one click each)", "CF_B_DONE": "done", "CF_B_CAP_SKIP": "Auto capacitor: STATCOM instead", "CF_B_LINE_SKIP": "Second causeway line: not needed", "CF_B_BATT_SKIP": "Island battery: not needed",
 	"CF_TITLE": "Keep the lights on", "CF_DAY": "DAY %d of 3", "CF_CLOCK": "%02d:%02d",
 	"CF_DAY1": "Heatwave: record demand, the voltage sags at the far ends",
 	"CF_DAY2": "Storm: wind farms cut out, a line, the biggest unit and a transformer trip, lightning at night",

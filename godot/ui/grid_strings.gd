@@ -100,7 +100,7 @@ const S := {
 	"GT_LOCKED": "Pause the night first to change the grid",
 	"GT_HINT_bus": "Click a bus for the %s", "GT_HINT_bus2": "Click the other end", "GT_HINT_branch": "Click a line", "GT_HINT_line": "Click a line", "GT_HINT_xfmr": "Click a transformer",
 	"GT_HINT_unit": "Click a generator", "GT_HINT_thermal": "Click a generator", "GT_HINT_shunt": "Click a bank", "GT_HINT_load": "Click a town", "GT_HINT_storage": "Click a battery", "GT_HINT_element": "Click what to take down",
-	"GT_PEG_BUS": "%s · %s kV", "GT_PEG_LINE": "%s · line", "GT_PEG_XFMR": "%s · transformer", "GT_PEG_UNIT": "%s · %s", "GT_PEG_SHUNT": "%s · bank at %s", "GT_PEG_LOAD": "%s · load at %s", "GT_PEG_STORAGE": "%s · battery at %s",
+	"GT_PEG_BUS": "%s · %s kV", "GT_PEG_LINE": "%s · line", "GT_PEG_XFMR": "%s · transformer", "GT_PEG_UNIT": "%s · %s", "GT_PEG_SHUNT": "%s · %s at %s", "GT_SK_cap": "capacitor bank", "GT_SK_reactor": "reactor", "GT_SK_svc": "SVC", "GT_SK_statcom": "STATCOM", "GT_PEG_LOAD": "%s · load at %s", "GT_PEG_STORAGE": "%s · battery at %s",
 	"GT_ICON_capacitor": "Cap bank", "GT_ICON_reactor": "Reactor", "GT_ICON_transformer": "Transformer", "GT_ICON_gas": "Gas unit", "GT_ICON_coal": "Coal unit", "GT_ICON_diesel": "Diesel set", "GT_ICON_hydro": "Hydro",
 	"GT_ICON_pv": "Solar", "GT_ICON_wind": "Wind", "GT_ICON_nuclear": "Nuclear", "GT_ICON_biomass": "Biomass", "GT_ICON_synccon": "Sync cond.", "GT_ICON_battery": "Battery", "GT_ICON_line": "Line",
 	"GT_ICON_breaker": "Breaker", "GT_ICON_demolish": "Remove", "GT_ICON_dispatch": "Dispatch", "GT_ICON_part": "Part",

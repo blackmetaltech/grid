@@ -344,7 +344,7 @@ func elements(kind: String) -> Array:
 				if kind == "thermal" and str(u.kind) in ["pv", "wind"]: continue
 				out.append({"id": str(u.id), "tile": _bus_tile(str(u.bus)), "label": tx("GT_PEG_UNIT") % [str(u.id), str(u.kind)], "kind": "unit"})
 		"shunt":
-			for h in b.g.get("shunts", []): out.append({"id": str(h.id), "tile": _bus_tile(str(h.bus)) + Vector2(0.9, 0.4), "label": tx("GT_PEG_SHUNT") % [str(h.id), str(h.bus)], "kind": "shunt"})
+			for h in b.g.get("shunts", []): out.append({"id": str(h.id), "tile": _bus_tile(str(h.bus)) + Vector2(0.9, 0.4), "label": tx("GT_PEG_SHUNT") % [str(h.id), _shunt_word(str(h.get("kind", ""))), str(h.bus)], "kind": "shunt"})
 		"load":
 			for l in b.g.get("loads", []): out.append({"id": str(l.id), "tile": _bus_tile(str(l.bus)), "label": tx("GT_PEG_LOAD") % [str(l.id), str(l.bus)], "kind": "load"})
 		"storage":
@@ -393,6 +393,11 @@ func args_of(it: Dictionary) -> Array:
 		elif s.begins_with("$") and KNOBS.has(s.trim_prefix("$")): var k := s.trim_prefix("$"); out.append(int(knobs[k]) if KNOBS[k].get("int", false) else float(knobs[k]))
 		else: out.append(a)
 	return out
+
+## What a shunt is, in the peg label: "bank" was wrong for a STATCOM, an SVC or a reactor.
+func _shunt_word(kind: String) -> String:
+	var k := "GT_SK_" + kind
+	return tx(k) if tx(k) != k else tx("GT_SK_cap")
 
 static func _one_piece(part: String) -> bool: return part.begins_with("statcom") or part.begins_with("svc")
 

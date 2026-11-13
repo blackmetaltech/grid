@@ -133,17 +133,24 @@ func _kit_open(g: Dictionary) -> Array:
 	for br in g.branches:
 		if (str(br.id) == "T34" or str(br.id) == "T35") and br.tap != null and br.tap.auto != null and float(br.tap.auto.vSet) > 1.015: tapped += 1
 	if tapped < 2: open.append("tap")
-	if (g.shunts as Array).is_empty(): open.append("cap")
+	if not _stands(g, "cap") and not _stands(g, "statcom"): open.append("cap")   # a STATCOM placed by hand covers the Eastgate voltage too
 	var u4 = null
 	for u in g.units: if str(u.id) == "U4": u4 = u
 	if u4 != null and (u4.commit.schedule as Array).size() == 0: open.append("spin")
-	var island_done := false
-	for s in g.storage: if str(s.bus) == "B18": island_done = true
+	if not _stands(g, "line") and not _stands(g, "batt"): open.append("line"); open.append("batt")
+	return open
+
+## Which move stands: "cap" / "statcom" (a shunt of that kind), "line" (a second feeder into Saltmarsh, B18) or "batt" (storage on B18). The other button then reads "not needed", not done.
+static func _stands(g: Dictionary, how: String) -> bool:
+	if how == "cap" or how == "statcom":
+		for h in g.shunts: if str(h.get("kind", "")) == how: return true
+		return false
+	if how == "batt":
+		for s in g.storage: if str(s.bus) == "B18": return true
+		return false
 	var feeders := 0
 	for br in g.branches: if str(br.from) == "B18" or str(br.to) == "B18": feeders += 1
-	if feeders >= 2: island_done = true
-	if not island_done: open.append("line"); open.append("batt")
-	return open
+	return feeders >= 2
 
 func _rebuild_kit(g: Dictionary) -> void:
 	var open := _kit_open(g)
@@ -158,7 +165,8 @@ func _rebuild_kit(g: Dictionary) -> void:
 		b.focus_mode = CbKit.focus_mode(); b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.clip_text = true
 		var key: String = KIT_KEYS[id]
 		var is_open: bool = id in open
-		b.text = ("" if is_open else "✓ ") + tx(key)
+		var skipped: bool = not is_open and id in ["line", "batt", "cap"] and not _stands(g, id)   # covered by another move (the island's other option, a STATCOM for the capacitor), not built
+		b.text = tx(key) if is_open else (("– " + tx(key + "_SKIP")) if skipped else ("✓ " + tx(key)))
 		b.disabled = locked or not is_open
 		b.pressed.connect(func():
 			var ok := true
