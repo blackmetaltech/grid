@@ -2,6 +2,19 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.1.0] - "Employable" (in progress; v1.1.0-rc.1 tagged; design in docs/DESIGN-1.1.md)
+### Added
+- Chapter 8 engine, "The Feeder" (`src/sim/distrib`): a backward-forward sweep radial load flow, cross-checked against Newton-Raphson; analytical reliability per IEEE 1366 (SAIFI, SAIDI, CAIDI, ENS) with fuses, sectionalisers and a normally-open tie; IEEE C37.112 recloser curves and fuse coordination margins; IEC 60076-7 transformer hot-spot and ageing; PV hosting capacity with volt-var and OLTC line-drop compensation. All are checked against independent Python oracles (`tools/oracles/ch8_oracles.py`).
+- A second-lamp rule (`star2`): the spend lamp can also ask for a result. L12's $0 AVR set-point now earns only the pass lamp; the spend lamp also needs the first swing under 70°.
+- The shift report says what the next lamp wants on L02, L03, L05, L08, L09, L11, L12, L16, L20 and L23.
+### Changed
+- Exam bridges: L06 and L18's second lamp asks for a prediction (it came free with the pass). L22's lamps say they count answers within 1 %. Lamps on levels with nothing to buy name their condition instead of reading "Done well" twice.
+- A bus's name label picks the bus, and a line picks anywhere along its wires (L09's series capacitor needed the spot under the middle).
+- A second click on an armed tray cell keeps the part in hand and says how to put it down.
+- The speed notches (1×, 2×, 4×) pick directly; the knob no longer wraps from 4× to 1× on a repeated click.
+- After a job ends, a locked tool says how to Retry, and Retry never replays the work order.
+- L15 says to set its banks and reactor to Automatic. L11's caption shows right-click for steps of 1.
+
 ## [1.0.0] - Keep the Lights On (tag v1.0.0; includes rc.4 and rc.5)
 Every chapter has been played to a win through the UI: by the Opus iterator on desk (L17, L21, L28 three lamps, L28 also in the
 phone layout at 2424×1080) and by two campaign smoke testers on one level per chapter (a first-year persona, then a std-9 student). A fresh std-9 tester then won L20 and L11 after the last fixes. The harsh review is in docs/CRITIQUE-1.0.md.
