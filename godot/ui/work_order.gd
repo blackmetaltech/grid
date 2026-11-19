@@ -80,6 +80,7 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 static func lamp_texts(li: Dictionary) -> Array:
 	if not bool(li.get("stars", false)): return []
 	if str(li.get("id", "")) == "L27": return [T("LAMP_1"), T("C7_LAMP_L27_2"), T("C7_LAMP_L27_3")]   # chapter 7 exam: say what the stars mean
+	if str(li.get("id", "")) == "L22": return [T("LAMP_1"), T("LAMP_L22_2"), T("LAMP_L22_3")]   # chapter 6 exam: lamps count the answers within 1 %
 	var fz = li.get("frozen")
 	var l2 := T("LAMP_NO_COST"); var l3 := T("LAMP_NO_COST")
 	if fz is Dictionary:
@@ -97,7 +98,9 @@ static func lamp_texts(li: Dictionary) -> Array:
 		if not extra2.is_empty(): l2 += T("LAMP_AND") + ", ".join(extra2)   # L12: the spend lamp also asks for the swing
 		l3 = (T("C7_LAMP_SCORE3") if scored else T("LAMP_3")) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
 		if not scored and float(fz.starA) <= 0.0:   # nothing to buy (the exam bridges): the lamps are not about spend
-			l2 = T("LAMP_NO_COST"); l3 = T("LAMP_NO_COST") + ((T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else "")
+			var e2 := ", ".join(extra2); var e3 := ", ".join(extra)
+			l2 = (e2.substr(0, 1).to_upper() + e2.substr(1)) if e2 != "" else T("LAMP_NO_COST")   # 1.1: the second lamp names what it asks (it read "Done well" twice)
+			l3 = (e3.substr(0, 1).to_upper() + e3.substr(1)) if e3 != "" else T("LAMP_NO_COST")
 	return [T("LAMP_1"), l2, l3]
 
 ## Split an engine story line "TOBI: text" into [speaker, text].

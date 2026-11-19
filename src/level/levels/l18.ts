@@ -31,9 +31,10 @@ export const L18: GridLevelSpec = {
     { id: 'predictions', options: [{ id: 'skip', actions: [] }, { id: 'predict', actions: PREDICT }] },
   ],
   // gate: the sag of |V2| below 1.00 pu in percent, asked to stay under half a percent so the 2 % margin rule has room (a margin of 2 % of 1.00 pu would be a 2 % sag)
-  thresholds: { v2Min: 1.0, loadingMax: 1, predHitsMin: 2, sagGatePct: 0.5 },
+  thresholds: { v2Min: 1.0, loadingMax: 1, predHitsMin: 2, predHitsMid: 1, sagGatePct: 0.5 },
   decisive: { key: 'v2SagPct', limit: 'sagGatePct', dir: 'max' },
   star3: [{ key: 'predHits', min: 'predHitsMin' }],
+  star2: [{ key: 'predHits', min: 'predHitsMid' }],   // 1.1: the second lamp asks for one prediction within 0.5 %
   extraRules: (th) => ({ vWatch: { lo: th.v2Min!, hi: 1.2, kv: [132], buses: ['B2'], graceBlocks: 0 }, maxLoading: th.loadingMax!, exam: true }),
   lessonText: (s) => l18Lesson(s), tryText: (s) => l18Try(s),
   story: { placeKey: 'level.L18.place', lineKeys: ['level.L18.story1', 'level.L18.story2', 'level.L18.story3'], lessonKey: 'level.L18.lesson' },

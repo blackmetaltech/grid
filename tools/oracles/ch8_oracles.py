@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Chapter 8 oracles (L31 Long Feeder, L32 Count the Outages, L33 Fuse Saving, L34 Firm Capacity, L35 Sun on the Roofs).
 
-Independent of the TypeScript engine (src/sim/dist): the load flow here is a Zbus fixed-point (not a backward-forward sweep), the
+Independent of the TypeScript engine (src/sim/distrib): the load flow here is a Zbus fixed-point (not a backward-forward sweep), the
 reliability numbers come from a hand-derived outage-time table, the thermal model is integrated by RK4 on the differential form of
 IEC 60076-7 (not the exact step solution), the hosting capacity uses its own flow and bisection.  Scenario inputs are shared through
-src/sim/dist/scenarios.json (data only).   Run: python3 tools/oracles/ch8_oracles.py   -> writes ch8_expected.json
+src/sim/distrib/scenarios.json (data only).   Run: python3 tools/oracles/ch8_oracles.py   -> writes ch8_expected.json
 """
 import json, math, os
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SC = json.load(open(os.path.join(HERE, '..', '..', 'src', 'sim', 'dist', 'scenarios.json')))
+SC = json.load(open(os.path.join(HERE, '..', '..', 'src', 'sim', 'distrib', 'scenarios.json')))
 OUT = {}
 
 

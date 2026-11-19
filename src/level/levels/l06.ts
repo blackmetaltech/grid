@@ -18,9 +18,10 @@ export const L06: GridLevelSpec = {
     { id: 'ratio', options: [1, 2, 5, 6, 7, 8, 10, 15, 20].map((r) => ({ id: `r${r}`, actions: ratio(r) })) },
     { id: 'kva', options: [630, 1000, 1250, 1600].map((k) => ({ id: `kva${k}`, actions: [{ name: 'setTransformerKva', args: [k] }] })) },
   ],
-  thresholds: { lossMaxPct: TOWN.lossMaxPct, predTolPct: 2 },
+  thresholds: { lossMaxPct: TOWN.lossMaxPct, predTolPct: 2, predMidPct: 5 },
   decisive: { key: 'lossPct', limit: 'lossMaxPct', dir: 'max' },
   star3: [{ key: 'predErrPct', max: 'predTolPct' }],
+  star2: [{ key: 'predErrPct', max: 'predMidPct' }],   // 1.1: nothing to buy, so the second lamp asks for a prediction within 5 % (it was free with the pass)
   story: { placeKey: 'level.L06.place', lineKeys: ['level.L06.story1', 'level.L06.story2'], lessonKey: 'level.L06.lesson' },
   brownoutLoses: true, blackoutLoses: false, stars: true, histogram: 'capex',
   naive: { actions: [], failKind: 'brownout' },

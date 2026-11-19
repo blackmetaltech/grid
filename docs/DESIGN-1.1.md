@@ -60,7 +60,7 @@ The engineer's question changes from "will it run tonight?" to "how often, how l
 | L35 | **Sun on the Roofs** | Reverse power flow and voltage rise on an LV/11 kV feeder with rooftop PV; hosting capacity; OLTC with line-drop compensation; PV inverter volt-var. | PV connection limit per feeder, OLTC set point, volt-var curve on/off, an extra cable. | No customer above +10 % at noon, none below −6 % at the evening peak; lamp 3 hosting ≥ X MW. |
 | L36 | **Exam Bridge: Feeder Numbers** | Givens on screen; predict the far-end voltage drop, SAIFI and SAIDI of a small feeder before the run. | Three predictions and a "why" choice. | All within 5 % (lamp 2), within 1 % and the why (lamp 3). |
 
-### B2. Engine (`src/sim/dist/`, lane E1)
+### B2. Engine (`src/sim/distrib/`, lane E1)
 - `radial.ts`: a backward-forward sweep load flow for radial feeders (complex, per phase, per section). It is cross-checked against the existing Newton-Raphson on meshed-free cases. Oracle: ΔV per section and losses on a 5-section feeder (hand formula and a Python sweep).
 - `reliability.ts`: analytical reliability (failure-mode effect analysis). Each section has λ (faults/km/yr) and r (repair h). Each switch has a switching time. The output is SAIFI, SAIDI, CAIDI, ENS and customer-minutes per section. Oracle: a 3-section feeder from the textbook method (Billinton and Allan style), computed in Python independently.
 - `tcc.ts`: time-current curves. Recloser fast and slow use the IEEE C37.112 inverse forms. Fuse minimum-melt and total-clearing curves are piecewise log-log curves from a catalogue table with source tags; values not checked against a datasheet are flagged `recall`. Coordination margin queries.
@@ -106,7 +106,7 @@ Machine rules: at most 2 subagents at once, one desk tester, vitest `--maxWorker
 | Lane | Owner | Files | Depends on |
 |---|---|---|---|
 | A (findings A1, A2, #5, #7, #9, #10) | Opus | src/level/levels/l12.ts, ch4 oracles, shift_report.gd, work_order.gd, the exam-bridge level specs | — |
-| E1 dist engine + oracles | Sonnet builder | src/sim/dist/**, tools/oracles/ch8_oracles.py, src/regions/*/catalogues/dist*.ts | — |
+| E1 dist engine + oracles | Sonnet builder | src/sim/distrib/**, tools/oracles/ch8_oracles.py, src/regions/*/catalogues/dist*.ts | — |
 | L8 chapter 8 level specs + locales | Sonnet builder | src/level/levels/l31-l36.ts, src/level/chapters/ch8.ts, src/locales/ch8.en.ts, ch8 tests | E1 |
 | U1 chapter 8 UI | Sonnet builder | godot/ui/ch8/**, godot/tests/ch8_flow.gd | L8 |
 | E2 career engine | Sonnet builder | src/career/**, career tests and personas | E1 |
