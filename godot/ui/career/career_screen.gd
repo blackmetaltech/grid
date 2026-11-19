@@ -67,7 +67,7 @@ func build() -> void:
 	tool_row = _build_tools(); left.add_child(tool_row)
 	map = CareerMap.new(); map.compact = compact; map.size_flags_vertical = Control.SIZE_EXPAND_FILL; map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map.picked.connect(_on_pick); left.add_child(map)
-	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.95), Color(GridTheme.SODIUM_DIM, 0.4), 1, 8, 10.0, 5.0)); left.add_child(ip)
+	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.95), Color(GridTheme.SODIUM_DIM, 0.4), 1, 8, 10.0, 5.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
 	info_box = VBoxContainer.new(); info_box.add_theme_constant_override("separation", 2); ip.add_child(info_box)
 	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.97), Color(GridTheme.SODIUM_DIM, 0.5), 1, 8, 8.0, 8.0))
 	drawer.custom_minimum_size.x = clampf(app.vw() * 0.34, 380.0, 420.0) if compact else clampf(app.vw() * 0.29, 480.0, 600.0)
@@ -119,6 +119,7 @@ func _tools_refresh() -> void:
 	var leg: Label = tool_row.get_node("Legend")
 	leg.text = T("CAR_LEG_LOAD") if colour == "load" else T("CAR_LEG_HEALTH")
 	leg.text += "  " + T("CAR_LEG_BADGES")
+	if compact: leg.visible = false; tool_row.tooltip_text = leg.text   # the phone has no room for the key: it is the row's tooltip
 
 func _copy_code() -> void:
 	DisplayServer.clipboard_set(str(d.get("code", ""))); _say(T("CAR_CODE_COPIED"), true)
@@ -165,7 +166,7 @@ func refresh() -> void:
 func _on_pick(s: Dictionary) -> void:
 	sel = s; msg = ""
 	app.sfx("click")
-	map.sel = sel; map.queue_redraw(); _build_info(); _build_drawer()
+	map.sel = sel; map.queue_redraw(); _build_info(); _build_drawer(true)
 
 func _on_end() -> void:
 	if _busy: return
@@ -198,7 +199,8 @@ func primary_of(pid: String) -> Dictionary:
 	return d.primaries[i] if i >= 0 else {}
 
 func _asset_line(a: Dictionary, label: String) -> String:
-	var st := T("CAR_FAILED") if bool(a.failed) else (T("CAR_INSPECTED") if bool(a.inspected) else T("CAR_ESTIMATE"))
+	var st := T("CAR_INSPECTED") if bool(a.inspected) else T("CAR_ESTIMATE")
+	if bool(a.failed): st = (T("CAR_FAILED") % int(a.outQ)) if float(a.outQ) > 0.0 else T("CAR_PATCHED")   # a failed transformer is out; a failed line section was patched and awaits a proper fix
 	return T("CAR_ASSET_HEALTH") % [label, CareerKit.num(float(a.health), 1), st]
 
 func _build_info() -> void:
@@ -255,10 +257,10 @@ func _build_tabs() -> void:
 	var nrun := (d.projects as Array).filter(func(p): return str(p.status) == "building" or str(p.status) == "active").size()
 	var nreq := (d.requests as Array).size()
 	for o in [["board", T("CAR_TAB_BOARD")], ["run", T("CAR_TAB_RUN") % nrun], ["req", T("CAR_TAB_REQ") % nreq]]:
-		var c := CareerKit.chip(str(o[1]), tab == str(o[0]), func(): tab = str(o[0]); _build_tabs(); _build_drawer(), 14 if compact else 16); c.name = "Tab_" + str(o[0]); tab_row.add_child(c)
+		var c := CareerKit.chip(str(o[1]), tab == str(o[0]), func(): tab = str(o[0]); _build_tabs(); _build_drawer(true), 14 if compact else 16); c.name = "Tab_" + str(o[0]); tab_row.add_child(c)
 
-func _build_drawer() -> void:
-	var keep := drawer_sc.scroll_vertical
+func _build_drawer(to_top := false) -> void:
+	var keep := 0 if to_top else drawer_sc.scroll_vertical
 	_clear(drawer_body)
 	match tab:
 		"run": _run_tab()
@@ -280,9 +282,54 @@ func target_for(kind: String) -> String:
 			"asset": return str(sel.get("asset", ""))
 	return ""
 
+## The assets whose replacement buys the most SAIDI: the board's own quotes for the worn and patched ones, best first.
+func worst_assets(limit := 4) -> Array:
+	var cand: Array = []
+	for f in d.feeders:
+		for s in f.sections:
+			if bool(s.failed) or float(s.health) < 6.0: cand.append([str(s.id), float(s.health) - (2.0 if bool(s.failed) else 0.0)])
+	for p in d.primaries:
+		for u in p.units: if bool(u.failed) or float(u.health) < 6.0: cand.append([str(u.id), float(u.health)])
+		if float(p.switchgear.health) < 6.0: cand.append([str(p.switchgear.id), float(p.switchgear.health)])
+	cand.sort_custom(func(a, b): return float(a[1]) < float(b[1]))
+	var out: Array = []
+	for c in cand.slice(0, 16):
+		var q = app.b.q("careerQuote", ["replaceAssets", str(c[0])])
+		if q is Dictionary and bool(q.get("ok", false)) and float(q.dSaidi) <= -1.0: out.append({"id": str(c[0]), "dSaidi": float(q.dSaidi), "capexText": str(q.capexText), "capex": float(q.capex)})
+	out.sort_custom(func(a, b): return float(a.dSaidi) < float(b.dSaidi))
+	return out.slice(0, limit)
+
+func _asset_pick(id: String) -> Dictionary:
+	if id.contains("."): return {"type": "section", "id": id, "feeder": id.split(".")[0]}
+	return {"type": "primary", "id": id.split("-")[0], "asset": id}
+
+func _worst_card(sz: int) -> void:
+	var v := CareerKit.card(drawer_body); v.get_parent().name = "WorstCard"
+	v.add_child(CareerKit.lbl(T("CAR_WORST"), sz + 1, GridTheme.SODIUM, "semi", true))
+	var rows := worst_assets(3 if compact else 4)
+	if rows.is_empty(): v.add_child(CareerKit.lbl(T("CAR_WORST_NONE"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true)); return
+	for r in rows:
+		var id := str(r.id); var a := _asset_of(id)
+		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); v.add_child(hb)
+		var pick := CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1)
+		pick.name = "WorstPick_" + id; pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; hb.add_child(pick)
+		var gain := CareerKit.lbl("%s  %s" % [T("CAR_WORST_GAIN") % CareerKit.num(float(r.dSaidi), 1), str(r.capexText)], sz - 2, GridTheme.GOOD, "mono")
+		if compact: v.add_child(gain)   # the phone drawer is narrow: the gain goes on a line of its own
+		else: hb.add_child(gain)
+		var fix := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", ["replaceAssets", id]), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
+
+func _asset_of(id: String) -> Dictionary:
+	for f in d.feeders:
+		for s in f.sections: if str(s.id) == id: return s
+	for p in d.primaries:
+		for u in p.units: if str(u.id) == id: return u
+		if str(p.switchgear.id) == id: return p.switchgear
+	return {}
+
 func _board_tab() -> void:
 	var sz := 14 if compact else 15
 	_veg_card()
+	_worst_card(sz)
 	var t := str(sel.get("type", ""))
 	var head := T("CAR_BOARD_NONE")
 	if t == "section": head = T("CAR_TARGET_IS") % (T("CAR_SEC_TITLE") % str(sel.id))

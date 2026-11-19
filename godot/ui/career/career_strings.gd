@@ -15,16 +15,16 @@ const S := {
 	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",
 	# map
 	"CAR_COLOUR_BY": "colour by", "CAR_BY_LOAD": "Loading", "CAR_BY_HEALTH": "Health", "CAR_LEG_LOAD": "Loading of the feeder: green under 70 %, amber to 100 %, red above.", "CAR_LEG_HEALTH": "Health of each section, 1 (worn out) to 10 (new).",
-	"CAR_LEG_BADGES": "T tie  R recloser  V regulator  B battery  D demand response", "CAR_FEEDER_LABEL": "%s  %d %%", "CAR_FEEDER_LABEL_H": "%s", "CAR_FIRM_TAG": "firm margin %s %%",
+	"CAR_LEG_BADGES": "T tie  R recloser  V regulator  B battery  D demand response  x patched, replace it", "CAR_FEEDER_LABEL": "%s  %d %%", "CAR_FEEDER_LABEL_H": "%s", "CAR_FIRM_TAG": "firm margin %s %%",
 	# selection panel
 	"CAR_SEL_NONE": "Tap a section, a feeder line or a primary on the map to look at it and to choose where a project goes.", "CAR_SEC_TITLE": "Section %s", "CAR_SEC_INFO": "%s km of %s wire, %s.",
 	"CAR_DEV_none": "no switch", "CAR_DEV_manual": "manual switch at its head", "CAR_DEV_remote": "remote switch at its head", "CAR_DEV_fuse": "fuse at its head",
 	"CAR_FDR_INFO": "Feeder %s from %s: %d customers, peak %d kW, loading %s %%, lowest voltage %s pu. SAIDI %s min, SAIFI %s a year (expected).", "CAR_HAS": "Has: %s.", "CAR_HAS_NONE": "No tie, recloser, regulator, battery or demand response yet.",
 	"CAR_B_tie": "tie", "CAR_B_recloser": "recloser", "CAR_B_regulator": "regulator", "CAR_B_battery": "battery %d kW", "CAR_B_dr": "demand response %d kW", "CAR_VVIOL": "Voltage outside the band at the far end.",
-	"CAR_ASSET_HEALTH": "%s: health %s of 10, %s.", "CAR_INSPECTED": "inspected", "CAR_ESTIMATE": "estimate, not inspected", "CAR_FAILED": "FAILED, a replacement is being built", "CAR_INSPECT": "Inspect %s",
+	"CAR_ASSET_HEALTH": "%s: health %s of 10, %s.", "CAR_INSPECTED": "inspected", "CAR_ESTIMATE": "estimate, not inspected", "CAR_FAILED": "OUT OF SERVICE, back in %d quarters", "CAR_PATCHED": "patched after a fault, still wearing: replace it for a proper fix", "CAR_INSPECT": "Inspect %s",
 	"CAR_PRIMARY_INFO": "%s: peak %s MVA, firm capacity %s MVA (the biggest unit out), firm margin %s %%.", "CAR_UNIT": "%s, %s MVA", "CAR_SWGEAR": "%s switchgear",
 	# drawer
-	"CAR_TAB_BOARD": "Board", "CAR_TAB_RUN": "Running %d", "CAR_TAB_REQ": "Requests %d", "CAR_BOARD_NONE": "Choose a target on the map: cards light up for what can be built there.", "CAR_TARGET_IS": "Target: %s",
+	"CAR_WORST": "Worst assets: replace for the biggest gain", "CAR_WORST_ROW": "%s  health %s%s", "CAR_WORST_PATCH": ", patched", "CAR_WORST_GAIN": "SAIDI %s min", "CAR_WORST_NONE": "Nothing is worth replacing right now.", "CAR_TAB_BOARD": "Board", "CAR_TAB_RUN": "Running %d", "CAR_TAB_REQ": "Requests %d", "CAR_BOARD_NONE": "Choose a target on the map: cards light up for what can be built there.", "CAR_TARGET_IS": "Target: %s",
 	"CAR_TGT_section": "a section", "CAR_TGT_feeder": "a feeder", "CAR_TGT_primary": "a primary", "CAR_TGT_asset": "an asset", "CAR_NEEDS": "Pick %s on the map.", "CAR_START": "Start", "CAR_COST_LINE": "%s, %d quarters, %d crew",
 	"CAR_FROM": "from %s", "CAR_ON": "on %s", "CAR_CANT": "Not possible here", "CAR_OPTIONS": "%d places", "CAR_QUOTE_FAIL": "Not here",
 	"CAR_RUN_NONE": "No project is running. Pick one from the board.", "CAR_RUN_LINE": "%s on %s", "CAR_RUN_STATE": "%d of %d quarters left, %s of %s spent", "CAR_CANCEL": "Cancel", "CAR_RUN_building": "building", "CAR_RUN_active": "running", "CAR_RUN_done": "done", "CAR_RUN_cancelled": "cancelled",
@@ -44,6 +44,6 @@ const S := {
 	"CAR_RV_TITLE": "ANNUAL REVIEW", "CAR_RV_YEAR": "Year %d", "CAR_RV_MET": "TARGETS MET", "CAR_RV_MISSED": "TARGETS MISSED", "CAR_RV_NUMS": "SAIDI %s min (target %s). SAIFI %s (target %s).", "CAR_RV_INCENTIVE": "Incentive: %s", "CAR_RV_STATE": "Cash %s, asset base %s, average health %s.",
 	"CAR_GRADE_good": "GOOD", "CAR_GRADE_ok": "OK", "CAR_GRADE_poor": "POOR", "CAR_RV_CONT": "Next year", "CAR_RV_NOTE": "A simplified performance-based incentive: pay for beating the target, a fine for missing it. No rate case, no inflation.",
 	# ending
-	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the ten years.",
+	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years judged.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the career.",
 	"CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
 }

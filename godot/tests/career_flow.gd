@@ -40,7 +40,12 @@ static func _drive(app: CbApp, seen: Array, max_steps := 12) -> void:
 		seen.append(str(m.name))
 		if m.name == "career_incidents":
 			for inc in (app.b.q("career").incidents as Array):
-				_press(app, m, "Tie_" + str(inc.id)); await _frames(app, 1); _press(app, m, "Crew_" + str(inc.id)); await _frames(app, 1)
+				_press(app, m, "Tie_" + str(inc.id)); await _frames(app, 1)
+				var crewed_before := bool(inc.crewed)
+				if _press(app, m, "Crew_" + str(inc.id)):
+					await _frames(app, 2)
+					var cb := _node(m, "Crew_" + str(inc.id)) as Button
+					CbSmoke._check(not crewed_before and cb != null and cb.disabled and cb.text == TranslationServer.translate("CAR_INC_CREWED") and _node(m, "Result") != null and (_node(m, "Result") as Label).text != "", "career flow: sending a crew turns the card's button into Crew sent and the engine's sentence shows")
 			_press(app, m, "Done")
 		elif m.name == "career_ending": return
 		else: _press(app, m, "Continue")
@@ -87,6 +92,12 @@ static func run(app: CbApp) -> void:
 	(_node(sc.tab_row, "Tab_board") as Button).pressed.emit(); await _frames(app, 2)
 	var v0 := int(sc.d.vegLevel); _press(app, sc.drawer, "VegPlus"); await _frames(app, 2)
 	ck.call(int(sc.d.vegLevel) == v0 + 1, "career flow: the vegetation stepper raises the budget (%d to %d)" % [v0, int(sc.d.vegLevel)])
+	# the worst-assets card: its Start replaces the asset through the engine
+	var fixes: Array = []; _find(_node(sc.drawer, "WorstCard"), func(n): return n is Button and str(n.name).begins_with("Fix_"), fixes)
+	ck.call(not fixes.is_empty(), "career flow: the Worst assets card lists assets with a Start button")
+	if not fixes.is_empty():
+		var np := (sc.d.projects as Array).size(); (fixes[0] as Button).pressed.emit(); await _frames(app, 2)
+		ck.call((sc.d.projects as Array).size() == np + 1 and str(sc.d.projects[np].kind) == "replaceAssets", "career flow: the Worst assets Start put a replacement on the engine's list")
 	# a primary pick shows its units and the transformer card
 	sc.map.picked.emit({"type": "primary", "id": "P1"}); await _frames(app, 2)
 	ck.call(_node(sc.drawer, "Start_newTransformer") != null and _node(sc.info_box, "Asset_P1-T1") != null, "career flow: picking P1 offers the transformer card and its assets")

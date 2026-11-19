@@ -6,10 +6,10 @@ extends RefCounted
 static func T(key: String) -> String: return TranslationServer.translate(key)
 const GREEN := Color("#2A7A52")
 
-static func _open(sc: CareerScreen, nm: String, w0: float) -> Dictionary:
+static func _open(sc: CareerScreen, nm: String, w0: float, h0 := 820.0) -> Dictionary:
 	var app: CbApp = sc.app
 	var compact := PaperKit.compact(app)
-	var h := minf(app.vs_h() - 14.0, 820.0)
+	var h := minf(app.vs_h() - 14.0, h0)
 	var d := PaperKit.sheet(app, nm, minf(w0, app.vw() - 20.0), h, 0.72, 14.0 if compact else 26.0)
 	app.sfx("page")
 	(d.vb as VBoxContainer).add_theme_constant_override("separation", 6 if compact else 10)
@@ -62,14 +62,16 @@ static func _run(steps: Array, i: int) -> void:
 # ---- incidents -------------------------------------------------------------------------------------------------------------------
 static func incidents(sc: CareerScreen) -> void:
 	var compact := PaperKit.compact(sc.app)
-	var d := _open(sc, "career_incidents", 760.0)
+	var d := _open(sc, "career_incidents", 760.0, 700.0)
 	var host: Control = d.host
 	_head(d.vb, T("CAR_INC_TITLE"), T("CAR_INC_SUB"), compact, PaperKit.RED)
 	var body := VBoxContainer.new(); body.add_theme_constant_override("separation", 8)
 	var res := PaperKit.lbl("", 15 if compact else 17, "semi", GREEN, true); res.name = "Result"
-	var fill: Callable
-	fill = func():
-		for c in body.get_children(): body.remove_child(c); c.queue_free()
+	var fh: Array = [Callable()]   # the lambda refers to itself through this holder (a lambda captures plain variables by value)
+	var fill := func():
+		for c in body.get_children():
+			body.remove_child(c)
+			if c != res: c.queue_free()
 		for inc in sc.d.incidents:
 			var iid := str(inc.id)
 			var card := PanelContainer.new(); card.name = "Inc_" + iid
@@ -82,12 +84,13 @@ static func incidents(sc: CareerScreen) -> void:
 			var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 10); v.add_child(row)
 			var tie_txt := T("CAR_INC_TIED") if bool(inc.tied) else (T("CAR_INC_TIE") if bool(inc.hasTie) else T("CAR_INC_NOTIE"))
 			var tb := PaperKit.btn(tie_txt, false, func():
-				var r := sc.act("careerTie", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); fill.call(), 17 if compact else 19)
+				var r := sc.act("careerTie", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
 			tb.name = "Tie_" + iid; tb.disabled = bool(inc.tied) or not bool(inc.hasTie); row.add_child(tb)
 			var cb := PaperKit.btn(T("CAR_INC_CREWED") if bool(inc.crewed) else T("CAR_INC_CREW"), false, func():
-				var r := sc.act("careerCrew", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); fill.call(), 17 if compact else 19)
+				var r := sc.act("careerCrew", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
 			cb.name = "Crew_" + iid; cb.disabled = bool(inc.crewed); row.add_child(cb)
 		body.add_child(res)
+	fh[0] = fill
 	fill.call()
 	var done := PaperKit.btn(T("CAR_INC_DONE"), true, func():
 		_close(d, Callable()); sc.settle(), 19 if compact else 21)
@@ -101,7 +104,7 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	var hist: Array = sc.d.history
 	if hist.is_empty(): if next.is_valid(): next.call(); return
 	var h: Dictionary = hist[hist.size() - 1]
-	var d := _open(sc, "career_quarter", 760.0)
+	var d := _open(sc, "career_quarter", 760.0, 640.0)
 	_head(d.vb, T("CAR_QR_TITLE"), T("CAR_QR_SUB") % [int(h.year), int(h.quarter)], compact)
 	var body := VBoxContainer.new(); body.add_theme_constant_override("separation", 8)
 	var bars := HBoxContainer.new(); bars.add_theme_constant_override("separation", 24); body.add_child(bars)
@@ -165,7 +168,7 @@ static func ending(sc: CareerScreen) -> void:
 	body.add_child(PaperKit.lbl(str(c.endingText), 34 if compact else 52, "title", GREEN if good else PaperKit.RED, true))
 	body.add_child(PaperKit.lbl(T("CAR_ED_SCORE") % int(c.score), 28 if compact else 40, "semi", PaperKit.INK))
 	var n1 := CareerKit.num
-	body.add_child(_para(T("CAR_ED_YEARS") % [int(c.yearsMet), int(c.quarters) / 4], compact))
+	body.add_child(_para(T("CAR_ED_YEARS") % [int(c.yearsMet), (c.reviews as Array).size()], compact))
 	body.add_child(_para(T("CAR_ED_HEALTH") % [n1.call(float(c.health), 1), n1.call(float(c.startHealth), 1)], compact))
 	body.add_child(_para(T("CAR_ED_CASH") % [str(c.cashText), str(c.netIncentiveText)], compact))
 	body.add_child(PaperKit.rule())

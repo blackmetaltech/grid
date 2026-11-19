@@ -120,11 +120,12 @@ func _draw() -> void:
 			var same_feeder := str(sel.get("feeder", "")) == fid and str(sel.get("type", "")) == "section"
 			if selected: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.5), w + 9.0 * _sc(), true)
 			elif same_feeder: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.14), w + 6.0 * _sc(), true)
-			if bool(sec.failed): col = Color(GridTheme.BAD, 0.55)
 			draw_line(pts[k], pts[k + 1], col, w, true)
 			var mid := (pts[k] + pts[k + 1]) * 0.5
-			if bool(sec.failed):
-				draw_line(mid + Vector2(-6, -6), mid + Vector2(6, 6), GridTheme.BAD, 3.0); draw_line(mid + Vector2(-6, 6), mid + Vector2(6, -6), GridTheme.BAD, 3.0)
+			if bool(sec.failed):   # a patch: the section is in service but wearing; replacing it is the proper fix (red when it is out of service)
+				var pc: Color = GridTheme.BAD if float(sec.outQ) > 0.0 else GridTheme.WARN
+				draw_circle(mid, 7.0 * _sc(), CareerKit.INKBG); draw_arc(mid, 7.0 * _sc(), 0, TAU, 14, pc, 2.0, true)
+				draw_line(mid + Vector2(-4, -4) * _sc(), mid + Vector2(4, 4) * _sc(), pc, 2.5); draw_line(mid + Vector2(-4, 4) * _sc(), mid + Vector2(4, -4) * _sc(), pc, 2.5)
 			if selected: draw_string(f_mono, mid + Vector2(10, -8) * _sc(), str(sec.id), HORIZONTAL_ALIGNMENT_LEFT, -1, fs_l, Color.WHITE)
 			# the switch at the section's head (the first section hangs on the feeder breaker)
 			var dev := str(sec.device)
