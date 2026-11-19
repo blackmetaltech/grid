@@ -513,6 +513,8 @@ export interface GridState extends BaseState {
   ch4?: import('./sim/ch4/state').Ch4State | null;
   /** Chapter 7 (absent elsewhere, so other levels' states and goldens stay as they were): the player's design of L23-L27 (src/sim/ch7); every result is recomputed from it. */
   ch7?: import('./sim/ch7/state').Ch7State | null;
+  /** Chapter 8 (absent elsewhere, so other levels' states and goldens stay as they were): the player's design of L31-L36 (src/sim/ch8); every result is recomputed from it. */
+  ch8?: import('./sim/ch8/state').Ch8State | null;
   /** Submarine cables laid with `layCableRoute` (L30), in build order; absent until the first one (old states and goldens stay as they were). */
   cables?: SeaCableRecord[];
   /** What the player paid for each transformer, shunt bank and battery placed this level (id -> price), so demolishing it refunds that price; absent until the first purchase (old states and goldens stay as they were). Pre-placed district gear has no entry and refunds nothing. */

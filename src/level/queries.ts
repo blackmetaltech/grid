@@ -16,6 +16,7 @@ import { currentCoachStep, resolveThresholds, type GridLevelSpec } from './spec'
 import { ch2Lesson, ch2TryHint } from './ch2/bench';
 import { ch4Lesson, ch4TryHint } from './ch4/queries';
 import { ch7Lesson, ch7TryHint } from './ch7/queries';
+import { ch8Lesson, ch8TryHint } from './ch8/queries';
 import { pfLesson, harmLesson, seriesLesson, ch3TryHint, isCh3 } from './ch3-queries';
 import type { SimParams } from '../sim/params';
 
@@ -123,6 +124,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, scoreUnit: spec.scoreUnit ?? 'money', horizonBlocks: spec.horizonBlocks, startBlock: spec.startBlock, flashoverBlock: spec.flashoverBlock ?? null, fogBlock: spec.fogBlock ?? null, cableCutBlock: spec.cableCutBlock ?? null, fogTime: spec.fogBlock === undefined ? null : `${String(Math.floor(spec.fogBlock / 4)).padStart(2, '0')}:${String((spec.fogBlock % 4) * 15).padStart(2, '0')}`, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined), star2: (spec.star2 ?? []).map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)
+          if (spec.story && s.ch8) return ch8Lesson(s, spec.story.lessonKey);   // chapter 8 (L31-L36): the feeder in the player's own numbers
           if (spec.story && s.ch7) return ch7Lesson(s, spec.story.lessonKey);   // chapter 7 (L23-L27): fault level, grading, swing, merit order, the exam
           if (spec.chapter === 6 && spec.story && spec.lessonText) return spec.lessonText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode));   // chapter 6: the player's own frequency numbers (ch6-text.ts)
           if (spec.story && s.ch4) return ch4Lesson(s, spec.story.lessonKey);   // chapter 4's benches (L10-L13)
@@ -140,7 +142,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
           if (!run) return '';
           return t(spec.id === 'L02' && s.bench.topology === 'trunk' ? 'level.L02.lessonTrunk' : spec.story.lessonKey, { mm2: run.mm2, m: run.lengthM, r: run.rLoopOhm.toFixed(3), i: run.iA.toFixed(1), drop: run.dropV.toFixed(1), v: run.vRecvV.toFixed(1), loss: det!.totals.lossPct.toFixed(1),
             i48: (L03_LOAD_W / SOURCE_V).toFixed(0), k: (L03_LOAD_W / SOURCE_V / run.iA).toFixed(1), k2: ((L03_LOAD_W / SOURCE_V / run.iA) * (L03_LOAD_W / SOURCE_V / run.iA)).toFixed(0) });
-        })(), tryHint: spec.story?.lessonKind === 'finale' ? finaleTryHint(s) : (spec.chapter === 6 || spec.chapter === 5) && spec.tryText ? spec.tryText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode)) : spec.story && s.ch7 ? ch7TryHint(s) : spec.story && s.ch4 ? ch4TryHint(s) : spec.story && isCh3(spec) ? ch3TryHint(s) : spec.story && (s.bench?.machine || s.bench?.town) ? ch2TryHint(s) : spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
+        })(), tryHint: spec.story?.lessonKind === 'finale' ? finaleTryHint(s) : (spec.chapter === 6 || spec.chapter === 5) && spec.tryText ? spec.tryText(s, d.getParams(s), resolveThresholds(spec, d.getParams(s), s.mode)) : spec.story && s.ch8 ? ch8TryHint(s) : spec.story && s.ch7 ? ch7TryHint(s) : spec.story && s.ch4 ? ch4TryHint(s) : spec.story && isCh3(spec) ? ch3TryHint(s) : spec.story && (s.bench?.machine || s.bench?.town) ? ch2TryHint(s) : spec.story && !s.bench ? routeTryHint(s) : '', sites: spec.sites.map((x) => ({ id: x.id, options: x.options.map((o) => o.id) })),
       };
     },
     /** The coach's current step (never advances on a timer: it reads the state), or done. */

@@ -20,6 +20,7 @@ import { stepBench, type BenchParams } from '../level/bench';
 import { ch3Step } from './ch3/systems';
 import { ch4Step } from './ch4/systems';
 import { ch7Step } from './ch7/study';
+import { ch8Step } from './ch8/study';
 import { flashoverStep, saltFlashoverStep, anchorCutStep } from './flashover';
 import { freqBlockTrack } from './freqtrack';
 import { ch5Track } from './ch5';
@@ -449,6 +450,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
 
     { id: 'levelRules', run: (s) => {
       if (s.bench && getBench) stepBench(s, getBench(s));   // a bench level's circuit is solved here, once per block, before the verdict
+      if (s.ch8) ch8Step(s);   // chapter 8 (L31-L36): the study of the player's feeder design, same pattern as chapter 7
       if (s.ch7) ch7Step(s);   // chapter 7: the study of the player's design (cost, tracked numbers, predictions' answers) before the verdict
       const r = levelResult(s, s.rules, s.tick + 1 - s.levelStart);
       s.block.verdict = r.status; s.block.verdictKey = r.key; s.block.verdictParams = r.params;

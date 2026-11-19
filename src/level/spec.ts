@@ -74,7 +74,7 @@ export interface GridLevelSpec {
   star2?: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
-  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' | 'finale' };
+  story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' | 'ch8' | 'finale' };
   /** Block at which spans under their clearance rule flash over (the hot evening peak); absent = never. */
   flashoverBlock?: number;
   /** Chapter 3 rules (src/sim/ch3): harmonic study, scripted fault, supply-point tracking. */
@@ -95,12 +95,12 @@ export interface GridLevelSpec {
   /** Stars awarded (false: a scene such as the prologue). */
   stars: boolean;
   histogram: HistogramMetric | null;
-  /** Chapter 7: what the 'score' histogram and the two star targets measure (lower is better): pack currency (default) or seconds (L24). */
-  scoreUnit?: 'money' | 's';
+  /** Chapter 7: what the 'score' histogram and the two star targets measure (lower is better): pack currency (default), seconds (L24, L33) or percent (L36). */
+  scoreUnit?: 'money' | 's' | 'pct';
   /** Chapter 7: third-star tracked keys the bot population never earns (bots do not predict), so they are left out of its third-star set. */
   botIgnoreStar3?: string[];
   /** Naive build (must fail with `failKind`), lesson build (must pass), reference build (must earn three stars). */
-  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` };
+  naive: { actions: Action[]; failKind: 'share' | 'nadir' | 'rocof' | 'freqBand' | 'brownout' | 'overvoltage' | 'collapse' | 'overload' | 'unpowered' | 'budget' | 'timeout' | 'flashover' | 'saltFlashover' | 'islandDark' | 'machine' | 'capFuse' | 'thd' | 'pfPeak' | 'breakerFail' | `ch7.${import('../sim/ch7/study').Ch7Fail}` | `ch8.${import('../sim/ch8/study').Ch8Fail}` };
   lesson: Action[];
   reference: Action[];
   /** A pack whose prices or physics reorder the designs plays its own lesson and reference (L28 in `in`: the battery is dearer than the second line). runDesign swaps them in when handed `lesson` / `reference` themselves. */

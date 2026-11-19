@@ -14,6 +14,7 @@ import { ch3Verdict } from './ch3/systems';
 import { finaleVerdict } from './finale';
 import { ch4Verdict, ch4Stars } from './ch4/systems';
 import { ch7Verdict } from './ch7/study';
+import { ch8Verdict } from './ch8/study';
 import type { GridState, ReplayLog, Rules, Unit } from '../types';
 import { flashoverParams, saltFlashoverParams, islandDark } from './flashover';
 import { bessFreqMode, derInput, afterDer, freqWindowTrack, predictionsWithin } from './freqtrack';
@@ -135,6 +136,7 @@ export interface LevelResult { status: 'playing' | 'won' | 'lost'; /** locale ke
 export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, ticksUsed: number): LevelResult {
   const lost = (key: string, params: Record<string, string | number> = {}): LevelResult => ({ status: 'lost', key, params, stars: 0 });
   const m = s.metrics;
+  const c8 = ch8Verdict(s, rules, ticksUsed); if (c8) return c8;   // chapter 8 (L31-L36): feeder studies, their own incident reports, star2/star3 lamps
   const c7 = ch7Verdict(s, rules, ticksUsed); if (c7) return c7;   // chapter 7 (L23-L27): one-block studies, their own incident reports and score-based stars
   if (s.budget.capexLimit > 0 && s.budget.spent > s.budget.capexLimit + 1e-9) return lost('level.lost.budget', { spent: Math.round(s.budget.spent), max: Math.round(s.budget.capexLimit) });
   if (rules.collapseLoses && (s.loads.some((l) => l.shedFrac > 1e-9) || (s.solution !== null && s.solution.lambdaStar !== null && s.solution.lambdaStar < 1 - 1e-9) || (rules.marginFloorPct != null && m.track.marginMinPct !== undefined && m.track.marginMinPct < rules.marginFloorPct))) {   // chapter 5: a collapse (the engine's sheds) or a margin under the floor

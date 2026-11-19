@@ -175,7 +175,7 @@ export const RESERVE = [{ id: 'none', actions: [] as Action[] }, { id: 'gfm4', a
 export const ISLAND = [{ id: 'none', actions: [] as Action[] }, { id: 'second-causeway', actions: secondCauseway }, { id: 'eastgate-feeder', actions: eastgateFeeder }, { id: 'battery-4h', actions: islandBattery('bess-4h-50') }];
 
 export const L28: GridLevelSpec = {
-  id: 'L28', kind: 'grid', chapter: 8, titleKey: 'level.L28.title', briefKey: 'level.L28.brief', concepts: ['n-1', 'voltage-control', 'inertia', 'reserve'],
+  id: 'L28', kind: 'grid', chapter: 9, titleKey: 'level.L28.title', briefKey: 'level.L28.brief', concepts: ['n-1', 'voltage-control', 'inertia', 'reserve'],
   startBlock: 0, horizonBlocks: HORIZON, maxTicks: HORIZON + 4,
   allowed: { actions: ['stringLine', 'placeTransformer', 'placeShunt', 'setShuntAuto', 'setShuntSteps', 'setTapAuto', 'placeStorage', 'spinUnit', 'setUflsMap', 'demolish'],
     parts: { stringLine: ['l132-panther', 'l220-twinzebra', 'l400-twinmoose'], placeTransformer: ['ict-400-220-315', 'ict-220-132-160'], placeShunt: ['cap-400-50', 'reactor-400-125', 'statcom-200'], placeStorage: ['bess-2h-50', 'bess-4h-50', 'bess-gfm-50'] } },

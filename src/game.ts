@@ -13,6 +13,8 @@ import { buildCh4Actions } from './level/ch4/actions';
 import { buildCh4Queries } from './level/ch4/queries';
 import { buildCh7Actions } from './level/ch7/actions';
 import { buildCh7Queries } from './level/ch7/queries';
+import { buildCh8Actions } from './level/ch8/actions';
+import { buildCh8Queries } from './level/ch8/queries';
 import { buildLevelQueries } from './level/queries';
 import { PERSONAS } from './personas';
 import { t } from './i18n';
@@ -123,13 +125,14 @@ export const GAME: GameDef<GridState> = {
     return s;
   },
   /** The player's actions, gated by the running level's allowed parts (free play is untouched). */
-  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }), ...buildCh2Actions({ money }), ...buildRouteActions({ cat: catalogueOf, getRoute, money }), ...buildFreqActions({ cat: catalogueOf, money }), ...buildCh3Actions({ cat: catalogueOf, money }), ...buildCh4Actions({ money, specOf }), ...buildCh7Actions({ money, specOf }), ...buildCh5Actions() }, specOf),
+  actions: allowedGate({ ...buildActions({ cat: catalogueOf, getParams, money }), ...buildBenchActions({ getBench, money }), ...buildCh2Actions({ money }), ...buildRouteActions({ cat: catalogueOf, getRoute, money }), ...buildFreqActions({ cat: catalogueOf, money }), ...buildCh3Actions({ cat: catalogueOf, money }), ...buildCh4Actions({ money, specOf }), ...buildCh7Actions({ money, specOf }), ...buildCh8Actions({ money, specOf }), ...buildCh5Actions() }, specOf),
   queries: {
     ...buildQueries({ getParams }),
     ...buildWorldQueries({ getBench, getRoute }),
     ...ch2Queries,
     ...buildCh4Queries({ getParams }),
     ...buildCh7Queries(),
+    ...buildCh8Queries(),
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),
     ...buildCh5Queries({ getParams }),
