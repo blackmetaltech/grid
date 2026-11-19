@@ -18,12 +18,13 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - Chapter 8 engine, "The Feeder" (`src/sim/distrib`): a backward-forward sweep radial load flow, cross-checked against Newton-Raphson; analytical reliability per IEEE 1366 (SAIFI, SAIDI, CAIDI, ENS) with fuses, sectionalisers and a normally-open tie; IEEE C37.112 recloser curves and fuse coordination margins; IEC 60076-7 transformer hot-spot and ageing; PV hosting capacity with volt-var and OLTC line-drop compensation. All are checked against independent Python oracles (`tools/oracles/ch8_oracles.py`).
 - A second-lamp rule (`star2`): the spend lamp can also ask for a result. L12's $0 AVR set-point now earns only the pass lamp; the spend lamp also needs the first swing under 70°.
 - The shift report says what the next lamp wants on L02, L03, L05, L08, L09, L11, L12, L16, L20 and L23.
+- Career wiring: a career lives in the game state as a seed plus an action list, so the career code is the save. New actions `careerStart`, `careerLoad`, `careerProject`, `careerEndQuarter` and others, and queries `career`, `careerBoard` and `careerQuote` (the board card's "why this helps" line). Money is shown in the region's currency.
 ### Changed
 - Exam bridges: L06 and L18's second lamp asks for a prediction (it came free with the pass). L22's lamps say they count answers within 1 %. Lamps on levels with nothing to buy name their condition instead of reading "Done well" twice.
 - A bus's name label picks the bus, and a line picks anywhere along its wires (L09's series capacitor needed the spot under the middle).
 - A second click on an armed tray cell keeps the part in hand and says how to put it down.
 - The speed notches (1×, 2×, 4×) pick directly; the knob no longer wraps from 4× to 1× on a repeated click.
-- After a job ends, a locked tool says how to Retry, and Retry never replays the work order.
+- After a job ends, a locked tool says how to Retry, and Retry never replays the work order. Retry also keeps the coach at the step the last attempt reached.
 - L15 says to set its banks and reactor to Automatic. L11's caption shows right-click for steps of 1.
 
 ## [1.0.0] - Keep the Lights On (tag v1.0.0; includes rc.4 and rc.5)
