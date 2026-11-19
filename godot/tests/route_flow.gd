@@ -157,7 +157,7 @@ func _initialize() -> void:
 	var lock := {"on": true}; tray.locked = func(): return lock.on
 	var kit0 := tray.kit.duplicate(); var nl: int = sys.call().size()
 	tray.activate(tray.item_index("survey")); tray.activate(tray.item_index("family", "wood-9"))
-	T.check(tray.mode == "" and tray.kit == kit0 and sys.call().size() > nl and str(sys.call().back().text) == tray.tx("TRAY_LOCKED"), "locked while the night runs: nothing changes, the radio says so")
+	T.check(tray.mode == "" and tray.kit == kit0 and sys.call().size() > nl and str(sys.call().back().text) == tray.tx("TRAY_LOCKED" if str(T.b.g.get("status", "playing")) == "playing" else "GT_LOCKED_ENDED"), "locked while the night runs: nothing changes, the radio says so (pause, or Retry once the job is over)")
 	T.check(tray.press_yard("B2").is_empty() and not tray.press_ground(Vector2(100, 100)), "yard and ground presses refused while locked")
 	lock.on = false
 	# ---- pad ----

@@ -204,7 +204,7 @@ func is_locked() -> bool: return locked.is_valid() and bool(locked.call())
 ## While the night runs (or the level is over) nothing laid may change: say so on the radio and keep the cable.
 func refuse_locked() -> void:
 	cancel()
-	if radio != null: radio.say("SYS", tx("TRAY_LOCKED"), "warn")
+	if radio != null: radio.say("SYS", tx("TRAY_LOCKED") if b == null or str(b.g.get("status", "playing")) == "playing" else tx("GT_LOCKED_ENDED"), "warn")   # after the job ends the way back is Retry, not a pause
 
 ## The cable runs the player chooses between: L02 radial or trunk -> two (main, b); L01 and L03 one.
 func run_choices() -> Array:

@@ -99,7 +99,13 @@ func _gui_input(e: InputEvent) -> void:
 		if hv != _hover: _hover = hv; queue_redraw()
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		var p: Vector2 = (e as InputEventMouseButton).position
-		if _speed_rect.has_point(p): cycle_rate()
+		if _speed_rect.has_point(p):   # a click on a notch (1×, 2×, 4×) picks it; elsewhere on the knob steps to the next (a repeated click wrapped 4× back to 1×)
+			var near := -1; var nd := 16.0
+			for k in 3:
+				var d := p.distance_to(_pt(_knob_c, _knob_r + 14.0, -50.0 + 50.0 * k))
+				if d < nd: nd = d; near = k
+			if near >= 0: set_rate(near + 1)
+			else: cycle_rate()
 		else: toggle()
 		accept_event()
 	elif has_focus() and e.is_action_pressed("ui_accept"): toggle(); accept_event()

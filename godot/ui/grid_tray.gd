@@ -288,7 +288,7 @@ func cancel_key() -> bool:
 
 func refuse_locked() -> void:
 	cancel()
-	if radio != null: radio.say("SYS", tx("GT_LOCKED"), "warn")
+	if radio != null: radio.say("SYS", tx("GT_LOCKED") if b == null or str(b.g.get("status", "playing")) == "playing" else tx("GT_LOCKED_ENDED"), "warn")   # after the job ends the way back is Retry, not a pause
 
 ## Activate a cell (click, tap, pad A, a number key). Knob cells step up; `down` steps them down.
 func activate(i: int, down := false) -> void:
@@ -297,7 +297,8 @@ func activate(i: int, down := false) -> void:
 	if str(it.kind) == "knob": step_knob(str(it.id), -1 if down else 1); return
 	if is_locked() and not _live(str(it.action)): refuse_locked(); return
 	close_op(); if tags != null: tags.close()
-	if mode == "pick" and armed == i: cancel(); return
+	if mode == "pick" and armed == i:   # a second click keeps the part in hand and says how to put it down (testers lost placements to a silent toggle-off)
+		_hint(); chip_text += tx("GT_HINT_PUTDOWN"); chip_dot = GridTheme.SODIUM; queue_redraw(); return
 	_cancel_quiet()
 	var sp := _spec(str(it.action))
 	if str(it.action) == "placeUnit" and knobs.has("mw") and _tail_number(str(it.get("part", ""))) != "": knobs.mw = clampf(float(_tail_number(str(it.part))), KNOBS.mw.min, KNOBS.mw.max)   # the size starts at the unit's rating (L20's 105 MW peaker was bought as a 20 MW unit)
@@ -343,7 +344,9 @@ func elements(kind: String) -> Array:
 				var isx := br.get("tap") != null
 				if kind == "xfmr" and not isx: continue
 				if kind == "line" and isx: continue
-				out.append({"id": str(br.id), "tile": _branch_tile(br), "label": tx("GT_PEG_XFMR" if isx else "GT_PEG_LINE") % str(br.id), "kind": "branch"})
+				var run: Array = world.run_pts(str(br.id)) if world != null and world.has_method("run_pts") else []
+				if run.size() < 2: run = [_bus_tile(str(br["from"])), _bus_tile(str(br.to))]
+				out.append({"id": str(br.id), "tile": _branch_tile(br), "label": tx("GT_PEG_XFMR" if isx else "GT_PEG_LINE") % str(br.id), "kind": "branch", "run": run})
 		"unit", "thermal":
 			for u in b.g.get("units", []):
 				if kind == "thermal" and str(u.kind) in ["pv", "wind"]: continue
@@ -382,8 +385,19 @@ func _target_at(pos: Vector2, list: Array) -> int:
 	var r := 30.0
 	if CbLayout.touch or CbLayout.kind == "phone": r = maxf(24.0, maxf(48.0, CbLayout.tap()) * 0.5)
 	var best := -1; var bd := 1e9
+	var lift := 92.0 * (clampf(float(world.call("_scale")), 0.6, 1.6) if world.has_method("_scale") else 1.0)   # a bus's name sits up to ~78 px above its peg (over the roofs)
 	for i in list.size():
-		var d := pos.distance_to(world.world_to_screen(list[i].tile, 14.0))
+		var base: Vector2 = world.world_to_screen(list[i].tile, 14.0)
+		var d := pos.distance_to(base)
+		if str(list[i].get("kind", "")) == "bus" and d > r:   # the name above a bus picks it too (testers clicked "B1", not the peg under it); a little dearer than the peg itself
+			var top := base + Vector2(0.0, -lift)
+			var t := clampf((pos.y - base.y) / (top.y - base.y), 0.0, 1.0)
+			d = pos.distance_to(base.lerp(top, t)) + 4.0
+		if str(list[i].get("kind", "")) == "branch" and d > r and list[i].has("run"):   # anywhere along the wires picks the line (L09: only the spot under the middle did)
+			var run: Array = list[i].run
+			for k in run.size() - 1:
+				var a: Vector2 = world.world_to_screen(run[k], 14.0); var c: Vector2 = world.world_to_screen(run[k + 1], 14.0)
+				d = minf(d, Geometry2D.get_closest_point_to_segment(pos, a, c).distance_to(pos) + 6.0)
 		if d <= r and d < bd: bd = d; best = i
 	return best
 

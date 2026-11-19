@@ -158,7 +158,7 @@ static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	if lid == "": app.new_game(mode); return
 	var design := design_of(app)
 	var bs = app.b.q("benchStatus"); var bench_job: bool = bs is Dictionary and bool(bs.get("active", false))   # chapter 1's bench (hut, reels, breaker) has its own line; every other job gets the plain one
-	WorkOrder.skip_once = not design.is_empty()
+	WorkOrder.skip_once = true   # Retry never re-reads the docket (a tester met the briefing again and the step counter back at "Press Run"); the pin still opens it
 	app.start_level(lid, true)
 	var refused := replay(app, design)
 	app.game_on_changed()

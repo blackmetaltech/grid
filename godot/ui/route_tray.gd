@@ -397,7 +397,7 @@ func _hint(s: String) -> void:
 
 func refuse_locked() -> void:
 	cancel()
-	if radio != null: radio.say("SYS", tx("TRAY_LOCKED"), "warn")
+	if radio != null: radio.say("SYS", tx("TRAY_LOCKED") if b == null or str(b.g.get("status", "playing")) == "playing" else tx("GT_LOCKED_ENDED"), "warn")   # after the job ends the way back is Retry, not a pause
 
 ## Change one part of the kit; it applies to the next survey and re-strings the lines laid. Returns the re-string result.
 func select_kit(what: String, id: String) -> Dictionary:
