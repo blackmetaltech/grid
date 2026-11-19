@@ -133,7 +133,7 @@ export const GAME: GameDef<GridState> = {
     ...ch2Queries,
     ...buildCh4Queries({ getParams }),
     ...buildCh7Queries(),
-    ...buildCh8Queries(),
+    ...buildCh8Queries({ specOf }),
     ...buildCareerQueries(),
     ...buildRouteQueries({ cat: catalogueOf, getRoute, money }),
     ...buildUiQueries({ specOf, getParams }),

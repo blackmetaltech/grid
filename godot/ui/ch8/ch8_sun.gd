@@ -22,7 +22,7 @@ func _build_panel(ip: Rect2) -> void:
 	var cs: Array = kit.get("conductors", [])
 	var x := 0
 	for c in cs:
-		if str(c.id) in ["Rabbit", "Hyena"]:
+		if str(c.id) in (kit.get("parts", {}) as Dictionary).get("setConductor", ["Rabbit", "Hyena"]):   # the level's conductors (ch8Kit.parts)
 			_c(ip, 298.0 + 80.0 * x, 92, 76, 38, str(c.id), "head", str(c.id), _head_wire() == str(c.id), T("C8_PER_KM") % str(c.perKm)); x += 1
 
 func _pressed(h: Dictionary, _p: Vector2) -> void:

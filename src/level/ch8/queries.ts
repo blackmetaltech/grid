@@ -40,7 +40,7 @@ function feederTree(sc: typeof L31, d: FeederDesign, hi: number) {
   };
 }
 
-export function buildCh8Queries(): Record<string, QueryFn<GridState>> {
+export function buildCh8Queries(d: { specOf?: (id: string) => { allowed: { parts: Record<string, (string | number)[]> } } | undefined } = {}): Record<string, QueryFn<GridState>> {
   return {
     /** The live study of the running chapter-8 level: design echo, costs and the instrument data of the level. */
     ch8Study: (s) => {
@@ -91,8 +91,9 @@ export function buildCh8Queries(): Record<string, QueryFn<GridState>> {
       const c = s.ch8;
       if (!c) return { active: false };
       const f = (x: number): string => money(s, x);
+      const parts = (s.level ? d.specOf?.(s.level)?.allowed.parts : undefined) ?? {};   // the level's own part lists (regulator sites, conductors), so the panel offers exactly what the level allows
       if (c.id === 'L31' || c.id === 'L35') {
-        const feeder = { conductors: CONDUCTORS.map((x) => ({ id: x.id, mm2: x.mm2, rOhmKm: x.rOhmKm, xOhmKm: x.xOhmKm, ampacityA: x.ampacityA, perKm: f(CONDUCTOR_PRICE_KM[x.id] ?? 0) })), taps: TAPS, regulator: { price: f(REGULATOR.price), vSetOptions: REGULATOR.vSetOptions, stepPct: REGULATOR.stepPct, maxSteps: REGULATOR.maxSteps } };
+        const feeder = { parts, conductors: CONDUCTORS.map((x) => ({ id: x.id, mm2: x.mm2, rOhmKm: x.rOhmKm, xOhmKm: x.xOhmKm, ampacityA: x.ampacityA, perKm: f(CONDUCTOR_PRICE_KM[x.id] ?? 0) })), taps: TAPS, regulator: { price: f(REGULATOR.price), vSetOptions: REGULATOR.vSetOptions, stepPct: REGULATOR.stepPct, maxSteps: REGULATOR.maxSteps } };
         return c.id === 'L31' ? { active: true, id: c.id, ...feeder } : { active: true, id: c.id, ...feeder, pvLimitsKw: L35S.pvLimitsKw, oltcSetOptions: L35S.oltcSetOptions, ldcPrice: f(L35S.price.oltcLdc), voltVarPrice: f(L35S.price.voltVar) };
       }
       if (c.id === 'L32') return { active: true, id: c.id, sites: L32.sectionaliserSites, spurs: L32.spurs, max: L32.maxSectionalisers, manual: { price: f(L32.price.manual), hours: L32.times.manualH }, remote: { price: f(L32.price.remote), minutes: Math.round(L32.times.remoteH * 60) }, fuse: f(L32.price.fuse), tie: { price: f(L32.price.tie), kw: L32.tie.capacityKw, minutes: Math.round(L32.tie.closeH * 60) } };

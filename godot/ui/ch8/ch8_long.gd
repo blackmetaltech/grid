@@ -29,7 +29,8 @@ func _build_panel(ip: Rect2) -> void:
 		_c(ip, 330.0 + 62.0 * k, 16, 58, 36, ("+" if tv > 0.0 else "") + WorkOrder.num(tv), "tap", tv, cur2)
 	var rg = q.get("regulator")
 	_c(ip, 330, 74, 40, 38, T("C8_OFF"), "regoff", "", rg == null)
-	for k in 2: _c(ip, 374.0 + 44.0 * k, 74, 40, 38, "N%d" % (k + 2), "regat", "N%d" % (k + 2), rg != null and str(rg.nodeId) == "N%d" % (k + 2))
+	var sites: Array = (kit.get("parts", {}) as Dictionary).get("placeRegulator", ["N2", "N3"])   # the level's regulator sites (ch8Kit.parts)
+	for k in mini(sites.size(), 2): _c(ip, 374.0 + 44.0 * k, 74, 40, 38, str(sites[k]), "regat", str(sites[k]), rg != null and str(rg.nodeId) == str(sites[k]))
 	var vs: Array = kit.get("regulator", {}).get("vSetOptions", [])
 	var vcur := float(rg.vSetPu) if rg != null else vset
 	for k in vs.size(): _c(ip, 468.0 + 42.0 * k, 74, 38, 38, WorkOrder.num(float(vs[k])), "vset", float(vs[k]), is_equal_approx(vcur, float(vs[k])))
