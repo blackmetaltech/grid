@@ -8,6 +8,7 @@ extends RefCounted
 static var _d: Dictionary = {}
 static var auto := not OS.has_environment("CB_SMOKE") and not OS.has_environment("CB_NOWORKORDER")   ## open on job start (smoke runs and CB_NOWORKORDER=1 skip it)
 static var skip_once := false   ## Retry with the design kept: the job restarts without the docket sliding in again (the pin still opens it)
+static var _force_short := false   ## the long dockets (L08: six pass conditions) reopen in the scrolling layout when they would not fit the screen
 static var instant_next := false   ## the next open() snaps in (the mode chip restarts the job and must not replay the slide)
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
@@ -106,6 +107,13 @@ static func _pin_center(app: CbApp) -> Vector2:
 	if ch != null and ch.pin != null and ch.pin.visible: return ch.pin.get_global_rect().get_center()
 	return Vector2(80, 40)
 
+## Taller than the screen (title and "Take the job" cut off at 1080 p): open it again in the scrolling layout, at once.
+static func _fit(app: CbApp, d: Dictionary) -> void:
+	if not is_open() or _d != d: return
+	var pn: Control = d.panel
+	if pn.get_combined_minimum_size().y <= app.vs_h() - 16.0: return
+	close_now(); _force_short = true; instant_next = true; open(app); _force_short = false
+
 static func close_now() -> void:
 	if is_open(): (_d.host as Node).queue_free()
 	_d = {}
@@ -138,7 +146,7 @@ static func open(app: CbApp) -> void:
 	var fresh: bool = int(app.b.g.get("tick", 0)) <= int(app.b.g.get("levelStart", 0))
 	var w := minf(880.0, app.vw() - 40.0)
 	var compact := PaperKit.compact(app)   # landscape phone: Goal and "To pass" first, everything else scrolls under a "more" cue
-	var short: bool = app.vs_h() < 840.0
+	var short: bool = app.vs_h() < 840.0 or _force_short
 	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 24.0) if short else 0.0, 0.8, 18.0 if compact else 30.0)
 	_d = d
 	app.sfx("page")
@@ -150,6 +158,7 @@ static func open(app: CbApp) -> void:
 	else: vb.add_child(col)
 	_content(app, col, li, short, compact)
 	_footer(app, vb, li, fresh)
+	if not short: app.get_tree().process_frame.connect(func(): _fit(app, d), CONNECT_ONE_SHOT)
 	if instant_next: instant_next = false
 	else: PaperKit.slide_in(d)
 	app.focus_dialog()

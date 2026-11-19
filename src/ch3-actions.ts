@@ -44,7 +44,7 @@ export function buildCh3Actions(d: Ch3ActionDeps): Record<string, ActionFn<GridS
       if (p > 0) sh.detunePct = p;
       s.shunts.push(sh);
       const kvar = Math.abs(spec.mvarStep) * 1000 * n, cost = spec.pricePerKvar * kvar * DETUNE_COST[String(p)]!;
-      s.budget.spent += cost;
+      s.budget.spent += cost; (s.purchases ??= {})[id] = cost;   // a bank taken down again is refunded like every other purchase (L08 kept charging for a removed bank)
       const h = p > 0 ? Math.round(100 / Math.sqrt(p / 100)) / 100 : 0;
       return accept(s, 'placeBank', p > 0 ? 'ch3.bank.ok.detuned' : 'ch3.bank.ok', { id, bus, steps: n, kvar: Math.round(kvar), p, h, qeff: Math.round(kvar / (1 - p / 100)) });
     },

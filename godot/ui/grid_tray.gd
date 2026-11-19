@@ -558,6 +558,7 @@ func op_rows(kind: String, id: String) -> Array:
 			if e.is_empty() or (str(op.elem) != "*" and str(op.elem) != str(t.kind)): continue
 			if op.has("needs") and e.get(str(op.needs)) == null: continue
 			if op.get("thermal", false) and str(e.get("kind", "")) in ["pv", "wind"]: continue
+			if kind == "bus" and act == "demolish": continue   # a town's own loads are not the player's to take down: three anonymous "Remove" rows on a bus tag removed load, not the bank (L08)
 			out.append({"action": act, "op": op, "elem": t})
 	return out
 
@@ -640,7 +641,7 @@ func _build_op() -> void:
 func _op_row(r: Dictionary) -> void:
 	var act: String = r.action; var op: Dictionary = r.op; var el: Dictionary = r.elem; var e := _elem(str(el.kind), str(el.id)); var eid := str(el.id)
 	var h := _row_h(); h.name = "row_" + act
-	var lb := _tlabel(tx("GT_OPL_" + act), 15, Color(GridTheme.PAPER_INK, 0.8)); lb.custom_minimum_size.x = 96; h.add_child(lb)
+	var lb := _tlabel(tx("GT_OPL_" + act) + ((" " + eid) if act == "demolish" else ""), 15, Color(GridTheme.PAPER_INK, 0.8)); lb.custom_minimum_size.x = 96; h.add_child(lb)   # "Remove C1": which element the row takes down
 	match str(op.row):
 		"toggle":
 			var on: bool = bool(e.get(str(op.field), false))

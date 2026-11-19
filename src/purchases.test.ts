@@ -17,6 +17,14 @@ describe('purchases and refunds', () => {
     expect(b.act('demolish', [id]).ok).toBe(true); expect(spent(b)).toBeCloseTo(0, 6);
     expect(b.act('placeStorage', ['B8', 'isl-50kw-150kwh']).ok).toBe(true); expect(spent(b)).toBeCloseTo(only, 6);
   });
+  it('a detuned capacitor bank (L08) bought and taken down is refunded in full', () => {
+    const e = new Engine(GAME); e.act('startLevel', ['L08', 1, 'learner']);
+    const s0 = spent(e);
+    const r = e.act('placeBank', ['B2', 'cap-11-300', 1, 0]); expect(r.ok).toBe(true);
+    expect(spent(e)).toBeGreaterThan(s0);
+    const id = e.state.shunts.at(-1)!.id;
+    expect(e.act('demolish', [id]).ok).toBe(true); expect(spent(e)).toBeCloseTo(s0, 6);
+  });
   it('a transformer and a cable bought and taken down are refunded in full', () => {
     const e = l30();
     expect(e.act('layCableRoute', ['B5', 'B7', 'sub-11-120']).ok).toBe(true);
