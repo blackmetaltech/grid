@@ -27,6 +27,9 @@ func _initialize() -> void:
 		p.refresh()
 	T.check(float(T.b.g.budget.spent) > 1.0e6 and float(T.b.g.budget.spent) <= 7.0e7, "the recipe is within the budget (%s)" % str(T.b.g.budget.spent))
 	T.check((p._kit.get_node("cf_line") as Button).disabled and (p._kit.get_node("cf_tap") as Button).text.begins_with("✓"), "done buttons are marked and the island's second choice is closed")
+	var lt := (p._kit.get_node("cf_line") as Button).text; var bt := (p._kit.get_node("cf_batt") as Button).text
+	T.check(lt.begins_with("–") and "not needed" in lt and not lt.begins_with("✓"), "the island option not built reads 'not needed', not done (%s)" % lt)
+	T.check(bt.begins_with("✓"), "the island option built is ticked (%s)" % bt)
 	for i in 100: T.b.act("tick", [1])
 	p.refresh()
 	T.check(str(p._day_lbl.text).begins_with("DAY 2 of 3"), "Day 2 after a day of ticks (%s)" % p._day_lbl.text)
@@ -37,4 +40,14 @@ func _initialize() -> void:
 	var n := 0
 	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
 	T.check(str(T.b.g.get("status", "")) == "won", "the clicked recipe wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
+	# a STATCOM placed by hand covers the Eastgate capacitor: the kit says so instead of ticking a capacitor never built; its map peg names it a STATCOM
+	T.level("L28"); p.refresh()
+	T.check(not (p._kit.get_node("cf_cap") as Button).disabled, "the capacitor button is open on a fresh L28")
+	var r := T.b.act("placeShunt", ["B4", "statcom-200", 1]); T.check(bool(r.get("ok", false)), "a STATCOM placed at Eastgate 400 (%s)" % str(r.get("message", "")))
+	p.refresh()
+	var ct := (p._kit.get_node("cf_cap") as Button).text
+	T.check((p._kit.get_node("cf_cap") as Button).disabled and ct.begins_with("–") and "STATCOM" in ct, "the capacitor button reads 'STATCOM instead' (%s)" % ct)
+	var tray := GridTray.new(); tray.b = T.b; root.add_child(tray)
+	var pegs: Array = tray.elements("shunt")
+	T.check(pegs.size() == 1 and "STATCOM" in str(pegs[0].label) and not ("bank" in str(pegs[0].label)), "the STATCOM's map peg names its kind (%s)" % (str(pegs[0].label) if not pegs.is_empty() else "none"))
 	T.finish("CHF-FLOW", self)
