@@ -915,6 +915,8 @@ func _draw_price_tag() -> void:
 	var mono := GridTheme.font("mono"); var semi := GridTheme.font("semi")
 	var fsz := GridTheme.fs(15)
 	var tw := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	if mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(12)).x > TAG_W - 30.0:   # millions do not fit at a readable size (L20: "$980,425,000 / $1,100,000,000"): $980.4M / $1.1B
+		txt = tx("TRAY_BUDGET") % [CbRegion.money(float(bud.get("spent", 0.0)), true, 0), CbRegion.money(float(bud.get("capexLimit", 0.0)), true, 0)]; tw = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw > TAG_W - 30.0 and fsz > 10: fsz -= 1; tw = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var w := TAG_W; var h := 62.0
 	var org := Vector2(size.x - PAD - w, 17.0) if _tag_inline else Vector2(size.x - PAD - w, -h - 6.0)

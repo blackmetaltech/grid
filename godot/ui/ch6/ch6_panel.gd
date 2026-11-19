@@ -173,6 +173,9 @@ func _l20(g: Dictionary, locked: bool) -> void:
 	if r is Dictionary and r.get("ok", false): _note(tx("C6_PEAKER_PRICE") % [CbRegion.money(float(r.cost) / 105.0, false, 0), CbRegion.money(float(r.cost), false, 0)])
 	for b in g.storage:
 		if str(b.mode) != "schedule": _btn(tx("C6_CLOCK") % [str(b.id), int(round(float(b.mw)))], "setStoreClock", [str(b.id), 10, 14, 15, 21])
+		else:   # a store on its clock keeps its row, ticked (the row used to vanish: after Retry "S2-S8, no S1" read as a lost store)
+			var done := Button.new(); done.text = "✓ " + tx("C6_CLOCKED") % [str(b.id), int(round(float(b.mw)))]; done.disabled = true; done.custom_minimum_size = Vector2(0, 30); done.name = "c6_clocked_" + str(b.id)
+			done.focus_mode = Control.FOCUS_NONE; done.add_theme_font_size_override("font_size", GridTheme.fs(14)); _box.add_child(done)
 	for l in g.loads:
 		if str(l["class"]) == "agricultural":
 			var noon: bool = l.shape != null and float((l.shape.p as Array)[44]) > 0.5

@@ -36,6 +36,20 @@ func _initialize() -> void:
 	var held := 0
 	for u in T.b.g.units: if u.id in ["U6", "U7"] and u.commit.schedule.size() > 0: held += 1
 	T.check(held == 2 and (T.b.g.rules.derLegacyIds as Array).is_empty(), "Retry holds U6 and U7 again and refits the rooftops")
+	# L20 (tester): hydro first, then seven batteries, the day run to its end, Retry: all eight stores come back with S1 on its clock
+	T.level("L20")
+	T.b.act("placeStorage", ["B1", "psp-250"])
+	for i in 7: T.b.act("placeStorage", ["B1", "bess-4h-50"])
+	T.b.act("setStoreClock", ["S1", 10.0, 14.0, 17.0, 21.0]); T.b.act("shiftLoad", [str(T.b.g.loads.filter(func(l): return str(l.get("class", "")) == "agricultural")[0].id) if T.b.g.loads.any(func(l): return str(l.get("class", "")) == "agricultural") else "L1", "noon"])
+	for k in 120: if str(T.b.g.get("status", "playing")) == "playing": T.b.act("tick", [1])
+	var d20 := ShiftReport.design_of(fake)
+	T.level("L20")
+	var ref20 := ShiftReport.replay(fake, d20)
+	var ids20: Array = []
+	for st in T.b.g.storage: ids20.append(str(st.id))
+	T.check(ref20 == 0 and ids20.size() == 8 and ids20.has("S1") and str(T.b.g.storage[0].catalogId) == "psp-250" and str(T.b.g.storage[0].get("mode", "")) == "schedule", "L20 Retry: hydro S1 and seven batteries come back, S1 on its clock (%s, refused %d)" % [str(ids20), ref20])
+	p.refresh(); bs.clear(); _buttons(p, bs)
+	T.check(bs.has("c6_clocked_S1"), "L20: the store on its clock keeps a ticked row (%s)" % str(bs))
 	T.level("L20"); p.refresh(); bs.clear(); _buttons(p, bs)
 	T.check(bs.has("c6_shiftLoad"), "L20: the pumps to noon (%s)" % str(bs))
 	T.level("L22"); p.refresh()
