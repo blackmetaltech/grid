@@ -164,6 +164,7 @@ func _ensure_visible(i: int) -> void:
 	_layout_items()
 
 func _item_at(p: Vector2) -> int:
+	if _max_scroll > 0.0 and _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(p, _avail_right(), PAD): return -1   # the tab takes the click
 	for i in items.size():
 		if (items[i].rect as Rect2).has_point(p) and _visible_item(i): return i
 	return -1
@@ -376,6 +377,8 @@ func _gui_input(e: InputEvent) -> void:
 			else:
 				var i := _item_at(mb.position)
 				if i >= 0 and i == _press_idx and not _dragged: hover = i; activate(i); accept_event()
+				elif i < 0 and not _dragged and _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(mb.position, _avail_right(), PAD):   # the more-parts tab pages right
+					_scroll = minf(_max_scroll, _scroll + maxf(120.0, (_avail_right() - PAD) * 0.7)); _layout_items(); queue_redraw()
 				_press_idx = -1
 		accept_event()
 
@@ -483,7 +486,7 @@ func _draw() -> void:
 		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 75.0), sub_s, sub_col, tw)
 	if _max_scroll > 0.0:   # the strip scrolls: little chevrons at the ends
 		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
-		if _scroll < _max_scroll - 1.0: draw_string(semi, Vector2(_avail_right() + 1.0, H * 0.5 + 6.0), "›", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
+		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # the more-parts tab with its count
 	_draw_price_tag()
 	if mode != "": _draw_hint()
 	if chip_text != "" and not is_locked():   # no stale what-if chip while the night runs or after it ended

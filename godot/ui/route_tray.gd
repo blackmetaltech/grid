@@ -353,6 +353,7 @@ func _ensure_visible(i: int) -> void:
 	_layout_items()
 
 func _item_at(p: Vector2) -> int:
+	if _max_scroll > 0.0 and _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(p, _avail_right(), PAD): return -1   # the tab takes the click
 	for i in items.size(): if (items[i].rect as Rect2).has_point(p) and _visible_item(i): return i
 	return -1
 
@@ -956,7 +957,7 @@ func _gui_input(e: InputEvent) -> void:
 				if i >= 0 and i == _press_idx and not _dragged: hover = i; activate(i); accept_event()
 				elif i < 0 and not _dragged and _max_scroll > 0.0:   # the ‹ › scroll marks are buttons too
 					if mb.position.x < PAD + 8.0: page(-1)
-					elif mb.position.x > _avail_right() - 6.0 and mb.position.x < _avail_right() + PAD + 10.0: page(1)
+					elif _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(mb.position, _avail_right(), PAD): page(1)
 				_press_idx = -1
 		accept_event()
 
@@ -1155,7 +1156,7 @@ func _draw() -> void:
 		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 84.0 + dy2), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
 		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
-		if _scroll < _max_scroll - 1.0: draw_string(semi, Vector2(_avail_right() + 1.0, H * 0.5 + 6.0), "›", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
+		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # the more-parts tab with its count
 	_draw_price_tag()
 	_draw_cursor()
 	if chip_text != "" and not is_locked():

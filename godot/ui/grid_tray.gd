@@ -239,6 +239,7 @@ func _ensure_visible(i: int) -> void:
 	_layout_items()
 
 func _item_at(p: Vector2) -> int:
+	if _max_scroll > 0.0 and _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(p, _avail_right(), PAD): return -1   # the more-parts tab is on top of the cell it overlaps
 	for i in items.size(): if (items[i].rect as Rect2).has_point(p) and _visible_item(i): return i
 	return -1
 
@@ -398,6 +399,24 @@ func args_of(it: Dictionary) -> Array:
 func _shunt_word(kind: String) -> String:
 	var k := "GT_SK_" + kind
 	return tx(k) if tx(k) != k else tx("GT_SK_cap")
+
+## The "more parts to the right" tab of a scrolled tray (grid, route and kit trays): a dark pill with › and the count of parts out of view.
+static func draw_more_tab(c: CanvasItem, its: Array, right: float, pad: float, h: float) -> void:
+	var hidden := 0
+	for it in its: if it.has("rect") and (it.rect as Rect2).end.x > right + 1.0: hidden += 1
+	var tab := Rect2(Vector2(right - 30.0, 8.0), Vector2(30.0 + pad - 2.0, h - 16.0))
+	c.draw_style_box(_tab_sb(), tab)
+	c.draw_string(GridTheme.font("semi"), Vector2(tab.position.x, h * 0.5 - 2.0), "›", HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(26), GridTheme.SODIUM)
+	if hidden > 0: c.draw_string(GridTheme.font("mono"), Vector2(tab.position.x, h * 0.5 + 20.0), "+%d" % hidden, HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(12), GridTheme.SODIUM)
+
+## True on the tab (it takes the click over the cell it overlaps).
+static func on_more_tab(p: Vector2, right: float, pad: float) -> bool: return p.x > right - 30.0 and p.x < right + pad + 10.0
+
+static var _tab_cache: StyleBoxFlat
+static func _tab_sb() -> StyleBoxFlat:
+	if _tab_cache == null:
+		_tab_cache = StyleBoxFlat.new(); _tab_cache.bg_color = Color(GridTheme.INK, 0.96); _tab_cache.border_color = Color(GridTheme.SODIUM, 0.7); _tab_cache.set_border_width_all(1); _tab_cache.set_corner_radius_all(6)
+	return _tab_cache
 
 static func _one_piece(part: String) -> bool: return part.begins_with("statcom") or part.begins_with("svc")
 
@@ -730,7 +749,7 @@ func _gui_input(e: InputEvent) -> void:
 					activate(i, str(items[i].kind) == "knob" and left); accept_event()
 				elif i < 0 and not _dragged and _max_scroll > 0.0:
 					if mb.position.x < PAD + 8.0: page(-1)
-					elif mb.position.x > _avail_right() - 6.0 and mb.position.x < _avail_right() + PAD + 10.0: page(1)
+					elif _scroll < _max_scroll - 1.0 and GridTray.on_more_tab(mb.position, _avail_right(), PAD): page(1)   # the whole more-parts tab
 				_press_idx = -1
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			var i2 := _item_at(mb.position)
@@ -880,7 +899,7 @@ func _draw() -> void:
 		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 76.0), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
 		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
-		if _scroll < _max_scroll - 1.0: draw_string(semi, Vector2(_avail_right() + 1.0, H * 0.5 + 6.0), "›", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
+		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # a visible tab, not a bare glyph: how many parts wait to the right (L05's transformers were missed)
 	_draw_price_tag()
 	if chip_text != "" and not is_locked():
 		if chip_cell < 0: chip_at = Vector2(size.x * 0.5, -10.0)
