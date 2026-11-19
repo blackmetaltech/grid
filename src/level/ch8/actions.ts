@@ -1,6 +1,6 @@
 // Chapter 8 actions (L31-L36). Each acts on `state.ch8` (the player's design), refuses with a teaching key when the level or the argument is wrong, re-prices the build and logs
 // the action. The generic part gate only knows the older actions' argument positions, so the running level's part list is applied here too.
-//   L31/L35 feeder: setConductor(section|'all', conductor), setTap(node|'all', pct), placeRegulator(node, vSetPu), removeRegulator()
+//   L31/L35 feeder: setConductor(section|'all', conductor), setDtTap(node|'all', pct), placeRegulator(node, vSetPu), removeRegulator()
 //   L32 reliability: placeSwitch(section, 'none'|'manual'|'remote'), setFuse(spur, on), setTie(on)
 //   L33 protection: setRecloser(pickupA, fastTd, slowTd, fastShots), setFuseLink(spur, kRating)
 //   L34 substation: addTransformer(on), setTransformerSize(mva), setBusSection('manual'|'auto'), setTransfer('none'|'manual'|'remote'), setDemandResponse('none'|'small'|'large')
@@ -55,14 +55,14 @@ export function buildCh8Actions(d: Ch8Deps): Record<string, ActionFn<GridState>>
       return accept(s, 'setConductor', 'ch8.cond.ok', { section: String(section), cond: conductor, km: ix.reduce((a, i) => a + sc.nodes[i]!.km, 0), each: d.money(s, (CONDUCTOR_PRICE_KM[conductor] ?? 0) * s.ch8!.money), total: price(s) });
     },
     /** L31 / L35: the off-load tap of the distribution transformer at node N1..N5 (or 'all'), percent: -5, -2.5, 0, 2.5, 5. Positive raises the customers' voltage. */
-    setTap: (s, node: unknown, pct: unknown) => {
+    setDtTap: (s, node: unknown, pct: unknown) => {
       const e = here(s, 'L31', 'L35'); if (e) return e;
       const { sc, f } = feederOf(s), ix = nodeIdx(sc, node);
       if (!ix) return reject('ch8.node.unknown', { id: String(node), list: nodeList(sc) });
       if (!isNum(pct) || !TAPS.includes(pct)) return reject('ch8.tap.bad', { tap: String(pct), list: TAPS.join(', ') });
       for (const i of ix) f.tap[i] = pct;
       price(s);
-      return accept(s, 'setTap', 'ch8.tap.ok', { node: String(node), tap: pct });
+      return accept(s, 'setDtTap', 'ch8.tap.ok', { nodeId: String(node), tap: pct });
     },
     /** L31 / L35: a step voltage regulator (32 steps of 0.625 %) in the trunk section that feeds node N1..N5, regulating the node to vSetPu. */
     placeRegulator: (s, node: unknown, vSetPu: unknown) => {
@@ -73,7 +73,7 @@ export function buildCh8Actions(d: Ch8Deps): Record<string, ActionFn<GridState>>
       if (!isNum(v) || !REGULATOR.vSetOptions.includes(v)) return reject('ch8.reg.bad', { vset: String(vSetPu), list: REGULATOR.vSetOptions.join(', ') });
       const g = listed(s, 'placeRegulator', node); if (g) return g;
       f.reg = { at: ix[0]!, vSetPu: v };
-      return accept(s, 'placeRegulator', 'ch8.reg.ok', { node: String(node), vset: v, each: d.money(s, REGULATOR.price * s.ch8!.money), total: price(s) });
+      return accept(s, 'placeRegulator', 'ch8.reg.ok', { nodeId: String(node), vset: v, each: d.money(s, REGULATOR.price * s.ch8!.money), total: price(s) });
     },
     removeRegulator: (s) => {
       const e = here(s, 'L31', 'L35'); if (e) return e;

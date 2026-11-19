@@ -176,7 +176,7 @@ def host_flow(total_kw, use_vv):
     n = len(names); sh = sum(s['share'] for s in h['sites'])
     pv = np.zeros(n); kva = np.zeros(n)
     for s in h['sites']:
-        i = names.index(s['node']); pv[i] = total_kw * s['share'] / sh; kva[i] = pv[i] * 1.1
+        i = names.index(s['nodeId']); pv[i] = total_kw * s['share'] / sh; kva[i] = pv[i] * 1.1
     q = np.zeros(n)
     for _ in range(300):
         v, loss, J = zbus_flow(f['kV'], f['sections'], h['loadScale'], 1.0, extra=pv + 1j * q)

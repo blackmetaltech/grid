@@ -22,7 +22,7 @@ export const voltVarQPu = (curve: VoltVarPoint[], v: number): number => {
   return curve[curve.length - 1]!.qPu;
 };
 
-export interface PvSite { node: string; /** Share of the total PV at this node (shares are normalised). */ share: number; /** Inverter kVA as a multiple of its kW (default 1.1). */ kvaPerKw?: number }
+export interface PvSite { nodeId: string; /** Share of the total PV at this node (shares are normalised). */ share: number; /** Inverter kVA as a multiple of its kW (default 1.1). */ kvaPerKw?: number }
 export interface OltcSpec {
   vSetPu: number; bandPu: number; stepPct?: number; maxSteps?: number;
   /** Line-drop compensation in pu of rated current at the head (0 = plain voltage control). */
@@ -35,11 +35,11 @@ export function solveWithPv(f: RadialFeeder, sc: PvScenario, totalPvKw: number):
   const shareSum = sc.sites.reduce((a, s) => a + s.share, 0);
   const pOf = (s: PvSite): number => (totalPvKw * s.share) / shareSum;
   const q: Record<string, number> = {};
-  sc.sites.forEach((s) => { q[s.node] = 0; });
+  sc.sites.forEach((s) => { q[s.nodeId] = 0; });
   const build = (): RadialFeeder => ({
     kV: f.kV,
     nodes: f.nodes.map((nd) => {
-      const site = sc.sites.find((s) => s.node === nd.id);
+      const site = sc.sites.find((s) => s.nodeId === nd.id);
       return site ? { ...nd, pKw: nd.pKw * (sc.loadScale ?? 1) - pOf(site), qKvar: nd.qKvar * (sc.loadScale ?? 1) - q[nd.id]! } : { ...nd, pKw: nd.pKw * (sc.loadScale ?? 1), qKvar: nd.qKvar * (sc.loadScale ?? 1) };
     }),
   });
@@ -53,9 +53,9 @@ export function solveWithPv(f: RadialFeeder, sc: PvScenario, totalPvKw: number):
       for (const s of sc.sites) {
         const kva = pOf(s) * (s.kvaPerKw ?? 1.1), pk = pOf(s);
         const lim = dmath.sqrt(Math.max(0, kva * kva - pk * pk));
-        const want = Math.max(-lim, Math.min(lim, voltVarQPu(sc.voltVar, r.byId[s.node]!.vPu) * kva));
-        const nq = 0.5 * q[s.node]! + 0.5 * want;
-        d = Math.max(d, dmath.abs(nq - q[s.node]!)); q[s.node] = nq;
+        const want = Math.max(-lim, Math.min(lim, voltVarQPu(sc.voltVar, r.byId[s.nodeId]!.vPu) * kva));
+        const nq = 0.5 * q[s.nodeId]! + 0.5 * want;
+        d = Math.max(d, dmath.abs(nq - q[s.nodeId]!)); q[s.nodeId] = nq;
       }
       r = solveRadial(build(), { vSourcePu: vs });
       if (d < 1e-7) break;
@@ -83,7 +83,7 @@ export function solveWithPv(f: RadialFeeder, sc: PvScenario, totalPvKw: number):
 }
 
 export interface HostingLimits { vMaxPu: number; maxHeadCurrentA?: number }
-export interface HostingResult { hostingKw: number; limitedBy: 'voltage' | 'current' | 'none' | 'base-case'; node: string; atLimit: PvSolution }
+export interface HostingResult { hostingKw: number; limitedBy: 'voltage' | 'current' | 'none' | 'base-case'; nodeId: string; atLimit: PvSolution }
 
 /** Largest total PV (kW) in [0, upperKw] with all node voltages <= vMax (and head current <= limit). Bisection, tolerance tolKw. */
 export function hostingCapacity(f: RadialFeeder, sc: PvScenario, lim: HostingLimits, upperKw = 50000, tolKw = 0.01): HostingResult {
@@ -92,11 +92,11 @@ export function hostingCapacity(f: RadialFeeder, sc: PvScenario, lim: HostingLim
     return { good: sol.maxVPu <= lim.vMaxPu && (lim.maxHeadCurrentA === undefined || sol.headCurrentA <= lim.maxHeadCurrentA), sol };
   };
   const base = ok(0);
-  if (!base.good) return { hostingKw: 0, limitedBy: 'base-case', node: base.sol.maxNode, atLimit: base.sol };
+  if (!base.good) return { hostingKw: 0, limitedBy: 'base-case', nodeId: base.sol.maxNode, atLimit: base.sol };
   const top = ok(upperKw);
-  if (top.good) return { hostingKw: upperKw, limitedBy: 'none', node: '', atLimit: top.sol };
+  if (top.good) return { hostingKw: upperKw, limitedBy: 'none', nodeId: '', atLimit: top.sol };
   let lo = 0, hi = upperKw, sol = base.sol;
   while (hi - lo > tolKw) { const mid = (lo + hi) / 2, r = ok(mid); if (r.good) { lo = mid; sol = r.sol; } else hi = mid; }
   const over = ok(hi).sol;
-  return { hostingKw: lo, limitedBy: over.maxVPu > lim.vMaxPu ? 'voltage' : 'current', node: over.maxNode, atLimit: sol };
+  return { hostingKw: lo, limitedBy: over.maxVPu > lim.vMaxPu ? 'voltage' : 'current', nodeId: over.maxNode, atLimit: sol };
 }

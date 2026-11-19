@@ -29,7 +29,7 @@ export function buildFeeder(sc: FeederScenario, d: FeederDesign): RadialFeeder {
 }
 
 export interface VoltageStudy {
-  /** Customer voltage (V on the 230 V base) at each node: [peak, minimum load]. */
+  /** Customer voltage (V on the 230 V base) at each nodeId: [peak, minimum load]. */
   vPeak: number[]; vMin: number[];
   minV: number; minNode: string; maxV: number; maxNode: string;
   /** Margins to the band, pu (negative = outside): low edge at peak, high edge at minimum load. */
@@ -85,7 +85,7 @@ export function oltcSpec(set: number, ldc: boolean, o: { stepPct: number; bandPu
   return { vSetPu: set, bandPu: o.bandPu, stepPct: o.stepPct, maxSteps: 16, ratedA: o.ratedA, rLdcPu: ldc ? o.rLdcPu : 0, xLdcPu: ldc ? o.xLdcPu : 0 };
 }
 export function studyPv(sc: FeederScenario, d: FeederDesign, o: PvOpts, hiPu: number, oltc: Parameters<typeof oltcSpec>[2], withHosting = false, loPu = 0.94): PvStudy {
-  const f = buildFeeder(sc, d), sites = o.sites.map((id) => ({ node: 'C' + id.slice(1), share: 1 }));
+  const f = buildFeeder(sc, d), sites = o.sites.map((id) => ({ nodeId: 'C' + id.slice(1), share: 1 }));
   const sc1 = { sites, oltc: oltcSpec(o.oltcSetPu, o.ldc, oltc), ...(o.voltVar ? { voltVar: VOLT_VAR_CAT_B } : {}), vSourcePu: 1 };
   const noon = solveWithPv(f, { ...sc1, loadScale: o.noonLoad }, o.pvKw), evening = solveWithPv(f, { ...sc1, loadScale: o.eveningLoad }, 0);
   const cs = sc.nodes.map((n) => 'C' + n.id.slice(1));

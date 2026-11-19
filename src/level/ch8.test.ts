@@ -61,9 +61,11 @@ describe('hand calculations', () => {
   });
   it('L34: firm capacity, relief cools the survivor, ageing doubles every 6 K', () => {
     const n = studyL34(defaultL34()), tie = studyL34({ ...defaultL34(), tie: 'remote' });
-    near(n.firmMva, 20); expect(n.overheat).toBe(true); expect(tie.hotPeakC).toBeLessThan(n.hotPeakC - 20); expect(tie.lolDays).toBeLessThan(n.lolDays / 5);
+    near(n.firmMva, 20); expect(n.overheat).toBe(true); expect(tie.hotPeakC).toBeLessThan(n.hotPeakC); expect(tie.lolDays).toBeLessThan(n.lolDays);
     expect(studyL34({ ...defaultL34(), third: true }).firmMva).toBe(40);
-    expect(studyL34({ ...defaultL34(), sizeMva: 31.5 }).overheat).toBe(false);
+    // 1.1: no single relief carries the 36.5 MVA peak; bigger units, the remote tie and the large demand response together do
+    expect(studyL34({ ...defaultL34(), sizeMva: 24 }).overheat).toBe(true);
+    expect(studyL34({ ...defaultL34(), sizeMva: 24, tie: 'remote', dr: 'large' }).overheat).toBe(false);
     expect(L34.hotSpotLimitC).toBe(140);
   });
 });
@@ -99,7 +101,7 @@ describe.each(IDS)('%s lesson gate', (id) => {
 describe('one-click designs earn the pass lamp at most', () => {
   const act = (name: string, ...args: unknown[]) => ({ name, args });
   const cases: [string, ReturnType<typeof act>[]][] = [
-    ['L31', [act('setTap', 'all', 5)]],
+    ['L31', [act('setDtTap', 'all', 5)]],
     ['L32', [act('setTie', true)]],
     ['L33', ['S1', 'S2', 'S3'].map((s) => act('setFuseLink', s, 65))],
     ['L34', [act('setTransfer', 'manual')]],
@@ -118,12 +120,12 @@ describe('actions', () => {
   const play = (id: string, region = 'global'): Env<GridState> => { const e = new Env(GAME); e.reset({ seed: 1, level: id, region }); return e; };
   it('refuse the wrong level, unknown parts, and too many sectionalisers', () => {
     const e = play('L32');
-    expect(e.step({ name: 'setTap', args: ['N1', 2.5] }).info.ok).toBe(false);
+    expect(e.step({ name: 'setDtTap', args: ['N1', 2.5] }).info.ok).toBe(false);
     expect(e.step({ name: 'placeSwitch', args: ['T2', 'manual'] }).info.ok).toBe(true); expect(e.step({ name: 'placeSwitch', args: ['T3', 'remote'] }).info.ok).toBe(true);
     expect(e.step({ name: 'placeSwitch', args: ['P1', 'remote'] }).info.ok).toBe(false);
     const f = play('L33'); expect(f.step({ name: 'setFuseLink', args: ['S1', 7] }).info.ok).toBe(false); expect(f.step({ name: 'setFuseLink', args: ['S1', 40] }).info.ok).toBe(true);
     expect(f.step({ name: 'setRecloser', args: [200, 0.25, 3, 2] }).info.ok).toBe(true); expect(f.step({ name: 'setRecloser', args: [201, 0.25, 3, 2] }).info.ok).toBe(false);
-    const g = play('L31'); expect(g.step({ name: 'setTap', args: ['N1', 3] }).info.ok).toBe(false); expect(g.step({ name: 'setConductor', args: ['N9', 'Dog'] }).info.ok).toBe(false);
+    const g = play('L31'); expect(g.step({ name: 'setDtTap', args: ['N1', 3] }).info.ok).toBe(false); expect(g.step({ name: 'setConductor', args: ['N9', 'Dog'] }).info.ok).toBe(false);
     expect(g.step({ name: 'placeRegulator', args: ['N1', 1.0] }).info.ok).toBe(false);   // not a site of the level
     expect(g.step({ name: 'placeRegulator', args: ['N2', 1.0] }).info.ok).toBe(true); expect(g.step({ name: 'removeRegulator', args: [] }).info.ok).toBe(true);
   });

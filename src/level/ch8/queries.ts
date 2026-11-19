@@ -50,7 +50,7 @@ export function buildCh8Queries(): Record<string, QueryFn<GridState>> {
         band: { loV: r1(V_LO_PU * V_NOM), hiV: r1(hi * V_NOM), nominalV: V_NOM, loPu: V_LO_PU, hiPu: hi } };
       if (c.id === 'L31') {
         const d = c.l31!, { st, nodes } = feederTree(L31, d, hi);
-        return { ...base, design: d, kV: L31.kV, tree: nodes, voltage: { minV: r1(st.minV), minNode: st.minNode, maxV: r1(st.maxV), maxNode: st.maxNode, marginLoV: r1(st.marginLoPu * V_NOM), marginHiV: r1(st.marginHiPu * V_NOM), ok: st.marginPu >= 0 }, lossPct: r2(st.lossPct), lossKw: r1(st.lossKw), handDropPct: r2(handDropPct(L31, d)), sweepDropPct: r2((1 - st.peak.byId[custId(L31.nodes[4]!)]!.vPu) * 100), loadingMax: r2(st.loadingMax), regulator: d.reg ? { node: L31.nodes[d.reg.at]!.id, vSetPu: d.reg.vSetPu, stepsPeak: st.regStepPeak, stepsMinLoad: st.regStepMin, maxSteps: REGULATOR.maxSteps } : null, minLoadPct: 30 };
+        return { ...base, design: d, kV: L31.kV, tree: nodes, voltage: { minV: r1(st.minV), minNode: st.minNode, maxV: r1(st.maxV), maxNode: st.maxNode, marginLoV: r1(st.marginLoPu * V_NOM), marginHiV: r1(st.marginHiPu * V_NOM), ok: st.marginPu >= 0 }, lossPct: r2(st.lossPct), lossKw: r1(st.lossKw), handDropPct: r2(handDropPct(L31, d)), sweepDropPct: r2((1 - st.peak.byId[custId(L31.nodes[4]!)]!.vPu) * 100), loadingMax: r2(st.loadingMax), regulator: d.reg ? { nodeId: L31.nodes[d.reg.at]!.id, vSetPu: d.reg.vSetPu, stepsPeak: st.regStepPeak, stepsMinLoad: st.regStepMin, maxSteps: REGULATOR.maxSteps } : null, minLoadPct: 30 };
       }
       if (c.id === 'L32') {
         const d = c.l32!, st = studyL32(d), r = st.rel;
@@ -112,7 +112,7 @@ export function ch8Lesson(s: GridState, lessonKey: string): string {
   if (c.id === 'L31') {
     const d = c.l31!, st = studyVoltage(L31, d, hi), far = (1 - st.peak.byId[custId(L31.nodes[4]!)]!.vPu) * 100;
     const tapped = d.tap.filter((x) => x !== 0).length;
-    return t(lessonKey, { hand: r1(handDropPct(L31, d)), drop: r1(far), v: r1(st.minV), node: st.minNode, vmax: r1(st.maxV), lo: r1(V_LO_PU * V_NOM), hi: r1(hi * V_NOM), loss: r1(st.lossPct), taps: tapped, steps: st.regStepPeak, reg: d.reg ? 1 : 0 });
+    return t(lessonKey, { hand: r1(handDropPct(L31, d)), drop: r1(far), v: r1(st.minV), nodeId: st.minNode, vmax: r1(st.maxV), lo: r1(V_LO_PU * V_NOM), hi: r1(hi * V_NOM), loss: r1(st.lossPct), taps: tapped, steps: st.regStepPeak, reg: d.reg ? 1 : 0 });
   }
   if (c.id === 'L32') {
     const st = studyL32(c.l32!), r = st.rel;

@@ -12,7 +12,7 @@ export const MIN_LOAD_FRAC = 0.3;
 export type Ch8Id = 'L31' | 'L32' | 'L33' | 'L34' | 'L35' | 'L36';
 
 // ---- feeder scenarios (L31, L35, L36) ------------------------------------------------------------------------------------------------
-/** A feeder node: the section from its parent (km), the peak load of the distribution transformer hanging at it, that transformer's kVA and the customers it serves. */
+/** A feeder nodeId: the section from its parent (km), the peak load of the distribution transformer hanging at it, that transformer's kVA and the customers it serves. */
 export interface NodeData { id: string; km: number; kw: number; kvar: number; kva: number; customers: number }
 export interface FeederScenario { /** The conductor the line stands in (rebuilding to a dearer one is paid per km over it, a lighter one costs nothing) */ base: string; kV: number; sourcePu: number; nodes: NodeData[]; /** distribution transformer impedance, percent, X/R */ zPct: number; xr: number }
 
@@ -89,14 +89,14 @@ export const L33 = {
 
 // ---- L34 firm capacity ------------------------------------------------------------------------------------------------------------------
 export const L34 = {
-  baseMva: 20, count: 2, peakMva: 30, ambientC: 40, hotSpotLimitC: 140, restoreWithinH: 3, lolStarDays: 1, kMaxShed: 1.5,
+  baseMva: 20, count: 2, peakMva: 36.5, ambientC: 40, hotSpotLimitC: 140, restoreWithinH: 3, lolStarDays: 3.5, kMaxShed: 1.5,
   /** Day load shape (fraction of the peak), hourly, hour 0 = 00:00; the trip is at 18:00 on the peak day. */
   shape: [0.55, 0.5, 0.48, 0.47, 0.5, 0.58, 0.7, 0.8, 0.85, 0.85, 0.84, 0.83, 0.82, 0.8, 0.8, 0.82, 0.88, 0.95, 1, 0.98, 0.92, 0.82, 0.7, 0.6],
   tripHour: 18,
-  sizes: [20, 31.5, 40], sizePrice: { 20: 900000, 31.5: 1300000, 40: 1600000 } as Record<number, number>, thirdBay: 200000,
-  busSection: { manualH: 1, price: 60000 },
-  ties: { none: { mva: 0, h: 0, price: 0 }, manual: { mva: 6, h: 1.5, price: 150000 }, remote: { mva: 6, h: 0.1, price: 350000 } },
-  dr: { none: { mva: 0, price: 0 }, small: { mva: 2, price: 100000 }, large: { mva: 4, price: 200000 } }, drLeadH: 0.25,
+  sizes: [20, 24], sizePrice: { 20: 900000, 24: 1000000 } as Record<number, number>, thirdBay: 200000,   // 1.1: no third bay and no 31.5/40 MVA units on this site (one purchase passed alone; the job is to combine relief)
+  busSection: { manualH: 1, price: 120000 },
+  ties: { none: { mva: 0, h: 0, price: 0 }, manual: { mva: 3, h: 1.5, price: 150000 }, remote: { mva: 3, h: 0.1, price: 350000 } },
+  dr: { none: { mva: 0, price: 0 }, small: { mva: 1.5, price: 100000 }, large: { mva: 3, price: 200000 } }, drLeadH: 0.25,
 };
 
 // ---- L35 sun on the roofs ---------------------------------------------------------------------------------------------------------------

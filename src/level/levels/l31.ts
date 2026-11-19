@@ -8,7 +8,7 @@ import { V_LO_PU } from '../../sim/ch8/data';
 import { ch8TryHint } from '../ch8/queries';
 
 const cond = (n: string[], c: string): Action[] => n.map((id) => ({ name: 'setConductor', args: [id, c] }));
-const taps = (t: number[]): Action[] => t.map((v, i) => ({ name: 'setTap', args: [`N${i + 1}`, v] }));
+const taps = (t: number[]): Action[] => t.map((v, i) => ({ name: 'setDtTap', args: [`N${i + 1}`, v] }));
 const reg = (n: string): Action[] => [{ name: 'placeRegulator', args: [n, 1.0] }];
 const used = (s: { actionLog: { name: string }[] }, ...names: string[]): boolean => s.actionLog.some((a) => names.includes(a.name));
 const TAPS: number[][] = [[0, 0, 0, 0, 0], [0, 0, 2.5, 2.5, 2.5], [0, 0, 2.5, 5, 5], [0, 2.5, 2.5, 5, 5], [2.5, 5, 5, 5, 5]];
@@ -18,7 +18,7 @@ export const L31: GridLevelSpec = {
   id: 'L31', kind: 'event', chapter: 8, titleKey: 'level.L31.title', briefKey: 'level.L31.brief', concepts: ['voltage-drop', 'rp-xq', 'off-load-tap', 'regulator', 'feeder-losses'],
   startBlock: 80, horizonBlocks: null, maxTicks: 2,
   allowed: {
-    actions: ['setConductor', 'setTap', 'placeRegulator', 'removeRegulator'],
+    actions: ['setConductor', 'setDtTap', 'placeRegulator', 'removeRegulator'],
     parts: { setConductor: [W, R, D, H], placeRegulator: ['N2', 'N3'] },
   },
   sites: [
@@ -40,9 +40,9 @@ export const L31: GridLevelSpec = {
   // frozen from the bot population (src/level/population.ts); ch8.test.ts regenerates it and fails on drift > 2 %
   frozen: { global: { budget: 250000, starA: 220000, starB: 210000 }, in: { budget: 21000000, starA: 19920000, starB: 17430000 } },
   coach: [
-    { id: 'read', textKey: 'coach.L31.read', whyKey: 'coach.L31.read.why', done: (s) => used(s, 'setConductor', 'setTap', 'placeRegulator') || s.tick > s.levelStart },
+    { id: 'read', textKey: 'coach.L31.read', whyKey: 'coach.L31.read.why', done: (s) => used(s, 'setConductor', 'setDtTap', 'placeRegulator') || s.tick > s.levelStart },
     { id: 'fix', textKey: 'coach.L31.fix', whyKey: 'coach.L31.fix.why', done: (s) => used(s, 'setConductor', 'placeRegulator') || s.tick > s.levelStart },
-    { id: 'taps', textKey: 'coach.L31.taps', whyKey: 'coach.L31.taps.why', done: (s) => used(s, 'setTap') || s.tick > s.levelStart },
+    { id: 'taps', textKey: 'coach.L31.taps', whyKey: 'coach.L31.taps.why', done: (s) => used(s, 'setDtTap') || s.tick > s.levelStart },
     { id: 'run', textKey: 'coach.L31.run', whyKey: 'coach.L31.run.why', done: (s) => s.tick > s.levelStart || s.status !== 'playing' },
   ],
   place: (s, sc) => { ch8Start(s, sc, 'L31'); placeL31(s, sc); },

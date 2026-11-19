@@ -38,8 +38,8 @@ function raw(c: Ch8State, s: Readonly<GridState>): Study {
   const voltFail = (st: { minV: number; minNode: string; maxV: number; maxNode: string; marginLoPu: number; marginHiPu: number }, where: string): void => {
     const low = st.marginLoPu <= st.marginHiPu;
     Object.assign(base, { ok: false }, fail(low ? 'voltageLow' : 'voltageHigh', low
-      ? { node: st.minNode, v: r1(st.minV), lim: r1(V_LO_PU * 230), pct: r1((st.minV / 230 - 1) * 100), when: where }
-      : { node: st.maxNode, v: r1(st.maxV), lim: r1(hi * 230), pct: r1((st.maxV / 230 - 1) * 100), when: where }));
+      ? { nodeId: st.minNode, v: r1(st.minV), lim: r1(V_LO_PU * 230), pct: r1((st.minV / 230 - 1) * 100), when: where }
+      : { nodeId: st.maxNode, v: r1(st.maxV), lim: r1(hi * 230), pct: r1((st.maxV / 230 - 1) * 100), when: where }));
   };
   if (c.id === 'L31') {
     const d = c.l31!, st = studyVoltage(L31, d, hi);
@@ -93,7 +93,7 @@ function raw(c: Ch8State, s: Readonly<GridState>): Study {
     if (d.pvLimitKw < L35S.minPvKw) Object.assign(base, { ok: false }, fail('pvShort', { pv: d.pvLimitKw, need: L35S.minPvKw }));
     else if (st.marginPu < 0) {
       const high = st.marginHiPu < 0;   // noon first: the PV is this level's cause, the evening dip is the feeder's old problem
-      Object.assign(base, { ok: false }, fail(high ? 'voltageHigh' : 'voltageLow', high ? { node: st.maxNode, v: r1(st.maxV), lim: r1(hi * 230), pct: r1((st.maxV / 230 - 1) * 100), when: 'noon' } : { node: st.minNode, v: r1(st.minV), lim: r1(V_LO_PU * 230), pct: r1((st.minV / 230 - 1) * 100), when: 'evening' }));
+      Object.assign(base, { ok: false }, fail(high ? 'voltageHigh' : 'voltageLow', high ? { nodeId: st.maxNode, v: r1(st.maxV), lim: r1(hi * 230), pct: r1((st.maxV / 230 - 1) * 100), when: 'noon' } : { nodeId: st.minNode, v: r1(st.minV), lim: r1(V_LO_PU * 230), pct: r1((st.minV / 230 - 1) * 100), when: 'evening' }));
     }
     return base;
   }
