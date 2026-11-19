@@ -2,8 +2,19 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
-## [1.1.0] - "Employable" (in progress; v1.1.0-rc.1 tagged; design in docs/DESIGN-1.1.md)
+## [1.1.0] - "Employable" (in progress; v1.1.0-rc.2 tagged; design in docs/DESIGN-1.1.md)
 ### Added
+- Chapter 8 "The Feeder", engine side (levels L31-L36; the UI is next):
+  - **L31 The Long Feeder:** voltage drop, conductors, taps, a regulator.
+  - **L32 Count the Outages:** SAIFI and SAIDI with fuses, sectionalisers and a tie.
+  - **L33 Fuse Saving:** recloser-fuse coordination.
+  - **L34 Firm Capacity:** N-1 at a primary substation, transformer hot-spot and loss of life. No single purchase passes.
+  - **L35 Sun on the Roofs:** PV hosting with OLTC line-drop compensation and volt-var.
+  - **L36 Exam Bridge: Feeder Numbers.**
+  - Each level has a naive build that fails, lesson and reference builds that pass, and frozen bot-population targets in both region packs.
+  - The finale moves to chapter 9 (data only).
+- Career engine, "The Utility" (`src/career`; UI to follow): ten years of quarters on a 2-substation, 9-feeder district. It models Weibull asset ageing, load growth, expected and seeded realised outages, a regulator's allowed revenue with a SAIDI/SAIFI incentive, annual reviews and four endings. Careers are deterministic and replay from a code, with independent Python oracles.
+  - Persona sweep over 50 seeds: the planner beats the firefighter on 48 and the firefighter beats idle on all 50; the gold-plater is bailed out or fined on all 50.
 - Chapter 8 engine, "The Feeder" (`src/sim/distrib`): a backward-forward sweep radial load flow, cross-checked against Newton-Raphson; analytical reliability per IEEE 1366 (SAIFI, SAIDI, CAIDI, ENS) with fuses, sectionalisers and a normally-open tie; IEEE C37.112 recloser curves and fuse coordination margins; IEC 60076-7 transformer hot-spot and ageing; PV hosting capacity with volt-var and OLTC line-drop compensation. All are checked against independent Python oracles (`tools/oracles/ch8_oracles.py`).
 - A second-lamp rule (`star2`): the spend lamp can also ask for a result. L12's $0 AVR set-point now earns only the pass lamp; the spend lamp also needs the first swing under 70°.
 - The shift report says what the next lamp wants on L02, L03, L05, L08, L09, L11, L12, L16, L20 and L23.
