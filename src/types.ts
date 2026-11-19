@@ -472,7 +472,7 @@ export interface RouteRecord {
   coastWorst?: SaltSupportRecord;
 }
 
-export interface Coach { stepId: string | null; hintsUsed: number; seen: string[] }
+export interface Coach { stepId: string | null; hintsUsed: number; seen: string[]; /** Set by Retry: the coach starts at this step (the earlier ones were done on the last attempt). */ carry?: number }
 
 export interface GridState extends BaseState {
   /** Operator-block count equals `tick` (BaseState). `region` and `ruleset` come from BaseState too. */

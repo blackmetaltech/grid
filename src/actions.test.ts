@@ -89,3 +89,17 @@ describe('pack -> plain parameters (src/sim never sees a pack)', () => {
     expect(v.line('l132-panther')).toMatchObject({ kv: 132, thermalMva: 86 });
   });
 });
+
+describe('coachCarry (Retry keeps the coach where the last attempt left it)', () => {
+  it('starts the coach at the carried step, is allowed inside a level and is not logged', async () => {
+    const { Env } = await import('@core/kit');
+    const e = new Env(GAME); e.reset({ seed: 1, level: 'L12' });
+    const coach = () => (GAME.queries!.coach as (s: GridState) => { index: number; total: number })(e.state);
+    expect(coach().index).toBe(0);
+    const log = e.state.actionLog.length;
+    expect((e.step({ name: 'coachCarry', args: [2] }).info as unknown as { ok: boolean }).ok).toBe(true);
+    expect(coach().index).toBeGreaterThanOrEqual(Math.min(2, coach().total));
+    expect(e.state.actionLog.length).toBe(log);
+    expect((e.step({ name: 'coachCarry', args: [-1] }).info as unknown as { ok: boolean }).ok).toBe(false);
+  });
+});

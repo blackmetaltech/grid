@@ -159,8 +159,10 @@ static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	var design := design_of(app)
 	var bs = app.b.q("benchStatus"); var bench_job: bool = bs is Dictionary and bool(bs.get("active", false))   # chapter 1's bench (hut, reels, breaker) has its own line; every other job gets the plain one
 	WorkOrder.skip_once = true   # Retry never re-reads the docket (a tester met the briefing again and the step counter back at "Press Run"); the pin still opens it
+	var cq = app.b.q("coach"); var coach_at: int = int(cq.get("index", 0)) if cq is Dictionary and bool(cq.get("active", false)) else 0
 	app.start_level(lid, true)
 	var refused := replay(app, design)
+	if coach_at > 0 and refused == 0: app.b.act("coachCarry", [coach_at])   # the coach carries on where the last attempt left it (a partly refused design keeps the full coach)
 	app.game_on_changed()
 	var ch = app.get("chrome")
 	var grid_job: bool = design.any(func(a): return str(a[0]) == "buildRoute")

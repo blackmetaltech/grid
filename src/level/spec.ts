@@ -184,7 +184,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
 const PART_ARG: Record<string, number> = { placeUnit: 0, stringLine: 2, placeTransformer: 2, placeShunt: 1, placeStorage: 1, layCable: 1, layCableRoute: 2, switchBranch: 0, buildRoute: 2, placeBank: 1, placeSeriesCap: 1 };
 /** Further restricted arguments, listed in `allowed.parts` under `<action>.<name>` (a null value, e.g. no crossing family, is always fine). */
 const EXTRA_PART_ARG: Record<string, { pos: number; name: string }[]> = { placeBank: [{ pos: 3, name: 'detunePct' }], buildRoute: [{ pos: 3, name: 'family' }, { pos: 4, name: 'crossing' }, { pos: 7, name: 'insulator' }, { pos: 8, name: 'coastInsulator' }] };
-const ALWAYS = new Set(['setSpeed', 'predict']);
+const ALWAYS = new Set(['setSpeed', 'predict', 'coachCarry']);
 
 /** Wrap the game's actions so a running level only accepts what its spec allows. Free play (no level) is untouched. */
 export function allowedGate(actions: Record<string, ActionFn<GridState>>, specOf: (id: string) => GridLevelSpec | undefined): Record<string, ActionFn<GridState>> {
@@ -220,7 +220,8 @@ export function place(sc: ScaffoldCtx, s: GridState, name: string, ...args: unkn
 
 /** The first coach step whose condition does not hold yet (null when all are done). */
 export function currentCoachStep(spec: GridLevelSpec, s: Readonly<GridState>): { id: string; textKey: string; whyKey: string; index: number } | null {
-  const i = spec.coach.findIndex((c) => !c.done(s));
+  const carry = s.coach.carry ?? 0;   // Retry carries the coach forward: steps the player already finished on the last attempt are not taught again
+  const i = spec.coach.findIndex((c, k) => k >= carry && !c.done(s));
   const c = spec.coach[i];
   return c ? { id: c.id, textKey: c.textKey, whyKey: c.whyKey, index: i } : null;
 }

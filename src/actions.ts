@@ -55,6 +55,13 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       return speed === 0 ? accept(s, 'setSpeed', 'speed.paused') : accept(s, 'setSpeed', 'speed.ok', { speed, sec: Math.round(BLOCK_REAL_MS_AT_1X / speed) / 1000 });
     },
 
+    /** Retry carries the coach forward: start the coach at step `index` (not logged; it changes no physics and no score). */
+    coachCarry: (s, index: unknown) => {
+      if (!isNum(index) || index < 0) return reject('act.arg', { name: 'index', expected: t('exp.a_number') });
+      s.coach.carry = Math.floor(index);
+      return { ok: true, message: t('coach.carried', { n: Math.floor(index) + 1 }), key: 'coach.carried', params: { n: Math.floor(index) + 1 } };
+    },
+
     // ---- build ----
     placeBus: (s, x: unknown, y: unknown, kvNom: unknown, kind: unknown, vSet: unknown) => {
       if (!isNum(x) || !isNum(y)) return bad('x, y', 'exp.tile_coordinates');

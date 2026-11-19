@@ -15,6 +15,7 @@ export const en: Record<string, string> = {
   'speed.notNumber': 'The clock speed must be a number: 0 (paused), 0.5, 1, 2 or 4.',
   'speed.invalid': 'The clock runs at 0 (paused), 0.5, 1, 2 or 4 times real time; {speed} is not one of them.',
   'speed.paused': 'Clock paused.',
+  'coach.carried': 'The coach picks up at step {n}.',
   'speed.ok': 'Clock speed {speed}x: one 15-minute block every {sec} s.',
   // build and operate actions (M1.10 skeleton; every action returns {ok, message, key, params})
   'act.arg': 'The argument "{name}" is missing or has the wrong type; expected {expected}.',
