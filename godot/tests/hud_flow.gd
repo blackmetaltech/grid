@@ -10,7 +10,7 @@ func _initialize() -> void:
 	CbRegion.refresh(T.b)
 	var app := CbApp.new(); app.audio = CbAudio.new(); app.b = T.b; app.started = true
 	var world := WorldView.new(); world.size = Vector2(1400, 800); root.add_child(world)
-	var radio := RadioLog.new(); radio.app = app; radio.width = 420.0; radio.max_h = 240.0; root.add_child(radio)
+	var radio := RadioLog.new(); radio.app = app; radio.width = 560.0; radio.max_h = 240.0; root.add_child(radio)   # desktop width: time and speaker beside the line (under 440 px they stack above it)
 	var ins := Instruments.new(); root.add_child(ins)
 	var tags := TagView.new(); tags.b = T.b; tags.world = world; root.add_child(tags)
 	var tray := KitTray.new(); tray.b = T.b; tray.world = world; tray.radio = radio; tray.instruments = ins; tray.tags = tags
@@ -32,14 +32,14 @@ func _initialize() -> void:
 	for l in labels:
 		T.check(l.autowrap_mode != TextServer.AUTOWRAP_OFF and l.max_lines_visible < 0 and l.text_overrun_behavior == TextServer.OVERRUN_NO_TRIMMING, "a radio line wraps in full, no ellipsis")
 		T.check(not str(l.text).contains("…"), "no ellipsis in the text")
-	for i in 3: await process_frame
+	for i in 6: await process_frame   # wrapped labels settle their height over a few layout passes
 	T.check(radio.size.y <= radio.max_h + 2.0, "radio height %.0f stays within the cap %.0f" % [radio.size.y, radio.max_h])
 	T.check(radio.size.y > 70.0, "the panel grew with its text (%.0f)" % radio.size.y)
 	# fading: the cap drops the oldest rows, never the newest
 	var n_before := radio._box.get_child_count()
-	radio.max_h = 230.0; radio._rebuild(); for i in 3: await process_frame
-	T.check(radio._box.get_child_count() < n_before and radio.size.y <= 232.0, "over the cap the oldest rows drop (%d -> %d rows, %.0f)" % [n_before, radio._box.get_child_count(), radio.size.y])
-	T.check(radio.lines.back().text == long_txt and str(radio._box.get_child(0).get_child(2).text) == long_txt, "the newest line is the one kept")
+	radio.max_h = 150.0; radio._rebuild(); for i in 6: await process_frame
+	T.check(radio._box.get_child_count() < n_before and radio.size.y <= 152.0, "over the cap the oldest rows drop (%d -> %d rows, %.0f)" % [n_before, radio._box.get_child_count(), radio.size.y])
+	T.check(radio.lines.back().text == long_txt and str(radio._box.get_child(radio._box.get_child_count() - 2).get_child(2).text) == long_txt, "the newest line is the one kept")
 	radio.max_h = 320.0; radio.visible_lines = 4; radio._rebuild()
 	# why / log
 	radio.clear(); radio.say("TOBI", str(coach.text), "coach", str(coach.id), str(coach.why)); radio._rebuild()

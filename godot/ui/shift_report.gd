@@ -395,7 +395,8 @@ static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	hv.add_child(PaperKit.lbl(T(p + "TITLE").to_upper(), (34 if finale else 38) if compact else (52 if finale else 64), "title", PaperKit.INK, true))
 	hv.add_child(PaperKit.lbl(T(p + "SUB"), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
 	var isl: Control = CableDoodle.new() if finale else (ChapterDoodle.new() if mid else IslandDoodle.new()); isl.name = "CableDoodle" if finale else ("ChapterDoodle" if mid else "IslandDoodle")
-	if mid: (isl as ChapterDoodle).chapter = int(cn); isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)
+	if mid: (isl as ChapterDoodle).chapter = int(cn)
+	isl.custom_minimum_size = Vector2(210, 105) if compact else Vector2(300, 150); head.add_child(isl)   # every card gets its picture (a one-line `if mid:` had left chapters 1 and 2 without theirs)
 	col.add_child(PaperKit.rule())
 	var nia := _note(T(p + "NIA"), PaperPen.NIA, T("CH_NIA_TAG"), compact); nia.name = "NiaNote"; col.add_child(nia)
 	if finale:   # Ada retires, Tobi has the last word: two notes side by side so the card still fits a 768 p screen

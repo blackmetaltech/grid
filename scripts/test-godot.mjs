@@ -12,7 +12,7 @@ const build = sh('npx', ['vite', 'build', '-c', 'vite.bridge.config.ts']);
 if (build.status !== 0) { console.error(build.stdout, build.stderr); process.exit(1); }
 sh('godot', ['--headless', '--path', 'godot', '--import']);
 const want = process.argv.slice(2);
-const tests = readdirSync(join(root, 'godot/tests')).filter((f) => f.endsWith('_truth.gd') || f === 'tray_flow.gd' || f === 'route_flow.gd' || f === 'salt_flow.gd' || f === 'ch2_flow.gd' || f === 'ch5_flow.gd' || f === 'island_flow.gd' || f === 'grid_tray_flow.gd' || f === 'ch3_flow.gd' || f === 'ch4_flow.gd' || f === 'ch6_flow.gd' || f === 'ch7_flow.gd' || f === 'chf_flow.gd').map((f) => f.replace(/\.gd$/, '')).filter((n) => want.length === 0 || want.includes(n));
+const tests = readdirSync(join(root, 'godot/tests')).filter((f) => f.endsWith('_truth.gd') || f === 'tray_flow.gd' || f === 'route_flow.gd' || f === 'salt_flow.gd' || f === 'ch2_flow.gd' || f === 'ch5_flow.gd' || f === 'island_flow.gd' || f === 'grid_tray_flow.gd' || f === 'ch3_flow.gd' || f === 'ch4_flow.gd' || f === 'ch6_flow.gd' || f === 'ch7_flow.gd' || f === 'chf_flow.gd' || f === 'hud_flow.gd').map((f) => f.replace(/\.gd$/, '')).filter((n) => want.length === 0 || want.includes(n));
 let bad = 0;
 for (const t of tests) {
   const r = sh('godot', ['--headless', '--path', 'godot', '--script', `res://tests/${t}.gd`], { timeout: 180000 });
@@ -20,6 +20,14 @@ for (const t of tests) {
   const lines = out.split('\n').filter((l) => /^FAIL|OK$|FAILED|SCRIPT ERROR|checks=/.test(l));
   const ok = /^[A-Z0-9-]+ OK$/m.test(out) && !/SCRIPT ERROR/.test(out);
   console.log(`${ok ? 'PASS' : 'FAIL'} ${t}\n  ${lines.join('\n  ')}`);
+  if (!ok) bad++;
+}
+// the full-app smoke: CB_SMOKE=1 runs main.gd's game_smoke, which ends with the paper screens flow (tests/paper_flow.gd: title, work order, loss, Retry, win, chapter card)
+if (want.length === 0 || want.includes('paper_flow')) {
+  const r = sh('godot', ['--headless', '--path', 'godot'], { timeout: 300000, env: { ...process.env, CB_SMOKE: '1' } });
+  const out = `${r.stdout}\n${r.stderr}`;
+  const ok = /^SMOKE OK/m.test(out) && !/SCRIPT ERROR/.test(out);
+  console.log(`${ok ? 'PASS' : 'FAIL'} smoke+paper_flow\n  ${out.split('\n').filter((l) => /SMOKE|FAIL|SCRIPT ERROR/.test(l)).join('\n  ')}`);
   if (!ok) bad++;
 }
 process.exit(bad ? 1 : 0);
