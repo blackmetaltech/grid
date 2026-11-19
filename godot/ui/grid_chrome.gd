@@ -22,6 +22,7 @@ var tags: TagView                ## in-world paper tags
 var ch5: Ch5Panel               ## chapter 5's control card for L14-L18
 var chf: ChfPanel                ## the finale's card (day, island lamp, ticker) on L28
 var ch6: Ch6Panel               ## chapter 6's control-room card for L19-L22
+var ch8: Ch8Host                 ## chapter 8's stages for L31-L36 (feeder, outages, fuse saving, firm capacity, sun, exam); hidden on every other level
 var ch7: Ch7Host                 ## chapter 7's stages for L23-L27 (board, feeder, swing, merit order, exam); hidden on every other level
 var ch4: Ch4Host                 ## chapter 4's stages for L10-L13 (street, estate, hydro, exam); hidden on every other level
 var ch3: Ch3Panel                ## chapter 3's instrument card (phasor, spectrum, bank current, series capacitor and fault); drawn only on L07-L09
@@ -40,6 +41,7 @@ func _init() -> void:
 func build() -> void:
 	ch4 = Ch4Host.new(); ch4.app = app; ch4.build(); add_child(ch4)
 	ch7 = Ch7Host.new(); ch7.app = app; ch7.build(); add_child(ch7)
+	ch8 = Ch8Host.new(); ch8.app = app; ch8.build(); add_child(ch8)
 	ch2 = Ch2Bench.new(); ch2.app = app; add_child(ch2)   # first child: an opaque stage under the instruments, the radio and the breaker
 	instruments = Instruments.new(); instruments.app = app; add_child(instruments)
 	ch3 = Ch3Panel.new(); ch3.app = app; add_child(ch3)
@@ -165,7 +167,7 @@ func qa_ui(spec: String) -> void:
 		"say": for ln in f.slice(1): radio.say("TOBI", ln.replace("_", " "), "coach", "qa%d" % radio.lines.size(), "Because copper resists.")
 		"why": for l in radio.lines: if l.kind == "coach" and l.step != "" and str(l.get("why", "")) != "": radio.ask_why(l); break
 
-func tray_active() -> bool: return (ch7 != null and ch7.visible) or (ch4 != null and ch4.visible) or (ch2 != null and ch2.visible) or (tray != null and tray.visible) or (rtray != null and rtray.visible) or (gtray != null and gtray.visible)
+func tray_active() -> bool: return (ch8 != null and ch8.visible) or (ch7 != null and ch7.visible) or (ch4 != null and ch4.visible) or (ch2 != null and ch2.visible) or (tray != null and tray.visible) or (rtray != null and rtray.visible) or (gtray != null and gtray.visible)
 
 func set_chrome_visible(v: bool) -> void:
 	_on = v
@@ -184,6 +186,7 @@ func refresh() -> void:
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
 	if ch4 != null: ch4.refresh()
 	if ch7 != null: ch7.refresh()
+	if ch8 != null: ch8.refresh()
 	if ch2 != null: ch2.refresh()
 	if ch3 != null: ch3.refresh()
 	if ch5 != null: ch5.refresh()
@@ -262,6 +265,7 @@ func layout() -> void:
 	instruments.layout()
 	if ch4 != null: ch4.layout()
 	if ch7 != null: ch7.layout()
+	if ch8 != null: ch8.layout()
 	if ch2 != null: ch2.layout()
 	if tray != null: tray.layout(); rtray.layout(); gtray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
