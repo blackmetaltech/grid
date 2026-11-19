@@ -93,7 +93,7 @@ export function cancelProject(state: CareerState, id: string): ActionResult {
   const i = state.projects.findIndex((p) => p.id === id && (p.status === 'building' || p.status === 'active'));
   if (i < 0) return fail(state, 'career.err.noProject', { id });
   const p = { ...state.projects[i]!, status: 'cancelled' as const };
-  const s: CareerState = { ...state, projects: state.projects.map((x, k) => (k === i ? p : x)) };
+  const s: CareerState = { ...state, projects: state.projects.filter((_, k) => k !== i) };
   if (state.projects[i]!.status === 'active' && p.kind === 'demandResponse') s.feeders = state.feeders.map((f) => (f.id === p.target ? { ...f, drKw: 0 } : f));
   return ok(s, 'career.project.cancelled', { id, sunkM: p.spentM });
 }
