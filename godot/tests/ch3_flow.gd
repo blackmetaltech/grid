@@ -22,8 +22,8 @@ func _initialize() -> void:
 	var seen: Array = [tray.knob_text("detune")]
 	for k in 3: tray.step_knob("detune", 1); seen.append(tray.knob_text("detune"))
 	T.check(seen == ["plain", "filter 4.7", "7 %", "14 %"], "the reactor knob steps along the allowed shares: %s" % str(seen))
-	tray.step_knob("detune", 1); T.check(tray.knob_text("detune") == "14 %", "and stops at the end")
-	for k in 2: tray.step_knob("detune", -1)
+	tray.step_knob("detune", 1); T.check(tray.knob_text("detune") == "7 %", "and turns back at the end (a click is never dead)")
+	tray.step_knob("detune", -1)
 	tray.knobs.steps = 3
 	tray.activate(cell); var r: Dictionary = tray.press_target("B2"); sync.call()
 	T.check(r.get("ok", false), "press B2 places the detuned bank: %s" % str(r.get("message", r)))

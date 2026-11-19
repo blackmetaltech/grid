@@ -439,6 +439,7 @@ func _act(name: String, args: Array) -> Dictionary:
 	var r: Dictionary = b.act(name, args)
 	if r.get("ok", false):
 		if sfx.is_valid(): sfx.call("reel" if name == "buildRoute" or name == "layCableRoute" else "place")
+		if chip_dot == GridTheme.BAD: chip_text = ""; chip_dot = Color.TRANSPARENT; last_refusal_key = ""; queue_redraw()   # a refusal does not outlive the build that fixed it (L05: the river warning stayed under a built steel-tube line)
 	elif radio != null: radio.say("SYS", str(r.get("message", "")), "warn")
 	return r
 
@@ -847,7 +848,7 @@ func tip(it: Dictionary) -> String:
 	match str(it.kind):
 		"family": return tx("RT_TIP_FAM") % [tx("RT_FAM_" + str(it.id)), str(it.id).get_slice("-", 1), str(MAX_SPAN[str(it.id)])]
 		"crossing": return tx("RT_TIP_CROSS") % tx("RT_TIP_CROSS_" + str(it.id))
-		"span": return tx("RT_TIP_SPAN") % str(kit.span)
+		"span": return tx("RT_TIP_SPAN") % [str(kit.span), " · ".join(allowed_spans().map(func(v): return str(v)))]
 		"kv": return tx("RT_TIP_KV")
 		"conductor": return tx("RT_TIP_COND") % [tx("RT_COND_" + str(it.id)), str(COND_MM2.get(str(it.id), 0))]
 		"insulator": return tx("RT_TIP_INS") % [tx("RT_INS_" + str(it.id)), str(INS_MM.get(str(it.id), 0))]
@@ -1290,6 +1291,10 @@ func _icon_span(c: Vector2, m: int) -> void:
 	for sx in [-1.0, 1.0]: draw_line(Vector2(c.x + sx * 21.0, y - 6.0), Vector2(c.x + sx * 21.0, y + 6.0), GridTheme.PAPER, 2.0)
 	draw_line(Vector2(c.x - 21.0, y), Vector2(c.x + 21.0, y), GridTheme.PAPER, 1.5)
 	for sx in [-1.0, 1.0]: draw_colored_polygon(PackedVector2Array([Vector2(c.x + sx * 21.0, y), Vector2(c.x + sx * 15.0, y - 3.0), Vector2(c.x + sx * 15.0, y + 3.0)]), GridTheme.PAPER)
+	var a := allowed_spans(); var n := a.size()   # one dot per allowed span, the chosen one lit: the knob wraps, and now it shows where it is in the list
+	for j in n:
+		var on := int(a[j]) == m
+		draw_circle(Vector2(c.x - 18.0 + 36.0 * j / maxf(n - 1, 1), y + 8.0), 2.6 if on else 1.6, GridTheme.SODIUM if on else Color(GridTheme.PAPER, 0.5))
 
 func _icon_xfmr(c: Vector2, on: bool) -> void:
 	draw_rect(Rect2(c.x - 2.2, c.y - 16.0, 4.4, 36.0), Color("#8A6A43"))

@@ -197,7 +197,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const from = isNum(atBlock) && Number.isInteger(atBlock) && atBlock >= 0 && atBlock < BLOCKS_PER_DAY ? atBlock : s.clock.block;
       if (u.commit.schedule.length < BLOCKS_PER_DAY) u.commit.schedule = new Array<number>(BLOCKS_PER_DAY).fill(-1);
       for (let b = from; b < BLOCKS_PER_DAY; b++) u.commit.schedule[b] = on ? 1 : 0;
-      return accept(s, 'commit', 'act.commit.ok', { id: unitId, state: t(on ? 'act.commit.on' : 'act.commit.off'), block: from });
+      return accept(s, 'commit', 'act.commit.ok', { id: unitId, state: t(on ? 'act.commit.on' : 'act.commit.off'), block: from, at: `${String(Math.floor(from / 4) % 24).padStart(2, '0')}:${String((from % 4) * 15).padStart(2, '0')}` });   // the clock time, not the engine's block number
     },
     setDispatch: (s, unitId: unknown, mw: unknown, blocks: unknown) => {
       if (!isStr(unitId)) return bad('unitId', 'exp.a_unit_id');

@@ -66,7 +66,7 @@ const S := {
 	"WO_COND_CLEARANCE": "Every span clears the ground, roads and high water at 75\u00a0°C (the survey refuses one that does not)", "TH_villageBandLoPu": "Village voltage ≥\u00a0%s pu", "TH_marginStar3M": "Worst clearance ≥\u00a0%s m",
 	"METER_CLEAR_CAPTION": "CLEARANCE", "METER_CLEAR_UNITS": "m", "METER_CLEAR_NONE": "no line", "METER_VIL_CAPTION": "VILLAGE", "METER_VIL_UNITS": "V",
 	"RT_SURVEY": "Survey", "RT_SURVEY_SUB": "A → B", "RT_SURVEY_ON": "drawing",
-	"RT_FAM_wood-9": "Wood", "RT_FAM_pcc-11": "Concrete", "RT_FAM_tubular-13": "Steel tube", "RT_FAM_SUB": "%s m", "RT_FAM_SUB2": "≤%s m", "RT_TIP_FAM": "%s pole, %s m tall · spans up to %s m", "RT_TIP_CROSS": "River crossing: %s", "RT_TIP_CROSS_none": "no crossing pair: the poles span the river themselves", "RT_TIP_CROSS_crossing-h": "an H-frame pair on the two banks", "RT_TIP_CROSS_tubular-13": "a steel tube pole on each bank", "RT_TIP_SPAN": "Span: poles every %s m or less (click to change)", "RT_TIP_COND": "%s conductor, %s mm² of aluminium", "RT_TIP_XF": "%s kVA pole-mount transformer",
+	"RT_FAM_wood-9": "Wood", "RT_FAM_pcc-11": "Concrete", "RT_FAM_tubular-13": "Steel tube", "RT_FAM_SUB": "%s m", "RT_FAM_SUB2": "≤%s m", "RT_TIP_FAM": "%s pole, %s m tall · spans up to %s m", "RT_TIP_CROSS": "River crossing: %s", "RT_TIP_CROSS_none": "no crossing pair: the poles span the river themselves", "RT_TIP_CROSS_crossing-h": "an H-frame pair on the two banks", "RT_TIP_CROSS_tubular-13": "a steel tube pole on each bank", "RT_TIP_SPAN": "Span: poles every %s m or less (click for the next: %s m)", "RT_TIP_COND": "%s conductor, %s mm² of aluminium", "RT_TIP_XF": "%s kVA pole-mount transformer",
 	"RT_CROSS_none": "No pair", "RT_CROSS_crossing-h": "H-frame", "RT_CROSS_tubular-13": "Steel tube", "RT_CROSS_SUB": "banks", "RT_CROSS_NONE_SUB": "none",
 	"RT_SPAN": "Span", "RT_SPAN_SUB": "apart", "RT_SPAN_M": "%s m",
 	"RT_INS_pin": "Pin", "RT_INS_disc2": "2 discs", "RT_INS_fog1": "Fog disc", "RT_INS_SUB": "%s mm", "RT_COAST_SUB": "%s mm",
@@ -119,7 +119,7 @@ const S := {
 	"GT_OPT_shunt": "Bank %s", "GT_OPT_branch": "Line %s", "GT_OPT_xfmr": "Transformer %s", "GT_OPT_unit": "Generator %s", "GT_OPT_bus": "Town %s",
 	"GT_OPL_switchBranch": "Breaker", "GT_OPL_setShuntSteps": "Steps in", "GT_OPL_setShuntAuto": "Automatic", "GT_OPL_setTap": "Tap", "GT_OPL_setTapAuto": "Automatic tap", "GT_OPL_setDroop": "Droop %",
 	"GT_OPL_commit": "Unit", "GT_OPL_setDispatch": "Dispatch", "GT_OPL_shedLoad": "Shed", "GT_OPL_demolish": "Remove",
-	"GT_OP_CLOSED": "closed", "GT_OP_OPEN": "open", "GT_OP_OPEN_IT": "Open it", "GT_OP_CLOSE_IT": "Close it", "GT_OP_SET": "Set", "GT_OP_NOW": "now %s", "GT_OP_START": "Start", "GT_OP_STOP": "Stop", "GT_OP_REMOVE": "Remove", "GT_OP_AUTO_ON": "automatic is on",
+	"GT_OP_CLOSED": "closed", "GT_OP_RUNNING": "running", "GT_OP_ORDERED": "ordered on", "GT_OP_STOPPED": "stopped", "GT_OP_OPEN": "open", "GT_OP_OPEN_IT": "Open it", "GT_OP_CLOSE_IT": "Close it", "GT_OP_SET": "Set", "GT_OP_NOW": "now %s", "GT_OP_START": "Start", "GT_OP_STOP": "Stop", "GT_OP_REMOVE": "Remove", "GT_OP_AUTO_ON": "automatic is on",
 	# ---- L30 Bring the Island Home: sea cable and island battery cells, tags, instruments, work order, chapter-end card ----
 	"L30_SEA_PERKM": "%s/km", "L30_SEA_UF": "%s µF/km", "L30_BAT_KW": "%s kW", "L30_BAT_KWH": "%s kWh",
 	"L30_TIP_SEA": "Sea cable: %s mm² copper, three-core XLPE, %s per km and %s µF/km. It charges %s kvar by itself, even with no load. Click it, then the glowing yard.",

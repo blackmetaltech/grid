@@ -145,4 +145,14 @@ func _initialize() -> void:
 		var nu := (T.b.g.units as Array).size()
 		tray.activate(gi); sync.call(); var r := tray.press_target("B1"); sync.call()
 		T.check(bool(r.get("ok", false)) and (T.b.g.units as Array).size() == nu + 1 and str(T.b.g.units.back().catalogId) == "ocgt-105", "a gas unit placed from the tray is built on B1 (%s)" % str(r.get("message", "")))
+	# L16: Start / Stop on a generator's tag show the order at once (the tag looked unchanged) and a bus tag has no anonymous Remove rows
+	tray.cancel(); T.level("L16"); sync.call()
+	T.check(tray.open_op("unit", "U1"), "L16: the generator tag opens")
+	var stl := tray.op_panel.find_child("state_commit", true, false) as Label
+	T.check(stl != null and stl.text == "running", "the unit reads running (%s)" % (stl.text if stl != null else "none"))
+	tray.op_do("commit", ["U1", false]); sync.call()
+	stl = tray.op_panel.find_child("state_commit", true, false) as Label
+	T.check(stl != null and stl.text == "stopped", "Stop reads stopped at once (%s)" % (stl.text if stl != null else "none"))
+	tray.close_op()
+	T.check(tray.op_rows("bus", "B2").all(func(r): return str(r.action) != "demolish"), "a bus tag offers no Remove for the town's loads")
 	T.finish("GRID-TRAY-FLOW", self)

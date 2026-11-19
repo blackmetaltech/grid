@@ -260,8 +260,11 @@ func step_knob(id: String, d: int) -> float:
 	if k.has("vals"):
 		var vs: Array = k.vals; var vi := 0
 		for j in vs.size(): if is_equal_approx(float(vs[j]), float(knobs[id])): vi = j
+		if vi + d < 0 or vi + d > vs.size() - 1: d = -d   # at the end of the list a click turns back (a click at "plain" did nothing and read as a dead control, L08)
 		knobs[id] = float(vs[clampi(vi + d, 0, vs.size() - 1)]); _cell_hover(); queue_redraw()
 		return float(knobs[id])
+	var v0 := float(knobs[id])
+	if (d < 0 and v0 <= float(k.min) + 1e-9) or (d > 0 and v0 >= float(k.max) - 1e-9): d = -d   # same at the ends of a range
 	var v := clampf(snappedf(float(knobs[id]) + d * float(k.step), float(k.step) * 0.01 if float(k.step) < 1.0 else 0.0001), float(k.min), float(k.max))
 	knobs[id] = int(round(v)) if k.get("int", false) else v
 	_cell_hover(); queue_redraw()
@@ -658,7 +661,11 @@ func _op_row(r: Dictionary) -> void:
 			var gb := _tbtn(tx("GT_OP_SET"), func(): op_do(act, [eid, int(knobs[k]) if KNOBS[k].get("int", false) else float(knobs[k])])); gb.name = "go_" + act; h.add_child(gb)
 			if cur2 != null: h.add_child(_tlabel(tx("GT_OP_NOW") % knob_text(k, cur2), 13, Color(GridTheme.PAPER_INK, 0.65), "mono"))
 			vl.name = "val_" + act
-		"pair":
+		"pair":   # the unit's state next to Start / Stop (L16: Start changed nothing visible on the tag)
+			var sch: Array = (e.get("commit", {}) as Dictionary).get("schedule", []) if e.get("commit") is Dictionary else []
+			var blk := int((b.g.get("clock", {}) as Dictionary).get("block", 0)); var at := int(sch[blk]) if blk < sch.size() else -1   # the order for this block (set at once) wins over "online" (that follows on the next tick)
+			var st := ("GT_OP_RUNNING" if at == 1 else "GT_OP_STOPPED") if at >= 0 else ("GT_OP_RUNNING" if bool(e.get("online", false)) else ("GT_OP_ORDERED" if sch.has(1) else "GT_OP_STOPPED"))
+			var sl := _tlabel(tx(st), 16, GridTheme.PAPER_INK, "mono"); sl.custom_minimum_size.x = 84; sl.name = "state_" + act; h.add_child(sl)
 			var a1 := _tbtn(tx("GT_OP_START"), func(): op_do(act, [eid, true]), 70); a1.name = "on_" + act; h.add_child(a1)
 			var a2 := _tbtn(tx("GT_OP_STOP"), func(): op_do(act, [eid, false]), 70); a2.name = "off_" + act; h.add_child(a2)
 		"once":
@@ -684,6 +691,9 @@ func op_do(action: String, args: Array) -> Dictionary:
 	if is_locked() and not live: refuse_locked(); return {"ok": false}
 	var r := _act(action, args)
 	if r.get("ok", false) and action == "demolish": close_op()
+	elif r.get("ok", false):
+		if radio != null and action == "commit": radio.say("SYS", str(r.get("message", "")))   # say what Start / Stop did ("Unit U2 will be running from ... on")
+		if op_kind != "": _build_op()
 	return r
 
 func _place_op() -> void:
@@ -974,7 +984,17 @@ func _icon_knob(c: Vector2, r: Rect2, id: String) -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(r.position.x + 9.0, y), Vector2(r.position.x + 17.0, y - 5.0), Vector2(r.position.x + 17.0, y + 5.0)]), Color(GridTheme.PAPER, 0.8))
 	draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 9.0, y), Vector2(r.end.x - 17.0, y - 5.0), Vector2(r.end.x - 17.0, y + 5.0)]), Color(GridTheme.PAPER, 0.8))
 	draw_line(Vector2(c.x - 14.0, y), Vector2(c.x + 14.0, y), Color(GridTheme.PAPER, 0.35), 1.5)
-	for k in 5: draw_line(Vector2(c.x - 12.0 + k * 6.0, y - 3.0), Vector2(c.x - 12.0 + k * 6.0, y + 3.0), Color(GridTheme.PAPER, 0.5), 1.0)
+	# where the value sits on its scale: one tick per value of a list knob (the current one lit), or a lit mark along a range
+	var kd: Dictionary = KNOBS.get(id, {}); var v := float(knobs.get(id, 0.0))
+	if kd.has("vals"):
+		var vs: Array = kd.vals; var n := vs.size()
+		for j in n:
+			var x := c.x - 12.0 + 24.0 * j / maxf(n - 1, 1); var on := is_equal_approx(float(vs[j]), v)
+			draw_line(Vector2(x, y - (5.0 if on else 3.0)), Vector2(x, y + (5.0 if on else 3.0)), GridTheme.SODIUM if on else Color(GridTheme.PAPER, 0.5), 2.0 if on else 1.0)
+	elif not kd.is_empty():
+		for k in 5: draw_line(Vector2(c.x - 12.0 + k * 6.0, y - 3.0), Vector2(c.x - 12.0 + k * 6.0, y + 3.0), Color(GridTheme.PAPER, 0.5), 1.0)
+		var f := clampf((v - float(kd.min)) / maxf(float(kd.max) - float(kd.min), 1e-9), 0.0, 1.0)
+		draw_line(Vector2(c.x - 12.0 + 24.0 * f, y - 5.0), Vector2(c.x - 12.0 + 24.0 * f, y + 5.0), GridTheme.SODIUM, 2.0)
 
 func _icon_part(c: Vector2) -> void:
 	draw_rect(Rect2(c.x - 14.0, c.y - 14.0, 28.0, 28.0), Color("#7F8A98")); draw_rect(Rect2(c.x - 14.0, c.y - 14.0, 28.0, 28.0), GridTheme.NIGHT, false, 1.5)

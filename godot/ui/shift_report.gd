@@ -38,7 +38,7 @@ static func open(app: CbApp) -> bool:
 	var left: float = dock.left
 	pn.anchor_left = 0.0; pn.anchor_right = 0.0; pn.anchor_top = 0.5; pn.anchor_bottom = 0.5
 	pn.offset_left = left; pn.offset_right = left + w
-	if short: pn.offset_top = -(app.vs_h() - 24.0) * 0.5; pn.offset_bottom = (app.vs_h() - 24.0) * 0.5
+	if short: pn.offset_top = -(app.vs_h() - 24.0) * 0.5; pn.offset_bottom = (app.vs_h() - 24.0) * 0.5; pn.set_meta("rep_short", true)
 	else: pn.offset_top = 0; pn.offset_bottom = 0; pn.grow_vertical = Control.GROW_DIRECTION_BOTH
 	var vb: VBoxContainer = d.vb
 	if compact: vb.add_theme_constant_override("separation", 6)
@@ -73,6 +73,7 @@ static func open(app: CbApp) -> bool:
 	if won and lid != "" and app.scores != null:
 		var line: String = app.scores_submit_level(lid)
 		if line != "": vb.add_child(PaperKit.lbl(line, 14, "sans", Color(PaperKit.INK, 0.6), true))
+	_fit_v(app, d, left, w)
 	PaperKit.slide_in(d, 60.0)
 	(host as PaperHost).primary = primary
 	app.focus_dialog()
@@ -103,6 +104,19 @@ static func dock_for(vw: float, ir: Rect2, w0: float, isl := Rect2()) -> Diction
 		w = clampf(maxf(room_l, room_r), 460.0, w0)
 		ov_l = _overlap(Rect2(m, 0, w, 10.0), ir); ov_r = _overlap(Rect2(vw - m - w, 0, w, 10.0), ir)
 	return {"left": m if ov_l <= ov_r else vw - m - w, "w": w}
+
+## Keep clear of the bottom row (tray, price tag, the run lever): the sheet centres in the room above it when it fits there. Called before the slide-in (its tween animates these offsets).
+static func _fit_v(app: CbApp, d: Dictionary, left: float, w: float) -> void:
+	var pn: Control = d.panel
+	var ch = app.get("chrome")
+	if ch == null or not ch.has_method("tray_rect") or pn.has_meta("rep_short"): return
+	var bottom: float = (ch.tray_rect() as Rect2).position.y
+	if ch.breaker != null and ch.breaker.visible:
+		bottom = minf(bottom, ch.breaker.position.y)   # the sheet may redock to the lever's side once the world settles
+	var h := pn.get_combined_minimum_size().y
+	if h > bottom - 20.0 or bottom <= 0.0: return
+	var top := maxf(10.0, (bottom - h) * 0.5)
+	pn.anchor_top = 0.0; pn.anchor_bottom = 0.0; pn.grow_vertical = Control.GROW_DIRECTION_END; pn.offset_top = top; pn.offset_bottom = top + h
 
 static func _overlap(a: Rect2, b: Rect2) -> float:
 	var l := maxf(a.position.x, b.position.x); var r := minf(a.end.x, b.end.x)

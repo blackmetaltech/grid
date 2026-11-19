@@ -57,7 +57,7 @@ export const en: Record<string, string> = {
   'act.cable.notSubmarine': '{id} is not a submarine cable: use a sub-11-70, sub-11-120 or sub-11-185 cable to cross the sea.',
   'act.storage.ok': 'Storage {id} ({mw} MW / {mwh} MWh) placed at bus {bus}.',
   'act.demolish.ok': 'Removed {id} and everything that was attached to it.',
-  'act.commit.ok': 'Unit {id} will be {state} from block {block} on.',
+  'act.commit.ok': 'Unit {id} will be {state} from {at} on.',
   'act.commit.on': 'running',
   'act.commit.off': 'stopped',
   'act.commit.nonThermal': 'Unit {id} is a {kind}: it is not committed, it follows the sun or wind.',
