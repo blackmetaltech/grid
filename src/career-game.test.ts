@@ -56,6 +56,8 @@ describe('career wiring', () => {
     expect(b.kinds.length).toBe(PROJECT_KINDS.length);
     for (const k of b.kinds) { expect(en[`career.kind.${k.kind}`]).toBeTruthy(); expect(en[`career.blurb.${k.kind}`]).toBeTruthy(); }
     expect(b.kinds.find((k: any) => k.kind === 'reconductor').options.length).toBeGreaterThan(0);
+    const nf = q(e, 'careerQuote', 'newFeeder', 'P1');
+    expect(nf.loadingBeforePct).toBeGreaterThan(0); expect(nf.loadingAfterPct).toBeLessThan(nf.loadingBeforePct);   // the busiest feeder of P1 is split
     for (const k of b.kinds) for (const o of k.options.slice(0, 2)) { const qt = q(e, 'careerQuote', k.kind, o.target); expect(qt.ok).toBe(true); expect(qt.why).not.toMatch(/\{|career\./); }
   });
 

@@ -190,7 +190,9 @@ export function completeProject(s: CareerState, p: Project): void {
 export interface ProjectPreview { quote: ProjectQuote; dSaidi: number; dSaifi: number; loadingBeforePct: number; loadingAfterPct: number; firmBeforePct: number; firmAfterPct: number; allowedShare: number; whyKey: string }
 export function previewProject(state: CareerState, kind: ProjectKind, target: string): ProjectPreview {
   const quote = quoteProject(state, kind, target);
-  const f = feederById(state, target) ?? sectionOf(state, target)?.f ?? (assetById(state, target)?.feederId ? feederById(state, assetById(state, target)!.feederId!) : undefined);
+  const busiest = (pid: string): Feeder | undefined => primaryFeeders(state, pid).reduce<Feeder | undefined>((m, x) => (!m || hourlyLoad(x, state.t).peakKw > hourlyLoad(m, state.t).peakKw ? x : m), undefined);
+  // a new feeder on a primary relieves the busiest feeder there (the one completeProject splits), so that is the loading the card compares
+  const f = feederById(state, target) ?? sectionOf(state, target)?.f ?? (assetById(state, target)?.feederId ? feederById(state, assetById(state, target)!.feederId!) : undefined) ?? (kind === 'newFeeder' && primaryById(state, target) ? busiest(target) : undefined);
   const pid = primaryById(state, target)?.id ?? f?.primaryId ?? assetById(state, target)?.primaryId ?? null;
   const before = districtExpected(state), fb = pid ? firmMarginPct(state, pid) : 0;
   const lb = f ? analyseFeeder(state, f).loadingPct : 0;
