@@ -2,9 +2,21 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
-## [1.1.0] - "Employable" (in progress; v1.1.0-rc.2 tagged; design in docs/DESIGN-1.1.md)
+## [1.1.0] - "Employable" (in progress; v1.1.0-rc.3 tagged; design in docs/DESIGN-1.1.md)
 ### Added
-- Chapter 8 "The Feeder", engine side (levels L31-L36; the UI is next):
+- Chapter 8 UI (rc.3): each level has its own stage and panel.
+  - L31 and L35: a single-line feeder with voltages at peak and at light load against the band.
+  - L32: a section tree with a heat strip of outages per section, and live SAIFI, SAIDI, CAIDI and ENS.
+  - L33: a log-log time-current chart with the margins marked.
+  - L34: a hot-spot thermometer through the outage day.
+  - L36: a givens card with three prediction boxes and a "why" card.
+  - Each level has been played to a win at 1920x1080. On the phone layout the stage pans.
+- Career UI (rc.3): a Career line on the title and the job board.
+  - A district map coloured by loading or health, a project board with the engine's "why this helps" line, and a worst-assets card.
+  - Connection requests, incident cards, a 40-quarter timeline, and quarter, annual review and ending sheets in the paper style.
+  - The career code is saved and continues from it.
+  - A ten-year desk career ended as Chief Engineer with targets met in 10 of 10 years. A first attempt lost the licence in year 7.
+- Chapter 8 "The Feeder", engine side (levels L31-L36):
   - **L31 The Long Feeder:** voltage drop, conductors, taps, a regulator.
   - **L32 Count the Outages:** SAIFI and SAIDI with fuses, sectionalisers and a tie.
   - **L33 Fuse Saving:** recloser-fuse coordination.
@@ -13,7 +25,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
   - **L36 Exam Bridge: Feeder Numbers.**
   - Each level has a naive build that fails, lesson and reference builds that pass, and frozen bot-population targets in both region packs.
   - The finale moves to chapter 9 (data only).
-- Career engine, "The Utility" (`src/career`; UI to follow): ten years of quarters on a 2-substation, 9-feeder district. It models Weibull asset ageing, load growth, expected and seeded realised outages, a regulator's allowed revenue with a SAIDI/SAIFI incentive, annual reviews and four endings. Careers are deterministic and replay from a code, with independent Python oracles.
+- Career engine, "The Utility" (`src/career`): ten years of quarters on a 2-substation, 9-feeder district. It models Weibull asset ageing, load growth, expected and seeded realised outages, a regulator's allowed revenue with a SAIDI/SAIFI incentive, annual reviews and four endings. Careers are deterministic and replay from a code, with independent Python oracles.
   - Persona sweep over 50 seeds: the planner beats the firefighter on 48 and the firefighter beats idle on all 50; the gold-plater is bailed out or fined on all 50.
 - Chapter 8 engine, "The Feeder" (`src/sim/distrib`): a backward-forward sweep radial load flow, cross-checked against Newton-Raphson; analytical reliability per IEEE 1366 (SAIFI, SAIDI, CAIDI, ENS) with fuses, sectionalisers and a normally-open tie; IEEE C37.112 recloser curves and fuse coordination margins; IEC 60076-7 transformer hot-spot and ageing; PV hosting capacity with volt-var and OLTC line-drop compensation. All are checked against independent Python oracles (`tools/oracles/ch8_oracles.py`).
 - A second-lamp rule (`star2`): the spend lamp can also ask for a result. L12's $0 AVR set-point now earns only the pass lamp; the spend lamp also needs the first swing under 70°.
