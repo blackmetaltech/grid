@@ -47,6 +47,8 @@ export interface Verdict { axis: 'regulator' | 'finance' | 'crew'; who: string; 
 export interface Review {
   year: number; saidi: number; saifi: number; saidiTarget: number; saifiTarget: number; exceptionalMin: number; met: boolean; incentiveM: number;
   avgHealth: number; cash: number; rab: number; verdicts: Verdict[];
+  /** Load index at the review: feeders over their rating at peak, primaries short of firm capacity. */
+  overloaded: number; firmShort: number;
 }
 export interface Kpi {
   t: number; year: number; quarter: number;

@@ -3,6 +3,13 @@ import { ENDINGS, INCENTIVE, MONEY, SCORE } from './data';
 import { allowedRevenue, incentive as incentiveFor } from './money';
 import { avgHealth, trueHealth } from './ageing';
 import { totalCustomers, type CareerState, type Ending, type Review, type Verdict } from './state';
+import { analyseFeeder } from './district';
+import { firmMarginPct } from './projects';
+
+/** Load index (RIIO reports one; informational here, not part of any ending yet): feeders over their rating at peak, primaries short of firm capacity. */
+export function loadIndex(s: CareerState): { overloaded: number; firmShort: number } {
+  return { overloaded: s.feeders.filter((f) => analyseFeeder(s, f).loadingPct > 100).length, firmShort: s.primaries.filter((p) => firmMarginPct(s, p.id) < 0).length };
+}
 
 export const yearOf = (t: number): number => Math.floor(t / 4);
 export const backlog = (s: CareerState): number => s.assets.filter((a) => trueHealth(a, s.t) < 3).length;
@@ -27,7 +34,7 @@ export function annualReview(s: CareerState): Review {
   fin.key = `career.review.finance.${fin.grade}`;
   const crew: Verdict = { axis: 'crew', who: 'Tobi', grade: bl >= 5 || health < prevHealth - 0.4 ? 'poor' : bl <= 2 && health >= prevHealth - 0.05 ? 'good' : 'ok', key: '', params: { health, prevHealth, backlog: bl } };
   crew.key = `career.review.crew.${crew.grade}`;
-  const rv: Review = { year: yearOf(s.t), saidi, saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, exceptionalMin: N ? s.ytdExceptionalMin / N : 0, met, incentiveM: inc, avgHealth: health, cash: s.cash, rab: s.rab, verdicts: [reg, fin, crew] };
+  const rv: Review = { year: yearOf(s.t), saidi, saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, exceptionalMin: N ? s.ytdExceptionalMin / N : 0, met, incentiveM: inc, avgHealth: health, cash: s.cash, rab: s.rab, verdicts: [reg, fin, crew], ...loadIndex(s) };
   // next year
   s.saidiTarget *= 1 - INCENTIVE.targetTightenPct / 100; s.saifiTarget *= 1 - INCENTIVE.targetTightenPct / 100;
   s.opexAllowance = (s.opexAllowance / Math.max(1, N)) * N;

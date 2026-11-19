@@ -152,6 +152,8 @@ static func review(sc: CareerScreen, i: int, next: Callable) -> void:
 		var gp := PanelContainer.new(); gp.name = "Grade"; gp.add_theme_stylebox_override("panel", GridTheme._sb(Color(0, 0, 0, 0), gcol, 5, 3, 6.0)); gp.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		gp.add_child(PaperKit.lbl(T("CAR_GRADE_" + grade), 18 if compact else 22, "title", gcol)); hb.add_child(gp)
 	body.add_child(_para(T("CAR_RV_STATE") % [str(rv.cashText), str(rv.rabText), n1.call(float(rv.avgHealth), 1)], compact, Color(PaperKit.INK, 0.8)))
+	var ov := int(rv.get("overloaded", 0)); var fs := int(rv.get("firmShort", 0))   # the load index: feeders over their rating at peak, primaries short of firm capacity
+	body.add_child(_para(T("CAR_RV_LOAD") % [ov, fs] if ov + fs > 0 else T("CAR_RV_LOAD_OK"), compact, PaperKit.RED if ov + fs > 0 else Color(PaperKit.INK, 0.8)))
 	body.add_child(PaperKit.lbl(T("CAR_RV_NOTE"), 13 if compact else 15, "sans", Color(PaperKit.INK, 0.6), true))
 	var go := PaperKit.btn(T("CAR_RV_CONT"), true, func(): _close(d, next), 19 if compact else 21); go.name = "Continue"
 	(d.host as PaperHost).closer = func(): _close(d, next)
