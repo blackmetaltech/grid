@@ -129,6 +129,7 @@ func game_title(r: Control) -> bool:
 	if OS.is_debug_build() and FileAccess.file_exists("user://qa_level.txt"):   # device QA (debug APK only): `adb shell run-as <app> sh -c 'echo L05 > files/qa_level.txt'` jumps to a job once, since a phone launch cannot pass CB_LEVEL
 		var lv := FileAccess.get_file_as_string("user://qa_level.txt").strip_edges(); DirAccess.remove_absolute("user://qa_level.txt")
 		if lv != "": get_tree().create_timer(0.3).timeout.connect(func(): new_game(_mode_pref()); start_level(lv, true))
+	if OS.has_environment("CB_CAREER"): get_tree().create_timer(0.5).timeout.connect(func(): Career.qa(self, OS.get_environment("CB_CAREER")))   # desk QA: land on the Career (ui/career/career.gd)
 	return TitleScreen.build(self, r)
 func game_end_screen() -> bool: return ShiftReport.open(self)
 func game_menu() -> bool: return PauseMenu.toggle(self)
@@ -228,3 +229,5 @@ func game_smoke() -> void:
 	CbSmoke._check(chrome.instruments.dial.visible and not chrome.instruments.volt.visible, "grid level: frequency dial, no voltmeter")
 	var pf = load("res://tests/paper_flow.gd")   # by path: tests/ is not exported, so main.gd must never name a test class (Android parse error)
 	if pf != null: await pf.run(self)
+	var cf = load("res://tests/career_flow.gd")
+	if cf != null: await cf.run(self)

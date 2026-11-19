@@ -53,6 +53,7 @@ static func open(app: CbApp) -> void:
 	var rows := VBoxContainer.new(); rows.add_theme_constant_override("separation", 6); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sv.add_child(PaperKit.scroll_box(rows))
 	var first: Button = null; var ch_shown := ""
+	var car := Career.jobs_row(app, host, compact); rows.add_child(car)   # the Career (DESIGN-1.1 Part C) sits above the chapters
 	for lv in list(app):
 		var id := str(lv.id)
 		var ch := chapter_of(id)

@@ -1,0 +1,49 @@
+class_name CareerStrings
+extends RefCounted
+## Career "The Utility" UI strings (registered by GridUi.load_strings beside the chapter tables). Keys are prefixed CAR_. The engine's own sentences (project
+## results, quotes, incident outcomes, review verdicts) come from src/locales/career.en.ts through the bridge; these are only the screen's labels.
+const S := {
+	# entry
+	"CAR_TITLE": "The Utility", "CAR_TITLE_LINE": "Career", "CAR_ENTRY_SUB": "Ten years as district engineer of Lumen Distribution: two primary substations, nine feeders, about 40,000 customers. Plan each quarter, then see what the weather does.",
+	"CAR_NEW": "New career", "CAR_NEW_REPLACES": "New career (replaces the saved one)", "CAR_CONTINUE": "Continue career", "CAR_CONTINUE_AT": "Continue: year %d, quarter %d, score %d", "CAR_CLOSE": "Close",
+	"CAR_JOBS_BRIEF": "Ten years, forty quarters, one network. Projects, storms, connections and the regulator's review every year.", "CAR_JOBS_SAVED": "Saved: year %d, quarter %d",
+	"CAR_ERR_LOAD": "The saved career could not be loaded.",
+	# top strip
+	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI, min", "CAR_SAIFI": "SAIFI", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
+	"CAR_HEALTH": "HEALTH", "CAR_HEALTH_VAL": "%s of 10 (start %s)", "CAR_CREWS": "CREWS", "CAR_CREWS_VAL": "%d of %d free", "CAR_MET": "YEARS MET", "CAR_MET_VAL": "%d", "CAR_SCORE": "SCORE", "CAR_PIP_REVIEW": "review, year %d",
+	"CAR_PIP_MET": "year %d: targets met", "CAR_PIP_MISSED": "year %d: targets missed", "CAR_PIP_Q": "year %d, quarter %d",
+	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",
+	# map
+	"CAR_COLOUR_BY": "colour by", "CAR_BY_LOAD": "Loading", "CAR_BY_HEALTH": "Health", "CAR_LEG_LOAD": "Loading of the feeder: green under 70 %, amber to 100 %, red above.", "CAR_LEG_HEALTH": "Health of each section, 1 (worn out) to 10 (new).",
+	"CAR_LEG_BADGES": "T tie  R recloser  V regulator  B battery  D demand response", "CAR_FEEDER_LABEL": "%s  %d %%", "CAR_FEEDER_LABEL_H": "%s", "CAR_FIRM_TAG": "firm margin %s %%",
+	# selection panel
+	"CAR_SEL_NONE": "Tap a section, a feeder line or a primary on the map to look at it and to choose where a project goes.", "CAR_SEC_TITLE": "Section %s", "CAR_SEC_INFO": "%s km of %s wire, %s.",
+	"CAR_DEV_none": "no switch", "CAR_DEV_manual": "manual switch at its head", "CAR_DEV_remote": "remote switch at its head", "CAR_DEV_fuse": "fuse at its head",
+	"CAR_FDR_INFO": "Feeder %s from %s: %d customers, peak %d kW, loading %s %%, lowest voltage %s pu. SAIDI %s min, SAIFI %s a year (expected).", "CAR_HAS": "Has: %s.", "CAR_HAS_NONE": "No tie, recloser, regulator, battery or demand response yet.",
+	"CAR_B_tie": "tie", "CAR_B_recloser": "recloser", "CAR_B_regulator": "regulator", "CAR_B_battery": "battery %d kW", "CAR_B_dr": "demand response %d kW", "CAR_VVIOL": "Voltage outside the band at the far end.",
+	"CAR_ASSET_HEALTH": "%s: health %s of 10, %s.", "CAR_INSPECTED": "inspected", "CAR_ESTIMATE": "estimate, not inspected", "CAR_FAILED": "FAILED, a replacement is being built", "CAR_INSPECT": "Inspect %s",
+	"CAR_PRIMARY_INFO": "%s: peak %s MVA, firm capacity %s MVA (the biggest unit out), firm margin %s %%.", "CAR_UNIT": "%s, %s MVA", "CAR_SWGEAR": "%s switchgear",
+	# drawer
+	"CAR_TAB_BOARD": "Board", "CAR_TAB_RUN": "Running %d", "CAR_TAB_REQ": "Requests %d", "CAR_BOARD_NONE": "Choose a target on the map: cards light up for what can be built there.", "CAR_TARGET_IS": "Target: %s",
+	"CAR_TGT_section": "a section", "CAR_TGT_feeder": "a feeder", "CAR_TGT_primary": "a primary", "CAR_TGT_asset": "an asset", "CAR_NEEDS": "Pick %s on the map.", "CAR_START": "Start", "CAR_COST_LINE": "%s, %d quarters, %d crew",
+	"CAR_FROM": "from %s", "CAR_ON": "on %s", "CAR_CANT": "Not possible here", "CAR_OPTIONS": "%d places", "CAR_QUOTE_FAIL": "Not here",
+	"CAR_RUN_NONE": "No project is running. Pick one from the board.", "CAR_RUN_LINE": "%s on %s", "CAR_RUN_STATE": "%d of %d quarters left, %s of %s spent", "CAR_CANCEL": "Cancel", "CAR_RUN_building": "building", "CAR_RUN_active": "running", "CAR_RUN_done": "done", "CAR_RUN_cancelled": "cancelled",
+	"CAR_VEG": "Routine tree cutting", "CAR_VEG_LVL": "level %d of 3: %s", "CAR_VEG_0": "none", "CAR_VEG_1": "light", "CAR_VEG_2": "standard", "CAR_VEG_3": "heavy", "CAR_VEG_COST": "%s a quarter", "CAR_MINUS": "-", "CAR_PLUS": "+",
+	"CAR_REQ_NONE": "No connection requests. The council writes when someone wants to connect.", "CAR_REQ_LINE": "%s on %s", "CAR_REQ_DETAIL": "%s kW, %d customers, pays %s", "CAR_REQ_CRIT": "critical load", "CAR_REQ_PV": "%s kW of solar",
+	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder. Check its loading first.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now.",
+	"CAR_MSG_OK": "%s", "CAR_CREWS_LEFT": "crews free %d",
+	# incidents
+	"CAR_INC_TITLE": "INCIDENTS", "CAR_INC_SUB": "Major events this quarter. Answer each one, then settle the quarter.", "CAR_INC_LINE": "%s on %s", "CAR_INC_NOFEEDER": "the primary", "CAR_INC_FACTS": "%d faults, %s customers interrupted, %s min of SAIDI on its own.",
+	"CAR_INC_EXC": "Exceptional: the regulator does not count it.", "CAR_INC_TIE": "Switch ties", "CAR_INC_TIED": "Ties switched", "CAR_INC_NOTIE": "No tie on this feeder", "CAR_INC_CREW": "Send crew", "CAR_INC_CREWED": "Crew sent",
+	"CAR_INC_DONE": "Done: settle the quarter", "CAR_INC_RESULT": "%s",
+	# quarter report
+	"CAR_QR_TITLE": "QUARTER REPORT", "CAR_QR_SUB": "Year %d, quarter %d", "CAR_QR_SAIDI": "SAIDI this quarter: %s min (expected %s). Year so far %s of %s.", "CAR_QR_SAIFI": "SAIFI this quarter: %s (expected %s). Year so far %s of %s.",
+	"CAR_QR_MONEY": "Revenue %s, capex %s, opex %s, incentive %s. Cash now %s.", "CAR_QR_HEALTH": "Asset health: average %s, worst %s. Losses %s MWh.", "CAR_QR_NET": "%d faults, %d voltage violations, firm margin %s %%, busiest feeder %s %%.",
+	"CAR_QR_CONN": "Connections: %d delivered, %d missed.", "CAR_QR_CONT": "Continue", "CAR_QR_ROW_SAIDI": "SAIDI", "CAR_QR_ROW_SAIFI": "SAIFI", "CAR_QR_NOTE": "Real is one draw of the weather; expected is what the network's failure rates say to plan on.",
+	# review
+	"CAR_RV_TITLE": "ANNUAL REVIEW", "CAR_RV_YEAR": "Year %d", "CAR_RV_MET": "TARGETS MET", "CAR_RV_MISSED": "TARGETS MISSED", "CAR_RV_NUMS": "SAIDI %s min (target %s). SAIFI %s (target %s).", "CAR_RV_INCENTIVE": "Incentive: %s", "CAR_RV_STATE": "Cash %s, asset base %s, average health %s.",
+	"CAR_GRADE_good": "GOOD", "CAR_GRADE_ok": "OK", "CAR_GRADE_poor": "POOR", "CAR_RV_CONT": "Next year", "CAR_RV_NOTE": "A simplified performance-based incentive: pay for beating the target, a fine for missing it. No rate case, no inflation.",
+	# ending
+	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the ten years.",
+	"CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
+}

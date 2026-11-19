@@ -23,11 +23,11 @@ for (const t of tests) {
   if (!ok) bad++;
 }
 // the full-app smoke: CB_SMOKE=1 runs main.gd's game_smoke, which ends with the paper screens flow (tests/paper_flow.gd: title, work order, loss, Retry, win, chapter card)
-if (want.length === 0 || want.includes('paper_flow')) {
+if (want.length === 0 || want.includes('paper_flow') || want.includes('career_flow')) {
   const r = sh('godot', ['--headless', '--path', 'godot'], { timeout: 300000, env: { ...process.env, CB_SMOKE: '1' } });
   const out = `${r.stdout}\n${r.stderr}`;
-  const ok = /^SMOKE OK/m.test(out) && !/SCRIPT ERROR/.test(out);
-  console.log(`${ok ? 'PASS' : 'FAIL'} smoke+paper_flow\n  ${out.split('\n').filter((l) => /SMOKE|FAIL|SCRIPT ERROR/.test(l)).join('\n  ')}`);
+  const ok = /^SMOKE OK/m.test(out) && /^CAREER-FLOW OK/m.test(out) && !/SCRIPT ERROR/.test(out);
+  console.log(`${ok ? 'PASS' : 'FAIL'} smoke+paper_flow+career_flow\n  ${out.split('\n').filter((l) => /SMOKE|FAIL|CAREER-FLOW|SCRIPT ERROR/.test(l)).join('\n  ')}`);
   if (!ok) bad++;
 }
 process.exit(bad ? 1 : 0);
