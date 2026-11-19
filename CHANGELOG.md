@@ -2,6 +2,48 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.0.0] - Keep the Lights On (tag v1.0.0; includes rc.4 and rc.5)
+Every chapter has been played to a win through the UI: by the Opus iterator on desk (L17, L21, L28 three lamps, L28 also in the
+phone layout at 2424×1080) and by two campaign smoke testers on one level per chapter (a first-year persona, then a std-9 student). A fresh std-9 tester then won L20 and L11 after the last fixes. The harsh review is in docs/CRITIQUE-1.0.md.
+### Added
+- L28 is winnable by clicks alone: a build kit in the finale card (taps hold 1.02 pu, auto capacitor, spun gas unit, second causeway line
+  or a 4-hour battery). An option you do not need reads "not needed", and a hand-placed STATCOM turns the capacitor button into "STATCOM instead".
+- Retry keeps the build in every chapter, including chapter 6 (placed units, holds, store clocks, pumps, ride-through) with unit ids remapped.
+  Retry restores all eight L20 stores after a full day, and this is tested.
+- Phone layouts for chapters 3-7 and the finale. Each card fits between the HUD and the budget tag, folds to its title row and scrolls by finger.
+- Trays: a "more parts" tab shows how many parts are out of view (› +N) and pages right on the grid, route and kit trays.
+- Generator tags show running / stopped as soon as Start or Stop is pressed, and the radio says from what time.
+- Knobs mark where their value sits (one tick per value on a list knob, a mark along a range); the span knob shows its spans as dots and lists them in its tip.
+- L20: every peaker you buy gets an "order it on from 14:00" button in the control-room card, and a ticked row once ordered.
+  The gas unit's size starts at its rating (105 MW). L20 was won through the UI with three lamps.
+- hud_flow and the smoke + paper flow run in the official Godot runner (`node scripts/test-godot.mjs`).
+### Changed
+- Work orders taller than the screen reopen in the scrolling layout (L08 lost its title and "Take the job" at 1080 p).
+- The shift report centres in the room above the tray, the budget tag and the run lever.
+- Price tags switch to $625.0M / $1.1B when the full figures would not fit.
+- A knob click at the end of its range turns back instead of doing nothing.
+- The L28 card reads THREE DAYS DONE after the end; devices at a bus are drawn on top of the town and side by side; STATCOM and SVC draw as a teal valve hall.
+- Peg labels step around town names; the L24 legend says what its spare line measures.
+- Remove leaves the level's own power stations alone (on L20 it took a coal unit without asking).
+- Chapter 4 and 7 sliders jump only from the track itself (a press on + or on the caption sent the L11 cans from 0 to 140).
+- The report's "Worst home" reads "Lowest voltage at a load" (a school is not a home).
+- Commit messages read a clock time ("from 12:00 on"), not a block number.
+### Fixed
+- The tray sent the bus where the engine expects the part for gas units and condensers, so L20 could not be won from the tray.
+- L08: a capacitor bank taken down again is refunded. A bus tag no longer offers anonymous "Remove" rows for the town's own loads,
+  and every Remove row names its element.
+- L20: a store on its clock keeps a ticked row. The row used to vanish, which read as a lost store after Retry.
+- L05: a refusal chip clears once a build succeeds.
+- L17: a STATCOM is one device sized by its rating; the step knob no longer doubled its price.
+- Chapter 6 card: 0 px on desktop (an AUTO ScrollContainer has no minimum height).
+- L28's "triangulation failed": sliver terrain walls are skipped. `CB_POLY_TRACE=1` prints any bad world polygon once, with its caller.
+- Chapter 7 on the phone: the price tag, chip rows and answer boxes stay in the panel's scaled frame.
+### Known gaps
+- No pass on a real phone, a gamepad, Windows or macOS for this release. The phone layout was checked on a desktop window at 2424×1080.
+- Picking: a bus's name label does not pick the bus (only its peg); a second click on a tray cell cancels it; the L09 series capacitor needs the spot under the line.
+- L15 does not say to switch its capacitor bank; L12 can be won with one click; several third lamps ask for nothing new.
+- No district play across jobs, no reliability indices, no substations: see docs/CRITIQUE-1.0.md for the gaps to "employable".
+
 ## [1.0.0-rc.3] - played through, chapters 5-7 (tag v1.0.0-rc.3, local)
 ### Added
 - Every exam and prediction level shows its givens on screen: L18 (line impedances, slack, load, PV bus, flat start, the GS update),

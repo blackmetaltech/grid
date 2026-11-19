@@ -1,26 +1,111 @@
-# GRID
+# ⚡ GRID — keep the lights on with real physics
 
-A COBANANA learning game: real equations are the rules. Built on [cobanana-core](https://github.com/ixaxaar/cobanana-core)
-(TypeScript engine as a Node sidecar under a Godot 4.7 front-end; Linux, Windows, macOS and Android; mouse, controller and touch).
+**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.0.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+
+**Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
+
+The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
+
+> **1.0 (private).** The whole campaign is playable and has been played to a win at every chapter. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.0.md).
+
+![The finale: the province on the third evening](docs/readme/hero.png)
+
+## What you actually do
+
+| | |
+|---|---|
+| **Read the job** | Each level opens with a work order: the place, three characters on the radio, the goal in plain words, the pass conditions with their numbers, and the three lamps you can earn. |
+| **Build** | A tray at the bottom holds the level's parts: cables by cross-section, pole families and conductors for a surveyed line route, transformers, capacitor banks and reactors, STATCOMs, gas units, pumped hydro and batteries. Each part shows its price, and the budget tag keeps the running total. |
+| **Operate** | Click anything you built for its tag: breakers, tap changers, capacitor steps and automatic bands, governor droop, unit commitment, store charging clocks. |
+| **Run the day** | A lever runs the 24-hour clock at 1×, 2× or 4×. Bus voltages, line loadings and the frequency move on the dials and on the map while it runs. |
+| **Read the report** | A shift report or an incident report. A lost day names the first thing that failed, with the numbers from your own run, and what to try next. A won day lights one to three lamps for passing, cost and a stretch goal. **Retry** keeps your build. |
+| **Prove it** | The exam-bridge levels hand you the givens and ask for the number before the game shows it: a Gauss-Seidel iteration, a fault level, droop and RoCoF, a merit-order λ. |
+
+**The campaign.** A prologue and **30 levels** in seven chapters and a finale. Chapter 1 is a DC bench (Ohm's law, cable resistance, the price of distance). Chapter 2 is the mainland line: route survey, sag and clearance, pole spans over a river, transformers at each end, salt on the insulators, and bringing the island home on a sea cable. Chapter 3 covers phasors, power factor and harmonics. Chapter 4 covers three-phase systems and machines (unbalance, star and delta, the P-δ curve). Chapter 5 is load flow and voltage (per unit, the long line, loop flow, the nose curve). Chapter 6 is frequency and renewables (fifty hertz, the duck curve, inertia). Chapter 7 is protection and markets (fault level, relay coordination, clearing time, merit order). The finale, **Keep the Lights On**, runs the whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday with full sun and no factories.
+
+**Modes.** **Learner** explains as it goes. **Engineer** uses per-unit values and stricter limits. A **Cute** toggle in the pause menu adds faces and doodles; the drawings still follow the physics. Two region packs ship with the engine: `global` (US$, IEC voltages, the default) and `in` (₹, the Indian grid code). Both are run by the test suite.
+
+**Honest by design.** The rules are textbook equations, not tuned curves. The grid levels solve a full AC load flow every 15-minute block. A trip runs a 10 ms RK4 frequency window with governors, batteries and under-frequency load shedding. Relays use IEC inverse-time curves, and conductors carry their real names and resistances. The engine is checked against **71 core oracle cases** and a set per chapter, all computed independently in Python (`tools/oracles/`). Each level has a "naive" build that must fail and a reference build that must pass, both in the test suite. Some things are simplified. Time runs in 15-minute blocks, with second-scale dynamics only in the window after an event. Transients are not electromagnetic. Places and companies are fictional. Prices are typical figures, not quotes.
+
+## Screenshots
+
+| The work order | The river line (chapter 2) |
+|---|---|
+| ![work order](docs/readme/workorder.png) | ![river line](docs/readme/river.png) |
+| **The bench: one cable to a hamlet (chapter 1)** | **A plain capacitor bank: resonance at h = 8.6, near the 7th (chapter 3)** |
+| ![bench](docs/readme/bench.png) | ![harmonics](docs/readme/harmonics.png) |
+
+## The chapters
+
+| Generator phasors (chapter 4) | The nose of the curve (chapter 5) |
+|---|---|
+| ![phasors](docs/readme/phasors.png) | ![nose curve](docs/readme/nose.png) |
+| **The sun goes down: four peakers and the pumps at noon (chapter 6)** | **Relay coordination (chapter 7)** |
+| ![duck curve](docs/readme/duck.png) | ![relays](docs/readme/relays.png) |
+| **An incident report: loop flow (chapter 5)** | **The finale won, three lamps** |
+| ![incident](docs/readme/incident.png) | ![shift report](docs/readme/report.png) |
+
+## Download
+
+Releases are private for now. Each `v*` tag builds archives through `.github/workflows/release.yml`. Node.js is bundled; nothing else to install.
+
+| OS | File | Run |
+|---|---|---|
+| Linux (x86_64) | `GRID-<ver>-linux.tar.xz` | `tar xf`, then `GRID/grid.sh` (needs a Vulkan-capable GPU/driver) |
+| Windows (x64) | `GRID-<ver>-windows.zip` | `GRID\GRID.exe` (SmartScreen: *More info → Run anyway*) |
+| macOS, Apple Silicon | `GRID-<ver>-macos-arm64.tar.xz` | `xattr -dr com.apple.quarantine GRID.app`, then open |
+| macOS, Intel | `GRID-<ver>-macos-x64.tar.xz` | same as above |
+
+Builds are unsigned, hence the OS warnings. An Android debug APK can be built locally with `core/qa/buildapk.sh`.
 
 ## Run from source
-```
+
+Needs **Node.js 18+**, **pnpm** and **Godot 4.7**.
+
+```sh
 git clone --recursive <this repo>        # or: git submodule update --init
 pnpm install
 pnpm bridge                              # builds the engine sidecar → godot/sidecar/bridge.mjs
 godot --headless --path godot --import   # once, and after adding class_name scripts
 godot --path godot                       # play
 ```
-Needs Node.js 18+ and Godot 4.7.2.
 
-## Develop
-| task | command |
+| Task | Command |
 |---|---|
 | typecheck | `pnpm typecheck` |
-| unit + golden + persona + level tests | `pnpm test` |
+| engine, level, oracle and golden tests | `./node_modules/.bin/vitest run` |
 | regenerate goldens (deliberate rule change only) | `GOLDEN_UPDATE=1 pnpm test` |
-| UI smoke (every screen) | `pnpm smoke` (prints `SMOKE OK`) |
-| screenshots / testers | `core/qa/README.md` (displays :200+) |
-| Android debug APK | `core/qa/buildapk.sh` (see `core/android/README.md`) |
+| Godot flow and truth tests, then the UI smoke | `node scripts/test-godot.mjs` |
+| no literal strings in GDScript | `node scripts/lint-strings.mjs` |
+| desktop play-test harness (Xvfb) | `core/qa/desk.sh` (see `core/qa/README.md`) |
 
-Where things go: `CORE.md` in `core/`. Game design: `docs/DESIGN.md`. Changes: `CHANGELOG.md`.
+## Architecture
+
+```
+src/                     the TypeScript engine (deterministic, no I/O)
+  sim/loadflow/          Newton-Raphson, Gauss-Seidel, DC flow, continuation (the nose curve), sensitivities
+  sim/bench/             modified nodal analysis for the DC and single-phase bench, harmonics, four-wire, the machine
+  sim/dynamics/          the frequency window (swing equation, governors, batteries, UFLS) and the SMIB swing
+  sim/protection/        relays, breakers, fault levels      sim/thermal/  overload and cascades
+  sim/route/             terrain, line routes, sag and clearance, insulation     sim/ch4, ch7  chapter models
+  level/levels/          P0 and L01-L30: allowed parts, pass conditions, naive / lesson / reference builds, coach steps
+  regions/               region packs (global, in): catalogues, prices, grid codes, pinned data hashes
+  oracles/               typed loader for the oracle values (tools/oracles/*.py computes them independently)
+godot/                   Godot 4.7 front end (GDScript)
+  world/world_view.gd    the isometric diorama: terrain, towns lit by the power flow, lines, devices, pegs
+  ui/                    trays, work order, shift report, radio, dials, chapter panels (ch2-ch7, chf = the finale)
+  tests/                 flow and truth tests run by scripts/test-godot.mjs
+  sidecar/bridge.mjs     the built engine (pnpm bridge)
+core/                    cobanana-core (submodule): engine kit, Godot app shell, QA harness, CI and packaging
+```
+
+## Status
+
+1.0, private. **1204 engine tests in 53 files** and **22 Godot steps** (21 flow and truth tests plus the UI smoke) pass on every tag. Known gaps:
+
+- Played on desktop Linux only. No pass on a real phone or a gamepad for this release; the phone layout was checked on a desktop window at 2424×1080.
+- Windows and macOS builds are produced but untested.
+- Sound is functional, not finished.
+- The levels teach the ideas a junior engineer uses, but not a utility's full toolset: no protection relay settings beyond overcurrent grading, no stability studies beyond one machine on an infinite bus, no unit commitment over a week.
+
+See [docs/CRITIQUE-1.0.md](docs/CRITIQUE-1.0.md) for the harsh version.
