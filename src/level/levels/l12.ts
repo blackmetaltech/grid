@@ -29,6 +29,8 @@ export const L12: GridLevelSpec = {
   thresholds: { oosMax: 0, peakDeltaMaxDeg: 70 },
   decisive: { key: 'outOfStep', limit: 'oosMax', dir: 'max' },
   star3: [{ key: 'peakDeltaDeg', max: 'peakDeltaMaxDeg' }],
+  // 1.1: the AVR alone (1.05 pu, $0) passes with a 73 degree first swing; the spend lamp also needs the swing under 70 degrees, so it takes a change of the system (series capacitors, a third circuit or a re-dispatch)
+  star2: [{ key: 'peakDeltaDeg', max: 'peakDeltaMaxDeg' }],
   story: { placeKey: 'level.L12.place', lineKeys: ['level.L12.story1', 'level.L12.story2'], lessonKey: 'level.L12.lesson' },
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'capex',
   // naive: nothing touched: the AVR is on its night set-point (0.90 pu), E' is too low and the first swing passes the unstable point

@@ -70,6 +70,8 @@ export interface GridLevelSpec {
   decisive: { key: string; limit: string; dir: 'min' | 'max' } | null;
   /** Third-star conditions on tracked metrics (limits are threshold names). */
   star3: { key: string; min?: string; max?: string }[];
+  /** Conditions the second lamp needs besides spend (they carry over to the third). */
+  star2?: { key: string; min?: string; max?: string }[];
   /** Lose on the first brownout block (poor supply). */
   /** Work-order flavour (GRID UI.md §6): location line, radio story beats ("SPEAKER: text"), shift-report lesson template. */
   story?: { placeKey: string; lineKeys: string[]; lessonKey: string; /** 'salt': the creepage lesson of the worst coastal support (L29); 'island': the cable and battery lesson (L30); default the sag lesson. */ lessonKind?: 'sag' | 'salt' | 'island' | 'pf' | 'harm' | 'series' | 'ch7' | 'finale' };
@@ -144,6 +146,7 @@ export function rulesFor(spec: GridLevelSpec, th: Record<string, number>, frozen
     starCost: spec.stars && frozen ? [frozen.starA, frozen.starB] : null,
     starBasis: spec.histogram === 'score' ? 'score' : 'capex',
     star3: spec.star3.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })),
+    ...(spec.star2 ? { star2: spec.star2.map((c) => ({ key: c.key, min: c.min !== undefined ? th[c.min]! : null, max: c.max !== undefined ? th[c.max]! : null })) } : {}),
   };
 }
 

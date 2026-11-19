@@ -306,6 +306,8 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 				col.add_child(PaperKit.lbl(T("RESULT_MINE_FMT") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(round(float(rc.percentile) * 100.0)), int(rc.n)] if int(round(float(rc.percentile) * 100.0)) > 0 else T("C4_MATCHED_BEST") % [str(rc.get("mineText", CbKit.num(float(rc.mine), 1))), int(rc.n)], 15, "sans", PaperKit.INK, true))
 	var lesson := str(li.get("lesson", ""))
 	if lesson != "": col.add_child(_note(lesson, PaperKit.BLUE, "", compact))
+	if stars < 3 and GridStrings.S.has("NEXT_LAMP_" + lid):   # what the next lamp wants (testers passed L02, L05, L12, L16 and never learnt what the third lamp asked)
+		var nl := _note(T("NEXT_LAMP_" + lid), PaperKit.INK, T("REP_NEXT_LAMP"), compact); nl.name = "NextLamp"; col.add_child(nl)
 	return lamps
 
 ## ADA's handwritten-ish note: a sticky slip, slightly crooked, in pen blue.

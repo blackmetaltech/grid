@@ -91,6 +91,10 @@ static func lamp_texts(li: Dictionary) -> Array:
 		var fa := ("%s s" % WorkOrder.num(snappedf(float(fz.starA), 0.01))) if sec else CbRegion.money(float(fz.starA), false, 0)
 		var fb := ("%s s" % WorkOrder.num(snappedf(float(fz.starB), 0.01))) if sec else CbRegion.money(float(fz.starB), false, 0)
 		l2 = (T("C7_LAMP_SCORE") if scored else T("LAMP_2")) % fa
+		var extra2: Array = []
+		for k in (li.get("star2", []) as Array):
+			if th.has(k) and GridStrings.S.has("TH_" + str(k)): var tx2 := _th_text(str(k), float(th[k])); extra2.append(tx2.substr(0, 1).to_lower() + tx2.substr(1))
+		if not extra2.is_empty(): l2 += T("LAMP_AND") + ", ".join(extra2)   # L12: the spend lamp also asks for the swing
 		l3 = (T("C7_LAMP_SCORE3") if scored else T("LAMP_3")) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
 		if not scored and float(fz.starA) <= 0.0:   # nothing to buy (the exam bridges): the lamps are not about spend
 			l2 = T("LAMP_NO_COST"); l3 = T("LAMP_NO_COST") + ((T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else "")

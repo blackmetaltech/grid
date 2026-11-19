@@ -151,6 +151,8 @@ describe.each(REGIONS)('chapter 4 lesson gates in region %s', (region) => {
     expect(r.status).toBe('won'); expect(r.stars).toBe(3); expect(r.track.peakDeltaDeg).toBeLessThanOrEqual(70); expect(l.status).toBe('won'); expect(l.stars).toBeLessThan(3);
     const spec = specOf('L12')!, free = runDesign(spec, region, [{ name: 'setAvrRef', args: [1] }]);
     expect(free.status).toBe('won'); expect(free.track.peakDeltaDeg).toBeGreaterThan(70);   // excitation alone passes but is not three stars
+    const avr = runDesign(spec, region, [{ name: 'setAvrRef', args: [1.05] }]);
+    expect(avr.status).toBe('won'); expect(avr.stars).toBe(1);   // 1.1: the $0 set-point alone (73 degree swing) earns the pass lamp only; the spend lamp also needs the swing under 70
     const lowAvr = runDesign(spec, region, [{ name: 'setAvrRef', args: [0.95] }]);
     expect(lowAvr.status).toBe('lost');   // 0.95 pu still loses: the first swing reaches 112.3 degrees against 112.28
     const third = runDesign(spec, region, [{ name: 'addCircuit', args: [true] }], { frozen: null });

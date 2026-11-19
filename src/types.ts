@@ -325,6 +325,8 @@ export interface Rules {
   blackoutLoses: boolean;
   /** Cost thresholds for 2 and 3 stars (3 also needs zero ENS and every `star3` condition); null = one star. */
   starCost: [number, number] | null;
+  /** Extra conditions for the second star (and so the third): a $0 set-point that passes must not earn the spend lamp on its own (1.1, L12). */
+  star2?: { key: string; min: number | null; max: number | null }[];
   /** What `starCost` compares: the operating `metrics.cost` or the build cost `budget.spent`. */
   starBasis: 'operating' | 'capex' | 'score';
   /** Block of the day at which every route with a span under its clearance rule flashes over and trips (the hot evening peak); null = never. */
