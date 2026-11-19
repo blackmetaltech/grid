@@ -54,7 +54,8 @@ func refresh() -> void:
 	var g := _g()
 	var day := clampi(int(g.clock.day) + (1 if int(g.clock.block) > 0 or int(g.tick) == 0 else 0), 1, 3)
 	if int(g.clock.day) == 3: day = 3
-	_day_lbl.text = tx("CF_DAY") % day + "   " + tx("CF_CLOCK") % [int(g.clock.block) / 4, (int(g.clock.block) % 4) * 15]
+	if str(g.get("status", "playing")) != "playing" and int(g.clock.day) >= 3: _day_lbl.text = tx("CF_DONE")   # the clock rolled past Day 3's midnight: the three days are over, not "Day 3 00:00"
+	else: _day_lbl.text = tx("CF_DAY") % day + "   " + tx("CF_CLOCK") % [int(g.clock.block) / 4, (int(g.clock.block) % 4) * 15]
 	_threat.text = tx("CF_DAY%d" % day)
 	var lamp := _island_text(g)
 	_island.text = lamp[0]; _island.add_theme_color_override("font_color", lamp[1])

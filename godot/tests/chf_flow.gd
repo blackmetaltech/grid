@@ -39,6 +39,7 @@ func _initialize() -> void:
 	T.check("battery" in str(p._island.text), "after the lightning the island is on its battery (%s)" % p._island.text)
 	var n := 0
 	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
+	p.refresh(); T.check(str(p._day_lbl.text) == "THREE DAYS DONE", "after the end the card says the three days are done (%s)" % p._day_lbl.text)
 	T.check(str(T.b.g.get("status", "")) == "won", "the clicked recipe wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
 	# a STATCOM placed by hand covers the Eastgate capacitor: the kit says so instead of ticking a capacitor never built; its map peg names it a STATCOM
 	T.level("L28"); p.refresh()

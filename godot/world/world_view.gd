@@ -385,7 +385,10 @@ func _rebuild_objects() -> void:
 				p = q; break
 		taken_u[Vector2i((p * 2.0).floor())] = true
 		_objs.append({"t": "unit", "p": p, "u": u})
-	for h in model.shunts: _objs.append({"t": "shunt", "p": _tc(h.pos) + Vector2(0.9, 0.4), "h": h})
+	var per_bus := {}   # several devices at one bus stand side by side, not inside each other
+	for h in model.shunts:
+		var k: int = per_bus.get(h.pos, 0); per_bus[h.pos] = k + 1
+		_objs.append({"t": "shunt", "p": _tc(h.pos) + Vector2(0.9, 0.4) + Vector2(0.0, 1.1) * float(k), "h": h, "dd": 1.0e6})   # drawn last: a device at a city bus (L17 B3) otherwise vanished behind the blocks of flats
 	for li in model.lines.size():
 		var l: Dictionary = model.lines[li]
 		if str(l.kind) == "cable" and model.has("island_c"): continue   # the sea cable lies on the seabed: no towers
@@ -600,6 +603,20 @@ func _ell(c: Vector2, rx: float, ry: float, col: Color) -> void:
 	if absf(rx) < 0.05 or absf(ry) < 0.05: return   # a zero-size ellipse is a degenerate polygon (Godot logs "triangulation failed")
 	var pts := PackedVector2Array()
 	for k in 18: var a := TAU * float(k) / 18.0; pts.append(c + Vector2(cos(a) * rx, sin(a) * ry))
+	_cpoly(pts, col)
+
+## Every filled polygon of the world goes through here: one that cannot be triangulated (fewer than 3 points, no area, or self-crossing) is skipped,
+## and the first one met is printed once with its caller, so the "Invalid polygon data, triangulation failed" spam names its source.
+static var _bad_poly_seen := false
+static var _poly_trace := OS.has_environment("CB_POLY_TRACE")   # also catch self-crossing polygons (a full triangulation per polygon: QA only)
+func _cpoly(pts: PackedVector2Array, col: Color) -> void:
+	var a := 0.0
+	for i in pts.size(): a += pts[i].cross(pts[(i + 1) % pts.size()])
+	if pts.size() < 3 or absf(a) < 0.5 or (_poly_trace and Geometry2D.triangulate_polygon(pts).is_empty()):
+		if not _bad_poly_seen and OS.is_debug_build():
+			_bad_poly_seen = true; var st := get_stack()
+			print("WORLD bad polygon (area %.3f, %d pts) from %s: %s" % [a * 0.5, pts.size(), str(st[1]) if st.size() > 1 else "?", str(pts)])
+		return
 	_ci.draw_colored_polygon(pts, col)
 
 func _box(p: Vector2, w: float, d: float, h: float, col: Color, base_add: float = 0.0) -> float:
@@ -607,17 +624,17 @@ func _box(p: Vector2, w: float, d: float, h: float, col: Color, base_add: float 
 	var base := _zat(p) + base_add; var top := base + h
 	if w < 0.01 or d < 0.01: return base   # degenerate footprint: nothing to draw
 	if h > 0.01:   # a flat box has no walls (zero-area wall polygons fail to triangulate)
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
-	_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y0, top), _iso(x1, y0, top), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(col))
+		_cpoly(PackedVector2Array([_iso(x0, y1, base), _iso(x1, y1, base), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(_shade(col, 0.82)))
+		_cpoly(PackedVector2Array([_iso(x1, y1, base), _iso(x1, y0, base), _iso(x1, y0, top), _iso(x1, y1, top)]), _c(_shade(col, 0.6)))
+	_cpoly(PackedVector2Array([_iso(x0, y0, top), _iso(x1, y0, top), _iso(x1, y1, top), _iso(x0, y1, top)]), _c(col))
 	return base
 
 func _cyl(c: Vector2, r: float, h: float, col: Color, taper: float = 1.0) -> void:
 	var rt := r * taper
 	if r < 0.05 or h < 0.01: _ell(c, r, r * 0.5, _c(col)); return   # no wall to draw
-	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.78)))
+	_cpoly(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.78)))
 	_ell(c, r, r * 0.5, _c(_shade(col, 0.7)))
-	_ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.82)))
+	_cpoly(PackedVector2Array([c + Vector2(-r, 0), c + Vector2(r, 0), c + Vector2(rt, -h), c + Vector2(-rt, -h)]), _c(_shade(col, 0.82)))
 	_ell(c + Vector2(0, -h), rt, rt * 0.5, _c(col))
 
 func _windows(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, energy: float, seed_v: float, flick: float) -> void:
@@ -630,7 +647,7 @@ func _windows(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, energy: 
 			var v0 := (float(r) + 0.25) / float(rows) * 0.8 + 0.1; var v1 := (float(r) + 0.75) / float(rows) * 0.8 + 0.1
 			var up := Vector2(0, -h)
 			var q := PackedVector2Array([a + dir * u0 + up * v0, a + dir * u1 + up * v0, a + dir * u1 + up * v1, a + dir * u0 + up * v1])
-			_ci.draw_colored_polygon(q, lit_col if on else UNLIT)
+			_cpoly(q, lit_col if on else UNLIT)
 
 ## Window quads of one wall, split into lit / dark sets (same layout and hash as before; the draw is cached as meshes, see _building).
 func _window_quads(a: Vector2, dir: Vector2, h: float, cols: int, rows: int, seed_v: float, on_v: PackedVector2Array, off_v: PackedVector2Array) -> void:
@@ -789,7 +806,7 @@ func _draw_island_life() -> void:
 	var s := clampf(_iso(1.0, 0.0, 0.0).distance_to(_iso(0.0, 0.0, 0.0)) / 30.0, 0.7, 3.0)   # sized by the tile on screen
 	var lp := ic + Vector2(-1.7, 0.9)   # the west point of the island, clear of its label
 	var base := _iso(lp.x, lp.y, _zat(lp)); var top := base + Vector2(0, -34) * s
-	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-5, 0) * s, base + Vector2(5, 0) * s, top + Vector2(3, 0) * s, top + Vector2(-3, 0) * s]), _c(Color("#ECE6D6")))
+	_cpoly(PackedVector2Array([base + Vector2(-5, 0) * s, base + Vector2(5, 0) * s, top + Vector2(3, 0) * s, top + Vector2(-3, 0) * s]), _c(Color("#ECE6D6")))
 	for k in 2: var y := -10.0 - 12.0 * k; _ci.draw_rect(Rect2(base + Vector2(-4.4 + 0.5 * k, y - 4) * s, Vector2(8.8 - k, 4) * s), _c(Color("#B5402F")))
 	_ci.draw_rect(Rect2(top + Vector2(-4, -6) * s, Vector2(8, 6) * s), _c(Color("#2B2A33")))
 	if lit:
@@ -798,7 +815,7 @@ func _draw_island_life() -> void:
 		for sgn in [1.0, -1.0]:
 			var d := Vector2(cos(a) * sgn, sin(a) * 0.45 * sgn)
 			var n := Vector2(-d.y, d.x) * 9.0 * s
-			_ci.draw_colored_polygon(PackedVector2Array([lamp, lamp + d * 110.0 * s + n, lamp + d * 110.0 * s - n]), Color(1.0, 0.93, 0.6, 0.16 * _night + 0.04))
+			_cpoly(PackedVector2Array([lamp, lamp + d * 110.0 * s + n, lamp + d * 110.0 * s - n]), Color(1.0, 0.93, 0.6, 0.16 * _night + 0.04))
 		_ci.draw_circle(lamp, 3.5 * s, Color(1.0, 0.95, 0.7))
 	for bt in model.get("batteries", []):
 		var bp: Vector2 = _tc(bt.pos) + Vector2(0.8, 0.6)
@@ -814,7 +831,7 @@ func _draw_island_life() -> void:
 		if float(bt.p) > 1e-4:   # discharging: a pulsing arrow out of the hut toward the houses
 			var k := 0.5 + 0.5 * sin(_t * 5.0)
 			var tip := r.position + Vector2(w * 0.5, -6.0 * s)
-			_ci.draw_colored_polygon(PackedVector2Array([tip + Vector2(-4, 0) * s, tip + Vector2(4, 0) * s, tip + Vector2(0, -6) * s]), Color(col.r, col.g, col.b, 0.5 + 0.5 * k))
+			_cpoly(PackedVector2Array([tip + Vector2(-4, 0) * s, tip + Vector2(4, 0) * s, tip + Vector2(0, -6) * s]), Color(col.r, col.g, col.b, 0.5 + 0.5 * k))
 
 ## L30 (dynamic layer): the trawler steams in from the west, drags its anchor over the cable at the cut minute, steams off east; after the cut a red cross pulses.
 func _draw_trawler() -> void:
@@ -833,7 +850,7 @@ func _draw_trawler() -> void:
 			var s := clampf(_iso(1.0, 0.0, 0.0).distance_to(_iso(0.0, 0.0, 0.0)) / 30.0, 0.7, 3.0) * 1.3
 			var hull := _iso(bp.x, bp.y, 0.0) + Vector2(0, sin(_t * 1.7) * 1.5)
 			var h := PackedVector2Array([hull + Vector2(-14, -2) * s, hull + Vector2(14, -4) * s, hull + Vector2(10, 4) * s, hull + Vector2(-11, 5) * s])
-			_ci.draw_colored_polygon(h, _c(Color("#7A2E2A")))
+			_cpoly(h, _c(Color("#7A2E2A")))
 			_ci.draw_rect(Rect2(hull + Vector2(-6, -11) * s, Vector2(9, 8) * s), _c(Color("#E9E2D0")))
 			_ci.draw_line(hull + Vector2(4, -3) * s, hull + Vector2(4, -20) * s, _c(Color("#3A2E26")), 1.5)
 			if _night > 0.3: _ci.draw_circle(hull + Vector2(4, -20) * s, 2.2, Color(1.0, 0.9, 0.6, 0.9))   # mast-head light
@@ -859,7 +876,7 @@ func _draw_fog() -> void:
 			var kk := 1.0 - 0.28 * float(layer)
 			var pts := PackedVector2Array()
 			for q in 18: pts.append(c + Vector2(cos(TAU * q / 18.0) * rx * kk, sin(TAU * q / 18.0) * ry * kk))
-			_ci.draw_colored_polygon(pts, Color(0.86, 0.9, 0.95, 0.07 * f))
+			_cpoly(pts, Color(0.86, 0.9, 0.95, 0.07 * f))
 
 ## A line just tripped (the prologue's cascade): a white-hot flash that fades over ~1.2 s, drawn over the world.
 var _flash := 0.0
@@ -930,7 +947,7 @@ func _draw_tile(t: Dictionary) -> void:
 	var cc := _c(col)
 	if water: cc = Color(col.r * _nl.r * 0.8, col.g * _nl.g * 0.85, col.b * _nl.b * 0.95)
 	var W := int(model.map.x); var H := int(model.map.y)
-	# side faces: down to the slab base on the front borders, otherwise to a lower neighbour
+	# side faces: down to the slab base on the front borders, otherwise to a lower neighbour (a sliver lower by a rounding error has no wall: it was L28's "triangulation failed")
 	var zr: float = _zgrid.get(Vector2i(i + 1, j), -SLAB) if i + 1 < W else -SLAB
 	var zb: float = _zgrid.get(Vector2i(i, j + 1), -SLAB) if j + 1 < H else -SLAB
 	var side := Color("#7A6A58") if not water else Color("#2E6F94")
@@ -938,13 +955,13 @@ func _draw_tile(t: Dictionary) -> void:
 	if _has_terrain() and not water and t.kind != "rock" and t.kind != "swamp": side = col.lerp(Color("#6A5A48"), 0.3); kb = 0.94; kr = 0.86
 	if t.kind == "rock": side = Color("#6A6258")
 	elif t.kind == "swamp": side = Color("#4A4A32")
-	if zb < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, kb)))
-	if zr < z: _ci.draw_colored_polygon(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, kr)))
-	_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
+	if zb < z - 0.05: _cpoly(PackedVector2Array([_iso(i, j + 1, z), _iso(i + 1, j + 1, z), _iso(i + 1, j + 1, zb), _iso(i, j + 1, zb)]), _c(_shade(side, kb)))
+	if zr < z - 0.05: _cpoly(PackedVector2Array([_iso(i + 1, j + 1, z), _iso(i + 1, j, z), _iso(i + 1, j, zr), _iso(i + 1, j + 1, zr)]), _c(_shade(side, kr)))
+	_cpoly(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), cc)
 	if model.has("fog_min") and not water:   # a sea-fog job: the salt the wind lays on the coast, whiter by pollution class (II faint, IV crusted)
 		var pc := int((model.terrain.poll as PackedByteArray)[j * W + i]) if model.terrain.has("poll") and j * W + i < (model.terrain.poll as PackedByteArray).size() else 1
 		if pc >= 2:
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), _c(Color(0.93, 0.96, 1.0, 0.1 * float(pc - 1))))
+			_cpoly(PackedVector2Array([_iso(i, j, z), _iso(i + 1, j, z), _iso(i + 1, j + 1, z), _iso(i, j + 1, z)]), _c(Color(0.93, 0.96, 1.0, 0.1 * float(pc - 1))))
 			for k in pc - 1: _ci.draw_circle(_iso(i + 0.2 + 0.6 * WorldMath.hash2(i, j, 120 + k), j + 0.2 + 0.6 * WorldMath.hash2(i, j, 130 + k), z), 1.1, _c(Color(1, 1, 1, 0.55)))
 	if water:
 		var sh := 0.5 + 0.5 * sin(_t * 1.3 + float(i) * 0.9 + float(j) * 0.6)
@@ -962,9 +979,9 @@ func _draw_road(i: int, j: int, z: float) -> void:
 	var hx := _tile_kind(i - 1, j) == "road" or _tile_kind(i + 1, j) == "road"
 	var hy := _tile_kind(i, j - 1) == "road" or _tile_kind(i, j + 1) == "road"
 	if hx or not hy:
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(i, j + 0.3, z), _iso(i + 1, j + 0.3, z), _iso(i + 1, j + 0.7, z), _iso(i, j + 0.7, z)]), tan_c)
+		_cpoly(PackedVector2Array([_iso(i, j + 0.3, z), _iso(i + 1, j + 0.3, z), _iso(i + 1, j + 0.7, z), _iso(i, j + 0.7, z)]), tan_c)
 	if hy:
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(i + 0.3, j, z), _iso(i + 0.7, j, z), _iso(i + 0.7, j + 1, z), _iso(i + 0.3, j + 1, z)]), tan_c)
+		_cpoly(PackedVector2Array([_iso(i + 0.3, j, z), _iso(i + 0.7, j, z), _iso(i + 0.7, j + 1, z), _iso(i + 0.3, j + 1, z)]), tan_c)
 
 func _tile_kind(i: int, j: int) -> String:
 	var T: Dictionary = model.get("terrain", {})
@@ -998,8 +1015,8 @@ func _tree(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
 	_ci.draw_line(base, base + Vector2(0, -h * 0.35), _c(Color("#5A4632")), 2.0)
 	var g := Color("#3F7A44").lerp(Color("#5E9A4A"), o.v)
-	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.3, -h * 0.25), base + Vector2(h * 0.3, -h * 0.25), base + Vector2(0, -h * 0.75)]), _c(_shade(g, 0.8)))
-	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-h * 0.24, -h * 0.5), base + Vector2(h * 0.24, -h * 0.5), base + Vector2(0, -h)]), _c(g))
+	_cpoly(PackedVector2Array([base + Vector2(-h * 0.3, -h * 0.25), base + Vector2(h * 0.3, -h * 0.25), base + Vector2(0, -h * 0.75)]), _c(_shade(g, 0.8)))
+	_cpoly(PackedVector2Array([base + Vector2(-h * 0.24, -h * 0.5), base + Vector2(h * 0.24, -h * 0.5), base + Vector2(0, -h)]), _c(g))
 
 func _palm(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h: float = o.h
@@ -1010,21 +1027,21 @@ func _palm(o: Dictionary) -> void:
 	for k in 5:
 		var a := -PI * 0.5 + (float(k) - 2.0) * 0.62 + float(o.v) * 0.4
 		var tip := top + Vector2(cos(a) * h * 0.55, sin(a) * h * 0.25 + h * 0.18)
-		_ci.draw_colored_polygon(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
+		_cpoly(PackedVector2Array([top, top.lerp(tip, 0.5) + Vector2(0, -3), tip, top.lerp(tip, 0.5) + Vector2(0, 2)]), _c(_shade(g, 0.85 + 0.15 * float(k % 2))))
 
 func _lighthouse(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var h := 46.0
 	for k in 5:
 		var y0 := -h * float(k) / 5.0; var y1 := -h * float(k + 1) / 5.0; var w0 := 7.0 - float(k) * 0.7; var w1 := 7.0 - float(k + 1) * 0.7
-		_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-w0, y0), base + Vector2(w0, y0), base + Vector2(w1, y1), base + Vector2(-w1, y1)]), _c(Color("#F2EEE6") if k % 2 == 0 else Color("#E5484D")))
+		_cpoly(PackedVector2Array([base + Vector2(-w0, y0), base + Vector2(w0, y0), base + Vector2(w1, y1), base + Vector2(-w1, y1)]), _c(Color("#F2EEE6") if k % 2 == 0 else Color("#E5484D")))
 	var lamp := base + Vector2(0, -h - 5.0)
 	_ci.draw_rect(Rect2(lamp + Vector2(-4, -4), Vector2(8, 8)), _c(Color("#3A3F52")))
-	_ci.draw_colored_polygon(PackedVector2Array([lamp + Vector2(-5, -4), lamp + Vector2(5, -4), lamp + Vector2(0, -10)]), _c(Color("#E5484D")))
+	_cpoly(PackedVector2Array([lamp + Vector2(-5, -4), lamp + Vector2(5, -4), lamp + Vector2(0, -10)]), _c(Color("#E5484D")))
 	if _night > 0.3:
 		var a := _t * 1.1
 		var d := Vector2(cos(a), sin(a) * 0.5)
 		var beam := PackedVector2Array([lamp, lamp + d * 170.0 + d.orthogonal() * 22.0, lamp + d * 170.0 - d.orthogonal() * 22.0])
-		_ci.draw_colored_polygon(beam, Color(1.0, 0.92, 0.65, 0.10 * _night))
+		_cpoly(beam, Color(1.0, 0.92, 0.65, 0.10 * _night))
 		_glow(lamp, 10.0, WorldMath.SODIUM, 0.5 * _night)
 
 ## A tiny round villager. Happy homes: they hop; browned out: they hold a candle; dark: they stay indoors.
@@ -1037,7 +1054,7 @@ func _villager(o: Dictionary) -> void:
 	var b := base + Vector2(0, -hop)
 	var shirt: Color = [Color("#E5484D"), Color("#5BD69A"), Color("#6C8CFF")][int(o.k) % 3]
 	_ell(base + Vector2(0, 1.4), 5.6, 2.24, Color(0, 0, 0, 0.25))
-	_ci.draw_colored_polygon(PackedVector2Array([b + Vector2(-4.48, 0), b + Vector2(4.48, 0), b + Vector2(3.36, -9.8), b + Vector2(-3.36, -9.8)]), _c(shirt))
+	_cpoly(PackedVector2Array([b + Vector2(-4.48, 0), b + Vector2(4.48, 0), b + Vector2(3.36, -9.8), b + Vector2(-3.36, -9.8)]), _c(shirt))
 	_ci.draw_circle(b + Vector2(0, -14), 5.04, _c(Color("#C8956A").lerp(Color("#8A5A3A"), o.v)))
 	_ci.draw_circle(b + Vector2(-1.68, -14.56), 0.84, Color("#2A2418")); _ci.draw_circle(b + Vector2(1.68, -14.56), 0.84, Color("#2A2418"))
 	if md == "happy" and fposmod(_t * 5.0 + float(o.v) * 6.0, PI) < 1.2: _ci.draw_line(b + Vector2(4.2, -8.4), b + Vector2(8.4, -16.8), _c(Color("#C8956A")), 2.1)   # wave
@@ -1085,16 +1102,16 @@ func _building(o: Dictionary) -> void:
 	if o.role != "":   # hipped roof; the health post carries a red cross on its front wall
 		var rc := Color("#7E3B32") if o.role == "school" else Color("#4E8C6A")
 		var ap2 := _iso(p.x, p.y, base + h + 8.0)
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap2]), _c(_shade(rc, 1.1)))
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap2]), _c(_shade(rc, 0.8)))
+		_cpoly(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap2]), _c(_shade(rc, 1.1)))
+		_cpoly(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap2]), _c(_shade(rc, 0.8)))
 		if o.role == "health":
 			var zc := base + h * 0.5; var cr := Color("#E5484D")
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc - 2.0), _iso(p.x - 0.2, y1, zc - 2.0)]), _c(cr))
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc - 6.5), _iso(p.x - 0.07, y1, zc - 6.5)]), _c(cr))
+			_cpoly(PackedVector2Array([_iso(p.x - 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc + 2.0), _iso(p.x + 0.2, y1, zc - 2.0), _iso(p.x - 0.2, y1, zc - 2.0)]), _c(cr))
+			_cpoly(PackedVector2Array([_iso(p.x - 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc + 6.5), _iso(p.x + 0.07, y1, zc - 6.5), _iso(p.x - 0.07, y1, zc - 6.5)]), _c(cr))
 	if o.hamlet:   # thatch roof
 		var ap := _iso(p.x, p.y, base + h + 6.0)
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap]), _c(Color("#A07D3C")))
-		_ci.draw_colored_polygon(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap]), _c(Color("#7E5F2A")))
+		_cpoly(PackedVector2Array([_iso(x0, y1, base + h), _iso(x1, y1, base + h), ap]), _c(Color("#A07D3C")))
+		_cpoly(PackedVector2Array([_iso(x1, y1, base + h), _iso(x1, y0, base + h), ap]), _c(Color("#7E5F2A")))
 	if e > 0.0 and _night > 0.25: _glow(_iso(p.x, p.y, base + h * 0.5), 15.0 * w * 3.0, WorldMath.SODIUM, 0.035 * clampf(e, 0.0, 1.0) * _night)
 
 ## Flag pole by the school: a red pennant that ripples.
@@ -1102,7 +1119,7 @@ func _flag(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p)); var top := base + Vector2(0, -52)
 	_ci.draw_line(base, top, _c(Color("#D8D4CA")), 2.2)
 	var wv := sin(_t * 3.0) * 3.0
-	_ci.draw_colored_polygon(PackedVector2Array([top, top + Vector2(18, 3 + wv), top + Vector2(17, 9 + wv * 0.6), top + Vector2(0, 12)]), _c(Color("#E5484D")))
+	_cpoly(PackedVector2Array([top, top + Vector2(18, 3 + wv), top + Vector2(17, 9 + wv * 0.6), top + Vector2(0, 12)]), _c(Color("#E5484D")))
 	_ci.draw_circle(top, 2.2, _c(Color("#F2C14E")))
 
 func _tower(o: Dictionary) -> void:
@@ -1119,7 +1136,7 @@ func _tower(o: Dictionary) -> void:
 func _substation(o: Dictionary) -> void:
 	var p: Vector2 = o.p; var s: Dictionary = o.s
 	var base := _iso(p.x, p.y, _zat(p))
-	_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y + 0.7, _zat(p) + 0.5), _iso(p.x - 0.7, p.y + 0.7, _zat(p) + 0.5)]), _c(Color("#8F959E")))
+	_cpoly(PackedVector2Array([_iso(p.x - 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y - 0.7, _zat(p) + 0.5), _iso(p.x + 0.7, p.y + 0.7, _zat(p) + 0.5), _iso(p.x - 0.7, p.y + 0.7, _zat(p) + 0.5)]), _c(Color("#8F959E")))
 	_box(p + Vector2(-0.2, 0.0), 0.35, 0.35, 9.0, Color("#6C7A8C"))
 	_box(p + Vector2(0.25, 0.1), 0.25, 0.25, 6.0, Color("#7C8A9C"))
 	var lamp := Color("#39D98A") if s.energised else Color("#FF3B3B")
@@ -1144,15 +1161,15 @@ func _unit(o: Dictionary) -> void:
 			_ell(base + Vector2(-14, 0), 24.0, 12.0, _c(Color("#C9CED6")))
 			var dome := PackedVector2Array()
 			for k in 13: var a := PI * float(k) / 12.0; dome.append(base + Vector2(-14, 0) + Vector2(-cos(a) * 24.0, -sin(a) * 30.0))
-			_ci.draw_colored_polygon(dome, _c(Color("#DADFE6")))
+			_cpoly(dome, _c(Color("#DADFE6")))
 		"hydro", "psp":
 			var wa := Color("#5FA8C8")
-			_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-34, -2), base + Vector2(34, -2), base + Vector2(34, -26), base + Vector2(-34, -26)]), _c(Color("#A7A39A")))
+			_cpoly(PackedVector2Array([base + Vector2(-34, -2), base + Vector2(34, -2), base + Vector2(34, -26), base + Vector2(-34, -26)]), _c(Color("#A7A39A")))
 			for k in 4: _ci.draw_line(base + Vector2(-30 + float(k) * 18.0, -24 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), base + Vector2(-30 + float(k) * 18.0, -22 + fposmod(_t * 14.0 * (0.2 + lvl) + float(k) * 5.0, 22.0)), _c(wa), 2.0)
 		"pv":
 			for r in 3:
 				var rb := base + Vector2(float(r) * 16.0 - 16.0, float(r) * 8.0 - 8.0)
-				_ci.draw_colored_polygon(PackedVector2Array([rb + Vector2(-22, 0), rb + Vector2(18, -6), rb + Vector2(18, -16), rb + Vector2(-22, -10)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.8)))
+				_cpoly(PackedVector2Array([rb + Vector2(-22, 0), rb + Vector2(18, -6), rb + Vector2(18, -16), rb + Vector2(-22, -10)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.8)))
 		"wind":
 			var hub := base + Vector2(0, -50)
 			_ci.draw_line(base, hub, _c(Color("#E0E4EA")), 3.0)
@@ -1163,9 +1180,9 @@ func _unit(o: Dictionary) -> void:
 		"hut", "bench":
 			var top := _box(p, 0.9, 0.7, 13.0, Color("#D9CBA6"))   # little hut: plank walls, tin roof, solar panel, a battery sign
 			var ap := _iso(p.x, p.y, top + 13.0 + 7.0)
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y + 0.35, top + 13.0), ap]), _c(Color("#8E99A8")))
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x + 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y - 0.35, top + 13.0), ap]), _c(Color("#6E7988")))
-			_ci.draw_colored_polygon(PackedVector2Array([_iso(p.x - 0.4, p.y - 0.3, top + 17.0), _iso(p.x + 0.1, p.y - 0.3, top + 21.0), _iso(p.x + 0.1, p.y + 0.2, top + 21.0), _iso(p.x - 0.4, p.y + 0.2, top + 17.0)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.7)))
+			_cpoly(PackedVector2Array([_iso(p.x - 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y + 0.35, top + 13.0), ap]), _c(Color("#8E99A8")))
+			_cpoly(PackedVector2Array([_iso(p.x + 0.45, p.y + 0.35, top + 13.0), _iso(p.x + 0.45, p.y - 0.35, top + 13.0), ap]), _c(Color("#6E7988")))
+			_cpoly(PackedVector2Array([_iso(p.x - 0.4, p.y - 0.3, top + 17.0), _iso(p.x + 0.1, p.y - 0.3, top + 21.0), _iso(p.x + 0.1, p.y + 0.2, top + 21.0), _iso(p.x - 0.4, p.y + 0.2, top + 17.0)]), _c(Color("#2E4B8F").lerp(Color("#5F8FE0"), (1.0 - _night) * 0.7)))
 			var sg := _iso(p.x + 0.45, p.y + 0.1, top + 7.0)   # battery sign on the wall: lit cells when it is feeding the cable
 			_ci.draw_rect(Rect2(sg + Vector2(-7, -4), Vector2(12, 8)), Color("#2A2418")); _ci.draw_rect(Rect2(sg + Vector2(5, -2), Vector2(2, 4)), Color("#2A2418"))
 			for k in 3: _ci.draw_rect(Rect2(sg + Vector2(-6 + k * 4, -3), Vector2(3, 6)), Color("#5BD69A") if u.online else Color("#46506A"))
@@ -1184,6 +1201,10 @@ func _smoke(top: Vector2, lvl: float, col: Color) -> void:
 
 func _shunt(o: Dictionary) -> void:
 	var h: Dictionary = o.h; var p: Vector2 = o.p; var base := _iso(p.x, p.y, _zat(p))
+	if str(h.get("kind", "")) in ["statcom", "svc"]:   # power electronics: a valve hall with a sodium roof light while it runs, not a row of capacitor cans
+		_box(p, 0.9, 0.6, 12.0, Color("#8FD1C8"))
+		if int(h.on) > 0: _glow(_iso(p.x, p.y, _zat(p) + 9.0), 9.0, WorldMath.REACTIVE, 0.25)
+		return
 	for k in maxi(1, int(h.steps)):
 		var on := k < int(h.on)
 		var c := base + Vector2(float(k) * 9.0 - 4.0, float(k) * 4.0)
@@ -1511,7 +1532,7 @@ func _draw_pegs() -> void:
 	var font := GridTheme.font("mono"); var fsz := GridTheme.fs(13)
 	var boxes: Array[Rect2] = []   # peg labels already drawn: on a big map (the L28 Remove tool lists ~50 elements) a label that would cover another is left to the hover
 	if _peg_hi >= 0 and _peg_hi < _pegs.size(): boxes.append(_peg_box(_peg_hi, sc, font, fsz))
-	if _pegs.size() > 12: boxes.append_array(_town_boxes)   # many pegs: the town names stay readable, the hovered peg still shows its label
+	boxes.append_array(_town_boxes)   # town names stay readable: a peg label steps down below a name it would cover, and on a crowded map gives way (the hovered peg always shows)
 	for i in _pegs.size():
 		var p := world_to_screen(_pegs[i].tile); var hi := i == _peg_hi
 		var pulse := 0.5 + 0.5 * sin(_t * 3.2 + float(i) * 0.9)
@@ -1524,13 +1545,15 @@ func _draw_pegs() -> void:
 		_ci.draw_circle(p + Vector2(0, -28.0 * sc), 5.5 * sc, GridTheme.SODIUM if hi else GridTheme.SODIUM.lerp(Color.WHITE, 0.25 * pulse))
 		_ci.draw_arc(p + Vector2(0, -28.0 * sc), 5.5 * sc, 0.0, TAU, 14, GridTheme.NIGHT, 1.5)
 		var lb := str(_pegs[i].label)
+		var dy := 0.0
 		if lb != "" and not hi:
-			var bx := _peg_box(i, sc, font, fsz)
-			if boxes.any(func(o: Rect2): return o.intersects(bx)): lb = ""
+			var bx := _peg_box(i, sc, font, fsz); var tries := 3 if _pegs.size() <= 12 else 0
+			while boxes.any(func(o: Rect2): return o.intersects(bx)) and tries > 0: bx.position.y += fsz + 10.0; dy += fsz + 10.0; tries -= 1
+			if _pegs.size() > 12 and boxes.any(func(o: Rect2): return o.intersects(bx)): lb = ""   # few pegs: every label shows (they are the choices)
 			else: boxes.append(bx)
 		if lb != "":
 			var tw := font.get_string_size(lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz)
+			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz + dy)
 			_ci.draw_rect(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
 			_ci.draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
 
@@ -1697,7 +1720,7 @@ func _pole_col(fam: String) -> Color:
 	return Color("#9AA3B0")
 
 func _taper(base: Vector2, h: float, wb: float, wt: float, col: Color) -> void:
-	_ci.draw_colored_polygon(PackedVector2Array([base + Vector2(-wb, 0), base + Vector2(wb, 0), base + Vector2(wt, -h), base + Vector2(-wt, -h)]), col)
+	_cpoly(PackedVector2Array([base + Vector2(-wb, 0), base + Vector2(wb, 0), base + Vector2(wt, -h), base + Vector2(-wt, -h)]), col)
 
 func _support(s: Dictionary) -> void:
 	var p: Vector2 = s.p; var z0 := _zat(p); var base := _iso(p.x, p.y, z0)
@@ -1758,13 +1781,13 @@ func _croc(o: Dictionary) -> void:
 	var body := _c(Color("#4F9157")); var belly := _c(Color("#A9D08A")); var ink := Color("#2A2418")
 	_ell(base + Vector2(0, 1), 11.0, 3.6, Color(0, 0, 0, 0.22))
 	var tail := PackedVector2Array([base + Vector2(-5, -3.5), base + Vector2(-17, -2.0 + wag * 2.6), base + Vector2(-5, -0.5)])
-	_ci.draw_colored_polygon(tail, _shade(body, 0.85))
+	_cpoly(tail, _shade(body, 0.85))
 	_ell(base + Vector2(0, -3.2), 8.2, 3.6, body)
 	_ell(base + Vector2(0, -2.4), 6.0, 2.0, belly)
 	for k in 3: _ci.draw_circle(base + Vector2(-4.0 + float(k) * 3.4, -6.4), 0.9, _shade(body, 0.8))   # back ridges
 	var head := base + Vector2(8.0, -4.6)
 	_ell(head, 4.6, 3.2, body)
-	_ci.draw_colored_polygon(PackedVector2Array([head + Vector2(2, -1.8), head + Vector2(9.0, -0.6), head + Vector2(9.0, 1.6), head + Vector2(2, 2.4)]), _shade(body, 1.05))
+	_cpoly(PackedVector2Array([head + Vector2(2, -1.8), head + Vector2(9.0, -0.6), head + Vector2(9.0, 1.6), head + Vector2(2, 2.4)]), _shade(body, 1.05))
 	_ci.draw_line(head + Vector2(3.0, 1.4), head + Vector2(9.0, 1.0), ink, 0.8)
 	_ci.draw_circle(head + Vector2(8.2, -0.3), 0.5, ink)
 	var eye := head + Vector2(1.0, -3.6)
@@ -1797,7 +1820,7 @@ func _draw_lineman() -> void:
 	var at := base + Vector2(3.6, -top_h * f - 3.0)
 	var ink := Color("#2A2418"); var step := sin(dt * 14.0)
 	_ci.draw_line(at + Vector2(0, 2.0), at + Vector2(-1.4 + step, 6.5), Color("#3D4A6B"), 1.6); _ci.draw_line(at + Vector2(0, 2.0), at + Vector2(1.4 - step, 6.5), Color("#3D4A6B"), 1.6)   # legs
-	_ci.draw_colored_polygon(PackedVector2Array([at + Vector2(-2.2, 2.6), at + Vector2(2.2, 2.6), at + Vector2(1.8, -3.4), at + Vector2(-1.8, -3.4)]), Color("#FF8A3C"))   # hi-vis vest
+	_cpoly(PackedVector2Array([at + Vector2(-2.2, 2.6), at + Vector2(2.2, 2.6), at + Vector2(1.8, -3.4), at + Vector2(-1.8, -3.4)]), Color("#FF8A3C"))   # hi-vis vest
 	var wave := f >= 1.0
 	_ci.draw_line(at + Vector2(-1.6, -2.6), at + Vector2(-3.0, -5.2 - step * 0.8), Color("#C8956A"), 1.3)
 	_ci.draw_line(at + Vector2(1.6, -2.6), at + Vector2(3.6, (-6.4 + sin(dt * 12.0) * 1.4) if wave else (-5.2 + step * 0.8)), Color("#C8956A"), 1.3)
@@ -1813,7 +1836,7 @@ func _stall(o: Dictionary) -> void:
 	var a := _iso(p.x - 0.18, p.y + 0.12, base + 9.0); var b := _iso(p.x + 0.18, p.y + 0.12, base + 9.0)
 	var c := _iso(p.x + 0.18, p.y - 0.12, base + 11.0); var dd := _iso(p.x - 0.18, p.y - 0.12, base + 11.0)
 	var s1 := Color("#E5484D") if int(o.k) % 2 == 0 else Color("#5B8CE0")
-	_ci.draw_colored_polygon(PackedVector2Array([a, b, c, dd]), _c(s1))
+	_cpoly(PackedVector2Array([a, b, c, dd]), _c(s1))
 	for q in 3: _ci.draw_line(a.lerp(b, (float(q) + 0.5) / 3.0), dd.lerp(c, (float(q) + 0.5) / 3.0), _c(Color("#F3EEDF")), 1.2)
 	var lamp := a.lerp(b, 0.5) + Vector2(0, 2.5)
 	var lit := clampf(e * _gain, 0.0, 1.0)
