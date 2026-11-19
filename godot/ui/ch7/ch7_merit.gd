@@ -79,7 +79,7 @@ func _draw_stage() -> void:
 	# right: the corridor and the prices
 	var sr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 300.0), bh))
 	if rev:
-		(edits["lambda20"] as LineEdit).position = _home
+		(edits["lambda20"] as LineEdit).position = _scr(_home) if _phone() else _home   # phone: the panel is drawn scaled into the slot
 		_frame(Rect2(sr.position, Vector2(sr.size.x, bh * 0.5 - 6.0)), 0.0, 24.0, -500.0, 600.0, false, false, "", T("C7_FLOW"))
 		var fl := []
 		for h in 24: fl.append([float(h) + 0.5, q.hourly.flow[h]])
@@ -97,7 +97,7 @@ func _draw_stage() -> void:
 		if not _phone(): _text(_mono(), 12, sr.position + Vector2(14, bh * 0.5 + 30.0), T("C7_HIDDEN"), GridTheme.DIM)
 		if _phone():
 			_card_text(Rect2(sr.position + Vector2(0, bh * 0.5 + 6.0), Vector2(sr.size.x, bh * 0.5 - 6.0)), [[T("C7_G26_LAMBDA"), Color(GridTheme.TEXT, 0.75)], [T("C7_G26_CORR"), Color(GridTheme.TEXT, 0.75)]], 11, 6.0, 8.0)
-			(edits["lambda20"] as LineEdit).position = _home
+			(edits["lambda20"] as LineEdit).position = _scr(_home) if _phone() else _home   # phone: the panel is drawn scaled into the slot
 		else:
 			draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
 			draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
