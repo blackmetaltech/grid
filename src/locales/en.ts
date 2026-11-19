@@ -5,6 +5,7 @@ import { EN_CH5 } from './ch5.en';
 import { EN_CH6 } from './ch6.en';
 import { EN_CH7 } from './ch7.en';
 import { EN_CH8 } from './ch8.en';
+import { EN_CAREER } from './career.en';
 import { EN_CHF } from './chf.en';
 // Every player-facing string of the game, keyed. `{name}` marks a variable. Regional names (region, places, cast…) are NOT here:
 // they come from the region pack's `strings` and are passed in as variables. Add a locale by copying this file (es.ts, hi.ts…)
@@ -318,5 +319,5 @@ export const en: Record<string, string> = {
   'coach.L05.run': 'Pull the breaker and run the evening.',
   'coach.L05.run.why': 'The market peaks at 19:30, the hottest, heaviest hour: that is when a line sags lowest.',
   // chapter files (parallel builders add their strings there, never here)
-  ...EN_CH2, ...EN_CH3, ...EN_CH4, ...EN_CH5, ...EN_CH6, ...EN_CH7, ...EN_CH8, ...EN_CHF,
+  ...EN_CH2, ...EN_CH3, ...EN_CH4, ...EN_CH5, ...EN_CH6, ...EN_CH7, ...EN_CH8, ...EN_CHF, ...EN_CAREER,
 };
