@@ -53,7 +53,7 @@ func _layout_tree(r: Rect2) -> Dictionary:
 	return pos
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(420.0)
+	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r1 := Rect2(Vector2(30.0, top), Vector2(w - 60.0, minf(340.0, bh * 0.5)))
 	_card(r1)
 	var secs: Array = q.sections; var by := {}; var hmax := 1.0
@@ -100,7 +100,9 @@ func _draw_stage() -> void:
 		_text(_semi(), 12, cr.position + Vector2(8, 18), order[k], GridTheme.TEXT); _text(_mono(), 13, cr.position + Vector2(0, 40), T("C8_MIN_YR") % WorkOrder.num(float(s.saidiMin)), GridTheme.TEXT, cr.size.x - 8.0, 2)
 		_text(_mono(), 10, cr.position + Vector2(8, 62), T("C8_FAULTS_YR") % WorkOrder.num(float(s.faultsPerYear)), Color(GridTheme.TEXT, 0.7))
 	# the indices against the targets
-	var r3 := Rect2(Vector2(30.0, r2.end.y + 12.0), Vector2(w - 60.0, maxf(bh - r1.size.y - r2.size.y - 24.0, 110.0))); _card(r3)
+	var r3 := Rect2(Vector2(30.0, r2.end.y + 12.0), Vector2(w - 60.0, bh - r1.size.y - r2.size.y - 24.0))
+	if r3.size.y < 90.0: return   # the phone's canvas has no room for it: the panel shows the four numbers
+	_card(r3)
 	var ix: Dictionary = q.indices; var tg: Dictionary = q.targets
 	var cells := [[T("C8_SAIFI"), WorkOrder.num(float(ix.saifi)), T("C8_TARGET_MAX") % WorkOrder.num(float(tg.saifiMax)), float(ix.saifi) <= float(tg.saifiMax), T("C8_G_SAIFI")],
 		[T("C8_SAIDI"), WorkOrder.num(float(ix.saidi)), T("C8_TARGET_MAX") % WorkOrder.num(float(tg.saidiMax)), float(ix.saidi) <= float(tg.saidiMax), T("C8_G_SAIDI")],

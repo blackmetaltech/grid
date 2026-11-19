@@ -56,7 +56,7 @@ func _body(ip: Rect2) -> void:
 	_status(ip, (T("C8_L31_OK") if ok else T("C8_L31_LOW") % [WorkOrder.num(float(v.minV)), str(v.minNode), WorkOrder.num(float(q.band.loV))]), _good(ok))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(420.0)
+	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r1 := Rect2(Vector2(30.0, top), Vector2(w - 60.0, minf(260.0, bh * 0.45)))
 	var tree: Array = q.tree; var va := []; var vb := []
 	for n in tree: va.append(float(n.vPeakV)); vb.append(float(n.vMinLoadV))

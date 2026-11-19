@@ -10,6 +10,21 @@ var sel_node := "all"  ## L31 / L35: the trunk section the wire and tap chips ac
 func _init() -> void:
 	super._init()
 
+## The phone's canvas is as wide as the screen (no sideways pan) and 446 tall above the panel (drag to pan up and down); the desktop's is everything between the HUD and the panel.
+func _vs() -> Vector2: return Vector2(size.x, 768.0) if _phone() else size
+func _sbox(minh: float) -> Rect2:
+	if _phone(): return Rect2(Vector2(30.0, 128.0), Vector2(size.x - 60.0, 768.0 - PANEL_H - 128.0 - 10.0))
+	return Rect2(Vector2(30.0, _stage_top()), Vector2(size.x - 60.0, _stage_h(minh)))
+
+## Wrapped lines in a card, no scrolling (the phone pans the whole stage instead): a line that would cross the card's bottom edge is left out.
+func _card_lines(r: Rect2, lines: Array, fsz: int, gap: float, top_pad: float) -> void:
+	scroll = 0.0; scroll_max = 0.0
+	var f := _mono(); var fs := GridTheme.fs(fsz); var y := r.position.y + top_pad
+	for ln in lines:
+		var h: float = f.get_multiline_string_size(str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs).y
+		if y + h <= r.end.y - 6.0: draw_multiline_string(f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
+		y += h + gap
+
 func _inner() -> Rect2: return Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
 
 func _layout_panel() -> void:
@@ -18,6 +33,7 @@ func _layout_panel() -> void:
 func _build_panel(_ip: Rect2) -> void: pass
 func _pressed(_h: Dictionary, _p: Vector2) -> void: pass
 func _body(_ip: Rect2) -> void: pass
+func _over(_ip: Rect2) -> void: pass   ## drawn after the chips (text on a chip that has no label of its own)
 
 ## One chip of the panel: label (and a second line, usually the price), lit when `on`.
 func _c(ip: Rect2, x: float, y: float, w: float, h: float, label: String, id: String, arg, on: bool, sub := "") -> void:
@@ -36,6 +52,7 @@ func _draw_panel_body() -> void:
 	_body(ip)
 	var lock := _locked()
 	for c in cw: _chip8(c.r, str(c.label), str(c.sub), bool(c.on), str(c.id), c.arg, not lock)
+	_over(ip)
 
 func _draw_panel() -> void:
 	if _phone() and folded:
@@ -62,7 +79,7 @@ func _card(r: Rect2) -> void: draw_style_box(GridTheme.ink_sb(INK_CARD, 10, 0.0)
 
 func _lines(r: Rect2, title: String, lines: Array, fsz := 11, gap := 6.0) -> void:
 	_card(r); _text(_semi(), 11, r.position + Vector2(12.0, 20.0), title, GridTheme.SODIUM)
-	_card_text(r, lines, fsz, gap, 30.0)
+	_card_lines(r, lines, fsz, gap, 30.0)
 
 func _heat(f: float) -> Color:
 	f = clampf(f, 0.0, 1.0)
@@ -128,7 +145,7 @@ func _feeder_diagram(r: Rect2, tree: Array, rowa: Array, rowb: Array, laba: Stri
 	_card(r)
 	var total := 0.0
 	for n in tree: total += float(n.km)
-	var x0 := r.position.x + 74.0; var span := r.size.x - 74.0 - 70.0; var ly := r.position.y + 86.0
+	var x0 := r.position.x + 74.0; var span := r.size.x - 74.0 - 70.0; var ly := r.position.y + 100.0
 	var xs := []; var cum := 0.0
 	for n in tree: cum += float(n.km); xs.append(x0 + span * cum / total)
 	var band: Dictionary = q.band; var lo := float(band.loV); var hi := float(band.hiV)
@@ -142,14 +159,14 @@ func _feeder_diagram(r: Rect2, tree: Array, rowa: Array, rowb: Array, laba: Stri
 		var load := float(n.loading); var wc := _heat(maxf(0.0, load - 0.3) / 0.7) if load < 1.0 else GridTheme.BAD
 		draw_line(seg_a, seg_b, Color(GridTheme.LIVE, 0.9), 4.0)
 		var mid := (seg_a + seg_b) * 0.5
-		_text(_semi(), 11, mid + Vector2(-70, -30), "%s  %s" % [str(n.conductor), T("C8_KM") % WorkOrder.num(float(n.km))], GridTheme.TEXT, 140.0, 1)
+		_text(_semi(), 11, mid + Vector2(-70, -44), "%s  %s" % [str(n.conductor), T("C8_KM") % WorkOrder.num(float(n.km))], GridTheme.TEXT, 140.0, 1)
 		# the current against the conductor's ampacity
-		var bw := 96.0; var bp := mid + Vector2(-bw * 0.5, -22.0)
+		var bw := 96.0; var bp := mid + Vector2(-bw * 0.5, -36.0)
 		draw_rect(Rect2(bp, Vector2(bw, 7)), Color(GridTheme.TEXT, 0.12)); draw_rect(Rect2(bp, Vector2(bw * clampf(load, 0.0, 1.0), 7)), wc)
-		_text(_mono(), 10, mid + Vector2(-70, 28), T("C8_AMPS") % [WorkOrder.num(float(n.currentA)), WorkOrder.num(float(n.ampacityA))], wc, 140.0, 1)
+		_text(_mono(), 10, mid + Vector2(-70, -8), T("C8_AMPS") % [WorkOrder.num(float(n.currentA)), WorkOrder.num(float(n.ampacityA))], wc, 140.0, 1)
 		if n.get("regulator") != null:   # the step regulator in this section
-			var rp := mid + Vector2(0, 0); draw_rect(Rect2(rp - Vector2(15, 11), Vector2(30, 22)), Color(GridTheme.INK)); draw_rect(Rect2(rp - Vector2(15, 11), Vector2(30, 22)), GridTheme.COPPER, false, 2.0)
-			_text(_semi(), 10, rp + Vector2(-15, 4), T("C8_REG_SHORT"), GridTheme.COPPER, 30.0, 1); _text(_mono(), 10, rp + Vector2(-40, 46), T("C8_REG_AT") % WorkOrder.num(float(n.regulator)), GridTheme.COPPER, 80.0, 1)
+			var rp := mid + Vector2(0, 22); draw_line(mid, rp, GridTheme.COPPER, 2.0); draw_rect(Rect2(rp - Vector2(15, 11), Vector2(30, 22)), Color(GridTheme.INK)); draw_rect(Rect2(rp - Vector2(15, 11), Vector2(30, 22)), GridTheme.COPPER, false, 2.0)
+			_text(_semi(), 10, rp + Vector2(-15, 4), T("C8_REG_SHORT"), GridTheme.COPPER, 30.0, 1); _text(_mono(), 10, rp + Vector2(-40, 30), T("C8_REG_AT") % WorkOrder.num(float(n.regulator)), GridTheme.COPPER, 80.0, 1)
 		# the node: a dot filled by its voltage against the band, the customers and the two voltages
 		var va: float = float(rowa[i]); var vb: float = float(rowb[i])
 		var good := _in_band(va, lo, hi) and _in_band(vb, lo, hi)
@@ -182,7 +199,7 @@ func _profile(r: Rect2, tree: Array, xs_km: Array, series: Array) -> void:
 	draw_line(_pt(0.0, lo), _pt(total, lo), Color(GridTheme.BAD, 0.7), 1.5); draw_line(_pt(0.0, hi), _pt(total, hi), Color(GridTheme.BAD, 0.7), 1.5)
 	_text(_mono(), 10, _pt(total, lo) + Vector2(-190, 12), T("C8_BAND_LO") % WorkOrder.num(float(band.loV)), Color(GridTheme.BAD, 0.9))
 	_text(_mono(), 10, _pt(total, hi) + Vector2(-190, -4), T("C8_BAND_HI") % WorkOrder.num(float(band.hiV)), Color(GridTheme.BAD, 0.9))
-	var k := 0
+	var lgx := 0.0
 	for s in series:
 		var pts := [[0.0, float(band.nominalV)]]
 		for i in range(1, xs_km.size()): pts.append([xs_km[i], s.vals[i - 1]])
@@ -190,9 +207,9 @@ func _profile(r: Rect2, tree: Array, xs_km: Array, series: Array) -> void:
 		for i in range(1, xs_km.size()):
 			var p := _pt(float(xs_km[i]), float(s.vals[i - 1])); var good := _in_band(float(s.vals[i - 1]), lo, hi)
 			draw_circle(p, 5.0, _good(good)); draw_circle(p, 3.0, s.col)
-		draw_line(Vector2(pr.position.x + 10.0 + 150.0 * k, pr.position.y + 12.0), Vector2(pr.position.x + 30.0 + 150.0 * k, pr.position.y + 12.0), s.col, 3.0)
-		_text(_mono(), 10, Vector2(pr.position.x + 36.0 + 150.0 * k, pr.position.y + 16.0), str(s.name), GridTheme.TEXT)
-		k += 1
+		draw_line(Vector2(pr.position.x + 10.0 + lgx, pr.position.y + 12.0), Vector2(pr.position.x + 30.0 + lgx, pr.position.y + 12.0), s.col, 3.0)
+		_text(_mono(), 10, Vector2(pr.position.x + 36.0 + lgx, pr.position.y + 16.0), str(s.name), GridTheme.TEXT)
+		lgx += 56.0 + _mono().get_string_size(str(s.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10)).x
 
 func _cum_km(tree: Array) -> Array:
 	var out := [0.0]; var c := 0.0

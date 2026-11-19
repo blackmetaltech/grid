@@ -10,7 +10,7 @@ func _init() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func build() -> void:
-	for s in [Ch8Long.new(), Ch8Reliab.new(), Ch8Tcc.new()]:
+	for s in [Ch8Long.new(), Ch8Reliab.new(), Ch8Tcc.new(), Ch8Subst.new(), Ch8Sun.new(), Ch8Exam.new()]:
 		s.app = app; stages[s.scenario] = s; add_child(s)
 
 func _hide() -> void:

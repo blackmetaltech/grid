@@ -20,7 +20,7 @@ func _build_panel(ip: Rect2) -> void:
 	var links: Array = kit.get("fuseLinks", []); var spurs: Array = kit.get("spurs", [])
 	for s in spurs.size():
 		var sp: Dictionary = spurs[s]; _cap(ip, 330, 34.0 + 38.0 * s, T("C8_SPUR_CAP") % [str(sp.id), int(sp.loadA)])
-		for k in links.size(): _c(ip, 396.0 + 37.0 * k, 4.0 + 38.0 * s, 34, 34, WorkOrder.num(float(links[k])), "link:" + str(sp.id), float(links[k]), is_equal_approx(float(d.fuse[str(sp.id)]), float(links[k])))
+		for k in links.size(): _c(ip, 390.0 + 35.0 * k, 4.0 + 38.0 * s, 32, 34, WorkOrder.num(float(links[k])), "link:" + str(sp.id), float(links[k]), is_equal_approx(float(d.fuse[str(sp.id)]), float(links[k])))
 
 func _pressed(h: Dictionary, _p: Vector2) -> void:
 	var d: Dictionary = q.design; var id := str(h.id); var v: float = float(h.arg)
@@ -35,12 +35,8 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 
 func _kind() -> String: return "ok" if q.get("kind") == null else str(q.kind)
 
-func _body(ip: Rect2) -> void:
-	var d: Dictionary = q.design
-	_status(ip, T("C8_L33_STATUS") % [WorkOrder.num(float(q.headLoadA)), WorkOrder.num(float(d.pickupA)), T("C8_KIND_" + _kind())], _good(_kind() == "ok"), 160.0, 430.0)
-
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(420.0)
+	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r := Rect2(Vector2(30.0, top), Vector2(maxf((w - 60.0) * 0.68, 420.0), bh))
 	var xlo := 80.0; var xhi := 6000.0
 	_frame(r, xlo, xhi, 0.01, 300.0, true, true, T("C8_TC_X"), T("C8_TC_Y"))
@@ -81,7 +77,7 @@ func _draw_stage() -> void:
 	lines.append([T("C8_WORST") % [WorkOrder.num(float(q.marginS)), WorkOrder.num(float(q.marginStarS))], _good(float(q.marginS) >= 0.0)])
 	lines.append([T("C8_BLOWS") % [WorkOrder.num(float(q.blowsPerYear)), int(round(float(q.tempFaultShare) * 100.0))], Color(GridTheme.TEXT, 0.8)])
 	lines.append([T("C8_L33_GLOSS1"), Color(GridTheme.TEXT, 0.6)]); lines.append([T("C8_L33_GLOSS2"), Color(GridTheme.TEXT, 0.6)])
-	var cr := Rect2(lg.position + Vector2(0, 76.0), Vector2(lg.size.x, lg.size.y - 76.0)); _card_text(cr, lines, 10, 6.0, 0.0)
+	var cr := Rect2(lg.position + Vector2(0, 108.0), Vector2(lg.size.x, lg.size.y - 108.0)); _card_lines(cr, lines, 10, 6.0, 0.0)
 
 ## A vertical bracket between two curves at the current (inside [lo, hi]) where they are closest, with the engine's margin beside it.
 func _bracket(c1: Array, c2: Array, lo: float, hi: float, col: Color, margin: float, slow: bool) -> void:
