@@ -149,6 +149,8 @@ func refresh() -> void:
 	_last_tick = tk; _last_log = nlog
 	pal = p
 	build_items(p)
+	if knobs.get("mw") == KNOBS.mw.def:   # the Size knob reads the level's first unit rating from the start (it read 20 MW beside a 105 MW gas unit until one was armed)
+		for it in items: if str(it.get("action", "")) == "placeUnit" and _tail_number(str(it.get("part", ""))) != "": knobs.mw = clampf(float(_tail_number(str(it.part))), KNOBS.mw.min, KNOBS.mw.max); break
 	if items.is_empty(): visible = false; return   # a level with nothing to place or operate (the L22 exam) shows no empty shelf
 	visible = true
 	if mode == "pick": _show_pegs()

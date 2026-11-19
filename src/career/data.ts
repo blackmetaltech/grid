@@ -50,14 +50,14 @@ export const GROWTH: Sourced & { baseMinPct: number; baseMaxPct: number; evStart
 
 /** The district at the start of the career: 2 primaries (33/11 kV), two transformers each, 9 radial 11 kV feeders, ~40 000 customers. */
 export const DISTRICT: Sourced & {
-  primaries: { id: string; name: string; txRatingMVA: number; feeders: number; customersPerFeeder: number }[];
+  primaries: { id: string; /** locale key of the substation's name */ name: string; txRatingMVA: number; feeders: number; customersPerFeeder: number }[];
   admdKw: number; sectionLengthsKm: number[]; sectionShares: number[]; conductors: string[][];
   devices: ('none' | 'manual' | 'remote' | 'fuse')[][]; tiedFeeders: number[]; txAges: number[]; swgAges: number[]; lineAgeMean: number; lineAgeSd: number; wearMin: number; wearMax: number; vegStart: number;
   crews: number; maxFeeders: number; maxUnitsPerPrimary: number;
 } = {
   primaries: [
-    { id: 'P1', name: 'Brightwater North', txRatingMVA: 28, feeders: 5, customersPerFeeder: 4600 },
-    { id: 'P2', name: 'Millford', txRatingMVA: 20, feeders: 4, customersPerFeeder: 4250 },
+    { id: 'P1', name: 'career.primary.P1', txRatingMVA: 28, feeders: 5, customersPerFeeder: 4600 },
+    { id: 'P2', name: 'career.primary.P2', txRatingMVA: 20, feeders: 4, customersPerFeeder: 4250 },
   ],
   admdKw: 0.9, sectionLengthsKm: [1.5, 2, 2, 2], sectionShares: [0.2, 0.28, 0.3, 0.22],
   conductors: [['Dog', 'Dog', 'Rabbit', 'Weasel'], ['Hyena', 'Dog', 'Dog', 'Rabbit'], ['Dog', 'Dog', 'Rabbit', 'Rabbit']],
