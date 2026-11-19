@@ -138,4 +138,11 @@ func _initialize() -> void:
 	# ---- level change clears the tray ----
 	T.level("L01"); sync.call()
 	T.check(not tray.visible and world.peg_count() == 0 and not tray.op_open(), "a bench level hides the grid tray")
+	# every place cell sends its arguments in the engine's order: a gas unit picked on L20's bus is built (the tray once sent the bus as the part)
+	tray.cancel(); T.level("L20"); sync.call()
+	var gi := tray.place_index("placeUnit", "ocgt-105"); T.check(gi >= 0, "L20 offers the gas unit")
+	if gi >= 0:
+		var nu := (T.b.g.units as Array).size()
+		tray.activate(gi); sync.call(); var r := tray.press_target("B1"); sync.call()
+		T.check(bool(r.get("ok", false)) and (T.b.g.units as Array).size() == nu + 1 and str(T.b.g.units.back().catalogId) == "ocgt-105", "a gas unit placed from the tray is built on B1 (%s)" % str(r.get("message", "")))
 	T.finish("GRID-TRAY-FLOW", self)

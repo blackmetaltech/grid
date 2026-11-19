@@ -43,7 +43,7 @@ const ACTIONS := {
 	"placeShunt": {"icon": "capacitor", "pick": ["bus"], "args": ["$0", "$part", "$steps"], "knobs": ["steps"]},
 	"placeBank": {"icon": "capacitor", "pick": ["bus"], "args": ["$0", "$part", "$steps", "$detune"], "knobs": ["steps", "detune"]},   # chapter 3 (L08): a bank with a series reactor
 	"placeSeriesCap": {"icon": "series", "pick": ["line"], "args": ["$0", "$part"], "knobs": []},   # chapter 3 (L09): the parts are the shares of the line's reactance to cancel
-	"placeUnit": {"icon": "gas", "pick": ["bus"], "args": ["$0", "$part", "$mw"], "knobs": ["mw"]},
+	"placeUnit": {"icon": "gas", "pick": ["bus"], "args": ["$part", "$0", "$mw"], "knobs": ["mw"]},   # the engine takes (catalogue id, bus, MW): bus first had every gas unit refused ("the part B1 is not available", L20)
 	"placeStorage": {"icon": "battery", "pick": ["bus"], "args": ["$0", "$part"], "knobs": []},
 	"placeTransformer": {"icon": "transformer", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part"], "knobs": []},
 	"stringLine": {"icon": "line", "pick": ["bus", "bus2"], "args": ["$0", "$1", "$part", "$circuits", "$km"], "knobs": ["circuits", "km"]},
