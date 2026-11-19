@@ -101,7 +101,8 @@ func _rebuild_ticker(g: Dictionary) -> void:
 	_ticker.text = "\n".join(lines) if lines.size() > 0 else tx("CF_TICKER_EMPTY")
 
 func _layout() -> void:
-	var vp := get_viewport_rect().size
+	if not is_inside_tree(): return
+	var vp := Vector2(app.vw(), app.vs_h()) if app != null and app.is_inside_tree() and app.has_method("vw") else get_viewport_rect().size   # the app's usable area (safe-area inset off)
 	var phone: bool = CbLayout.kind == "phone"
 	_toggle.visible = phone
 	if phone:
@@ -111,7 +112,7 @@ func _layout() -> void:
 		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 		_scroll.custom_minimum_size = Vector2(W - 24.0, minf(_box.get_combined_minimum_size().y, avail))
 		size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0)
-		position = Vector2(vp.x - W - 8.0, top)
+		reset_size(); position = Vector2(maxf(4.0, vp.x - maxf(size.x, get_combined_minimum_size().x) - 8.0), top)   # by the card's real width: wide kit buttons had pushed it past the right edge
 		_day_lbl.visible = false   # the toggle row carries the day and the clock
 	else:
 		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.custom_minimum_size = Vector2.ZERO; _scroll.visible = true; _day_lbl.visible = true
