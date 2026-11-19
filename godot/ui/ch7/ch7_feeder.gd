@@ -26,7 +26,7 @@ func _press(h: Dictionary, p: Vector2) -> void:
 			var k := int(h.arg); var pt := stepper_parts(h.rect)
 			if (pt.minus as Rect2).grow(6.0).has_point(p): _set_tms(k, _tms(k) - (0.025 if bool(h.get("right", false)) else 0.05))
 			elif (pt.plus as Rect2).grow(6.0).has_point(p): _set_tms(k, _tms(k) + (0.025 if bool(h.get("right", false)) else 0.05))
-			else: _drag(h, p)
+			elif on_track(h.rect, p): _drag(h, p)
 
 func _drag(h: Dictionary, p: Vector2) -> void:
 	var tr: Rect2 = stepper_parts(h.rect).track

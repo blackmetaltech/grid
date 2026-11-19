@@ -176,6 +176,13 @@ func _l20(g: Dictionary, locked: bool) -> void:
 		else:   # a store on its clock keeps its row, ticked (the row used to vanish: after Retry "S2-S8, no S1" read as a lost store)
 			var done := Button.new(); done.text = "✓ " + tx("C6_CLOCKED") % [str(b.id), int(round(float(b.mw)))]; done.disabled = true; done.custom_minimum_size = Vector2(0, 30); done.name = "c6_clocked_" + str(b.id)
 			done.focus_mode = Control.FOCUS_NONE; done.add_theme_font_size_override("font_size", GridTheme.fs(14)); _box.add_child(done)
+	for u in g.units:   # a peaker you bought stands idle until ordered on: one button orders it on for the dusk ramp (testers bought gas units and never committed them)
+		if str(u.get("catalogId", "")) != "ocgt-105": continue
+		var sch: Array = (u.get("commit", {}) as Dictionary).get("schedule", []) if u.get("commit") is Dictionary else []
+		if sch.any(func(v): return float(v) > 0.5) or bool(u.get("online", false)):
+			var on := Button.new(); on.text = "✓ " + tx("C6_PEAKER_ON") % [str(u.id), int(round(float(u.pMax)))]; on.disabled = true; on.custom_minimum_size = Vector2(0, 30); on.name = "c6_peaker_on_" + str(u.id)
+			on.focus_mode = Control.FOCUS_NONE; on.add_theme_font_size_override("font_size", GridTheme.fs(14)); _box.add_child(on)
+		else: _btn(tx("C6_PEAKER_ORDER") % [str(u.id), int(round(float(u.pMax)))], "commit", [str(u.id), true, 56])
 	for l in g.loads:
 		if str(l["class"]) == "agricultural":
 			var noon: bool = l.shape != null and float((l.shape.p as Array)[44]) > 0.5

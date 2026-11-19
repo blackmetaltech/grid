@@ -89,7 +89,7 @@ func _initialize() -> void:
 	T.check(not rb.get("ok", true) and sys.call().size() == nsb + 1 and bool(T.b.g.branches[0].inService), "the engine does not allow it in L07: refusal on the radio, line unchanged")
 	tray.cancel()
 	tray.build_items({"active": true, "actions": [{"action": "demolish", "parts": []}]}); tray.activate(0)
-	T.check(tray.mode == "pick" and world.peg_count() == 3, "remove lights every element: the line, the generator and the bank (%d)" % world.peg_count())
+	T.check(tray.mode == "pick" and world.peg_count() == 2, "remove lights the line and the bank, not the level's own generator (%d)" % world.peg_count())
 	tray.cancel(); tray.build_items(T.b.q("palette"))
 	# ---- locked: the night runs ----
 	lock[0] = true

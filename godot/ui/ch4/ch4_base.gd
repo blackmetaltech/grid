@@ -106,7 +106,7 @@ func _gui_input(e: InputEvent) -> void:
 			if str(h.kind) == "fold": _collapsed = not _collapsed; layout(); queue_redraw(); accept_event(); return
 			if _locked(): app.toast(T("C4_LOCKED"), "warn"); app.sfx("bad"); accept_event(); return
 			h = h.duplicate(); h["right"] = e.button_index == MOUSE_BUTTON_RIGHT or e.shift_pressed
-			drag_id = str(h.id) if str(h.kind) == "slider" else ""
+			drag_id = str(h.id) if str(h.kind) == "slider" and on_track(h.rect, _local(h, e.position)) else ""   # a press on − / + or the caption never starts a drag
 			_press(h, _local(h, e.position)); accept_event()
 		else: drag_id = ""; _panning = false
 	elif e is InputEventMouseMotion:
@@ -204,6 +204,9 @@ func _stepper(r: Rect2, cap: String, vtxt: String, frac: float, id: String) -> v
 	draw_rect(Rect2(tr.position + Vector2(0, 6), Vector2(tr.size.x, 4)), Color(GridTheme.SODIUM_DIM, 0.35))
 	draw_rect(Rect2(tr.position + Vector2(0, 6), Vector2(tr.size.x * clampf(frac, 0.0, 1.0), 4)), GridTheme.SODIUM if not lock else GridTheme.DIM)
 	draw_circle(tr.position + Vector2(tr.size.x * clampf(frac, 0.0, 1.0), 8), 8.0, GridTheme.SODIUM if not lock else GridTheme.DIM); draw_circle(tr.position + Vector2(tr.size.x * clampf(frac, 0.0, 1.0), 8), 3.0, GridTheme.NIGHT)
+
+## True on a stepper's slider track (with a finger's margin).
+func on_track(r: Rect2, p: Vector2) -> bool: return (stepper_parts(r).track as Rect2).grow_individual(10.0, 12.0, 10.0, 12.0).has_point(p)
 
 func stepper_parts(r: Rect2) -> Dictionary:
 	var by := r.position.y + 40.0

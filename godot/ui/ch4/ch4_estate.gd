@@ -42,7 +42,7 @@ func _press(h: Dictionary, p: Vector2) -> void:
 		var pt := stepper_parts(h.rect)
 		if (pt.minus as Rect2).grow(6.0).has_point(p): _send_bank(_count() - (1 if bool(h.get("right", false)) else 5))
 		elif (pt.plus as Rect2).grow(6.0).has_point(p): _send_bank(_count() + (1 if bool(h.get("right", false)) else 5))
-		else: _drag(h, p)
+		elif on_track(h.rect, p): _drag(h, p)   # only the track itself jumps (a click on the caption or the value sent 0 -> 140)
 
 func _drag(h: Dictionary, p: Vector2) -> void:
 	var tr: Rect2 = stepper_parts(h.rect).track

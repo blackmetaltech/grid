@@ -300,6 +300,7 @@ func activate(i: int, down := false) -> void:
 	if mode == "pick" and armed == i: cancel(); return
 	_cancel_quiet()
 	var sp := _spec(str(it.action))
+	if str(it.action) == "placeUnit" and knobs.has("mw") and _tail_number(str(it.get("part", ""))) != "": knobs.mw = clampf(float(_tail_number(str(it.part))), KNOBS.mw.min, KNOBS.mw.max)   # the size starts at the unit's rating (L20's 105 MW peaker was bought as a 20 MW unit)
 	armed = i
 	if (sp.pick as Array).is_empty(): var r := run_armed(); armed = -1; queue_redraw(); return   # a cell with nothing to pick acts at once
 	mode = "pick"; picks = []; _show_pegs(); mode_changed.emit(mode); _hint(); queue_redraw()
@@ -361,6 +362,7 @@ func _show_pegs() -> void:
 	_targets = elements(_kind_of_pick())
 	var only: Array = items[armed].get("only", []) if armed >= 0 and armed < items.size() else []
 	if not only.is_empty(): _targets = _targets.filter(func(t): return only.has(str(t.id)))
+	if armed >= 0 and armed < items.size() and str(items[armed].get("action", "")) == "demolish": _targets = _targets.filter(func(t): return not _fleet_unit(str(t.get("kind", "")), str(t.id)))
 	if target_hi >= _targets.size(): target_hi = -1
 	if world == null: return
 	var pegs: Array = []
@@ -528,6 +530,12 @@ func op_elements(kind: String) -> Array:
 		return out
 	return elements(kind)
 
+## A generating unit the level placed (not bought this job): Remove leaves it alone.
+func _fleet_unit(kind: String, id: String) -> bool:
+	if kind != "unit": return false
+	var pur = b.g.get("purchases", {})
+	return not (pur is Dictionary and (pur as Dictionary).has(id))
+
 func _loads_at(bus: String) -> Array:
 	return (b.g.get("loads", []) as Array).filter(func(l): return str(l.bus) == bus)
 
@@ -561,6 +569,7 @@ func op_rows(kind: String, id: String) -> Array:
 			if e.is_empty() or (str(op.elem) != "*" and str(op.elem) != str(t.kind)): continue
 			if op.has("needs") and e.get(str(op.needs)) == null: continue
 			if op.get("thermal", false) and str(e.get("kind", "")) in ["pv", "wind"]: continue
+			if act == "demolish" and _fleet_unit(str(t.kind), str(t.id)): continue   # the level's own power stations are not the player's to take down (L20: Remove took a coal unit's tower, no confirmation)
 			if kind == "bus" and act == "demolish": continue   # a town's own loads are not the player's to take down: three anonymous "Remove" rows on a bus tag removed load, not the bank (L08)
 			out.append({"action": act, "op": op, "elem": t})
 	return out
@@ -664,7 +673,7 @@ func _op_row(r: Dictionary) -> void:
 		"pair":   # the unit's state next to Start / Stop (L16: Start changed nothing visible on the tag)
 			var sch: Array = (e.get("commit", {}) as Dictionary).get("schedule", []) if e.get("commit") is Dictionary else []
 			var blk := int((b.g.get("clock", {}) as Dictionary).get("block", 0)); var at := int(sch[blk]) if blk < sch.size() else -1   # the order for this block (set at once) wins over "online" (that follows on the next tick)
-			var st := ("GT_OP_RUNNING" if at == 1 else "GT_OP_STOPPED") if at >= 0 else ("GT_OP_RUNNING" if bool(e.get("online", false)) else ("GT_OP_ORDERED" if sch.has(1) else "GT_OP_STOPPED"))
+			var st := ("GT_OP_RUNNING" if at == 1 else "GT_OP_STOPPED") if at >= 0 else ("GT_OP_RUNNING" if bool(e.get("online", false)) else ("GT_OP_ORDERED" if sch.any(func(v): return float(v) > 0.5) else "GT_OP_STOPPED"))
 			var sl := _tlabel(tx(st), 16, GridTheme.PAPER_INK, "mono"); sl.custom_minimum_size.x = 84; sl.name = "state_" + act; h.add_child(sl)
 			var a1 := _tbtn(tx("GT_OP_START"), func(): op_do(act, [eid, true]), 70); a1.name = "on_" + act; h.add_child(a1)
 			var a2 := _tbtn(tx("GT_OP_STOP"), func(): op_do(act, [eid, false]), 70); a2.name = "off_" + act; h.add_child(a2)

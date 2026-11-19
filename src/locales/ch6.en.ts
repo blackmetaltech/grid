@@ -53,7 +53,7 @@ export const EN_CH6: Record<string, string> = {
   'level.L20.tryBudget': 'The stores cost more than the budget. Peakers and moving the pumps are the cheaper flexibility; a pumped-hydro unit is the dearest.',
   'coach.L20.watch': 'Press Run and watch the net load: demand minus the sun. Find the ramp at dusk.',
   'coach.L20.watch.why': 'The coal units hold the base; the sun takes the middle of the day away from them and then leaves in two hours while the town is still switching its lights on.',
-  'coach.L20.flex': 'Add flexibility: peakers, a store, or move the irrigation pumps to noon. A peaker only helps once committed: tap it and press Start at about 14:00.',
+  'coach.L20.flex': 'Add flexibility: peakers, a store, or move the irrigation pumps to noon. A peaker only helps once it is ordered on: press its button in the control-room card (on from 14:00). Four 105 MW peakers and the pumps at noon is the cheapest pass.',
   'coach.L20.flex.why': 'A peaker is a fast gas turbine, a store holds the noon surplus for dusk, and a pump moved to noon turns a dusk load into a noon one for free.',
   'coach.L20.clock': 'Set a store to charge in the sun and discharge at dusk, or shift the pumps. Then run the day.',
   'coach.L20.clock.why': 'Charge while the sun is surplus (it would be curtailed) and discharge when the net load climbs.',

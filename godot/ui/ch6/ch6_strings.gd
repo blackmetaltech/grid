@@ -4,7 +4,7 @@ extends RefCounted
 const S := {
 	"C6_TITLE_L19": "Control room", "C6_TITLE_L20": "Control room", "C6_TITLE_L21": "Control room", "C6_TITLE_L22": "Exam sheet",
 	"C6_F": "f  %.3f Hz", "C6_NADIR": "lowest %.2f Hz · RoCoF %.2f Hz/s", "C6_SHED": "shed %.0f MW", "C6_BAND": "in range %.1f %% · curtailed %.1f %%",
-	"C6_SPIN": "Keep the spare coal unit spinning", "C6_FFR": "Battery %s (%d MW): frequency response", "C6_CLOCK": "Store %s (%d MW): charge 10-14, discharge 15-21", "C6_CLOCKED": "Store %s (%d MW) on its clock: charges 10-14, gives back 15-21",
+	"C6_SPIN": "Keep the spare coal unit spinning", "C6_FFR": "Battery %s (%d MW): frequency response", "C6_CLOCK": "Store %s (%d MW): charge 10-14, discharge 15-21", "C6_PEAKER_ORDER": "Gas unit %s (%d MW): order it on from 14:00", "C6_PEAKER_ON": "Gas unit %s (%d MW) ordered on from 14:00", "C6_CLOCKED": "Store %s (%d MW) on its clock: charges 10-14, gives back 15-21",
 	"C6_PUMP_NOON": "Move the irrigation pumps to noon", "C6_PUMP_NIGHT": "Put the pumps back on the night blocks",
 	"C6_COAL": "Hold coal unit %s hot", "C6_COND": "Condenser %s (%d MVA)", "C6_RIDE": "Fit the rooftops with ride-through",
 	"C6_P_A": "A: RoCoF (Hz/s) of a 500 MVA machine, H = 5 s (inertia constant), at 60 Hz, that loses 0.2 pu of power", "C6_P_B": "B: frequency change df (Hz, at 50 Hz) for droop R = 0.05 (5 %), load damping D = 0.8, power step dP = 0.01 pu",

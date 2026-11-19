@@ -48,7 +48,11 @@ func _initialize() -> void:
 	var ids20: Array = []
 	for st in T.b.g.storage: ids20.append(str(st.id))
 	T.check(ref20 == 0 and ids20.size() == 8 and ids20.has("S1") and str(T.b.g.storage[0].catalogId) == "psp-250" and str(T.b.g.storage[0].get("mode", "")) == "schedule", "L20 Retry: hydro S1 and seven batteries come back, S1 on its clock (%s, refused %d)" % [str(ids20), ref20])
+	T.b.act("placeUnit", ["ocgt-105", "B1", 105]); var gid := str(T.b.g.units.back().id)
 	p.refresh(); bs.clear(); _buttons(p, bs)
+	T.check(bs.has("c6_commit"), "L20: a bought peaker gets an order-on button (%s)" % str(bs))
+	p._do("commit", [gid, true, 56]); p.refresh(); bs.clear(); _buttons(p, bs)
+	T.check(bs.has("c6_peaker_on_" + gid), "and reads ordered on afterwards")
 	T.check(bs.has("c6_clocked_S1"), "L20: the store on its clock keeps a ticked row (%s)" % str(bs))
 	T.level("L20"); p.refresh(); bs.clear(); _buttons(p, bs)
 	T.check(bs.has("c6_shiftLoad"), "L20: the pumps to noon (%s)" % str(bs))
