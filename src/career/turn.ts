@@ -1,7 +1,7 @@
 // The quarter: instalments and completions, growth, ageing, analysis, events, incident responses, money, review, endings.
 import { MONEY, PROJECT_DETAIL } from './data';
 import { avgHealth, worstHealth } from './ageing';
-import { analyseFeeder, districtExpected } from './district';
+import { analyseFeeder, districtExpected, charterOf } from './district';
 import { rollQuarter } from './events';
 import { baseOpexQ, interestQ, rabNext } from './money';
 import { allowedShare, completeProject, overrun, renewAsset } from './projects';
@@ -70,7 +70,7 @@ function settle(s: CareerState): ActionResult {
   const revenue = s.ar / 4;
   const drCost = s.projects.filter((p) => p.status === 'active' && p.kind === 'demandResponse').length * PROJECT_DETAIL.drCostQ;
   const vegCost = s.vegLevel * MONEY.vegPerLevelFeederQ * s.feeders.length;
-  const baseQ = baseOpexQ(N, s.crews), lossQ = (out.lossesMWh * MONEY.lossCostPerMWh) / 1e6, vQ = out.vViolations * 0.01;
+  const baseQ = baseOpexQ(N, s.crews), lossQ = (out.lossesMWh * MONEY.lossCostPerMWh) / 1e6, vQ = out.vViolations * 0.01 * charterOf(s).vPenalty;
   const opex = baseQ + out.repairCostM + lossQ + drCost + vegCost + vQ;
   const capex = out.capexM + out.emergencyCapexM;
   s.cash += revenue - opex - capex + interestQ(s.cash);

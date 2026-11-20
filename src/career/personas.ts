@@ -1,8 +1,9 @@
+import type { CharterId } from './data';
 // Test personas: idle, firefighter (reacts only), goldPlater (builds everything affordable), planner (the reference heuristic).
 import { dmath } from '@core/numerics';
 import { shownHealth, trueHealth, wearRate } from './ageing';
 import { INCENTIVE, MONEY, WEIBULL } from './data';
-import { analyseFeeder, conductorRow, stormUplift, toRadial, districtExpected, type FeederAnalysis } from './district';
+import { analyseFeeder, charterOf, conductorRow, stormUplift, toRadial, districtExpected, type FeederAnalysis } from './district';
 import { solveRadial } from '../sim/distrib';
 import { DISTRICT } from './data';
 import { forecastPeakKw } from './growth';
@@ -113,7 +114,7 @@ export const planner: Persona = {
       const q = quoteProject(d.s, 'replaceAssets', as.id); if (!q.ok) return;
       const sh = shownHealth(as, d.s.t).health, tEst = ((10 - sh) * 1.2 * WEIBULL.line.eta) / 9;
       const now = wearRate({ ...as, installQ: d.s.t - tEst * 4, wear: 1, extraYears: 0 }, d.s.t), pf = an[f.id]!.perFault[i]!;
-      const val = now * WEIBULL.line.wearPerKm * sec.lengthKm * (1 + stormUplift(f.veg)) * (INCENTIVE.cmiRateM * pf.cm + INCENTIVE.cifRateM * pf.ci);
+      const val = now * WEIBULL.line.wearPerKm * sec.lengthKm * (1 + stormUplift(f.veg, charterOf(d.s).storm)) * (INCENTIVE.cmiRateM * pf.cm + INCENTIVE.cifRateM * pf.ci);
       lines.push({ id: as.id, score: val / q.capexM, capex: q.capexM, lead: q.leadQ });
     });
     lines.sort((x, y) => y.score - x.score);
@@ -190,8 +191,8 @@ export const planner: Persona = {
 export const PERSONAS: Persona[] = [idle, firefighter, goldPlater, planner];
 
 /** Play a career with a persona (interactive incidents are answered by `respond`). Returns the final state and the full action list (a replayable career). */
-export function runPersona(seed: number, p: Persona, quarters = 40): { state: CareerState; actions: CareerAction[]; score: number } {
-  let s = buildDistrict(seed);
+export function runPersona(seed: number, p: Persona, quarters = 40, charter: CharterId = 'standard'): { state: CareerState; actions: CareerAction[]; score: number } {
+  let s = buildDistrict(seed, charter);
   const actions: CareerAction[] = [];
   while (s.phase !== 'over' && s.t < quarters) {
     const d = doer(s);

@@ -75,3 +75,18 @@ describe('career wiring', () => {
     }
   });
 });
+
+describe('1.3 charters in the game', () => {
+  it('careerStart takes a charter, careerWeekly a week; the query and code carry them', () => {
+    const e = play();
+    expect(act(e, 'careerStart', 4, 'boom').ok).toBe(true);
+    let c = q(e, 'career');
+    expect(c.charter).toBe('boom'); expect(String(c.charterName)).toBe('Boomtown'); expect(String(c.code).startsWith('C2/4/boom/')).toBe(true);
+    expect(act(e, 'careerLoad', String(c.code)).ok).toBe(true); expect(q(e, 'career').charter).toBe('boom');
+    expect(act(e, 'careerWeekly', 2026, 47).ok).toBe(true);
+    c = q(e, 'career'); expect(c.weekly).toBe('2026-W47'); expect(c.charter).not.toBe('standard');
+    expect(act(e, 'careerWeekly', 2026, 60).ok).toBe(false);
+    const ch = q(e, 'careerCharters', 2026, 47);
+    expect(ch.charters).toHaveLength(7); expect(ch.weekly.key).toBe('2026-W47'); expect(ch.weekly.charter).toBe(c.charter);
+  });
+});

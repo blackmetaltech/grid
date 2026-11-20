@@ -2,7 +2,7 @@
 // The planner must beat the firefighter on 45 of 50 seeds (1.3: 46). When the network cannot meet its targets even in fair weather it goes
 // into reliability emergency mode: every feeder is a candidate, it may borrow and use capacity crews, and it trims more trees.
 import { describe, expect, it } from 'vitest';
-import { firefighter, goldPlater, idle, planner, runPersona, type CareerState } from './index';
+import { CHARTER_IDS, firefighter, goldPlater, idle, planner, runPersona, type CareerState } from './index';
 
 const SEEDS = Array.from({ length: 50 }, (_, i) => i + 1);
 const sweep = (p: typeof idle): { score: number; state: CareerState }[] => SEEDS.map((s) => { const r = runPersona(s, p); return { score: r.score, state: r.state }; });
@@ -29,4 +29,15 @@ describe('persona sweep, seeds 1..50', () => {
     expect(R.idle.filter((r) => r.state.ending === 'chiefEngineer').length).toBe(0);
     expect(R.planner.filter((r) => r.state.ending === 'chiefEngineer').length).toBeGreaterThanOrEqual(12);   // Chief now needs targets met 8 of 10 years, healthier assets, cash >= 0 and a clean load index
   });
+});
+
+describe('1.3 charters are winnable and reward planning', () => {
+  it('on every charter the planner beats the firefighter on most of 12 seeds', () => {
+    const got: string[] = [];
+    for (const c of CHARTER_IDS.filter((x) => x !== 'standard')) {
+      let pf = 0; for (let sd = 1; sd <= 12; sd++) if (runPersona(sd, planner, 40, c).score > runPersona(sd, firefighter, 40, c).score) pf++;
+      got.push(`${c} ${pf}`); expect(pf, c).toBeGreaterThanOrEqual(7);
+    }
+    console.log('charters P>F /12:', got.join(', '));
+  }, 600000);
 });

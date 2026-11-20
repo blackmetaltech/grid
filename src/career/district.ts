@@ -2,7 +2,7 @@
 import { dmath } from '@core/numerics';
 import { CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
 import { systemRng } from '../sim/rngs';
-import { DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL } from './data';
+import { CHARTERS, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
 import { wearRate, avgHealth } from './ageing';
 import { hourlyLoad } from './growth';
 import type { Asset, CareerState, Feeder, Primary, Section } from './state';
@@ -19,12 +19,16 @@ export function meanCountedSeverity(): number {
   return 0.5 * us + (2.5 * us * us * us) / 3;
 }
 /** Expected storm fault uplift (fraction of the calm fault rate, per year) for a vegetation index. */
-export function stormUplift(veg: number): number {
-  const rate = WEATHER.stormRate.reduce((a, b) => a + b, 0);
+export function stormUplift(veg: number, stormMult = 1): number {
+  const rate = WEATHER.stormRate.reduce((a, b) => a + b, 0) * stormMult;
   return rate * WEATHER.stormMult * meanCountedSeverity() * (0.5 + veg) * (WEATHER.stormDays / 365);
 }
 
-export function buildDistrict(seed: number): CareerState {
+/** The charter's modifiers for a career (Home Counties when none). */
+export const charterOf = (s: { charter?: CharterId }): CharterRow => CHARTERS[s.charter ?? 'standard'] ?? CHARTERS.standard;
+
+export function buildDistrict(seed: number, charter: CharterId = 'standard'): CareerState {
+  const ch = CHARTERS[charter] ?? CHARTERS.standard;
   const rng = systemRng(seed, 0, 0, 'district');
   const feeders: Feeder[] = [], primaries: Primary[] = [], assets: Asset[] = [];
   let fi = 0;
@@ -33,32 +37,32 @@ export function buildDistrict(seed: number): CareerState {
   };
   DISTRICT.primaries.forEach((p, pi) => {
     const unitIds = [`${p.id}-T1`, `${p.id}-T2`];
-    unitIds.forEach((id, k) => mkAsset({ id, cls: 'tx', primaryId: p.id, ratingMVA: p.txRatingMVA }, DISTRICT.txAges[pi * 2 + k]! + dmath.round(rng.range(-3, 3))));
-    mkAsset({ id: `${p.id}-SG`, cls: 'switchgear', primaryId: p.id }, DISTRICT.swgAges[pi]! + dmath.round(rng.range(-3, 3)));
+    unitIds.forEach((id, k) => mkAsset({ id, cls: 'tx', primaryId: p.id, ratingMVA: p.txRatingMVA }, DISTRICT.txAges[pi * 2 + k]! + dmath.round(rng.range(-3, 3)) + ch.ageYears));
+    mkAsset({ id: `${p.id}-SG`, cls: 'switchgear', primaryId: p.id }, DISTRICT.swgAges[pi]! + dmath.round(rng.range(-3, 3)) + ch.ageYears);
     primaries.push({ id: p.id, name: p.name, unitIds, switchgearId: `${p.id}-SG` });
     for (let k = 0; k < p.feeders; k++, fi++) {
       const id = `F${fi + 1}`, pat = fi % DISTRICT.conductors.length, cust = p.customersPerFeeder + dmath.round(rng.range(-250, 250));
       const sections: Section[] = DISTRICT.sectionLengthsKm.map((len, i) => {
         const aid = `${id}.${i + 1}`;
-        mkAsset({ id: aid, cls: 'line', feederId: id, sectionIdx: i }, Math.max(8, DISTRICT.lineAgeMean + rng.normal(0, DISTRICT.lineAgeSd)));
+        mkAsset({ id: aid, cls: 'line', feederId: id, sectionIdx: i }, Math.max(8, DISTRICT.lineAgeMean + rng.normal(0, DISTRICT.lineAgeSd)) + ch.ageYears);
         return { id: aid, lengthKm: len, conductor: DISTRICT.conductors[pat]![i]!, share: DISTRICT.sectionShares[i]!, device: DISTRICT.devices[(fi + k) % DISTRICT.devices.length]![i]!, assetId: aid };
       });
       feeders.push({
         id, primaryId: p.id, customers: cust, baseKw: cust * DISTRICT.admdKw * rng.range(0.93, 1.07),
-        growthPct: dmath.round((GROWTH.baseMinPct + rng.next() * (GROWTH.baseMaxPct - GROWTH.baseMinPct)) * 10) / 10,
-        evBias: rng.range(0.6, 1.4), pvBias: rng.range(0.6, 1.4), sections,
-        tie: DISTRICT.tiedFeeders.includes(fi), recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: DISTRICT.vegStart + rng.range(-0.15, 0.15),
+        growthPct: dmath.round((GROWTH.baseMinPct + rng.next() * (GROWTH.baseMaxPct - GROWTH.baseMinPct)) * ch.growth * 10) / 10,
+        evBias: rng.range(0.6, 1.4) * ch.ev, pvBias: rng.range(0.6, 1.4) * ch.pv, sections,
+        tie: DISTRICT.tiedFeeders.includes(fi), recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: Math.min(1, DISTRICT.vegStart + rng.range(-0.15, 0.15) + ch.vegAdd),
       });
     }
   });
   const s: CareerState = {
-    v: 1, seed, t: 0, phase: 'plan', cash: MONEY.startCash, rab: MONEY.rab0, ar: 0, arYear: 0, opexAllowance: 0,
+    v: 1, seed, ...(charter !== 'standard' ? { charter } : {}), t: 0, phase: 'plan', cash: ch.startCash, rab: MONEY.rab0, ar: 0, arYear: 0, opexAllowance: 0,
     feeders, primaries, assets, projects: [], requests: [], incidents: [], crews: DISTRICT.crews, vegLevel: 1, nextId: 1,
     saidiTarget: 0, saifiTarget: 0, ytdCustMin: 0, ytdCustInt: 0, ytdExceptionalMin: 0, ytdIncentiveCapex: 0,
     yearsMet: 0, severeFineYears: 0, delivered: 0, missed: 0, netIncentiveM: 0, startHealth: 0, history: [], reviews: [], log: [], ending: null, pending: null,
   };
   s.startHealth = avgHealth(s);
-  s.opexAllowance = MONEY.opexAllowancePerCust * totalCustomers(s);
+  s.opexAllowance = MONEY.opexAllowancePerCust * ch.allowance * totalCustomers(s);
   s.ar = allowedRevenue(s.rab, s.opexAllowance);
   const e = districtExpected(s);
   s.saidiTarget = e.saidi * INCENTIVE.targetHeadroom;
@@ -124,7 +128,7 @@ export function analyseFeeder(s: CareerState, f: Feeder, solve = true): FeederAn
     const a = (hl.peakKw / (dmath.sqrt(3) * 11 * GROWTH.pf));
     loading = (a / conductorRow(f.sections[0]!.conductor).ampacityA) * 100;
   }
-  const uplift = stormUplift(f.veg);
+  const uplift = stormUplift(f.veg, charterOf(s).storm);
   const secs = toReliability(f, s.assets, s.t, hl.peakKw, loading, uplift);
   const rel = reliability(secs, { manualH: TIMES.manualH, remoteH: TIMES.remoteH, fuseH: TIMES.fuseH });
   const perFault: SectionOutage[] = f.sections.map((sec) => {
@@ -156,4 +160,13 @@ export function wearShare(f: Feeder, secIdx: number, assets: Asset[], t: number)
   const a = assets.find((x) => x.id === f.sections[secIdx]!.assetId)!;
   const w = wearRate(a, t) * WEIBULL.line.wearPerKm, b = FAULTS.randomPerKm + FAULTS.vegPerKm * (0.4 + 1.6 * f.veg);
   return w / (w + b);
+}
+
+/** DESIGN-1.3 weekly district: the same seed and charter for everyone in an ISO week. Consecutive weeks walk through the six non-standard
+ * charters, so the weekly is always a twist on Home Counties; the seed is a fixed scramble of the week (pure: the caller supplies the date). */
+export function weeklyDistrict(year: number, isoWeek: number): { seed: number; charter: CharterId; key: string } {
+  const n = Math.max(0, Math.floor(year)) * 53 + Math.max(1, Math.min(53, Math.floor(isoWeek)));
+  const others = (Object.keys(CHARTERS) as CharterId[]).filter((c) => c !== 'standard');
+  const seed = 100000 + ((n * 2654435761) >>> 0) % 900000;
+  return { seed, charter: others[n % others.length]!, key: `${year}-W${String(isoWeek).padStart(2, '0')}` };
 }

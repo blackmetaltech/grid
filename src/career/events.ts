@@ -5,7 +5,7 @@ import { runCycle } from '../sim/distrib';
 import { fnv, systemRng } from '../sim/rngs';
 import { CONN, CONNECTIONS, MONEY, PEAK_DAY_SHARE, PROJECTS, SHAPES, WEATHER, WEIBULL } from './data';
 import { effectiveAge, failureProb, thermalYearsFromLoL } from './ageing';
-import { analyseFeeder, wearShare, type FeederAnalysis } from './district';
+import { analyseFeeder, charterOf, wearShare, type FeederAnalysis } from './district';
 import { hourlyLoad } from './growth';
 import { crewsFree, primaryFeeders } from './projects';
 import { fail, feederById, ok, type ActionResult, type CareerState, type Feeder, type Incident, type QuarterOutcome, type Request } from './state';
@@ -50,7 +50,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
   out.repairCostM += out.faults * 0.006;
   // 2. storms (district-wide), severity 0.5 + 2.5 u^2; faults on top of the calm rate for the storm days
   const rs = systemRng(s.seed, t, 0, 'storms');
-  const nStorms = poisson(rs, WEATHER.stormRate[season]!);
+  const nStorms = poisson(rs, WEATHER.stormRate[season]! * charterOf(s).storm);
   out.storms = nStorms;
   for (let j = 0; j < nStorms; j++) {
     const u = rs.next(), sev = 0.5 + 2.5 * u * u, exceptional = sev > WEATHER.exceptionalSeverity;
@@ -73,7 +73,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
   }
   // 3. heatwave in the third quarter
   const rh = systemRng(s.seed, t, 0, 'heat');
-  out.heat = season === 2 && rh.next() < WEATHER.heatwaveProbQ3;
+  out.heat = season === 2 && rh.next() < Math.min(0.9, WEATHER.heatwaveProbQ3 * charterOf(s).heat);
   // 4. primaries: thermal cycle, shedding while a unit is out, new failures
   const anyTie = s.feeders.some((f) => f.tie);
   for (const pr of s.primaries) {
@@ -125,7 +125,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
   if (out.firmMarginPct > 1e8) out.firmMarginPct = 100;
   // 5. connection requests
   const rc = systemRng(s.seed, t, 0, 'conn');
-  const nReq = poisson(rc, CONN.ratePerQ), totalW = CONNECTIONS.reduce((a, c) => a + c.weight, 0);
+  const nReq = poisson(rc, CONN.ratePerQ * charterOf(s).conn), totalW = CONNECTIONS.reduce((a, c) => a + c.weight, 0);
   for (let k = 0; k < nReq; k++) {
     let x = rc.next() * totalW, row = CONNECTIONS[0]!;
     for (const c of CONNECTIONS) { if (x < c.weight) { row = c; break; } x -= c.weight; }

@@ -10,12 +10,13 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
 export const USD_PER_GBP = 1.27;
-export interface CareerSlot { seed: number; actions: CareerAction[]; state: CareerState }
+export interface CareerSlot { seed: number; actions: CareerAction[]; state: CareerState; /** DESIGN-1.3: the ISO week ('2026-W47') when this is the weekly district */ weekly?: string }
+const charterArg = (x: unknown): CharterId => ((CHARTER_IDS as string[]).includes(String(x)) ? (x as CharterId) : 'standard');
 
 type Params = Record<string, string | number>;
 const r1 = (x: number): number => Math.round(x * 10) / 10;
@@ -49,17 +50,26 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
   const str = (x: unknown): string => String(x ?? '');
   return {
     /** Start a new ten-year career in a fresh district (seed: optional; the game seed by default). Replaces a career in progress. */
-    careerStart: (s, seed: unknown) => {
+    careerStart: (s, seed: unknown, charter: unknown) => {
       const sd = typeof seed === 'number' && Number.isFinite(seed) ? Math.floor(Math.abs(seed)) : s.seed;
-      s.career = { seed: sd, actions: [], state: buildDistrict(sd) };
+      s.career = { seed: sd, actions: [], state: buildDistrict(sd, charterArg(charter)) };
       const params = { seed: sd, customers: s.career.state.feeders.reduce((a, f) => a + f.customers, 0), feeders: s.career.state.feeders.length, years: ENDINGS.quarters / 4 };
       return { ok: true, message: t('career.started', params), key: 'career.started', params };
+    },
+    /** DESIGN-1.3: start this ISO week's district (the same seed and charter for everyone that week; the caller supplies the date). */
+    careerWeekly: (s, year: unknown, week: unknown) => {
+      const y = Number(year), w = Number(week);
+      if (!Number.isFinite(y) || !Number.isFinite(w) || w < 1 || w > 53) return reject('career.err.week');
+      const wd = weeklyDistrict(y, w);
+      s.career = { seed: wd.seed, actions: [], state: buildDistrict(wd.seed, wd.charter), weekly: wd.key };
+      const params = { week: wd.key, charter: t(`career.charter.${wd.charter}.name`) };
+      return { ok: true, message: t('career.weeklyStarted', params), key: 'career.weeklyStarted', params };
     },
     /** Load a career from its code (C1/seed/actions): the actions are replayed, so the code is also the save. */
     careerLoad: (s, code: unknown) => {
       const d = typeof code === 'string' ? decodeCareer(code.trim()) : null;
       if (!d) return reject('career.err.code');
-      const { state, rejected } = replayCareer(d.seed, d.actions);
+      const { state, rejected } = replayCareer(d.seed, d.actions, d.charter);
       if (rejected) return reject('career.err.codeRejected', { n: rejected });
       s.career = { seed: d.seed, actions: d.actions, state };
       const params = { year: Math.floor(state.t / 4) + 1, quarter: (state.t % 4) + 1 };
@@ -103,7 +113,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       const nextT = (i: number) => (st.reviews[i + 1] ? { saidi: st.reviews[i + 1]!.saidiTarget, saifi: st.reviews[i + 1]!.saifiTarget } : { saidi: st.saidiTarget, saifi: st.saifiTarget });
       const ytdSaidi = N ? st.ytdCustMin / N : 0, ytdSaifi = N ? st.ytdCustInt / N : 0;
       return {
-        active: true, seed: c.seed, code: encodeCareer(c.seed, c.actions), actions: c.actions.length,
+        active: true, seed: c.seed, code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
+        charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,
         endingText: st.ending ? t(`career.endingName.${st.ending}`) : '', score: careerScore(st),
         // what keeps this career from Chief Engineer, in words (on the ending sheet and the last review)
@@ -144,6 +155,15 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       };
     },
     /** Price, lead time and expected effect of a project before it is started (the board's card): the "why this helps" line in the player's own numbers. */
+    /** DESIGN-1.3: the ways into a career: every charter with its pressure, and this ISO week's district (the caller supplies the date). */
+    careerCharters: (_s, year: unknown, week: unknown) => {
+      const y = Number(year), w = Number(week), ok = Number.isFinite(y) && Number.isFinite(w) && w >= 1 && w <= 53;
+      const wd = ok ? weeklyDistrict(y, w) : null;
+      return {
+        charters: CHARTER_IDS.map((id) => ({ id, name: t(`career.charter.${id}.name`), text: t(`career.charter.${id}.text`) })),
+        weekly: wd ? { key: wd.key, seed: wd.seed, charter: wd.charter, name: t(`career.charter.${wd.charter}.name`), text: t(`career.charter.${wd.charter}.text`) } : null,
+      };
+    },
     careerQuote: (s, kind: unknown, target: unknown) => {
       const c = s.career;
       if (!c || !(PROJECT_KINDS as unknown[]).includes(kind)) return { ok: false, text: t('career.err.none') };

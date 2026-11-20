@@ -221,3 +221,29 @@ describe('1.3: no target cliff, debt caps the ending', async () => {
     expect(C.chiefShortfalls(s)).toContain('debt'); expect(C.endingOf(s, false)).not.toBe('chiefEngineer');
   });
 });
+
+describe('1.3 district charters and the weekly district', async () => {
+  const C = await import('./index');
+  it('Home Counties is the 1.2 district bit for bit; other charters change it', () => {
+    expect(C.stateHash(C.buildDistrict(9))).toBe(C.stateHash(C.buildDistrict(9, 'standard')));
+    expect(C.buildDistrict(9, 'standard').charter).toBeUndefined();
+    const age = (s: ReturnType<typeof C.buildDistrict>) => s.assets.reduce((a, x) => a - x.installQ, 0) / s.assets.length / 4;
+    expect(age(C.buildDistrict(9, 'iron')) - age(C.buildDistrict(9))).toBeCloseTo(C.CHARTERS.iron.ageYears, 0);
+    expect(C.buildDistrict(9, 'lean').opexAllowance).toBeLessThan(C.buildDistrict(9).opexAllowance);
+    expect(C.buildDistrict(9, 'boom').feeders[0]!.growthPct).toBeGreaterThan(C.buildDistrict(9).feeders[0]!.growthPct);
+  });
+  it('codes: C1 loads as Home Counties, C2 carries the charter and replays', () => {
+    expect(C.decodeCareer('C1/5/e')!.charter).toBe('standard');
+    const acts: import('./index').CareerAction[] = [{ a: 'veg', level: 2 }, { a: 'end' }];
+    const code = C.encodeCareer(5, acts, 'storm'); expect(code.startsWith('C2/5/storm/')).toBe(true);
+    const d = C.decodeCareer(code)!; expect(d.charter).toBe('storm'); expect(d.actions).toEqual(acts);
+    expect(C.decodeCareer('C2/5/volcano/e')).toBeNull();
+    expect(C.encodeCareer(5, acts)).toBe('C1/5/v:2;e');
+  });
+  it('the weekly district is a pure function of the week and walks the charters', () => {
+    expect(C.weeklyDistrict(2026, 47)).toEqual(C.weeklyDistrict(2026, 47));
+    const seen = new Set<string>(); for (let w = 1; w <= 6; w++) seen.add(C.weeklyDistrict(2026, w).charter);
+    expect(seen.size).toBe(6); expect(seen.has('standard')).toBe(false);
+    expect(C.weeklyDistrict(2026, 3).key).toBe('2026-W03');
+  });
+});

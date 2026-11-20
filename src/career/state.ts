@@ -1,3 +1,4 @@
+import type { CharterId } from './data';
 // Career state: plain JSON data only (hashable, serialisable). All randomness is derived from (seed, quarter, stream) so a career is a seed + action list.
 import { hashOf } from '@core/kit';
 import type { SwitchKind } from '../sim/distrib/reliability';
@@ -72,6 +73,8 @@ export interface QuarterOutcome {
 
 export interface CareerState {
   v: 1; seed: number; t: number; phase: Phase;
+  /** DESIGN-1.3 district charter; absent = 'standard' (Home Counties), so 1.2 careers hash the same */
+  charter?: CharterId;
   cash: number; rab: number; ar: number; arYear: number; opexAllowance: number;
   feeders: Feeder[]; primaries: Primary[]; assets: Asset[];
   projects: Project[]; requests: Request[]; incidents: Incident[];
