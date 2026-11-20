@@ -6,6 +6,7 @@ const S := {
 	"C5_UNIT_KV": "Show kilovolts", "C5_TYPE_HERE": "type here", "C5_UNIT_PU": "Show per unit",
 	"C5_TAPS": "tap changes so far: %d", "C5_OPS": "switching operations so far: %d", "C5_OPEN": "open",
 	"C5_L16_HEAD": "loading now, and the worst line if this one were lost now",
+	"C5_L16_DAYWORST": "Worst loading so far today: %d %% at %s (the shift report quotes this one).", "C5_AT": " at %s",
 	"C5_N1": "worst line after any one outage, at its worst moment today: %d %%",
 	"C5_L17_WAIT": "Press Run: the P-V curve appears here.",
 	"C5_L17_NOSE": "nose %.0f MW · load now %.0f MW · margin now %.1f %% (the report quotes the margin after the trip)",

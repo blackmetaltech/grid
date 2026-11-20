@@ -56,7 +56,9 @@ export function l16Lesson(s: GridState): string {
   const xc = tpl.xOhmKm * chord.lengthKm, xr = tpl.xOhmKm * ring.lengthKm * 3;
   const out = t('level.L16.lesson', { xc: f1(xc), xr: f1(xr), ratio: f1(xr / xc), share: Math.round((100 * xr) / (xr + xc)) });
   const pk = tr(s, 'peakLoading'), n1 = tr(s, 'n1Max');
-  return pk === undefined ? out : out + ' ' + t(n1 !== undefined && n1 <= 1 ? 'level.L16.lessonSecure' : 'level.L16.lessonOpen', { pk: Math.round(pk * 100), n: n1 !== undefined && n1 < 9 ? Math.round(n1 * 100) : 999 });
+  const hm = (b: number | undefined): string => (b === undefined ? '--:--' : `${String(Math.floor(b / 4)).padStart(2, '0')}:${String((b % 4) * 15).padStart(2, '0')}`);
+  const pkL = tr(s, 'peakLoadingN1') ?? pk;   // the day's worst moment as the N-1 probe saw it (same blocks the control room shows), with its time
+  return pk === undefined ? out : out + ' ' + t(n1 !== undefined && n1 <= 1 ? 'level.L16.lessonSecure' : 'level.L16.lessonOpen', { pk: Math.round((pkL ?? pk) * 100), at: hm(tr(s, 'peakLoadingBlock')), nAt: hm(tr(s, 'n1MaxBlock')), n: n1 !== undefined && n1 < 9 ? Math.round(n1 * 100) : 999 });
 }
 export function l16Try(s: GridState): string {
   if (s.status !== 'lost') return '';

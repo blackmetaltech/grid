@@ -12,6 +12,30 @@ func _init() -> void:
 
 ## The phone's canvas is as wide as the screen (no sideways pan) and 446 tall above the panel (drag to pan up and down); the desktop's is everything between the HUD and the panel.
 func _vs() -> Vector2: return Vector2(size.x, 768.0) if _phone() else size
+
+func _draw() -> void:
+	super._draw()
+	if not visible or q.is_empty() or not _phone(): return
+	var lim := _pan_limits()
+	if _pan.y > lim.position.y + 4.0:   # more of the stage below: say so where the eye is (a tester never found the pan), on a dark tab above the panel
+		var at := Vector2(_p0.x + 8.0, _p0.y - 30.0)
+		draw_style_box(GridTheme.ink_sb(0.92, 6, 0.0), Rect2(at, Vector2(230.0, 24.0)))
+		_text(_semi(), 12, at + Vector2(10.0, 17.0), T("C8_PAN_MORE"), GridTheme.SODIUM)
+
+func _gui_input(e: InputEvent) -> void:
+	if visible and _phone() and e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP) and e.position.y < _p0.y:
+		_pan.y += -48.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else 48.0; _clamp_pan(); layout(); queue_redraw(); accept_event(); return   # the wheel pans the stage too
+	super._gui_input(e)
+
+## Phone: the whole 768-tall canvas pans, until its bottom clears both the panel and the coach card (the radio sits over the stage's lower left;
+## chapter 4's limit stopped at 612 and left the profile and the reading card under them).
+func _pan_limits() -> Rect2:
+	if not _phone(): return super._pan_limits()
+	var top := _p0.y
+	var ch = app.get("chrome") if app != null else null
+	if ch != null and ch.radio != null and ch.radio.visible: top = minf(top, ch.radio.position.y - 8.0)
+	var lo := Vector2(0.0, minf(0.0, top - (_vs().y - PANEL_H)))   # the stage's cards end PANEL_H above the canvas bottom (_stage_rect)
+	return Rect2(lo, -lo)
 func _sbox(minh: float) -> Rect2:
 	if _phone(): return Rect2(Vector2(30.0, 128.0), Vector2(size.x - 60.0, 768.0 - PANEL_H - 128.0 - 10.0))
 	return Rect2(Vector2(30.0, _stage_top()), Vector2(size.x - 60.0, _stage_h(minh)))

@@ -140,8 +140,11 @@ func _l16(q: Dictionary) -> void:
 		var l := _line(t if ln.inService else str(ln.id) + "  " + tx("C5_OPEN"), 12)
 		if pct > 100: l.add_theme_color_override("font_color", Color(0.75, 0.1, 0.05))
 	var tr: Dictionary = q.track
-	if tr.has("n1Max"): _line(tx("C5_N1") % int(round(float(tr.n1Max) * 100.0)), 13, "sans")
+	if tr.has("peakLoadingN1"): _line(tx("C5_L16_DAYWORST") % [int(round(float(tr.peakLoadingN1) * 100.0)), _hm(int(tr.get("peakLoadingBlock", 0)))], 13, "sans")   # the report's number, with its time, beside the "now" table
+	if tr.has("n1Max"): _line(tx("C5_N1") % int(round(float(tr.n1Max) * 100.0)) + tx("C5_AT") % _hm(int(tr.get("n1MaxBlock", 0))), 13, "sans")
 	_line(tx("C5_L16_GLOSS"), 12, "sans")
+
+static func _hm(b: int) -> String: return "%02d:%02d" % [b / 4, (b % 4) * 15]
 
 func _l17(q: Dictionary) -> void:
 	var pv = q.get("pv")

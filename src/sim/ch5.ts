@@ -110,7 +110,10 @@ export function ch5Track(s: GridState): void {
     let worst = 0;
     for (const v of Object.values(table)) worst = Math.max(worst, v);
     tr.n1Loading = fin(worst);
+    if (worst > (tr.n1Max ?? 0)) tr.n1MaxBlock = block;   // when the day's worst N-1 moment was (the report names the time)
     tr.n1Max = fin(Math.max(tr.n1Max ?? 0, worst));
+    const wl = fin(s.block.worstLoading);
+    if (wl > (tr.peakLoadingN1 ?? 0)) { tr.peakLoadingN1 = wl; tr.peakLoadingBlock = block; }   // when the day's worst loading was (the control room card shows loading now)
   }
   if (r.marginFromBlock != null && s.clock.day * 96 + block >= r.marginFromBlock) {
     const lam = loadability(toNet({ ...s, loads: s.loads.map((l) => ({ ...l, shedFrac: 0 })) }));   // the loads as demanded: a collapse shed must not hide the nose
