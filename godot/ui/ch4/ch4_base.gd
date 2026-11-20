@@ -50,6 +50,9 @@ func _pan_limits() -> Rect2:
 	var lo := Vector2(minf(0.0, size.x - _vs().x), minf(0.0, top - 612.0))
 	return Rect2(lo, -lo)
 
+## Phone: open the stage panned to the bottom (its charts clear of the coach card and the panel) instead of the top.
+func _start_low() -> bool: return false
+
 func _clamp_pan() -> void:
 	var r := _pan_limits(); _pan = Vector2(clampf(_pan.x, r.position.x, 0.0), clampf(_pan.y, r.position.y, 0.0))
 
@@ -72,7 +75,7 @@ func layout() -> void:
 		var ph := 26.0 if _collapsed else PANEL_H * _sc
 		_p0 = Vector2(slot.position.x, slot.end.y - ph)
 		panel = Rect2(_p0, Vector2(PANEL_VW, PANEL_H))
-		if not _pan_set: _pan_set = true; _pan = Vector2(0.0, -10000.0 if scenario == "l10" else 0.0)
+		if not _pan_set: _pan_set = true; _pan = Vector2(0.0, -10000.0 if scenario == "l10" or _start_low() else 0.0)
 		_clamp_pan()
 		hits.clear()
 		if not _collapsed: _layout_panel()

@@ -104,3 +104,13 @@ describe('1.3 playtest: debt is visible before it happens', () => {
     expect(q(e, 'career').requests.every((r: any) => typeof r.loadingWinterPct === 'number')).toBe(true);
   });
 });
+
+describe('1.4 weekly board wiring', () => {
+  it('careerLoad keeps the week only when it is that week\'s district; boardLevel names the board', () => {
+    const e = play(); act(e, 'careerWeekly', 2026, 48);
+    const c = q(e, 'career'); expect(c.boardLevel).toBe('career.2026-W48');
+    expect(act(e, 'careerLoad', c.code, '2026-W48').ok).toBe(true); expect(q(e, 'career').weekly).toBe('2026-W48');
+    expect(act(e, 'careerLoad', c.code, '2026-W49').ok).toBe(true); expect(q(e, 'career').weekly).toBe('');
+    expect(act(e, 'careerLoad', c.code).ok).toBe(true); expect(q(e, 'career').boardLevel).toBe('');
+  });
+});

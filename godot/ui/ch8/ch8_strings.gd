@@ -2,7 +2,7 @@ class_name Ch8Strings
 extends RefCounted
 ## Chapter 8 UI strings (registered by GridUi.load_strings beside GridStrings.S). Keys must be unique across chapters: prefix them C8_.
 const S := {
-	"C8_PANEL": "Chapter 8 controls", "C8_PAN_MORE": "drag or scroll: more below \u2193",
+	"C8_PANEL": "Chapter 8 controls", "C8_PAN_MORE": "drag or scroll: more below \u2193", "C8_PAN_UP": "drag or scroll: more above \u2191",
 	# shared
 	"C8_ALL": "all", "C8_OFF": "off", "C8_ON": "on", "C8_V": "%s V", "C8_KM": "%s km", "C8_KW": "%s kW", "C8_HOMES": "%d", "C8_AMPS": "%s of %s A", "C8_PER_KM": "%s", "C8_SUBSTATION": "11 kV",
 	"C8_X_KM": "km along the feeder", "C8_Y_V": "customer voltage, V", "C8_BAND_LO": "lowest allowed %s V", "C8_BAND_HI": "highest allowed %s V",

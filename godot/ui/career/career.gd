@@ -14,19 +14,82 @@ static func saved() -> Dictionary:
 	if c.load(path) != OK: return {}
 	var code := str(c.get_value("c", "code", ""))
 	if code == "": return {}
-	return {"code": code, "year": int(c.get_value("c", "year", 1)), "quarter": int(c.get_value("c", "quarter", 1)), "score": int(c.get_value("c", "score", 0))}
+	return {"code": code, "year": int(c.get_value("c", "year", 1)), "quarter": int(c.get_value("c", "quarter", 1)), "score": int(c.get_value("c", "score", 0)), "weekly": str(c.get_value("c", "weekly", ""))}
 
 ## Write the running career's code (called after every action). Smoke and test runs set CbSettings.persist false and write nothing unless `path` was redirected.
 static func save(app: CbApp) -> void:
 	if not CbSettings.persist and path == "user://grid_career.cfg": return
 	var q = app.b.q("career")
 	if not (q is Dictionary) or not q.get("active", false): return
-	var c := ConfigFile.new()
+	var c := ConfigFile.new(); c.load(path)   # keep the other sections (the weekly bests)
+	c.set_value("c", "weekly", str(q.get("weekly", "")))
 	c.set_value("c", "code", str(q.code)); c.set_value("c", "year", int(q.year)); c.set_value("c", "quarter", int(q.quarter)); c.set_value("c", "score", int(q.score))
 	c.save(path)
 
-static func forget() -> void:
-	if FileAccess.file_exists(path): DirAccess.remove_absolute(path)
+static func forget() -> void:   # the running career only: the weekly bests stay
+	var c := ConfigFile.new()
+	if c.load(path) != OK: return
+	if c.has_section("c"): c.erase_section("c")
+	if c.get_sections().is_empty(): DirAccess.remove_absolute(path)
+	else: c.save(path)
+
+# ---- the weekly board (cobanana-scores) -------------------------------------------------------------------------------------------
+## The shared leaderboard client, created on first use under /root/Scores. Only with a scores host: GRID ships none (there is no
+## public server yet), so CB_SCORES_URL (a local or private server) turns the weekly board on; without it this returns null and
+## nothing is shown or sent. The addon keeps its identity, queue and cache under user://cobanana_scores.
+static func scores(app: CbApp) -> CbScoresClient:
+	var url := OS.get_environment("CB_SCORES_URL")
+	if url == "" or OS.get_environment("CB_SCORES_OFF") == "1": return null
+	var n := app.get_tree().root.get_node_or_null("Scores")
+	if n is CbScoresClient: return n
+	var cl := CbScoresClient.new(); cl.name = "Scores"
+	cl.configure({"base_url": url, "game": "grid", "game_version": str(ProjectSettings.get_setting("application/config/version")), "region_ruleset": "global"})
+	app.get_tree().root.add_child(cl)
+	return cl
+
+## The board rows under the weekly button: the first-run notice (nothing is sent before it is acknowledged), the top three of the
+## week and the online on/off switch with "delete my online data".
+static func board_rows(app: CbApp, vb: VBoxContainer, level: String, compact: bool) -> void:
+	var cl := scores(app)
+	if cl == null: return
+	var fs := 13 if compact else 15
+	if cl.needs_first_run_notice():
+		vb.add_child(PaperKit.lbl(cl.notice_text(), fs, "sans", Color(PaperKit.INK, 0.8), true))
+		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 8); vb.add_child(hb)
+		var ok := PaperKit.btn(T("CAR_SC_OK"), false, func(): cl.acknowledge_notice(); app.toast(T("CAR_SC_ON"), "good"), 16)
+		ok.name = "ScoresOk"; hb.add_child(ok)
+		var off := PaperKit.btn(T("CAR_SC_OFF"), false, func(): cl.set_enabled(false); cl.acknowledge_notice(), 16); off.name = "ScoresOff"; hb.add_child(off)
+	var top := PaperKit.lbl(T("CAR_SC_LOADING"), fs, "mono", Color(PaperKit.INK, 0.72), true); top.name = "WeeklyTop"; vb.add_child(top)
+	cl.top_ready.connect(func(lv: String, _m: String, data: Dictionary, _c: bool):
+		if lv != level or not is_instance_valid(top): return
+		var rows: Array = data.get("rows", [])
+		if rows.is_empty(): top.text = T("CAR_SC_EMPTY"); return
+		var parts: Array = []
+		for r in rows: parts.append(T("CAR_SC_ROW") % [int(r.rank), str(r.get("nickname", "")) if str(r.get("nickname", "")) != "" else T("CAR_SC_ANON"), int(r.value)])
+		top.text = T("CAR_SC_TOP") % [", ".join(parts), int(data.get("total", rows.size()))])
+	cl.request_top(level, "score", 3)
+	var hb2 := HBoxContainer.new(); hb2.add_theme_constant_override("separation", 8); vb.add_child(hb2)
+	var tg := CheckButton.new(); tg.name = "ScoresToggle"; tg.text = T("CAR_SC_TOGGLE"); tg.button_pressed = cl.is_enabled(); tg.add_theme_color_override("font_color", PaperKit.INK); tg.add_theme_color_override("font_pressed_color", PaperKit.INK)
+	tg.toggled.connect(func(on: bool): cl.set_enabled(on)); hb2.add_child(tg)
+	var del := PaperKit.btn(T("CAR_SC_DELETE"), false, func(): cl.delete_my_data(); app.toast(T("CAR_SC_DELETED"), "warn"), 14)
+	del.name = "ScoresDelete"; hb2.add_child(del)
+
+## Send a finished weekly career to its board (a career is a seed plus its actions: the server replays the code and recomputes the
+## score bit for bit) and show where it landed. The local best is kept either way.
+static func board_submit(app: CbApp, c: Dictionary, line: Label) -> void:
+	var cl := scores(app); var level := str(c.get("boardLevel", ""))
+	if cl == null or level == "": line.text = ""; return
+	if not cl.is_enabled(): line.text = T("CAR_SC_IS_OFF"); return
+	line.text = T("CAR_SC_SENDING")
+	cl.submission_result.connect(func(lv: String, _res: Dictionary):
+		if lv == level: cl.request_histogram(level, "score", int(c.boardScore)))
+	cl.submission_rejected.connect(func(lv: String, _code: String, msg: String):
+		if lv == level and is_instance_valid(line): line.text = T("CAR_SC_REJECTED") % msg)
+	cl.histogram_ready.connect(func(lv: String, _m: String, data: Dictionary, _c: bool):
+		if lv != level or not is_instance_valid(line): return
+		var you = data.get("you")
+		if you is Dictionary: line.text = T("CAR_SC_RANK") % [int(you.get("rank", 1)), int(data.get("total", 1))])
+	cl.submit(level, str(c.code), {"score": int(c.boardScore)})
 
 # ---- lifecycle ---------------------------------------------------------------------------------------------------------------------
 static func screen(app: CbApp) -> CareerScreen:
@@ -102,10 +165,17 @@ static func choose(app: CbApp) -> void:
 	app.focus_dialog()
 	CareerKit.focus_later(first)
 
+static func _cont_week(app: CbApp, code: String, week: String) -> void:
+	var r: Dictionary = app.b.act("careerLoad", [code, week])
+	if not bool(r.get("ok", false)): app.toast(str(r.get("message", T("CAR_ERR_LOAD"))), "bad"); return
+	var sc := _open_screen(app)
+	if sc != null and sc.d.get("ending") != null: CareerSheets.ending(sc)
+
 ## Carry on from a career code (the saved one by default); the ending sheet shows again for a finished career.
 static func cont(app: CbApp, code := "") -> CareerScreen:
-	if code == "": code = str(saved().get("code", ""))
-	var r: Dictionary = app.b.act("careerLoad", [code])
+	var week := ""
+	if code == "": code = str(saved().get("code", "")); week = str(saved().get("weekly", ""))
+	var r: Dictionary = app.b.act("careerLoad", [code, week] if week != "" else [code])
 	if not bool(r.get("ok", false)): app.toast(str(r.get("message", T("CAR_ERR_LOAD"))), "bad"); return null
 	var sc := _open_screen(app)
 	if sc != null and sc.d.get("ending") != null: CareerSheets.ending(sc)
@@ -133,6 +203,7 @@ static func open(app: CbApp) -> void:
 		var wl := (T("CAR_WEEKLY_BTN") % [str(wk.name), str(wk.key)]) + ((T("CAR_WEEKLY_BEST") % best) if best >= 0 else "")
 		var wb := PaperKit.btn(wl, false, func(): host.queue_free(); weekly(app), 18 if compact else 21); wb.name = "Weekly"; vb.add_child(wb)
 		vb.add_child(PaperKit.lbl(str(wk.text), 13 if compact else 15, "sans", Color(PaperKit.INK, 0.72), true))
+		board_rows(app, vb, "career." + str(wk.key), compact)
 	var chb := PaperKit.btn(T("CAR_CHOOSE"), false, func(): host.queue_free(); choose(app), 18 if compact else 21); chb.name = "Choose"; vb.add_child(chb)
 	var cl := PaperKit.btn(T("CAR_CLOSE"), false, func(): host.queue_free(), 18); cl.name = "Close"; vb.add_child(cl)
 	(host as PaperHost).closer = func(): host.queue_free()
@@ -162,5 +233,8 @@ static func qa(app: CbApp, what: String) -> void:
 	elif what == "weekly": weekly(app)
 	elif what == "choose": choose(app)
 	elif what == "continue": cont(app)
-	elif what.begins_with("code:"): cont(app, what.substr(5))
+	elif what.begins_with("code:"):   # code:<code>[|<week>] (the week keeps a weekly career on its board)
+		var cw := what.substr(5).split("|")
+		if cw.size() > 1: _cont_week(app, cw[0], cw[1])
+		else: cont(app, cw[0])
 	else: open(app)

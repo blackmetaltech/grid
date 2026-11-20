@@ -51,3 +51,26 @@ describe('verify.ts is server-safe', () => {
     expect(hits.filter((h) => !h.includes('persistence.ts'))).toEqual([]);
   });
 });
+
+describe('scores.ts (the weekly-career leaderboard verifier) is server-safe and its samples verify', async () => {
+  const g = graph(resolve(SRC, 'scores.ts'));
+  it('no node:, bare packages, clock or entropy in its graph', () => {
+    expect(g.external).toEqual([]);
+    const bad = /\b(process\.|Buffer\b|__dirname|Math\.random|Date\.now|new Date\(|btoa\(|atob\()/;
+    const hits = g.files.flatMap((f) => maskNonCode(readFileSync(f, 'utf8')).split('\n').filter((l) => bad.test(l)).map((l) => `${f}: ${l.trim()}`));
+    expect(hits.filter((h) => !h.includes('persistence.ts'))).toEqual([]);
+  });
+  it('every golden sample gives its expected result; boards cover the window; foreign rulesets are refused', async () => {
+    const { verifier, WEEKLY_BOARD_WEEKS, weeklyLevelId } = await import('./scores');
+    const ctx = { regionRuleset: 'global', budget: () => {} };
+    expect(Object.keys(verifier.levels.global)).toHaveLength(WEEKLY_BOARD_WEEKS.length);
+    for (const w of WEEKLY_BOARD_WEEKS) expect(verifier.samples.some((s) => s.levelId === weeklyLevelId(w.year, w.week) && s.expect.ok)).toBe(true);
+    for (const s of verifier.samples) {
+      const r = verifier.verify(s.levelId, s.solutionCode, ctx);
+      expect(r.ok, s.levelId).toBe(s.expect.ok);
+      if (r.ok && s.expect.ok) expect(r.metrics).toEqual(s.expect.metrics);
+    }
+    expect(verifier.verify(verifier.samples[0]!.levelId, verifier.samples[0]!.solutionCode, { regionRuleset: 'in', budget: () => {} }).ok).toBe(false);
+    expect(verifier.gameVersions).toContain((await import('../package.json')).version);
+  }, 300000);
+});

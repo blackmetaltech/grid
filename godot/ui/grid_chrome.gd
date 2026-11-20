@@ -280,6 +280,12 @@ func layout() -> void:
 	breaker.position = Vector2(w - M - bw, h - M - bh)
 	var tap := maxf(CbLayout.tap(), 36.0)
 	menu_btn.custom_minimum_size = Vector2(tap, tap); menu_btn.size = Vector2(tap, tap); menu_btn.position = Vector2(w - M - tap, M)
+	# phone: a dark disc behind the ☰ so it reads as a button over a stage's text card, not a glyph inside it (tester, ch8)
+	var disc := GridTheme._sb(Color(GridTheme.INK, 0.92), Color(GridTheme.SODIUM_DIM, 0.6), int(tap / 2.0), 1, 0.0) if CbLayout.kind == "phone" else null
+	menu_btn.flat = disc == null   # a flat button draws no stylebox
+	for st in ["normal", "hover", "pressed", "focus"]:
+		if disc != null: menu_btn.add_theme_stylebox_override(st, disc)
+		else: menu_btn.remove_theme_stylebox_override(st)
 	pin.position = Vector2(M, M); pin.size = Vector2(0, 0)
 
 var _pad_seen := false

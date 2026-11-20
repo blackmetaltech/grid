@@ -393,6 +393,9 @@ func _veg_card() -> void:
 	top.add_child(CareerKit.lbl("%d" % lvl, sz + 5, GridTheme.SODIUM, "title"))
 	var pl := CareerKit.btn(T("CAR_PLUS"), false, func(): act("careerVegetation", [mini(3, lvl + 1)]), 18); pl.name = "VegPlus"; pl.disabled = lvl >= 3; pl.custom_minimum_size.x = 44; top.add_child(pl)
 	v.add_child(CareerKit.lbl("%s. %s" % [T("CAR_VEG_LVL") % [lvl, T("CAR_VEG_" + str(lvl))], T("CAR_VEG_COST") % str(d.vegCostQText)], sz - 1, Color(GridTheme.TEXT, 0.72), "sans", true))
+	for row in d.get("vegLevels", []):   # what each level buys (a tester saw level 2 double the cost with no stated benefit)
+		var cur := int(row.level) == lvl
+		var rl := CareerKit.lbl("%s %s: %s" % ["▸" if cur else "  ", T("CAR_VEG_" + str(int(row.level))), str(row.text)], sz - 2, GridTheme.SODIUM if cur else Color(GridTheme.TEXT, 0.6), "mono", true); rl.name = "VegLevel%d" % int(row.level); v.add_child(rl)
 
 func _run_tab() -> void:
 	var sz := 14 if compact else 15

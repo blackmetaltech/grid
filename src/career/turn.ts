@@ -11,6 +11,9 @@ import { INCIDENT_CREW_SAVING, INCIDENT_TIE_SAVING } from './events';
 import { clone, fail, ok, totalCustomers, type ActionResult, type CareerState, type QuarterOutcome } from './state';
 
 /** Play the quarter. interactive = true pauses when incidents occurred (phase 'incident'; answer with switchTie / dispatchCrew, then call endQuarter again). */
+/** One quarter of tree growth against routine cutting at a level 0-3 (the vegetation index of a feeder, 0.05-1). */
+export const vegStep = (v: number, level: number): number => Math.max(0.05, Math.min(1, v + 0.06 - 0.07 * level));
+
 export function endQuarter(state: CareerState, interactive = false): ActionResult {
   if (state.phase === 'over') return fail(state, 'career.err.phase');
   const s = clone(state);
@@ -75,7 +78,7 @@ function settle(s: CareerState): ActionResult {
   const capex = out.capexM + out.emergencyCapexM;
   s.cash += revenue - opex - capex + interestQ(s.cash);
   s.rab = rabNext(s.rab, out.rabAddM);
-  for (const f of s.feeders) f.veg = Math.max(0.05, Math.min(1, f.veg + 0.06 - 0.07 * s.vegLevel));
+  for (const f of s.feeders) f.veg = vegStep(f.veg, s.vegLevel);
   // KPI row
   const saidiYtdBefore = N ? s.ytdCustMin / N : 0, saifiYtdBefore = N ? s.ytdCustInt / N : 0;
   const t = s.t;

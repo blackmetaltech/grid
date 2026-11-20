@@ -6,6 +6,7 @@ const INK_CARD := 0.82
 var cw: Array = []     ## chips recorded by _build_panel: {r, label, sub, on, id, arg}
 var caps: Array = []   ## captions recorded by _build_panel: {at, text}
 var sel_node := "all"  ## L31 / L35: the trunk section the wire and tap chips act on
+var _pin_low := true   ## phone: stay at the bottom of the pan (the limit grows once the coach card is laid out) until the player pans
 
 func _init() -> void:
 	super._init()
@@ -21,11 +22,24 @@ func _draw() -> void:
 		var at := Vector2(_p0.x + 8.0, _p0.y - 30.0)
 		draw_style_box(GridTheme.ink_sb(0.92, 6, 0.0), Rect2(at, Vector2(230.0, 24.0)))
 		_text(_semi(), 12, at + Vector2(10.0, 17.0), T("C8_PAN_MORE"), GridTheme.SODIUM)
+	if _pan.y < -4.0:   # panned down (the default on the phone): the title and the top cards are above, say so at the top edge
+		var at2 := Vector2(_p0.x + 8.0, 6.0)
+		draw_style_box(GridTheme.ink_sb(0.92, 6, 0.0), Rect2(at2, Vector2(230.0, 24.0)))
+		_text(_semi(), 12, at2 + Vector2(10.0, 17.0), T("C8_PAN_UP"), GridTheme.SODIUM)
+
+func layout() -> void:
+	if _phone() and _pin_low: _pan.y = -10000.0   # clamped to the current limit in super.layout()
+	super.layout()
 
 func _gui_input(e: InputEvent) -> void:
+	if (e is InputEventMouseMotion and e.button_mask != 0) or (e is InputEventMouseButton and (e.button_index == MOUSE_BUTTON_WHEEL_UP or e.button_index == MOUSE_BUTTON_WHEEL_DOWN)) or e is InputEventScreenDrag: _pin_low = false
 	if visible and _phone() and e is InputEventMouseButton and e.pressed and (e.button_index == MOUSE_BUTTON_WHEEL_DOWN or e.button_index == MOUSE_BUTTON_WHEEL_UP) and e.position.y < _p0.y:
 		_pan.y += -48.0 if e.button_index == MOUSE_BUTTON_WHEEL_DOWN else 48.0; _clamp_pan(); layout(); queue_redraw(); accept_event(); return   # the wheel pans the stage too
 	super._gui_input(e)
+
+## Phone: chapter 8 opens at the bottom of the pan, where the charts are clear of the coach card and the panel (a tester read
+## the lower chart under them at the top of the pan); the title card and clock fade while it is panned (grid_chrome).
+func _start_low() -> bool: return true
 
 ## Phone: the whole 768-tall canvas pans, until its bottom clears both the panel and the coach card (the radio sits over the stage's lower left;
 ## chapter 4's limit stopped at 612 and left the profile and the reading card under them).

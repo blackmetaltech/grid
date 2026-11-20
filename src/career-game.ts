@@ -10,11 +10,13 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
 export const USD_PER_GBP = 1.27;
+/** A feeder's tree index after four quarters at a tree-cutting level (turn.ts applies the same step each quarter). */
+const vegAfterYear = (v: number, lv: number): number => { for (let q = 0; q < 4; q++) v = vegStep(v, lv); return v; };
 /** What the projects already building still have to pay (model millions). */
 const owedM = (st: CareerState): number => st.projects.filter((p) => p.status === 'building').reduce((a, p) => a + Math.max(0, p.capexM - p.spentM), 0);
 export interface CareerSlot { seed: number; actions: CareerAction[]; state: CareerState; /** DESIGN-1.3: the ISO week ('2026-W47') when this is the weekly district */ weekly?: string }
@@ -68,12 +70,14 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
       return { ok: true, message: t('career.weeklyStarted', params), key: 'career.weeklyStarted', params };
     },
     /** Load a career from its code (C1/seed/actions): the actions are replayed, so the code is also the save. */
-    careerLoad: (s, code: unknown) => {
+    careerLoad: (s, code: unknown, week: unknown) => {
       const d = typeof code === 'string' ? decodeCareer(code.trim()) : null;
       if (!d) return reject('career.err.code');
       const { state, rejected } = replayCareer(d.seed, d.actions, d.charter);
       if (rejected) return reject('career.err.codeRejected', { n: rejected });
-      s.career = { seed: d.seed, actions: d.actions, state };
+      // a weekly career keeps its week when the week's district is the code's (the saved code alone cannot tell which week it was)
+      const wm = typeof week === 'string' ? /^(\d{4})-W(\d{2})$/.exec(week) : null, wd = wm ? weeklyDistrict(Number(wm[1]), Number(wm[2])) : null;
+      s.career = { seed: d.seed, actions: d.actions, state, ...(wd && wd.seed === d.seed && wd.charter === d.charter ? { weekly: wd.key } : {}) };
       const params = { year: Math.floor(state.t / 4) + 1, quarter: (state.t % 4) + 1 };
       return { ok: true, message: t('career.loaded', params), key: 'career.loaded', params };
     },
@@ -115,7 +119,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       const nextT = (i: number) => (st.reviews[i + 1] ? { saidi: st.reviews[i + 1]!.saidiTarget, saifi: st.reviews[i + 1]!.saifiTarget } : { saidi: st.saidiTarget, saifi: st.saifiTarget });
       const ytdSaidi = N ? st.ytdCustMin / N : 0, ytdSaifi = N ? st.ytdCustInt / N : 0;
       return {
-        active: true, seed: c.seed, code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
+        active: true, seed: c.seed, boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
         charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,
         endingText: st.ending ? t(`career.endingName.${st.ending}`) : '', score: careerScore(st),
@@ -124,6 +128,9 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         cash: careerMoney(s, st.cash), cashText: m(st.cash), creditText: m(MONEY.creditLimit), arText: m(st.ar), rabText: m(st.rab), committedQText: m(committedPerQuarter(st)), committedQ: careerMoney(s, committedPerQuarter(st)), owedText: m(owedM(st)), cashAfterText: m(st.cash - owedM(st)), borrowing: st.cash < 0,
         netIncentiveText: m(st.netIncentiveM), yearsMet: st.yearsMet, severeFineYears: st.severeFineYears, delivered: st.delivered, missed: st.missed,
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
+        // what each tree-cutting level buys: the expected SAIDI after a year held at that level (the same tree growth rule as turn.ts), and its cost
+        vegLevels: [0, 1, 2, 3].map((lv) => { const yr = { ...st, feeders: st.feeders.map((f) => ({ ...f, veg: vegAfterYear(f.veg, lv) })) }; const e = districtExpected(yr);
+          return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: r1(e.saidi - exp.saidi), costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
         customers: N, health: r2(avgHealth(st)), startHealth: r2(st.startHealth),
         targets: { saidi: r1(st.saidiTarget), saifi: r2(st.saifiTarget) }, ytd: { saidi: r1(ytdSaidi), saifi: r2(ytdSaifi) }, expected: { saidi: r1(exp.saidi), saifi: r2(exp.saifi) },
         primaries: st.primaries.map((p) => ({ id: p.id, name: t(p.name), peakMva: r1(primaryPeakMVA(st, p.id)), firmMva: r1(firmCapacityMVA(st, p.id)), firmMarginPct: r1(firmMarginPct(st, p.id)),

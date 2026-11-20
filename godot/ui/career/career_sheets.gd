@@ -174,10 +174,12 @@ static func ending(sc: CareerScreen) -> void:
 	_head(d.vb, T("CAR_ED_TITLE"), "", compact, GREEN if good else PaperKit.RED)
 	var body := VBoxContainer.new(); body.add_theme_constant_override("separation", 8)
 	body.add_child(PaperKit.lbl(str(c.endingText), 34 if compact else 52, "title", GREEN if good else PaperKit.RED, true))
-	body.add_child(PaperKit.lbl(T("CAR_ED_SCORE") % int(c.score), 28 if compact else 40, "semi", PaperKit.INK))
+	body.add_child(PaperKit.lbl(T("CAR_ED_SCORE") % roundi(float(c.score)), 28 if compact else 40, "semi", PaperKit.INK))
 	body.add_child(_para(T("CAR_ED_CHARTER") % str(c.get("charterName", "")), compact))
 	if str(c.get("weekly", "")) != "":   # the weekly district: keep this device's best for the week
-		body.add_child(_para(T("CAR_ED_WEEKLY") % [str(c.weekly), Career.weekly_record(str(c.weekly), int(c.score))], compact))
+		body.add_child(_para(T("CAR_ED_WEEKLY") % [str(c.weekly), Career.weekly_record(str(c.weekly), int(c.boardScore))], compact))
+		var bl := _para("", compact, Color(PaperKit.INK, 0.8)); bl.name = "BoardLine"; body.add_child(bl)
+		Career.board_submit(sc.app, c, bl)
 	var n1 := CareerKit.num
 	body.add_child(_para(T("CAR_ED_YEARS") % [int(c.yearsMet), (c.reviews as Array).size()], compact))
 	body.add_child(_para(T("CAR_ED_HEALTH") % [n1.call(float(c.health), 1), n1.call(float(c.startHealth), 1)], compact))
