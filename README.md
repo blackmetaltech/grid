@@ -109,7 +109,7 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 ## Status
 
-1.2, private. **1403 engine tests in 65 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag (the perf budgets need an idle machine). Known gaps:
+1.3, private. **1411 engine tests in 65 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag (the perf budgets need an idle machine). Known gaps:
 
 - Played on desktop Linux only. No pass on a real phone or a gamepad for this release; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
 - Windows and macOS builds are produced but untested.

@@ -26,6 +26,12 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **Debt caps the ending.** Ending the ten years with any negative cash keeps a career below Chief Engineer. The finance director's review says so, and the ending sheet lists in words everything that kept the career from Chief.
 - **No target cliff.** A five-year reset tightens a target by at most 25 % in one step, and the review and the year-ahead warning say so.
 - **Phone layout.** On chapters 4, 7 and 8, the title card and the clock fade out while the stage is panned under them, so the chart's axis is never covered at full pan.
+- After the playtest (a second-year EE student played 24 Career quarters and chapter 8):
+  - A project card warns before the project would take cash below zero.
+  - The cash readout shows what the builds still owe and the cash after them; negative cash reads BORROWING.
+  - Each review states next year's targets at the top: the 1.5 % yearly step, or the five-year reset in amber.
+  - Connection-request cards read the next winter peak, before and after (they promised 96 % in autumn; it was 115 % in winter).
+  - The charter chooser is laid out in two columns, so it fits the phone layout.
 
 ## [1.2.0] - "Fair Weather" (tag v1.2.0; includes rc.1; driven by docs/CRITIQUE-1.1.md, review in docs/CRITIQUE-1.2.md)
 ### Changed

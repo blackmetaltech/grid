@@ -171,10 +171,14 @@ export function weeklyDistrict(year: number, isoWeek: number): { seed: number; c
   return { seed, charter: others[n % others.length]!, key: `${year}-W${String(isoWeek).padStart(2, '0')}` };
 }
 
-/** ISO 8601 week of a calendar date (pure; the front end passes the system date). */
+/** ISO 8601 week of a calendar date (pure integer arithmetic, no clock: the front end passes the system date). Bad input gives week 1 of year 0. */
 export function isoWeekOf(year: number, month: number, day: number): { year: number; week: number } {
-  const d = new Date(Date.UTC(year, month - 1, day)), wd = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - wd);   // the Thursday of this week decides the year
-  const y = d.getUTCFullYear(), w = Math.ceil(((d.getTime() - Date.UTC(y, 0, 1)) / 86400000 + 1) / 7);
-  return { year: y, week: w };
+  const y0 = Math.floor(year), m0 = Math.floor(month), d0 = Math.floor(day);
+  if (!Number.isFinite(y0) || !Number.isFinite(m0) || !Number.isFinite(d0) || m0 < 1 || m0 > 12 || d0 < 1 || d0 > 31) return { year: 0, week: 1 };
+  // days since 1970-01-01 (civil-from-days inverse, Howard Hinnant's algorithm)
+  const days = (y: number, m: number, d: number): number => { const yy = m <= 2 ? y - 1 : y, era = Math.floor(yy / 400), yoe = yy - era * 400, mp = (m + 9) % 12, doy = Math.floor((153 * mp + 2) / 5) + d - 1, doe = yoe * 365 + Math.floor(yoe / 4) - Math.floor(yoe / 100) + doy; return era * 146097 + doe - 719468; };
+  const n = days(y0, m0, d0), wd = ((n + 3) % 7 + 7) % 7 + 1;   // 1970-01-01 was a Thursday; Monday = 1
+  const thu = n + 4 - wd;   // the Thursday of this week decides the ISO year
+  let y = y0 + 1; while (days(y, 1, 1) > thu) y--;
+  return { year: y, week: Math.floor((thu - days(y, 1, 1)) / 7) + 1 };
 }
