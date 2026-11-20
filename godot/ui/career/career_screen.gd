@@ -22,6 +22,7 @@ var timeline: CareerTimeline
 var bar_saidi: CareerBar
 var bar_saifi: CareerBar
 var year_lbl: Label
+var charter_lbl: Label   ## the district's charter (DESIGN-1.3) under the year, and 'this week' for the weekly district
 var end_btn: Button
 var info_box: VBoxContainer
 var tab_row: HBoxContainer
@@ -82,11 +83,14 @@ func _build_strip() -> Control:
 	var pc := PanelContainer.new(); pc.name = "Strip"; pc.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.97), Color(GridTheme.SODIUM_DIM, 0.5), 1, 8, 10.0, 4.0 if compact else 7.0))
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2 if compact else 4); pc.add_child(v)
 	var r1 := HBoxContainer.new(); r1.add_theme_constant_override("separation", 12); v.add_child(r1)
-	year_lbl = CareerKit.lbl("", 22 if compact else 30, GridTheme.SODIUM, "title"); year_lbl.name = "YearLabel"; year_lbl.custom_minimum_size.x = 190 if compact else 300; r1.add_child(year_lbl)
+	var yv := VBoxContainer.new(); yv.add_theme_constant_override("separation", 0); yv.alignment = BoxContainer.ALIGNMENT_CENTER; r1.add_child(yv)
+	year_lbl = CareerKit.lbl("", 22 if compact else 30, GridTheme.SODIUM, "title"); year_lbl.name = "YearLabel"; year_lbl.custom_minimum_size.x = 190 if compact else 300; yv.add_child(year_lbl)
+	charter_lbl = CareerKit.lbl("", 12 if compact else 15, Color(GridTheme.SODIUM, 0.7), "semi"); charter_lbl.name = "CharterLabel"; yv.add_child(charter_lbl)
 	timeline = CareerTimeline.new(); timeline.compact = compact; timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL; timeline.custom_minimum_size.y = 30 if compact else 40; r1.add_child(timeline)
 	end_btn = CareerKit.btn(T("CAR_END_Q"), true, _on_end, 17 if compact else 20); end_btn.name = "EndQuarter"; r1.add_child(end_btn)
 	stat_box = HBoxContainer.new(); stat_box.add_theme_constant_override("separation", 16 if compact else 26); v.add_child(stat_box)
 	stats["cash"] = _stat(T("CAR_CASH"), 150 if compact else 200)
+	stats["owed"] = CareerKit.lbl("", 11 if compact else 13, Color(GridTheme.TEXT, 0.62), "mono"); (stats.cash as Label).get_parent().add_child(stats.owed)   # what the projects building still owe, and the cash after
 	bar_saidi = CareerBar.new(); bar_saidi.compact = compact; bar_saidi.name = "BarSaidi"; bar_saidi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saidi)
 	bar_saifi = CareerBar.new(); bar_saifi.compact = compact; bar_saifi.name = "BarSaifi"; bar_saifi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saifi)
 	stats["health"] = _stat(T("CAR_HEALTH"), 150 if compact else 200)
@@ -148,11 +152,16 @@ func refresh() -> void:
 	var bq = app.b.q("careerBoard"); board = bq if bq is Dictionary else {}
 	var ended: bool = d.get("ending") != null
 	year_lbl.text = T("CAR_ED_TITLE") if ended else T("CAR_YEAR_Q") % [int(d.year), int(d.quarter)]
+	charter_lbl.text = (T("CAR_WEEKLY_TAG") % [str(d.get("charterName", "")), str(d.get("weekly", ""))]) if str(d.get("weekly", "")) != "" else str(d.get("charterName", ""))
+	charter_lbl.tooltip_text = str(d.get("charterText", ""))
 	timeline.set_data(d)
 	var inc := str(d.phase) == "incident"
 	end_btn.text = T("CAR_END_Q_INC") if inc else T("CAR_END_Q"); end_btn.disabled = ended
 	(stats.cash as Label).text = str(d.cashText); (stats.cash as Label).add_theme_color_override("font_color", GridTheme.TEXT if float(d.cash) >= 0.0 else GridTheme.BAD)
 	(stats.cash as Label).tooltip_text = T("CAR_CASH_LIM") % str(d.creditText)
+	if bool(d.get("borrowing", false)): (stats.cash as Label).text = T("CAR_CASH_DEBT") % str(d.cashText)
+	(stats.owed as Label).text = T("CAR_CASH_OWED") % [str(d.get("owedText", "")), str(d.get("cashAfterText", ""))] if str(d.get("owedText", "")) != "" and float(d.get("committedQ", 0.0)) > 0.0 else ""
+	(stats.owed as Label).add_theme_color_override("font_color", Color(GridTheme.TEXT, 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else GridTheme.BAD)
 	bar_saidi.set_vals(T("CAR_SAIDI"), float(d.ytd.saidi), float(d.targets.saidi), float(d.expected.saidi), 1)
 	bar_saifi.set_vals(T("CAR_SAIFI"), float(d.ytd.saifi), float(d.targets.saifi), float(d.expected.saifi), 2)
 	(stats.health as Label).text = T("CAR_HEALTH_VAL") % [CareerKit.num(float(d.health), 1), CareerKit.num(float(d.startHealth), 1)]
@@ -367,6 +376,9 @@ func _kind_card(c: Dictionary, sz: int) -> void:
 	if not opt.is_empty():
 		var why := str(q.get("why", "")) if q is Dictionary else ""
 		var wl := CareerKit.lbl(T("CAR_ON") % tg + ": " + why, sz, GridTheme.GOOD, "sans", true); wl.name = "Why"; v.add_child(wl)
+		var od := str(q.get("overdrawText", "")) if q is Dictionary else ""
+		if od != "":   # warn before the money goes, not at the review
+			var ol := CareerKit.lbl(od, sz - 1, GridTheme.BAD, "sans", true); ol.name = "Overdraw"; v.add_child(ol)
 		var sb := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", [kind, tg]), 15); sb.name = "Start_" + kind; sb.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(sb)
 	else:
 		var rl := CareerKit.lbl(str(q.get("text", "")) if q is Dictionary else T("CAR_CANT"), sz - 1, Color(GridTheme.WARN, 0.9), "sans", true); rl.name = "Why"; v.add_child(rl)
@@ -410,7 +422,7 @@ func _req_tab() -> void:
 		if float(r.solarKw) > 0.0: det += ", " + T("CAR_REQ_PV") % CareerKit.num(float(r.solarKw), 0)
 		v.add_child(CareerKit.lbl(det, sz - 1, Color(GridTheme.TEXT, 0.8), "sans", true))
 		var f := feeder_of(str(r.feederId))
-		if not f.is_empty(): v.add_child(CareerKit.lbl(T("CAR_REQ_LOAD") % [str(r.feederId), CareerKit.num(float(f.loadingPct), 0), CareerKit.num(float(r.get("loadingAfterPct", f.loadingPct)), 0)], sz - 1, CareerKit.load_col(float(r.get("loadingAfterPct", f.loadingPct))), "sans", true))
+		if not f.is_empty(): v.add_child(CareerKit.lbl(T("CAR_REQ_LOAD") % [str(r.feederId), CareerKit.num(float(r.get("loadingWinterPct", f.loadingPct)), 0), CareerKit.num(float(r.get("loadingAfterPct", f.loadingPct)), 0)], sz - 1, CareerKit.load_col(float(r.get("loadingAfterPct", f.loadingPct))), "sans", true))
 		var due := T("CAR_REQ_LAST") if int(r.quartersLeft) <= 0 else T("CAR_REQ_DUE") % int(r.quartersLeft)
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
 		var dl := CareerKit.lbl(due, sz - 1, GridTheme.WARN if int(r.quartersLeft) <= 1 else Color(GridTheme.TEXT, 0.7), "mono"); dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(dl)

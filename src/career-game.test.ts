@@ -90,3 +90,17 @@ describe('1.3 charters in the game', () => {
     expect(ch.charters).toHaveLength(7); expect(ch.weekly.key).toBe('2026-W47'); expect(ch.weekly.charter).toBe(c.charter);
   });
 });
+
+describe('1.3 playtest: debt is visible before it happens', () => {
+  it('a quote that would overdraw says so; the career query shows what builds owe; reviews give next year\'s targets', () => {
+    const e = play(); act(e, 'careerStart', 11);
+    e.state.career!.state.cash = 0.5;
+    const qq = q(e, 'careerQuote', 'newFeeder', 'F1'); expect(qq.ok).toBe(true); expect(String(qq.overdrawText)).toMatch(/debt/);
+    e.state.career!.state.cash = 50; expect(q(e, 'careerQuote', 'newFeeder', 'F1').overdrawText).toBe('');
+    expect(act(e, 'careerProject', 'newFeeder', 'F1').ok).toBe(true);
+    const c = q(e, 'career'); expect(c.committedQ).toBeGreaterThan(0); expect(String(c.owedText)).not.toBe(''); expect(c.borrowing).toBe(false);
+    for (let i = 0; i < 4; i++) { act(e, 'careerEndQuarter', false); }
+    const rv = q(e, 'career').reviews[0]; expect(String(rv.nextText)).toMatch(/tighten/);
+    expect(q(e, 'career').requests.every((r: any) => typeof r.loadingWinterPct === 'number')).toBe(true);
+  });
+});

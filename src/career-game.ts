@@ -10,11 +10,13 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
 export const USD_PER_GBP = 1.27;
+/** What the projects already building still have to pay (model millions). */
+const owedM = (st: CareerState): number => st.projects.filter((p) => p.status === 'building').reduce((a, p) => a + Math.max(0, p.capexM - p.spentM), 0);
 export interface CareerSlot { seed: number; actions: CareerAction[]; state: CareerState; /** DESIGN-1.3: the ISO week ('2026-W47') when this is the weekly district */ weekly?: string }
 const charterArg = (x: unknown): CharterId => ((CHARTER_IDS as string[]).includes(String(x)) ? (x as CharterId) : 'standard');
 
@@ -119,7 +121,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         endingText: st.ending ? t(`career.endingName.${st.ending}`) : '', score: careerScore(st),
         // what keeps this career from Chief Engineer, in words (on the ending sheet and the last review)
         shortfalls: chiefShortfalls(st).map((k) => t(`career.short.${k}`, { met: st.yearsMet, need: ENDINGS.chiefYearsMet, cashText: m(st.cash), health: r1(avgHealth(st)), start: r1(st.startHealth) })),
-        cash: careerMoney(s, st.cash), cashText: m(st.cash), creditText: m(MONEY.creditLimit), arText: m(st.ar), rabText: m(st.rab), committedQText: m(committedPerQuarter(st)),
+        cash: careerMoney(s, st.cash), cashText: m(st.cash), creditText: m(MONEY.creditLimit), arText: m(st.ar), rabText: m(st.rab), committedQText: m(committedPerQuarter(st)), committedQ: careerMoney(s, committedPerQuarter(st)), owedText: m(owedM(st)), cashAfterText: m(st.cash - owedM(st)), borrowing: st.cash < 0,
         netIncentiveText: m(st.netIncentiveM), yearsMet: st.yearsMet, severeFineYears: st.severeFineYears, delivered: st.delivered, missed: st.missed,
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
         customers: N, health: r2(avgHealth(st)), startHealth: r2(st.startHealth),
@@ -135,8 +137,10 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         projects: st.projects.map((p) => ({ id: p.id, kind: p.kind, kindName: t(`career.kind.${p.kind}`), target: p.target, left: p.left, leadQ: p.leadQ, crew: p.crew, status: p.status, capexText: m(p.capexM), spentText: m(p.spentM) })),
         requests: st.requests.map((r) => {
           const f0 = st.feeders.find((f) => f.id === r.feederId);   // the feeder's peak loading once this load is connected (what accepting does to it)
-          const after = f0 ? analyseFeeder(st, { ...f0, customers: f0.customers + r.customers, baseKw: f0.baseKw + r.kw, solarKw: f0.solarKw + r.solarKw }).loadingPct : 0;
-          return { id: r.id, kind: r.kind, kindName: t(`career.conn.${r.kind}`), feederId: r.feederId, kw: r.kw, customers: r.customers, solarKw: r.solarKw, critical: r.critical, chargeText: m(r.chargeM), deadlineQ: r.deadlineQ, quartersLeft: r.deadlineQ - st.t, loadingAfterPct: r1(after) };
+          const wst = { ...st, t: st.t % 4 === 0 ? st.t : st.t + 4 - (st.t % 4) };   // both read at the next winter peak, where the load index judges (a tester saw 96 % promised in autumn, 115 % in winter)
+          const after = f0 ? analyseFeeder(wst, { ...f0, customers: f0.customers + r.customers, baseKw: f0.baseKw + r.kw, solarKw: f0.solarKw + r.solarKw }).loadingPct : 0;
+          const before = f0 ? analyseFeeder(wst, f0).loadingPct : 0;
+          return { id: r.id, kind: r.kind, kindName: t(`career.conn.${r.kind}`), feederId: r.feederId, kw: r.kw, customers: r.customers, solarKw: r.solarKw, critical: r.critical, chargeText: m(r.chargeM), deadlineQ: r.deadlineQ, quartersLeft: r.deadlineQ - st.t, loadingAfterPct: r1(after), loadingWinterPct: r1(before) };
         }),
         incidents: st.incidents.map((x) => ({ ...x, kindName: t(`career.incident.${x.kind}`), custMin: Math.round(x.custMin), saidiMin: r1(N ? x.custMin / N : 0) })),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
@@ -145,6 +149,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
+          nextText: rv.year % INCENTIVE.periodYears !== INCENTIVE.periodYears - 1 ? t('career.review.next', { saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi), tightenPct: INCENTIVE.targetTightenPct }) : '',
           resetText: rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
           verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
@@ -156,6 +161,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
     },
     /** Price, lead time and expected effect of a project before it is started (the board's card): the "why this helps" line in the player's own numbers. */
     /** DESIGN-1.3: the ways into a career: every charter with its pressure, and this ISO week's district (the caller supplies the date). */
+    /** The ISO week of a calendar date (year, month 1-12, day), for careerWeekly / careerCharters. */
+    careerWeek: (_s, year: unknown, month: unknown, day: unknown) => isoWeekOf(Number(year), Number(month), Number(day)),
     careerCharters: (_s, year: unknown, week: unknown) => {
       const y = Number(year), w = Number(week), ok = Number.isFinite(y) && Number.isFinite(w) && w >= 1 && w <= 53;
       const wd = ok ? weeklyDistrict(y, w) : null;
@@ -172,6 +179,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         firmBefore: Math.round(p.firmBeforePct), firmAfter: Math.round(p.firmAfterPct), allowedPct: Math.round(p.allowedShare * 100) });
       return { ok: q.ok, kind: q.kind, target: q.target, capex: careerMoney(s, q.capexM), capexText: params.capex, leadQ: q.leadQ, crew: q.crew, dSaidi: r1(p.dSaidi), dSaifi: r2(p.dSaifi),
         loadingBeforePct: r1(p.loadingBeforePct), loadingAfterPct: r1(p.loadingAfterPct), firmBeforePct: r1(p.firmBeforePct), firmAfterPct: r1(p.firmAfterPct), allowedPct: Math.round(p.allowedShare * 100),
+        // a project that would take cash below zero once everything already building is paid for says so before you start it
+        overdrawText: q.ok && c.state.cash - owedM(c.state) - q.capexM < 0 ? t('career.overdraw', { after: moneyText(s, c.state.cash - owedM(c.state) - q.capexM), credit: moneyText(s, MONEY.creditLimit) }) : '',
         text: t(q.ok ? 'career.quote' : q.messageKey, params), why: q.ok ? plantWhy(c.state, kind as ProjectKind, String(target ?? '')) ?? t(p.whyKey, params) : '' };
     },
     /** The board: for every project kind, the targets it can be built on now with price and lead time (no effect study; careerQuote gives that). */

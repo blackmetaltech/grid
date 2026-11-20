@@ -57,6 +57,8 @@ export const EN_CAREER: Record<string, string> = {
   'career.charter.lean.text': 'The regulator allows 5 % less to run the network and you start with little cash. Cheap fixes first, and stay out of debt.',
   'career.charter.forest.name': 'Forest Line',
   'career.charter.forest.text': 'Lines through woodland: trees start much closer, and storms come more often. The tree-cutting budget matters.',
+  'career.overdraw': 'This takes you into debt: after it and the projects already building are paid for, cash would be about {after}. You can borrow up to {credit}, but any debt at the end rules out Chief Engineer.',
+  'career.review.next': 'Next year the targets tighten by {tightenPct} %, as every year: SAIDI {saidiTarget} min, SAIFI {saifiTarget}.',
   'career.short.years': 'Targets met in {met} of 10 years; Chief Engineer needs {need}.',
   'career.short.health': 'The network is no healthier than you found it (average {health}, was {start}).',
   'career.short.debt': 'You end in debt ({cashText}). Chief Engineer hands over a company with money in the bank.',

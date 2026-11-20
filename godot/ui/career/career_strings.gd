@@ -5,11 +5,11 @@ extends RefCounted
 const S := {
 	# entry
 	"CAR_TITLE": "The Utility", "CAR_TITLE_LINE": "Career", "CAR_ENTRY_SUB": "Ten years as district engineer of Lumen Distribution: two primary substations, nine feeders, about 40,000 customers. Plan each quarter, then see what the weather does.",
-	"CAR_NEW": "New career", "CAR_NEW_REPLACES": "New career (replaces the saved one)", "CAR_CONTINUE": "Continue career", "CAR_CONTINUE_AT": "Continue: year %d, quarter %d, score %d", "CAR_CLOSE": "Close",
+	"CAR_WEEKLY_BTN": "This week's district: %s (%s)", "CAR_WEEKLY_BEST": ", best %d", "CAR_WEEKLY_TAG": "%s · weekly %s", "CAR_CHOOSE": "Choose a district...", "CAR_CHOOSE_TITLE": "CHOOSE A DISTRICT", "CAR_CHOOSE_SUB": "Each district leans on a different part of the job. The targets are set from what each one can do, so all of them can be won.", "CAR_NEW": "New career", "CAR_NEW_REPLACES": "New career (replaces the saved one)", "CAR_CONTINUE": "Continue career", "CAR_CONTINUE_AT": "Continue: year %d, quarter %d, score %d", "CAR_CLOSE": "Close",
 	"CAR_JOBS_BRIEF": "Ten years, forty quarters, one network. Projects, storms, connections and the regulator's review every year.", "CAR_JOBS_SAVED": "Saved: year %d, quarter %d",
 	"CAR_ERR_LOAD": "The saved career could not be loaded.",
 	# top strip
-	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI this year / target, min", "CAR_SAIFI": "SAIFI this year / target", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
+	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH_DEBT": "%s BORROWING", "CAR_CASH_OWED": "builds owe %s; then %s", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI this year / target, min", "CAR_SAIFI": "SAIFI this year / target", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
 	"CAR_HEALTH": "HEALTH", "CAR_HEALTH_VAL": "%s of 10 (start %s)", "CAR_CREWS": "CREWS", "CAR_CREWS_VAL": "%d of %d free", "CAR_MET": "YEARS MET", "CAR_MET_VAL": "%d", "CAR_SCORE": "SCORE", "CAR_PIP_REVIEW": "review, year %d",
 	"CAR_PIP_MET": "year %d: targets met", "CAR_PIP_MISSED": "year %d: targets missed", "CAR_PIP_Q": "year %d, quarter %d",
 	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",
@@ -30,7 +30,7 @@ const S := {
 	"CAR_RUN_NONE": "No project is running. Pick one from the board.", "CAR_RUN_LINE": "%s on %s", "CAR_RUN_STATE": "%d of %d quarters left, %s of %s spent", "CAR_CANCEL": "Cancel", "CAR_RUN_building": "building", "CAR_RUN_active": "running", "CAR_RUN_done": "done", "CAR_RUN_cancelled": "cancelled",
 	"CAR_VEG": "Routine tree cutting", "CAR_VEG_LVL": "level %d of 3: %s", "CAR_VEG_0": "none", "CAR_VEG_1": "light", "CAR_VEG_2": "standard", "CAR_VEG_3": "heavy", "CAR_VEG_COST": "%s a quarter", "CAR_MINUS": "-", "CAR_PLUS": "+",
 	"CAR_REQ_NONE": "No connection requests. The council writes when someone wants to connect.", "CAR_REQ_LINE": "%s on %s", "CAR_REQ_DETAIL": "%s kW, %d customers, pays %s", "CAR_REQ_CRIT": "critical load", "CAR_REQ_PV": "%s kW of solar",
-	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder and the customer pays a connection charge once. Check its loading first. A request left to lapse counts as a missed connection and lowers the career score.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now, %s %% once this is connected.",
+	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder and the customer pays a connection charge once. Check its loading first. A request left to lapse counts as a missed connection and lowers the career score.", "CAR_REQ_LOAD": "At the next winter peak %s runs at %s %% of its rating, %s %% with this connected.",
 	"CAR_MSG_OK": "%s", "CAR_CREWS_LEFT": "crews free %d",
 	# incidents
 	"CAR_INC_TITLE": "INCIDENTS", "CAR_INC_SUB": "Major events this quarter. Answer each one, then settle the quarter.", "CAR_INC_LINE": "%s on %s", "CAR_INC_NOFEEDER": "the primary", "CAR_INC_FACTS": "%d faults, %s customers interrupted, %s min of SAIDI on its own.",
@@ -45,5 +45,5 @@ const S := {
 	"CAR_GRADE_good": "GOOD", "CAR_GRADE_ok": "OK", "CAR_GRADE_poor": "POOR", "CAR_RV_CONT": "Next year", "CAR_RV_NOTE": "A simplified performance-based incentive: pay for beating the target, a fine for missing it. No rate case, no inflation.",
 	# ending
 	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years judged.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the career.",
-	"CAR_ED_SHORT": "Short of Chief Engineer:", "CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
+	"CAR_ED_SHORT": "Short of Chief Engineer:", "CAR_ED_CHARTER": "District: %s.", "CAR_ED_WEEKLY": "Weekly district %s: best on this device %d.", "CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
 }

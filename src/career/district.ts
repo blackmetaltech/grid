@@ -170,3 +170,11 @@ export function weeklyDistrict(year: number, isoWeek: number): { seed: number; c
   const seed = 100000 + ((n * 2654435761) >>> 0) % 900000;
   return { seed, charter: others[n % others.length]!, key: `${year}-W${String(isoWeek).padStart(2, '0')}` };
 }
+
+/** ISO 8601 week of a calendar date (pure; the front end passes the system date). */
+export function isoWeekOf(year: number, month: number, day: number): { year: number; week: number } {
+  const d = new Date(Date.UTC(year, month - 1, day)), wd = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - wd);   // the Thursday of this week decides the year
+  const y = d.getUTCFullYear(), w = Math.ceil(((d.getTime() - Date.UTC(y, 0, 1)) / 86400000 + 1) / 7);
+  return { year: y, week: w };
+}

@@ -245,5 +245,6 @@ describe('1.3 district charters and the weekly district', async () => {
     const seen = new Set<string>(); for (let w = 1; w <= 6; w++) seen.add(C.weeklyDistrict(2026, w).charter);
     expect(seen.size).toBe(6); expect(seen.has('standard')).toBe(false);
     expect(C.weeklyDistrict(2026, 3).key).toBe('2026-W03');
+    expect(C.isoWeekOf(2026, 11, 20)).toEqual({ year: 2026, week: 47 }); expect(C.isoWeekOf(2021, 1, 1)).toEqual({ year: 2020, week: 53 }); expect(C.isoWeekOf(2024, 12, 30)).toEqual({ year: 2025, week: 1 });
   });
 });

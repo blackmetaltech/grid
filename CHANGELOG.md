@@ -2,6 +2,31 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.3.0] - "Charters" (tag v1.3.0; driven by docs/CRITIQUE-1.2.md and CRITIQUE-1.0's long-term score; design in docs/DESIGN-1.3.md, review in docs/CRITIQUE-1.3.md)
+### Added
+- **District charters.** A Career can start in one of seven districts. Each charter pushes a different pressure far enough to change which strategy wins. Targets still come from each district's own expected performance, so all of them can be won.
+  - Home Counties: the 1.2 game, bit for bit.
+  - Storm Coast: storms 1.7× as often.
+  - Boomtown: 1.6× the connection requests and faster growth.
+  - Old Iron: every asset 8 years older.
+  - Solar Valley: 3× rooftop PV, heatwaves, and voltage complaints that cost 6×.
+  - Lean Years: 5 % less opex allowance and little cash.
+  - Forest Line: trees closer and more storms.
+  - Over 12 seeds of each charter, the planner persona beats the firefighter on 8 to 10.
+- **The weekly district.** Each ISO week has one seed and one charter, the same for everyone. The Career docket offers it with this device's best score for the week, and the ending sheet records the score.
+- Career codes `C2/<seed>/<charter>/<actions>`. `C1` codes still load, as Home Counties.
+- The career bar shows the district's charter.
+### Changed
+- **Planner persona restored to 45 of 50.** When the network cannot meet its targets even in fair weather, the planner switches to a reliability emergency mode:
+  - every feeder is a candidate for reliability projects;
+  - up to four projects a quarter;
+  - it may borrow and use the crews held back for capacity;
+  - it trims more trees.
+  - Over 50 seeds it now beats the firefighter on 46 (was 41), reaches Chief Engineer on 13 (was 11) and loses its licence on 2 (was 6). The test floors are back at 45 and 12.
+- **Debt caps the ending.** Ending the ten years with any negative cash keeps a career below Chief Engineer. The finance director's review says so, and the ending sheet lists in words everything that kept the career from Chief.
+- **No target cliff.** A five-year reset tightens a target by at most 25 % in one step, and the review and the year-ahead warning say so.
+- **Phone layout.** On chapters 4, 7 and 8, the title card and the clock fade out while the stage is panned under them, so the chart's axis is never covered at full pan.
+
 ## [1.2.0] - "Fair Weather" (tag v1.2.0; includes rc.1; driven by docs/CRITIQUE-1.1.md, review in docs/CRITIQUE-1.2.md)
 ### Changed
 - **Career regulation, made fair and then tightened.**
