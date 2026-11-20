@@ -38,6 +38,7 @@ export const EN_CAREER: Record<string, string> = {
   'career.incidents': '{count} major incidents this quarter. Answer the cards, then end the quarter.',
   'career.incident.tied': 'Ties switched on {id}: about {saving} % fewer customer-minutes lost.',
   'career.incident.crewed': 'Extra crew sent to {id}: about {saving} % faster repair ({cost}).',
+  'career.emergency': 'Of the capital spend, {emergency} was an emergency replacement of failed plant, at {mult} times the planned price: the cost of running an asset to failure.',
   'career.quarter.done': 'Quarter done. Cash {cashText}.',
   'career.ending.chiefEngineer': 'Ten years done. Targets met in most years and the network is healthier than you found it: Chief Engineer.',
   'career.ending.steady': 'Ten years done. The lights stayed on; the network got older. A steady career.',
@@ -106,5 +107,5 @@ export const EN_CAREER: Record<string, string> = {
   'career.review.reset': 'A new price-control period starts. The regulator resets the targets to {resetPct} % of what your network is expected to achieve, where that is tighter: next year SAIDI {saidiTarget} min and SAIFI {saifiTarget}.',
   'career.review.crew.good': 'Average health {health} (was {prevHealth}), {backlog} assets in poor shape. The kit is in good order.',
   'career.review.crew.ok': 'Average health {health} (was {prevHealth}), {backlog} assets in poor shape. Holding.',
-  'career.review.crew.poor': 'Average health {health} (was {prevHealth}), {backlog} assets in poor shape. We are patching, not fixing.',
+  'career.review.crew.poor': 'Average health {health} (was {prevHealth}), but {backlog} assets are still in poor shape, and each one is a fault waiting for a storm.',
 };

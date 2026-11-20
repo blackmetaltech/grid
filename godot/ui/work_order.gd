@@ -90,7 +90,9 @@ static func lamp_texts(li: Dictionary) -> Array:
 	if fz is Dictionary:
 		var th: Dictionary = li.get("thresholds", {}); var extra: Array = []
 		for k in (li.get("star3", []) as Array):
-			if th.has(k) and _lamp_th(str(k)): var tx := _th_text(str(k), float(th[k])); extra.append(tx.substr(0, 1).to_lower() + tx.substr(1))
+			if not (th.has(k) and _lamp_th(str(k))): continue
+			var tx := _th_text(str(k), float(th[k])); var lw := tx.substr(0, 1).to_lower() + tx.substr(1)
+			if not extra.has(lw): extra.append(lw)   # two conditions can share a threshold (L28)
 		var sec: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "s"
 		var pct: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "pct"   # L36: the score is the mean prediction error in percent
 		var scored: bool = str(li.get("histogram", "")) == "score"
@@ -99,7 +101,9 @@ static func lamp_texts(li: Dictionary) -> Array:
 		l2 = (T("C8_LAMP_PCT") if pct else (T("C7_LAMP_SCORE") if scored else T("LAMP_2"))) % fa
 		var extra2: Array = []
 		for k in (li.get("star2", []) as Array):
-			if th.has(k) and _lamp_th(str(k)): var tx2 := _th_text(str(k), float(th[k])); extra2.append(tx2.substr(0, 1).to_lower() + tx2.substr(1))
+			if not (th.has(k) and _lamp_th(str(k))): continue
+			var tx2 := _th_text(str(k), float(th[k])); var lw2 := tx2.substr(0, 1).to_lower() + tx2.substr(1)
+			if not extra2.has(lw2): extra2.append(lw2)
 		if not extra2.is_empty(): l2 += T("LAMP_AND") + ", ".join(extra2)   # L12: the spend lamp also asks for the swing
 		l3 = (T("C8_LAMP_PCT3") if pct else (T("C7_LAMP_SCORE3") if scored else T("LAMP_3"))) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
 		if not scored and float(fz.starA) <= 0.0:   # nothing to buy (the exam bridges): the lamps are not about spend

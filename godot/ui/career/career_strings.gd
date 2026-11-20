@@ -30,7 +30,7 @@ const S := {
 	"CAR_RUN_NONE": "No project is running. Pick one from the board.", "CAR_RUN_LINE": "%s on %s", "CAR_RUN_STATE": "%d of %d quarters left, %s of %s spent", "CAR_CANCEL": "Cancel", "CAR_RUN_building": "building", "CAR_RUN_active": "running", "CAR_RUN_done": "done", "CAR_RUN_cancelled": "cancelled",
 	"CAR_VEG": "Routine tree cutting", "CAR_VEG_LVL": "level %d of 3: %s", "CAR_VEG_0": "none", "CAR_VEG_1": "light", "CAR_VEG_2": "standard", "CAR_VEG_3": "heavy", "CAR_VEG_COST": "%s a quarter", "CAR_MINUS": "-", "CAR_PLUS": "+",
 	"CAR_REQ_NONE": "No connection requests. The council writes when someone wants to connect.", "CAR_REQ_LINE": "%s on %s", "CAR_REQ_DETAIL": "%s kW, %d customers, pays %s", "CAR_REQ_CRIT": "critical load", "CAR_REQ_PV": "%s kW of solar",
-	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder. Check its loading first.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now, %s %% once this is connected.",
+	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder. Check its loading first. A request left to lapse counts as a missed connection with the regulator.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now, %s %% once this is connected.",
 	"CAR_MSG_OK": "%s", "CAR_CREWS_LEFT": "crews free %d",
 	# incidents
 	"CAR_INC_TITLE": "INCIDENTS", "CAR_INC_SUB": "Major events this quarter. Answer each one, then settle the quarter.", "CAR_INC_LINE": "%s on %s", "CAR_INC_NOFEEDER": "the primary", "CAR_INC_FACTS": "%d faults, %s customers interrupted, %s min of SAIDI on its own.",

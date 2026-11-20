@@ -156,6 +156,6 @@ const S := {
 	"TH_farVMinPu": "Far end of the line ≥ %s pu", "TH_farVStar3Pu": "Far end ≥ %s pu all day", "TH_breakerKA": "The old feeder breaker is rated %s kA",
 	# chapter 5 pass conditions (the work order reads TH_ keys here)
 	"TH_vLo": "Voltage never below\u00a0%s pu", "TH_vHi": "Voltage never above\u00a0%s pu", "TH_tapOpsMax": "Tap changes ≤\u00a0%s a day", "TH_opsMax": "Switching operations ≤\u00a0%s a day",
-	"TH_n1Max": "Worst line after losing any one ≤\u00a0%s\u00a0%%", "TH_marginFloorPct": "Margin to the nose ≥\u00a0%s\u00a0%%", "TH_marginStar3Pct": "Margin to the nose ≥\u00a0%s\u00a0%%",
+	"TH_freqViolMax": "Frequency never out of band and the island never dark (%s blocks allowed)", "TH_n1Max": "Worst line after losing any one ≤\u00a0%s\u00a0%%", "TH_marginFloorPct": "Margin to the nose ≥\u00a0%s\u00a0%%", "TH_marginStar3Pct": "Margin to the nose ≥\u00a0%s\u00a0%%",
 	"TH_v2Min": "Bus 2 voltage ≥\u00a0%s pu", "TH_predHitsMin": "At least %s predictions within 0.5\u00a0%%",
 }

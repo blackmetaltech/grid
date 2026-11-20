@@ -86,7 +86,7 @@ function settle(s: CareerState): ActionResult {
     t, year: Math.floor(t / 4), quarter: t % 4, saidiReal: N ? custMin / N : 0, saifiReal: N ? custInt / N : 0, saidiExp: out.expSaidiQ, saifiExp: out.expSaifiQ,
     saidiYtd: saidiYtdBefore, saifiYtd: saifiYtdBefore, lossesMWh: out.lossesMWh, capexM: capex, opexM: opex, revenueM: revenue, incentiveM: incentiveBooked, cash: s.cash, rab: s.rab,
     avgHealth: avgHealth(s), worstHealth: worstHealth(s), delivered: s.delivered, missed: s.missed, vViolations: out.vViolations, firmMarginPct: out.firmMarginPct,
-    maxLoadingPct: out.maxLoadingPct, customers: N, faults: out.faults,
+    maxLoadingPct: out.maxLoadingPct, customers: N, faults: out.faults, emergencyM: out.emergencyCapexM,
   });
   void ex;
   s.projects = s.projects.filter((p) => p.status === 'building' || p.status === 'active');

@@ -115,6 +115,7 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	body.add_child(_para(T("CAR_QR_SAIFI") % [n1.call(float(h.saifiReal), 2), n1.call(float(h.saifiExp), 2), n1.call(float(h.saifiYtd), 2), n1.call(float(sc.d.targets.saifi), 2)], compact))
 	body.add_child(PaperKit.rule())
 	body.add_child(_para(T("CAR_QR_MONEY") % [str(h.revenueText), str(h.capexText), str(h.opexText), str(h.incentiveText), str(h.cashText)], compact))
+	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
 	body.add_child(_para(T("CAR_QR_HEALTH") % [n1.call(float(h.avgHealth), 1), n1.call(float(h.worstHealth), 1), n1.call(float(h.lossesMWh), 0)], compact))
 	body.add_child(_para(T("CAR_QR_NET") % [int(h.faults), int(h.vViolations), n1.call(float(h.firmMarginPct), 0), n1.call(float(h.maxLoadingPct), 0)], compact))
 	body.add_child(_para(T("CAR_QR_CONN") % [int(h.delivered), int(h.missed)], compact))

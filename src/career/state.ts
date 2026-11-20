@@ -55,6 +55,8 @@ export interface Kpi {
   saidiReal: number; saifiReal: number; saidiExp: number; saifiExp: number; saidiYtd: number; saifiYtd: number;
   lossesMWh: number; capexM: number; opexM: number; revenueM: number; incentiveM: number; cash: number; rab: number;
   avgHealth: number; worstHealth: number; delivered: number; missed: number; vViolations: number; firmMarginPct: number; maxLoadingPct: number; customers: number; faults: number;
+  /** Emergency replacement of failed plant this quarter (included in capexM), at MONEY.emergencyMult times the planned price. */
+  emergencyM?: number;
 }
 export type Phase = 'plan' | 'incident' | 'over';
 export interface QuarterOutcome {
