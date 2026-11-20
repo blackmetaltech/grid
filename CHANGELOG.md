@@ -2,7 +2,7 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
-## [1.2.0] - "Fair Weather" (in progress; v1.2.0-rc.1 tagged; driven by docs/CRITIQUE-1.1.md)
+## [1.2.0] - "Fair Weather" (tag v1.2.0; includes rc.1; driven by docs/CRITIQUE-1.1.md, review in docs/CRITIQUE-1.2.md)
 ### Changed
 - **Career regulation, made fair and then tightened.**
   - The regulator judges the rolling average of the price-control period's last three years, not one year. A single year's SAIDI swings about ±45 % with the faults and storms of a 40,000-customer district; three years cut that to about ±27 %.
@@ -18,7 +18,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
   - It reinforces from the section currents of the load flow, and splits the overloaded feeder itself.
   - When the bays are full it falls back to demand response, then a battery.
   - It borrows for capacity only while the network is on track, and accepts connections only with headroom.
-  - Over 50 seeds it beats the firefighter on 41, reaches Chief Engineer on 13, and ends with no feeder over its cyclic rating on most seeds. The design asked for 45 of 50; see CRITIQUE-1.2.
+  - Over 50 seeds it beats the firefighter on 41, reaches Chief Engineer on 11, and ends with no feeder over its cyclic rating on most seeds. The design asked for 45 of 50; see CRITIQUE-1.2.
 - **L16:**
   - The shift report gives the time of the day's worst loading and of the worst N-1 moment.
   - The control-room card adds "worst so far today, at hh:mm" beside its "now" table.
@@ -29,6 +29,14 @@ All notable changes to GRID. The release workflow publishes the section whose he
   - An emergency replacement after a plant failure is explained in the quarter report.
   - Request cards say that a lapsed request counts as missed.
   - The crew chief's "poor" verdict no longer says "patching, not fixing" while health rises.
+- After the playtest (an electrician retraining as a planning technician played a full career):
+  - The finance director names the credit line.
+  - The quarter report breaks down running costs and warns of the reset a year ahead.
+  - The load index reads the winter peak, so it agrees with the board.
+  - Incident buttons say their effect and cost.
+  - A new feeder splits the feeder you pick.
+  - The log's cash matches the report.
+  - The shift report scrolls when it is taller than the screen (L16 at 1080 p).
 ### Added
 - A test that every star condition of every level has a lamp sentence (L28's frequency/island lamp now has one).
 
