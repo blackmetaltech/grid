@@ -8,7 +8,8 @@ import { firmMarginPct } from './projects';
 
 /** Load index (RIIO reports one): feeders over their winter cyclic rating at peak, primaries short of firm capacity. Chief Engineer needs both at 0. */
 export function loadIndex(s: CareerState): { overloaded: number; firmShort: number } {
-  return { overloaded: s.feeders.filter((f) => analyseFeeder(s, f).loadingPct > ENDINGS.cyclicPct).length, firmShort: s.primaries.filter((p) => firmMarginPct(s, p.id) < 0).length };
+  const tw = s.t - (s.t % 4), w = { ...s, t: tw };   // read at the year's winter peak (the highest of the four seasons), so the index does not swing with the season
+  return { overloaded: s.feeders.filter((f) => analyseFeeder(w, f).loadingPct > ENDINGS.cyclicPct).length, firmShort: s.primaries.filter((p) => firmMarginPct(s, p.id, tw) < 0).length };
 }
 
 export const yearOf = (t: number): number => Math.floor(t / 4);
@@ -37,7 +38,7 @@ export function annualReview(s: CareerState): Review {
     key: '', params: { saidi: saidiR, saifi: saifiR, saidiYear: saidi, saifiYear: saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, incentiveM: inc },
   };
   reg.key = `career.review.regulator.${reg.grade}`;
-  const fin: Verdict = { axis: 'finance', who: 'Vance', grade: s.cash >= 2 ? 'good' : s.cash >= 0 ? 'ok' : 'poor', key: '', params: { cash: s.cash, rab: s.rab, arM: s.ar } };
+  const fin: Verdict = { axis: 'finance', who: 'Vance', grade: s.cash >= 2 ? 'good' : s.cash >= 0 ? 'ok' : 'poor', key: '', params: { cash: s.cash, rab: s.rab, arM: s.ar, creditM: MONEY.creditLimit } };
   fin.key = `career.review.finance.${fin.grade}`;
   const crew: Verdict = { axis: 'crew', who: 'Tobi', grade: bl >= 5 || health < prevHealth - 0.4 ? 'poor' : bl <= 2 && health >= prevHealth - 0.05 ? 'good' : 'ok', key: '', params: { health, prevHealth, backlog: bl } };
   crew.key = `career.review.crew.${crew.grade}`;

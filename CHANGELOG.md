@@ -2,6 +2,36 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.2.0] - "Fair Weather" (in progress; v1.2.0-rc.1 tagged; driven by docs/CRITIQUE-1.1.md)
+### Changed
+- **Career regulation, made fair and then tightened.**
+  - The regulator judges the rolling average of the price-control period's last three years, not one year. A single year's SAIDI swings about ±45 % with the faults and storms of a 40,000-customer district; three years cut that to about ±27 %.
+  - Each five-year period ends with the targets reset to 1.3× what the network is modelled to achieve, where that is tighter. A good career's year-10 SAIDI target falls from about 411 to about 283 minutes, so the incentive is no longer automatic in the second half.
+  - A severe-fine year counts toward losing the licence only when the network itself cannot meet the targets (its luck-free expected SAIDI or SAIFI is over them), and three must come in a row. Weather alone no longer ends a career.
+  - The review sheet shows the rolling average beside this year's figure and announces the reset.
+- **Chief Engineer needs a clean load index.**
+  - No feeder may be over its winter cyclic rating (110 % of its static rating), and no primary may be short of firm capacity.
+  - Each annual review prints the load index.
+  - A new feeder can now split a chosen feeder, not only the busiest one at a primary.
+  - Each primary has room for 20 feeders (was 14), and builds in progress count.
+- **Planner persona** (the reference career in the tests):
+  - It reinforces from the section currents of the load flow, and splits the overloaded feeder itself.
+  - When the bays are full it falls back to demand response, then a battery.
+  - It borrows for capacity only while the network is on track, and accepts connections only with headroom.
+  - Over 50 seeds it beats the firefighter on 41, reaches Chief Engineer on 13, and ends with no feeder over its cyclic rating on most seeds. The design asked for 45 of 50; see CRITIQUE-1.2.
+- **L16:**
+  - The shift report gives the time of the day's worst loading and of the worst N-1 moment.
+  - The control-room card adds "worst so far today, at hh:mm" beside its "now" table.
+- **Chapter 8 on the phone layout:**
+  - The study screen pans its whole canvas until every card clears the coach card and the panel. Before this, the bottom 156 px could not be reached.
+  - The mouse wheel pans too, and a tab says there is more below.
+- **Career screens:**
+  - An emergency replacement after a plant failure is explained in the quarter report.
+  - Request cards say that a lapsed request counts as missed.
+  - The crew chief's "poor" verdict no longer says "patching, not fixing" while health rises.
+### Added
+- A test that every star condition of every level has a lamp sentence (L28's frequency/island lamp now has one).
+
 ## [1.1.0] - "Employable" (tag v1.1.0; includes rc.1-rc.3; design in docs/DESIGN-1.1.md, review in docs/CRITIQUE-1.1.md)
 ### Added
 - Chapter 8 UI (rc.3): each level has its own stage and panel.

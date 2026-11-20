@@ -14,7 +14,7 @@ const S := {
 	"CAR_PIP_MET": "year %d: targets met", "CAR_PIP_MISSED": "year %d: targets missed", "CAR_PIP_Q": "year %d, quarter %d",
 	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",
 	# map
-	"CAR_COLOUR_BY": "colour by", "CAR_BY_LOAD": "Loading", "CAR_BY_HEALTH": "Health", "CAR_LEG_LOAD": "Loading of the feeder: green under 70 %, amber to 100 %, red above.", "CAR_LEG_HEALTH": "Health of each section, 1 (worn out) to 10 (new).",
+	"CAR_COLOUR_BY": "colour by", "CAR_BY_LOAD": "Loading", "CAR_BY_HEALTH": "Health", "CAR_LEG_LOAD": "Loading of the feeder at this quarter's peak (winter is the highest): green under 70 %, amber to 100 %, red above.", "CAR_LEG_HEALTH": "Health of each section, 1 (worn out) to 10 (new).",
 	"CAR_LEG_BADGES": "T tie  R recloser  V regulator  B battery  D demand response  x patched, replace it", "CAR_FEEDER_LABEL": "%s  %d %%", "CAR_FEEDER_LABEL_H": "%s", "CAR_FIRM_TAG": "firm margin %s %%",
 	# selection panel
 	"CAR_SEL_NONE": "Tap a section, a feeder line or a primary on the map to look at it and to choose where a project goes.", "CAR_SEC_TITLE": "Section %s", "CAR_SEC_INFO": "%s km of %s wire, %s.",
@@ -30,11 +30,11 @@ const S := {
 	"CAR_RUN_NONE": "No project is running. Pick one from the board.", "CAR_RUN_LINE": "%s on %s", "CAR_RUN_STATE": "%d of %d quarters left, %s of %s spent", "CAR_CANCEL": "Cancel", "CAR_RUN_building": "building", "CAR_RUN_active": "running", "CAR_RUN_done": "done", "CAR_RUN_cancelled": "cancelled",
 	"CAR_VEG": "Routine tree cutting", "CAR_VEG_LVL": "level %d of 3: %s", "CAR_VEG_0": "none", "CAR_VEG_1": "light", "CAR_VEG_2": "standard", "CAR_VEG_3": "heavy", "CAR_VEG_COST": "%s a quarter", "CAR_MINUS": "-", "CAR_PLUS": "+",
 	"CAR_REQ_NONE": "No connection requests. The council writes when someone wants to connect.", "CAR_REQ_LINE": "%s on %s", "CAR_REQ_DETAIL": "%s kW, %d customers, pays %s", "CAR_REQ_CRIT": "critical load", "CAR_REQ_PV": "%s kW of solar",
-	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder. Check its loading first. A request left to lapse counts as a missed connection with the regulator.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now, %s %% once this is connected.",
+	"CAR_REQ_DUE": "decide within %d quarters", "CAR_REQ_LAST": "last quarter to decide", "CAR_ACCEPT": "Accept", "CAR_REQ_HINT": "Accepting adds the load to that feeder and the customer pays a connection charge once. Check its loading first. A request left to lapse counts as a missed connection and lowers the career score.", "CAR_REQ_LOAD": "%s is at %s %% of its rating now, %s %% once this is connected.",
 	"CAR_MSG_OK": "%s", "CAR_CREWS_LEFT": "crews free %d",
 	# incidents
 	"CAR_INC_TITLE": "INCIDENTS", "CAR_INC_SUB": "Major events this quarter. Answer each one, then settle the quarter.", "CAR_INC_LINE": "%s on %s", "CAR_INC_NOFEEDER": "the primary", "CAR_INC_FACTS": "%d faults, %s customers interrupted, %s min of SAIDI on its own.",
-	"CAR_INC_EXC": "Exceptional: the regulator does not count it.", "CAR_INC_TIE": "Switch ties", "CAR_INC_TIED": "Ties switched", "CAR_INC_NOTIE": "No tie on this feeder", "CAR_INC_CREW": "Send crew", "CAR_INC_CREWED": "Crew sent",
+	"CAR_INC_EXC": "Exceptional: the regulator does not count it.", "CAR_INC_TIE": "Switch ties (about %d %% fewer customer-minutes)", "CAR_INC_TIED": "Ties switched", "CAR_INC_NOTIE": "No tie on this feeder (build one from the board)", "CAR_INC_CREW": "Send crew (repair %d %% faster, %s)", "CAR_INC_CREWED": "Crew sent",
 	"CAR_INC_DONE": "Done: settle the quarter", "CAR_INC_RESULT": "%s",
 	# quarter report
 	"CAR_QR_TITLE": "QUARTER REPORT", "CAR_QR_SUB": "Year %d, quarter %d", "CAR_QR_SAIDI": "SAIDI this quarter: %s min (expected %s). Year so far %s of %s.", "CAR_QR_SAIFI": "SAIFI this quarter: %s (expected %s). Year so far %s of %s.",

@@ -70,7 +70,8 @@ function settle(s: CareerState): ActionResult {
   const revenue = s.ar / 4;
   const drCost = s.projects.filter((p) => p.status === 'active' && p.kind === 'demandResponse').length * PROJECT_DETAIL.drCostQ;
   const vegCost = s.vegLevel * MONEY.vegPerLevelFeederQ * s.feeders.length;
-  const opex = baseOpexQ(N, s.crews) + out.repairCostM + (out.lossesMWh * MONEY.lossCostPerMWh) / 1e6 + drCost + vegCost + out.vViolations * 0.01;
+  const baseQ = baseOpexQ(N, s.crews), lossQ = (out.lossesMWh * MONEY.lossCostPerMWh) / 1e6, vQ = out.vViolations * 0.01;
+  const opex = baseQ + out.repairCostM + lossQ + drCost + vegCost + vQ;
   const capex = out.capexM + out.emergencyCapexM;
   s.cash += revenue - opex - capex + interestQ(s.cash);
   s.rab = rabNext(s.rab, out.rabAddM);
@@ -87,6 +88,7 @@ function settle(s: CareerState): ActionResult {
     saidiYtd: saidiYtdBefore, saifiYtd: saifiYtdBefore, lossesMWh: out.lossesMWh, capexM: capex, opexM: opex, revenueM: revenue, incentiveM: incentiveBooked, cash: s.cash, rab: s.rab,
     avgHealth: avgHealth(s), worstHealth: worstHealth(s), delivered: s.delivered, missed: s.missed, vViolations: out.vViolations, firmMarginPct: out.firmMarginPct,
     maxLoadingPct: out.maxLoadingPct, customers: N, faults: out.faults, emergencyM: out.emergencyCapexM,
+    opexParts: { base: baseQ, repairs: out.repairCostM, losses: lossQ, dr: drCost, veg: vegCost, voltage: vQ },
   });
   void ex;
   s.projects = s.projects.filter((p) => p.status === 'building' || p.status === 'active');
@@ -96,5 +98,5 @@ function settle(s: CareerState): ActionResult {
   s.incidents = []; s.pending = null;
   s.ending = endingOf(s, reviewed);
   s.phase = s.ending ? 'over' : 'plan';
-  return ok(s, s.ending ? `career.ending.${s.ending}` : 'career.quarter.done', { t: s.t, cash: Math.round(s.cash * 100) / 100 });
+  return ok(s, s.ending ? `career.ending.${s.ending}` : 'career.quarter.done', { t: s.t, cash: s.cash });
 }

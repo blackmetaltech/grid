@@ -127,7 +127,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         }),
         incidents: st.incidents.map((x) => ({ ...x, kindName: t(`career.incident.${x.kind}`), custMin: Math.round(x.custMin), saidiMin: r1(N ? x.custMin / N : 0) })),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
-          cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
+          cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexPartsText: k.opexParts ? t('career.opexParts', { base: m(k.opexParts.base), repairs: m(k.opexParts.repairs), losses: m(k.opexParts.losses), dr: m(k.opexParts.dr), veg: m(k.opexParts.veg), voltage: m(k.opexParts.voltage) }) : '',
+          emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
@@ -135,6 +136,9 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
         allowedRevenueText: m(allowedRevenue(st.rab, st.opexAllowance)),
+        // the year a price-control period ends: say what the reset will do, before it happens
+        resetWarnText: Math.floor(st.t / 4) % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 && !st.ending ? t('career.resetWarn', { resetPct: Math.round(INCENTIVE.resetFactor * 100), saidiNow: r1(st.saidiTarget), saidiNext: r1(Math.min(st.saidiTarget * (1 - INCENTIVE.targetTightenPct / 100), INCENTIVE.resetFactor * exp.saidi)), saifiNext: r2(Math.min(st.saifiTarget * (1 - INCENTIVE.targetTightenPct / 100), INCENTIVE.resetFactor * exp.saifi)) }) : '',
+        crewCostText: m(MONEY.dispatchM * (crewsFree(st) >= 1 ? 1 : 2)), tieSavingPct: 35, crewSavingPct: 20,
       };
     },
     /** Price, lead time and expected effect of a project before it is started (the board's card): the "why this helps" line in the player's own numbers. */
@@ -154,7 +158,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       if (!c) return { active: false };
       const st = c.state, targets: Record<ProjectKind, string[]> = {
         reconductor: st.feeders.flatMap((f) => f.sections.map((x) => x.id)), remoteSwitch: st.feeders.flatMap((f) => f.sections.map((x) => x.id)),
-        newFeeder: st.primaries.map((p) => p.id), newTransformer: st.primaries.map((p) => p.id),
+        newFeeder: st.feeders.map((f) => f.id), newTransformer: st.primaries.map((p) => p.id),
         tieSwitch: st.feeders.map((f) => f.id), recloser: st.feeders.map((f) => f.id), vegetation: st.feeders.map((f) => f.id), regulator: st.feeders.map((f) => f.id), battery: st.feeders.map((f) => f.id), demandResponse: st.feeders.map((f) => f.id),
         replaceAssets: st.assets.map((a) => a.id),
       };

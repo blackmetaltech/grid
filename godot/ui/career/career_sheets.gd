@@ -82,11 +82,11 @@ static func incidents(sc: CareerScreen) -> void:
 			v.add_child(_para(T("CAR_INC_FACTS") % [int(inc.faults), CareerKit.num(float(inc.custInt), 0), CareerKit.num(float(inc.saidiMin), 1)], compact))
 			if bool(inc.exceptional): v.add_child(PaperKit.lbl(T("CAR_INC_EXC"), 14 if compact else 16, "mono", PaperKit.AMBER, true))
 			var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 10); v.add_child(row)
-			var tie_txt := T("CAR_INC_TIED") if bool(inc.tied) else (T("CAR_INC_TIE") if bool(inc.hasTie) else T("CAR_INC_NOTIE"))
+			var tie_txt := T("CAR_INC_TIED") if bool(inc.tied) else (T("CAR_INC_TIE") % int(sc.d.get("tieSavingPct", 35)) if bool(inc.hasTie) else T("CAR_INC_NOTIE"))
 			var tb := PaperKit.btn(tie_txt, false, func():
 				var r := sc.act("careerTie", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
 			tb.name = "Tie_" + iid; tb.disabled = bool(inc.tied) or not bool(inc.hasTie); row.add_child(tb)
-			var cb := PaperKit.btn(T("CAR_INC_CREWED") if bool(inc.crewed) else T("CAR_INC_CREW"), false, func():
+			var cb := PaperKit.btn(T("CAR_INC_CREWED") if bool(inc.crewed) else T("CAR_INC_CREW") % [int(sc.d.get("crewSavingPct", 20)), str(sc.d.get("crewCostText", ""))], false, func():
 				var r := sc.act("careerCrew", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
 			cb.name = "Crew_" + iid; cb.disabled = bool(inc.crewed); row.add_child(cb)
 		body.add_child(res)
@@ -115,7 +115,9 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	body.add_child(_para(T("CAR_QR_SAIFI") % [n1.call(float(h.saifiReal), 2), n1.call(float(h.saifiExp), 2), n1.call(float(h.saifiYtd), 2), n1.call(float(sc.d.targets.saifi), 2)], compact))
 	body.add_child(PaperKit.rule())
 	body.add_child(_para(T("CAR_QR_MONEY") % [str(h.revenueText), str(h.capexText), str(h.opexText), str(h.incentiveText), str(h.cashText)], compact))
+	if str(h.get("opexPartsText", "")) != "": body.add_child(_para(str(h.opexPartsText), compact, Color(PaperKit.INK, 0.8)))   # what the running costs are made of
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
+	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
 	body.add_child(_para(T("CAR_QR_HEALTH") % [n1.call(float(h.avgHealth), 1), n1.call(float(h.worstHealth), 1), n1.call(float(h.lossesMWh), 0)], compact))
 	body.add_child(_para(T("CAR_QR_NET") % [int(h.faults), int(h.vViolations), n1.call(float(h.firmMarginPct), 0), n1.call(float(h.maxLoadingPct), 0)], compact))
 	body.add_child(_para(T("CAR_QR_CONN") % [int(h.delivered), int(h.missed)], compact))

@@ -5,7 +5,7 @@ extends Control
 ## "why this helps"), the running projects and the connection requests. Sheets (incidents, quarter report, annual review, ending) are paper dockets (career_sheets.gd).
 ## Display and input only: every number is the engine's `career`, `careerBoard` and `careerQuote` queries, every change an engine action through app.b.act.
 
-const KIND_TARGET := {"reconductor": "section", "remoteSwitch": "section", "newFeeder": "primary", "newTransformer": "primary", "tieSwitch": "feeder", "recloser": "feeder",
+const KIND_TARGET := {"reconductor": "section", "remoteSwitch": "section", "newFeeder": "feeder", "newTransformer": "primary", "tieSwitch": "feeder", "recloser": "feeder",
 	"vegetation": "feeder", "regulator": "feeder", "battery": "feeder", "demandResponse": "feeder", "replaceAssets": "asset"}
 
 var app: CbApp

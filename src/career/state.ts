@@ -57,6 +57,8 @@ export interface Kpi {
   avgHealth: number; worstHealth: number; delivered: number; missed: number; vViolations: number; firmMarginPct: number; maxLoadingPct: number; customers: number; faults: number;
   /** Emergency replacement of failed plant this quarter (included in capexM), at MONEY.emergencyMult times the planned price. */
   emergencyM?: number;
+  /** Opex of the quarter by cause (sums to opexM). */
+  opexParts?: { base: number; repairs: number; losses: number; dr: number; veg: number; voltage: number };
 }
 export type Phase = 'plan' | 'incident' | 'over';
 export interface QuarterOutcome {
