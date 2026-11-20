@@ -128,15 +128,15 @@ export const SCORE: Sourced & { perYearMet: number; perSaidiMin: number; perInce
 /** District charters (DESIGN-1.3): named modifiers that change which pressure dominates a career. Multipliers on numbers the engine already has;
  * targets still come from the district's own expected performance, so each charter is winnable. Illustrative values. */
 export type CharterId = 'standard' | 'storm' | 'boom' | 'iron' | 'sun' | 'lean' | 'forest';
-export interface CharterRow { storm: number; heat: number; conn: number; growth: number; ev: number; pv: number; ageYears: number; vegAdd: number; allowance: number; startCash: number; /** x the cost of a feeder out of voltage limits (complaints, compensation) */ vPenalty: number }
-const NONE: CharterRow = { storm: 1, heat: 1, conn: 1, growth: 1, ev: 1, pv: 1, ageYears: 0, vegAdd: 0, allowance: 1, startCash: MONEY.startCash, vPenalty: 1 };
+export interface CharterRow { storm: number; heat: number; conn: number; growth: number; ev: number; pv: number; ageYears: number; vegAdd: number; allowance: number; startCash: number; /** x the cost of a feeder out of voltage limits (complaints, compensation) */ vPenalty: number; /** x the whole allowed revenue (an efficiency challenge on top of the allowance) */ revenue: number }
+const NONE: CharterRow = { storm: 1, heat: 1, conn: 1, growth: 1, ev: 1, pv: 1, ageYears: 0, vegAdd: 0, allowance: 1, startCash: MONEY.startCash, vPenalty: 1, revenue: 1 };
 export const CHARTERS: Record<CharterId, CharterRow> = {
   standard: NONE,
   storm: { ...NONE, storm: 1.7, allowance: 1.04 },
   boom: { ...NONE, conn: 1.6, growth: 1.35, ev: 1.3, startCash: MONEY.startCash + 3 },
   iron: { ...NONE, ageYears: 8, allowance: 1.08 },
   sun: { ...NONE, pv: 3, heat: 2.5, vPenalty: 6 },
-  lean: { ...NONE, allowance: 0.95, startCash: 1 },
+  lean: { ...NONE, allowance: 0.95, startCash: 1, revenue: 0.96 },
   forest: { ...NONE, vegAdd: 0.25, storm: 1.25 },
 };
 export const CHARTER_IDS = Object.keys(CHARTERS) as CharterId[];

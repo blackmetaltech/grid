@@ -117,6 +117,7 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	body.add_child(_para(T("CAR_QR_MONEY") % [str(h.revenueText), str(h.capexText), str(h.opexText), str(h.incentiveText), str(h.cashText)], compact))
 	if str(h.get("opexPartsText", "")) != "": body.add_child(_para(str(h.opexPartsText), compact, Color(PaperKit.INK, 0.8)))   # what the running costs are made of
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
+	if str(sc.d.get("rollingText", "")) != "": body.add_child(_para(str(sc.d.rollingText), compact, Color(PaperKit.INK, 0.8) if bool(sc.d.get("rollingOk", true)) else PaperKit.AMBER))   # the 3-year rule, before the review
 	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
 	for r in sc.d.get("plantRisk", []):   # substation plant likely to fail this year: warned before the emergency bill, not after (Old Iron tester)
 		if float(r.pFail) >= 10.0: body.add_child(_para(T("CAR_RISK") % str(r.text), compact, PaperKit.RED))
@@ -177,6 +178,9 @@ static func ending(sc: CareerScreen) -> void:
 	var body := VBoxContainer.new(); body.add_theme_constant_override("separation", 8)
 	body.add_child(PaperKit.lbl(str(c.endingText), 34 if compact else 52, "title", GREEN if good else PaperKit.RED, true))
 	body.add_child(PaperKit.lbl(T("CAR_ED_SCORE") % roundi(float(c.score)), 28 if compact else 40, "semi", PaperKit.INK))
+	var parts := VBoxContainer.new(); parts.name = "ScoreParts"; parts.add_theme_constant_override("separation", 0); body.add_child(parts)   # where the score came from (both 1.4 testers asked)
+	for sp in c.get("scoreParts", []):
+		if int(sp.points) != 0: parts.add_child(PaperKit.lbl(str(sp.text), 13 if compact else 15, "mono", PaperKit.RED if int(sp.points) < 0 else Color(PaperKit.INK, 0.75), true))
 	body.add_child(_para(T("CAR_ED_CHARTER") % str(c.get("charterName", "")), compact))
 	if str(c.get("weekly", "")) != "":   # the weekly district: keep this device's best for the week
 		body.add_child(_para(T("CAR_ED_WEEKLY") % [str(c.weekly), Career.weekly_record(str(c.weekly), int(c.boardScore))], compact))

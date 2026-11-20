@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -109,6 +109,15 @@ function plantRisk(st: CareerState): { id: string; cls: string; health: number; 
   }).filter((r) => r.pFail >= 0.05 && !r.building).sort((x, y) => y.pFail - x.pFail);
 }
 
+/** The 3-year rule ahead of the review: this year so far plus the expected rest, averaged with the period's earlier years
+ * (a tester was fined for a good year because of two bad ones before it, and learned why only at the review). */
+function rollingProj(st: CareerState, ytdSaidi: number, expSaidi: number): { rollingText: string; rollingOk: boolean } {
+  const inP = Math.floor(st.t / 4) % INCENTIVE.periodYears, k = Math.min(INCENTIVE.rollingYears - 1, inP), past = k > 0 ? st.reviews.slice(-k).map((r) => r.saidi) : [];
+  if (!past.length || st.ending) return { rollingText: '', rollingOk: true };
+  const thisYear = ytdSaidi + expSaidi * (4 - (st.t % 4)) / 4, avg = (past.reduce((a, b) => a + b, 0) + thisYear) / (past.length + 1), ok = avg <= st.saidiTarget;
+  return { rollingText: t(ok ? 'career.rolling.ok' : 'career.rolling.bad', { years: past.length + 1, thisYear: r1(thisYear), avg: r1(avg), target: r1(st.saidiTarget) }), rollingOk: ok };
+}
+
 function plantWhy(st: CareerState, kind: ProjectKind, target: string): string | null {
   const a = st.assets.find((x) => x.id === target);
   if (kind !== 'replaceAssets' || !a || a.cls === 'line') return null;
@@ -132,6 +141,10 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         // substation plant at risk (transformers, switchboards): expected SAIDI does not count a failure, so the worst-assets list and the
         // quarter report name them with the chance of failing this year and what an emergency replacement would cost (Old Iron tester)
         plantRisk: plantRisk(st).map((r) => ({ ...r, pFail: r1(r.pFail * 100), emergencyText: m(r.emergencyM), text: t('career.plantRisk', { id: r.id, pFail: r1(r.pFail * 100), emergency: m(r.emergencyM) }) })),
+        scoreParts: scoreParts(st).map((p) => ({ key: p.key, points: Math.round(p.points), text: t(`career.scorePart.${p.key}`, { points: `${p.points > 0 ? '+' : ''}${Math.round(p.points)}`, years: st.yearsMet, missed: st.missed, delivered: st.delivered, per: SCORE.perMissed }) })),
+        // the 3-year rule, ahead of the review: this year as it has gone so far plus the expected rest, averaged with the period's earlier years
+        // (a tester was fined for a good year because of two bad ones before it, and only learned why at the review)
+        ...rollingProj(st, ytdSaidi, exp.saidi),
         boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
         charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,

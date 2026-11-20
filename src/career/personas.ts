@@ -74,10 +74,11 @@ export const planner: Persona = {
   respond: respondAll,
   plan: (s) => {
     const d = doer(s);
+    const lean = charterOf(d.s).revenue < 1;   // an efficiency challenge on revenue: borrow only for urgent work, not for capacity while on track
     const free = (capex: number, lead: number, reserve = 0.8): boolean => d.s.cash - reserve + (d.s.t < 32 ? 3 : 0) - committedPerQuarter(d.s) * 2 >= capex / lead;
     /** Capacity capex enters the asset base and earns its return, so the planner borrows for it (down to cash -5, half the credit line; other asset work down to -3) but only in the first eight years, to end with cash back above 0. */
     const onTrack = districtExpected(d.s).saidi <= d.s.saidiTarget;   // reliability first: borrow for capacity only while the network can meet its targets
-    const borrow = (capex: number, lead: number, urgent = false): boolean => d.s.cash + (d.s.t < 32 && (onTrack || urgent) ? 5 : 0) - committedPerQuarter(d.s) >= capex / lead;
+    const borrow = (capex: number, lead: number, urgent = false): boolean => d.s.cash + (d.s.t < 32 && (lean ? urgent : onTrack || urgent) ? 5 : 0) - committedPerQuarter(d.s) >= capex / lead;
     const nice = (capex: number, lead: number): boolean => committedPerQuarter(d.s) < 1.1 && free(capex, lead, 1.2);
     const an: Record<string, FeederAnalysis> = {};
     for (const f of d.s.feeders) an[f.id] = analyseFeeder(d.s, f);

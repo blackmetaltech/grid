@@ -16,6 +16,13 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - The phone menu button sits on a dark disc, so it reads as a button over a stage's text card.
 - A weekly career keeps its week when it is saved and continued. The weekly bests now survive saves (1.3 rewrote the save file and lost them).
 - The ending sheet rounds the score the same way as the career bar.
+- After the Old Iron playtest (an asset-management graduate played all ten years and reached Chief Engineer, scoring it 7/10):
+  - The worst-assets card lists substation plant first: each transformer or switchboard with at least a 5 % chance of failing this year, that chance, and what an emergency replacement would cost. Before this the list showed only feeder sections, because expected SAIDI does not count plant failures.
+  - The quarter report warns about any plant at 10 % or more.
+  - The final year no longer announces a reset or next year's targets.
+  - A storm that faults nothing raises no incident card.
+  - The ending sheet lists the years the targets were missed.
+  - The tree-cutting deltas are signed.
 
 ## [1.3.0] - "Charters" (tag v1.3.0; driven by docs/CRITIQUE-1.2.md and CRITIQUE-1.0's long-term score; design in docs/DESIGN-1.3.md, review in docs/CRITIQUE-1.3.md)
 ### Added

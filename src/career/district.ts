@@ -63,7 +63,7 @@ export function buildDistrict(seed: number, charter: CharterId = 'standard'): Ca
   };
   s.startHealth = avgHealth(s);
   s.opexAllowance = MONEY.opexAllowancePerCust * ch.allowance * totalCustomers(s);
-  s.ar = allowedRevenue(s.rab, s.opexAllowance);
+  s.ar = allowedRevenue(s.rab, s.opexAllowance) * ch.revenue;
   const e = districtExpected(s);
   s.saidiTarget = e.saidi * INCENTIVE.targetHeadroom;
   s.saifiTarget = e.saifi * INCENTIVE.targetHeadroom;

@@ -126,3 +126,16 @@ describe('1.4 Old Iron playtest: plant at risk is named before it fails', () => 
     expect((q(e, 'career').plantRisk as { id: string }[]).some((r) => r.id === pr[0]!.id)).toBe(false);   // a replacement under way is not at risk any more
   });
 });
+
+describe('1.4 Lean Years playtest: the score and the 3-year rule explained', () => {
+  it('scoreParts add up to the score; the quarter report projects the rolling average once there is a past year', async () => {
+    const { scoreParts, careerScore, runPersona, planner } = await import('./career');
+    const r = runPersona(34, planner, 40, 'lean');
+    expect(scoreParts(r.state).reduce((a, p) => a + p.points, 0)).toBeCloseTo(careerScore(r.state), 1);
+    const e = play(); act(e, 'careerStart', 34, 'lean');
+    expect(q(e, 'career').rollingText).toBe('');
+    for (let i = 0; i < 5; i++) act(e, 'careerEndQuarter', false);
+    const c = q(e, 'career'); expect(String(c.rollingText)).toMatch(/average of 2 years/); expect(typeof c.rollingOk).toBe('boolean');
+    expect(c.scoreParts.map((p: any) => p.key)).toContain('missed');
+  });
+});

@@ -3,7 +3,7 @@ import { ENDINGS, INCENTIVE, MONEY, SCORE } from './data';
 import { allowedRevenue, incentive as incentiveFor } from './money';
 import { avgHealth, trueHealth } from './ageing';
 import { totalCustomers, type CareerState, type Ending, type Review, type Verdict } from './state';
-import { analyseFeeder, districtExpected } from './district';
+import { analyseFeeder, districtExpected, charterOf } from './district';
 import { firmMarginPct } from './projects';
 
 /** Load index (RIIO reports one): feeders over their winter cyclic rating at peak, primaries short of firm capacity. Chief Engineer needs both at 0. */
@@ -50,7 +50,7 @@ export function annualReview(s: CareerState): Review {
     const nt = periodReset(s.saidiTarget, s.saifiTarget, exp); s.saidiTarget = nt.saidi; s.saifiTarget = nt.saifi;
   }
   s.opexAllowance = (s.opexAllowance / Math.max(1, N)) * N;
-  s.ar = allowedRevenue(s.rab, s.opexAllowance); s.arYear = yearOf(s.t) + 1;
+  s.ar = allowedRevenue(s.rab, s.opexAllowance) * charterOf(s).revenue; s.arYear = yearOf(s.t) + 1;   // Lean Years: an efficiency challenge on the whole revenue
   s.ytdCustMin = 0; s.ytdCustInt = 0; s.ytdExceptionalMin = 0;
   s.reviews.push(rv);
   return rv;
@@ -86,6 +86,20 @@ export function endingOf(s: CareerState, reviewed: boolean): Ending | null {
 }
 
 /** Career score (higher is better). Reads the state at any time, including after an early ending. */
+/** The career score's parts, for display only (careerScore stays the one formula the leaderboard verifies): key -> points. */
+export function scoreParts(s: CareerState): { key: string; points: number }[] {
+  const saidiSum = s.history.reduce((a, k) => a + k.saidiReal, 0);
+  const bonus = { chiefEngineer: SCORE.chief, steady: SCORE.steady, bailedOut: SCORE.bailed, licenceRevoked: SCORE.revoked }[s.ending ?? 'steady'];
+  const early = s.ending === 'bailedOut' || s.ending === 'licenceRevoked' ? (ENDINGS.quarters - s.t) * SCORE.perQuarterLeftLost : 0;
+  const cash = s.cash >= 0 ? Math.min(s.cash, 10) * SCORE.perCashM : s.cash * SCORE.perDebtM;
+  return [
+    { key: 'years', points: s.yearsMet * SCORE.perYearMet }, { key: 'saidi', points: -saidiSum * SCORE.perSaidiMin },
+    { key: 'incentive', points: s.netIncentiveM * SCORE.perIncentiveM }, { key: 'health', points: (avgHealth(s) - s.startHealth) * SCORE.perHealth },
+    { key: 'delivered', points: s.delivered * SCORE.perDelivered }, { key: 'missed', points: -s.missed * SCORE.perMissed },
+    { key: 'cash', points: cash }, { key: 'ending', points: bonus - early },
+  ];
+}
+
 export function careerScore(s: CareerState): number {
   const saidiSum = s.history.reduce((a, k) => a + k.saidiReal, 0);
   const bonus = { chiefEngineer: SCORE.chief, steady: SCORE.steady, bailedOut: SCORE.bailed, licenceRevoked: SCORE.revoked }[s.ending ?? 'steady'];
