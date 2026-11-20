@@ -34,6 +34,8 @@ describe('career wiring', () => {
     }
     const c = q(e, 'career');
     expect(c.year).toBe(2); expect(c.reviews.length).toBe(1); expect(c.reviews[0].verdicts.length).toBe(3);
+    expect(typeof c.reviews[0].overloaded).toBe('number');
+    for (const r of c.requests) expect(r.loadingAfterPct).toBeGreaterThanOrEqual(c.feeders.find((f: any) => f.id === r.feederId).loadingPct - 0.05);
     for (const v of c.reviews[0].verdicts) expect(v.text).not.toMatch(/\{|career\./);
     const f = play();
     expect(act(f, 'careerLoad', c.code).ok).toBe(true);
@@ -56,6 +58,8 @@ describe('career wiring', () => {
     expect(b.kinds.length).toBe(PROJECT_KINDS.length);
     for (const k of b.kinds) { expect(en[`career.kind.${k.kind}`]).toBeTruthy(); expect(en[`career.blurb.${k.kind}`]).toBeTruthy(); }
     expect(b.kinds.find((k: any) => k.kind === 'reconductor').options.length).toBeGreaterThan(0);
+    const tx = q(e, 'careerQuote', 'replaceAssets', 'P1-T1');
+    expect(tx.ok).toBe(true); expect(tx.why).toMatch(/fails in the next year/); expect(tx.why).not.toMatch(/\{/);
     const nf = q(e, 'careerQuote', 'newFeeder', 'P1');
     expect(nf.loadingBeforePct).toBeGreaterThan(0); expect(nf.loadingAfterPct).toBeLessThan(nf.loadingBeforePct);   // the busiest feeder of P1 is split
     for (const k of b.kinds) for (const o of k.options.slice(0, 2)) { const qt = q(e, 'careerQuote', k.kind, o.target); expect(qt.ok).toBe(true); expect(qt.why).not.toMatch(/\{|career\./); }

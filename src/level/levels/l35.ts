@@ -27,10 +27,10 @@ export const L35: GridLevelSpec = {
     { id: 'voltvar', options: [{ id: 'unity', actions: [] }, { id: 'voltvar', actions: vv() }] },
     { id: 'cable', options: [{ id: 'rabbit', actions: [] }, { id: 'hyena', actions: cond(['N1', 'N2'], 'Hyena') }] },
   ],
-  thresholds: { marginMin: 0, vLoPu: V_LO_PU, vHiPu: { symbol: 'busBandHiPu', kv: 0.4 }, pvMin: L35S.minPvKw, pvStar: L35S.starPvKw, one: 1 },
+  thresholds: { marginMin: 0, vLoPu: V_LO_PU, vHiPu: { symbol: 'busBandHiPu', kv: 0.4 }, pvMin: L35S.minPvKw, pvStar: L35S.starPvKw, boughtMin: 1 },
   decisive: { key: 'marginPu', limit: 'marginMin', dir: 'min' },
   // a $0 design (only a set-point and the PV limit) earns the pass lamp only: the spend lamp needs something bought (DESIGN-1.1 A1)
-  star2: [{ key: 'bought', min: 'one' }],
+  star2: [{ key: 'bought', min: 'boughtMin' }],
   star3: [{ key: 'pvKw', min: 'pvStar' }],
   brownoutLoses: false, blackoutLoses: false, stars: true, histogram: 'capex',
   story: { placeKey: 'level.L35.place', lineKeys: ['level.L35.story1', 'level.L35.story2'], lessonKey: 'level.L35.lesson', lessonKind: 'ch8' },

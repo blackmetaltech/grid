@@ -38,7 +38,8 @@ static func window_text(app: CbApp, li: Dictionary) -> String:
 
 static func _th_text(key: String, v: float) -> String:
 	if key == "loadingMax" or key == "batteryMarginMin" or key == "n1Max": v *= 100.0
-	return T("TH_" + key) % num(v)
+	var f := T("TH_" + key)
+	return f % num(v) if f.contains("%s") else f   # a yes/no condition (L36's "why" card) has no number
 
 ## Pass conditions (everything the level checks except the third-star thresholds), as plain sentences.
 static func conditions(app: CbApp, li: Dictionary) -> Array:
@@ -77,6 +78,9 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 	return out
 
 ## The three lamp captions: pass, cost star A, cost star B plus the extra third-star conditions. Empty when the job awards no stars.
+## A star condition has a lamp sentence (TH_<threshold>) in the shared table or in chapter 8's (whose star thresholds are not pass conditions, so they stay out of GridStrings).
+static func _lamp_th(k: String) -> bool: return GridStrings.S.has("TH_" + k) or Ch8Strings.S.has("TH_" + k)
+
 static func lamp_texts(li: Dictionary) -> Array:
 	if not bool(li.get("stars", false)): return []
 	if str(li.get("id", "")) == "L27": return [T("LAMP_1"), T("C7_LAMP_L27_2"), T("C7_LAMP_L27_3")]   # chapter 7 exam: say what the stars mean
@@ -86,17 +90,18 @@ static func lamp_texts(li: Dictionary) -> Array:
 	if fz is Dictionary:
 		var th: Dictionary = li.get("thresholds", {}); var extra: Array = []
 		for k in (li.get("star3", []) as Array):
-			if th.has(k) and GridStrings.S.has("TH_" + str(k)): var tx := _th_text(str(k), float(th[k])); extra.append(tx.substr(0, 1).to_lower() + tx.substr(1))
+			if th.has(k) and _lamp_th(str(k)): var tx := _th_text(str(k), float(th[k])); extra.append(tx.substr(0, 1).to_lower() + tx.substr(1))
 		var sec: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "s"
+		var pct: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "pct"   # L36: the score is the mean prediction error in percent
 		var scored: bool = str(li.get("histogram", "")) == "score"
-		var fa := ("%s s" % WorkOrder.num(snappedf(float(fz.starA), 0.01))) if sec else CbRegion.money(float(fz.starA), false, 0)
-		var fb := ("%s s" % WorkOrder.num(snappedf(float(fz.starB), 0.01))) if sec else CbRegion.money(float(fz.starB), false, 0)
-		l2 = (T("C7_LAMP_SCORE") if scored else T("LAMP_2")) % fa
+		var fa := ("%s s" % WorkOrder.num(snappedf(float(fz.starA), 0.01))) if sec else (WorkOrder.num(snappedf(float(fz.starA), 0.01)) if pct else CbRegion.money(float(fz.starA), false, 0))
+		var fb := ("%s s" % WorkOrder.num(snappedf(float(fz.starB), 0.01))) if sec else (WorkOrder.num(snappedf(float(fz.starB), 0.01)) if pct else CbRegion.money(float(fz.starB), false, 0))
+		l2 = (T("C8_LAMP_PCT") if pct else (T("C7_LAMP_SCORE") if scored else T("LAMP_2"))) % fa
 		var extra2: Array = []
 		for k in (li.get("star2", []) as Array):
-			if th.has(k) and GridStrings.S.has("TH_" + str(k)): var tx2 := _th_text(str(k), float(th[k])); extra2.append(tx2.substr(0, 1).to_lower() + tx2.substr(1))
+			if th.has(k) and _lamp_th(str(k)): var tx2 := _th_text(str(k), float(th[k])); extra2.append(tx2.substr(0, 1).to_lower() + tx2.substr(1))
 		if not extra2.is_empty(): l2 += T("LAMP_AND") + ", ".join(extra2)   # L12: the spend lamp also asks for the swing
-		l3 = (T("C7_LAMP_SCORE3") if scored else T("LAMP_3")) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
+		l3 = (T("C8_LAMP_PCT3") if pct else (T("C7_LAMP_SCORE3") if scored else T("LAMP_3"))) % [fb, (T("LAMP_AND") + ", ".join(extra)) if not extra.is_empty() else ""]
 		if not scored and float(fz.starA) <= 0.0:   # nothing to buy (the exam bridges): the lamps are not about spend
 			var e2 := ", ".join(extra2); var e3 := ", ".join(extra)
 			l2 = (e2.substr(0, 1).to_upper() + e2.substr(1)) if e2 != "" else T("LAMP_NO_COST")   # 1.1: the second lamp names what it asks (it read "Done well" twice)

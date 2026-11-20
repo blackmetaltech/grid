@@ -410,7 +410,7 @@ func _req_tab() -> void:
 		if float(r.solarKw) > 0.0: det += ", " + T("CAR_REQ_PV") % CareerKit.num(float(r.solarKw), 0)
 		v.add_child(CareerKit.lbl(det, sz - 1, Color(GridTheme.TEXT, 0.8), "sans", true))
 		var f := feeder_of(str(r.feederId))
-		if not f.is_empty(): v.add_child(CareerKit.lbl(T("CAR_REQ_LOAD") % [str(r.feederId), CareerKit.num(float(f.loadingPct), 0)], sz - 1, CareerKit.load_col(float(f.loadingPct)), "sans", true))
+		if not f.is_empty(): v.add_child(CareerKit.lbl(T("CAR_REQ_LOAD") % [str(r.feederId), CareerKit.num(float(f.loadingPct), 0), CareerKit.num(float(r.get("loadingAfterPct", f.loadingPct)), 0)], sz - 1, CareerKit.load_col(float(r.get("loadingAfterPct", f.loadingPct))), "sans", true))
 		var due := T("CAR_REQ_LAST") if int(r.quartersLeft) <= 0 else T("CAR_REQ_DUE") % int(r.quartersLeft)
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
 		var dl := CareerKit.lbl(due, sz - 1, GridTheme.WARN if int(r.quartersLeft) <= 1 else Color(GridTheme.TEXT, 0.7), "mono"); dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(dl)

@@ -38,7 +38,7 @@ export const EN_CH8: Record<string, string> = {
 
   // ---- L32 Count the Outages
   'level.L32.title': 'Count the Outages',
-  'level.L32.brief': 'Feeder 3 faults about three times a year and each fault takes the whole feeder dark for the repair. The regulator wants SAIDI under 260 minutes and SAIFI under 1.6. Place up to three sectionalisers, fuse the spurs and decide on a tie to the next feeder, at the least cost.',
+  'level.L32.brief': 'Feeder 3 faults about three times a year and each fault takes the whole feeder dark for the repair. The regulator wants SAIDI under {saidiMax} minutes and SAIFI under {saifiMax}. Place up to three sectionalisers, fuse the spurs and decide on a tie to the next feeder, at the least cost.',
   'level.L32.place': 'The Mainland · Brightwater, control room, year view',
   'level.L32.story1': 'ADA: SAIFI counts how often, SAIDI how long, CAIDI how long each time. Faults on a 21 km line are not rare: they are a certainty. The only choice is how many people each one reaches.',
   'level.L32.story2': 'TOBI: A remote switch opens in minutes and a manual one needs a crew in a van. The regulator does not count anything under five minutes.',

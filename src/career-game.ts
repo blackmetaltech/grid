@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -83,6 +83,14 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
   };
 }
 
+/** Replacing a transformer or switchboard does not move the expected SAIDI (plant failures are events, not the feeder FMEA), so its card gives the chance it fails in the next year, old against new, and what a failure costs. */
+function plantWhy(st: CareerState, kind: ProjectKind, target: string): string | null {
+  const a = st.assets.find((x) => x.id === target);
+  if (kind !== 'replaceAssets' || !a || a.cls === 'line') return null;
+  const w = WEIBULL[a.cls], pNow = failureProb(effectiveAge(a, st.t), 1, w.beta, w.eta), pNew = failureProb(0, 1, w.beta, w.eta);
+  return t(a.cls === 'tx' ? 'career.why.replaceTx' : 'career.why.replaceSwitchgear', { health: r1(trueHealth(a, st.t)), pNow: r1(pNow * 100), pNew: r1(pNew * 100), mult: MONEY.emergencyMult });
+}
+
 export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
   return {
     /** Everything the career screens draw. Money comes as numbers in the pack currency plus ready texts. */
@@ -111,7 +119,11 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
             sections: f.sections.map((sec) => ({ id: sec.id, km: sec.lengthKm, conductor: sec.conductor, device: sec.device, assetId: sec.assetId, ...healthOf(sec.assetId) })) };
         }),
         projects: st.projects.map((p) => ({ id: p.id, kind: p.kind, kindName: t(`career.kind.${p.kind}`), target: p.target, left: p.left, leadQ: p.leadQ, crew: p.crew, status: p.status, capexText: m(p.capexM), spentText: m(p.spentM) })),
-        requests: st.requests.map((r) => ({ id: r.id, kind: r.kind, kindName: t(`career.conn.${r.kind}`), feederId: r.feederId, kw: r.kw, customers: r.customers, solarKw: r.solarKw, critical: r.critical, chargeText: m(r.chargeM), deadlineQ: r.deadlineQ, quartersLeft: r.deadlineQ - st.t })),
+        requests: st.requests.map((r) => {
+          const f0 = st.feeders.find((f) => f.id === r.feederId);   // the feeder's peak loading once this load is connected (what accepting does to it)
+          const after = f0 ? analyseFeeder(st, { ...f0, customers: f0.customers + r.customers, baseKw: f0.baseKw + r.kw, solarKw: f0.solarKw + r.solarKw }).loadingPct : 0;
+          return { id: r.id, kind: r.kind, kindName: t(`career.conn.${r.kind}`), feederId: r.feederId, kw: r.kw, customers: r.customers, solarKw: r.solarKw, critical: r.critical, chargeText: m(r.chargeM), deadlineQ: r.deadlineQ, quartersLeft: r.deadlineQ - st.t, loadingAfterPct: r1(after) };
+        }),
         incidents: st.incidents.map((x) => ({ ...x, kindName: t(`career.incident.${x.kind}`), custMin: Math.round(x.custMin), saidiMin: r1(N ? x.custMin / N : 0) })),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
           cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
@@ -132,7 +144,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         firmBefore: Math.round(p.firmBeforePct), firmAfter: Math.round(p.firmAfterPct), allowedPct: Math.round(p.allowedShare * 100) });
       return { ok: q.ok, kind: q.kind, target: q.target, capex: careerMoney(s, q.capexM), capexText: params.capex, leadQ: q.leadQ, crew: q.crew, dSaidi: r1(p.dSaidi), dSaifi: r2(p.dSaifi),
         loadingBeforePct: r1(p.loadingBeforePct), loadingAfterPct: r1(p.loadingAfterPct), firmBeforePct: r1(p.firmBeforePct), firmAfterPct: r1(p.firmAfterPct), allowedPct: Math.round(p.allowedShare * 100),
-        text: t(q.ok ? 'career.quote' : q.messageKey, params), why: q.ok ? t(p.whyKey, params) : '' };
+        text: t(q.ok ? 'career.quote' : q.messageKey, params), why: q.ok ? plantWhy(c.state, kind as ProjectKind, String(target ?? '')) ?? t(p.whyKey, params) : '' };
     },
     /** The board: for every project kind, the targets it can be built on now with price and lead time (no effect study; careerQuote gives that). */
     careerBoard: (s) => {

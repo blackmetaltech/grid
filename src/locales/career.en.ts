@@ -79,6 +79,8 @@ export const EN_CAREER: Record<string, string> = {
   'career.why.recloser': 'Expected SAIFI {dSaifi}, SAIDI {dSaidi} min.',
   'career.why.vegetation': 'Expected SAIDI {dSaidi} min, SAIFI {dSaifi}: fewer storm faults.',
   'career.why.replace': 'Expected SAIDI {dSaidi} min: a new asset fails far less.',
+  'career.why.replaceTx': 'Chance this unit fails in the next year: {pNow} % now, {pNew} % new. A failure means a long outage at the primary and an emergency replacement at {mult} times the planned price. Expected SAIDI does not count it until it happens.',
+  'career.why.replaceSwitchgear': 'Chance this switchboard fails in the next year: {pNow} % now, {pNew} % new. A failure blacks out the whole primary until it is repaired.',
   'career.why.regulator': 'Peak loading {loadingBefore} %; keeps the far end in band.',
   'career.why.battery': 'Peak loading {loadingBefore} % to {loadingAfter} %.',
   'career.why.dr': 'Peak loading {loadingBefore} % to {loadingAfter} %; firm margin {firmBefore} % to {firmAfter} %.',

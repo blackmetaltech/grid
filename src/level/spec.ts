@@ -156,7 +156,7 @@ export function makeLevel(spec: GridLevelSpec): Level<GridState> {
     return (s) => { if (done) return []; done = true; return spec.byRegion?.[(s as Readonly<GridState>).region]?.reference ?? spec.reference; };   // a pack may have its own reference (L28 in `in`: the national tie makes the line the cheapest pass)
   };
   return {
-    id: spec.id, title: t(spec.titleKey), brief: t(spec.briefKey), concepts: spec.concepts,
+    id: spec.id, title: t(spec.titleKey), brief: t(spec.briefKey, Object.fromEntries(Object.entries(spec.thresholds).filter(([, v]) => typeof v === 'number')) as Record<string, number>), concepts: spec.concepts,
     setup: (s, ctx) => {
       const pack = ctx.region as RegionPack<GridRegionData>;
       const params = simParamsOf(pack.data), cat = catalogueViewOf(pack.data);

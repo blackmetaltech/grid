@@ -120,7 +120,7 @@ export function buildLevelQueries(d: LevelQueryDeps): Record<string, QueryFn<Gri
       const spec = s.level ? d.specOf(s.level) : undefined;
       if (!spec) return { active: false };
       return {
-        active: true, id: spec.id, kind: spec.kind, chapter: spec.chapter, title: t(spec.titleKey), brief: t(spec.briefKey), stars: spec.stars,
+        active: true, id: spec.id, kind: spec.kind, chapter: spec.chapter, title: t(spec.titleKey), brief: t(spec.briefKey, resolveThresholds(spec, d.getParams(s), s.mode)), stars: spec.stars,
         thresholds: resolveThresholds(spec, d.getParams(s), s.mode), frozen: d.frozenOf(spec, s.region), allowedActions: [...spec.allowed.actions],
         histogram: spec.histogram, scoreUnit: spec.scoreUnit ?? 'money', horizonBlocks: spec.horizonBlocks, startBlock: spec.startBlock, flashoverBlock: spec.flashoverBlock ?? null, fogBlock: spec.fogBlock ?? null, cableCutBlock: spec.cableCutBlock ?? null, fogTime: spec.fogBlock === undefined ? null : `${String(Math.floor(spec.fogBlock / 4)).padStart(2, '0')}:${String((spec.fogBlock % 4) * 15).padStart(2, '0')}`, star3: spec.star3.map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined), star2: (spec.star2 ?? []).map((c) => c.min ?? c.max).filter((k): k is string => k !== undefined),   // threshold names that only decide the third star (the work order lists the rest as pass conditions)
         place: spec.story ? t(spec.story.placeKey) : '', story: spec.story ? spec.story.lineKeys.map((k) => t(k)) : [], lesson: (() => {   // the shift report's consolidation line, with the player's own numbers (bench: the main run)

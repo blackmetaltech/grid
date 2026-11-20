@@ -67,7 +67,8 @@ func refresh() -> void:
 	var terr: bool = w is Dictionary and w.get("terrain") != null
 	if terr: volt.visible = false
 	refresh_route(app.b, w if terr else {}, terr, app.speed > 0)
-	var dq = app.b.q("dial") if kind == "grid" and not terr else null
+	var li8 = app.b.q("levelInfo"); var ch8: bool = li8 is Dictionary and bool(li8.get("active", false)) and int(li8.get("chapter", 0)) == 8   # chapter 8 studies one feeder or one substation: there is no system frequency (the dial drifted to 30 Hz on L34)
+	var dq = app.b.q("dial") if kind == "grid" and not terr and not ch8 else null
 	var show_d: bool = dq is Dictionary and not dq.get("error", false)
 	dial.visible = show_d
 	if show_d: dial.set_query(dq)
