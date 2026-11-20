@@ -159,7 +159,9 @@ export const planner: Persona = {
     for (const f of d.s.feeders) if (an[f.id]!.vViolation && !f.regulator && free(0.22, 2)) d.do({ a: 'start', kind: 'regulator', target: f.id });
     // 6. reliability: the worst SAIDI contributors, value = incentive per year the project is expected to earn, payback under 15 years
     const behind = (d.s.ytdCustMin / Math.max(1, N)) > d.s.saidiTarget * ((d.s.t % 4) / 4) * 1.0;
-    const order = [...d.s.feeders].sort((x, y) => an[y.id]!.rel.saidi * y.customers - an[x.id]!.rel.saidi * x.customers).slice(0, 4);
+    // emergency: the network cannot meet its targets even in fair weather (the regulator's test for revocation): every feeder is a candidate, more projects a quarter, and they may borrow
+    const emergency = !onTrack;
+    const order = [...d.s.feeders].sort((x, y) => an[y.id]!.rel.saidi * y.customers - an[x.id]!.rel.saidi * x.customers).slice(0, emergency ? d.s.feeders.length : 4);
     const opts: { kind: ProjectKind; target: string; score: number; capex: number; lead: number }[] = [];
     for (const f of order) {
       const cand: [ProjectKind, string][] = [['tieSwitch', f.id], ['recloser', f.id]];
@@ -173,12 +175,13 @@ export const planner: Persona = {
     opts.sort((x, y) => y.score - x.score);
     let started = 0;
     for (const o of opts) {
-      if (started >= 3 || o.score < 1 / 20) break;
-      if (crewsFree(d.s) - capCrews >= 1 && nice(o.capex, o.lead) && d.do({ a: 'start', kind: o.kind, target: o.target })) started++;
+      if (started >= (emergency ? 4 : 3) || o.score < 1 / 20) break;
+      const okMoney = emergency ? d.s.cash + 3 - committedPerQuarter(d.s) >= o.capex / o.lead : nice(o.capex, o.lead);
+      if (crewsFree(d.s) - (emergency ? 0 : capCrews) >= 1 && okMoney && d.do({ a: 'start', kind: o.kind, target: o.target })) started++;
     }
     // 7. vegetation
     const meanVeg = d.s.feeders.reduce((x, f) => x + f.veg, 0) / d.s.feeders.length;
-    d.do({ a: 'veg', level: meanVeg > 0.6 ? 2 : meanVeg < 0.25 ? 0 : 1 });
+    d.do({ a: 'veg', level: emergency ? (meanVeg > 0.4 ? 3 : 2) : meanVeg > 0.6 ? 2 : meanVeg < 0.25 ? 0 : 1 });
     void trueHealth;
     return d.acts;
   },

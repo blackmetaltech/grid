@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -106,6 +106,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         active: true, seed: c.seed, code: encodeCareer(c.seed, c.actions), actions: c.actions.length,
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,
         endingText: st.ending ? t(`career.endingName.${st.ending}`) : '', score: careerScore(st),
+        // what keeps this career from Chief Engineer, in words (on the ending sheet and the last review)
+        shortfalls: chiefShortfalls(st).map((k) => t(`career.short.${k}`, { met: st.yearsMet, need: ENDINGS.chiefYearsMet, cashText: m(st.cash), health: r1(avgHealth(st)), start: r1(st.startHealth) })),
         cash: careerMoney(s, st.cash), cashText: m(st.cash), creditText: m(MONEY.creditLimit), arText: m(st.ar), rabText: m(st.rab), committedQText: m(committedPerQuarter(st)),
         netIncentiveText: m(st.netIncentiveM), yearsMet: st.yearsMet, severeFineYears: st.severeFineYears, delivered: st.delivered, missed: st.missed,
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
@@ -132,12 +134,12 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
-          resetText: rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
+          resetText: rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
           verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
         allowedRevenueText: m(allowedRevenue(st.rab, st.opexAllowance)),
         // the year a price-control period ends: say what the reset will do, before it happens
-        resetWarnText: Math.floor(st.t / 4) % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 && !st.ending ? t('career.resetWarn', { resetPct: Math.round(INCENTIVE.resetFactor * 100), saidiNow: r1(st.saidiTarget), saidiNext: r1(Math.min(st.saidiTarget * (1 - INCENTIVE.targetTightenPct / 100), INCENTIVE.resetFactor * exp.saidi)), saifiNext: r2(Math.min(st.saifiTarget * (1 - INCENTIVE.targetTightenPct / 100), INCENTIVE.resetFactor * exp.saifi)) }) : '',
+        resetWarnText: Math.floor(st.t / 4) % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 && !st.ending ? (() => { const nt = periodReset(st.saidiTarget * (1 - INCENTIVE.targetTightenPct / 100), st.saifiTarget * (1 - INCENTIVE.targetTightenPct / 100), exp); return t('career.resetWarn', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiNow: r1(st.saidiTarget), saidiNext: r1(nt.saidi), saifiNext: r2(nt.saifi) }); })() : '',
         crewCostText: m(MONEY.dispatchM * (crewsFree(st) >= 1 ? 1 : 2)), tieSavingPct: 35, crewSavingPct: 20,
       };
     },

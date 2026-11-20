@@ -191,8 +191,8 @@ describe('1.2 regulator: rolling average, period reset, revocation streak, load 
     expect(r.saidi).toBeCloseTo(300, 6); expect(r.saidiRolling).toBeCloseTo(450, 6);
   });
   it('resets targets at the end of a period to resetFactor x the expected value when that is tighter', () => {
-    const s = C.buildDistrict(3); s.t = 4 * C.INCENTIVE.periodYears - 1; s.saidiTarget = 1e4; s.saifiTarget = 1e3;
-    const e = C.districtExpected(s); review(s, 100);
+    const s = C.buildDistrict(3); s.t = 4 * C.INCENTIVE.periodYears - 1;
+    const e = C.districtExpected(s); s.saidiTarget = 1.15 * C.INCENTIVE.resetFactor * e.saidi; s.saifiTarget = 1e3; review(s, 100);   // within the 25 % cap
     expect(s.saidiTarget).toBeCloseTo(C.INCENTIVE.resetFactor * e.saidi, 6);
   });
   it('counts a severe-fine year toward revocation only on an inadequate network, and only in a row', () => {
@@ -206,5 +206,18 @@ describe('1.2 regulator: rolling average, period reset, revocation streak, load 
     const s = C.buildDistrict(3); s.t = C.ENDINGS.quarters; s.yearsMet = 10; s.cash = 1; s.startHealth = 0;
     expect(C.endingOf(s, false)).toBe(C.loadIndex(s).overloaded === 0 && C.loadIndex(s).firmShort === 0 ? 'chiefEngineer' : 'steady');
     s.feeders[0]!.baseKw *= 3; expect(C.loadIndex(s).overloaded).toBeGreaterThan(0); expect(C.endingOf(s, false)).toBe('steady');
+  });
+});
+
+describe('1.3: no target cliff, debt caps the ending', async () => {
+  const C = await import('./index');
+  it('a reset tightens a target by at most maxResetCutPct', () => {
+    const r = C.periodReset(400, 3, { saidi: 50, saifi: 0.2 });
+    expect(r.saidi).toBeCloseTo(400 * (1 - C.INCENTIVE.maxResetCutPct / 100), 6); expect(r.saifi).toBeCloseTo(3 * (1 - C.INCENTIVE.maxResetCutPct / 100), 6);
+    expect(C.periodReset(400, 3, { saidi: 1000, saifi: 10 })).toEqual({ saidi: 400, saifi: 3 });   // never looser
+  });
+  it('any debt at the end keeps a career from Chief Engineer and says so', () => {
+    const s = C.buildDistrict(3); s.t = C.ENDINGS.quarters; s.yearsMet = 10; s.startHealth = 0; s.cash = -0.01;
+    expect(C.chiefShortfalls(s)).toContain('debt'); expect(C.endingOf(s, false)).not.toBe('chiefEngineer');
   });
 });

@@ -177,6 +177,10 @@ static func ending(sc: CareerScreen) -> void:
 	body.add_child(_para(T("CAR_ED_YEARS") % [int(c.yearsMet), (c.reviews as Array).size()], compact))
 	body.add_child(_para(T("CAR_ED_HEALTH") % [n1.call(float(c.health), 1), n1.call(float(c.startHealth), 1)], compact))
 	body.add_child(_para(T("CAR_ED_CASH") % [str(c.cashText), str(c.netIncentiveText)], compact))
+	var sf: Array = c.get("shortfalls", [])
+	if str(c.ending) != "chiefEngineer" and not sf.is_empty():   # what kept this career from Chief Engineer, in the engine's words
+		body.add_child(PaperKit.lbl(T("CAR_ED_SHORT"), 15 if compact else 17, "semi", PaperKit.RED, true))
+		for line in sf: body.add_child(_para("· " + str(line), compact, PaperKit.RED))
 	body.add_child(PaperKit.rule())
 	body.add_child(PaperKit.lbl(T("CAR_ED_CODE"), 14 if compact else 16, "mono", Color(PaperKit.INK, 0.72), true))
 	var le := LineEdit.new(); le.name = "Code"; le.text = str(c.code); le.editable = false; le.select_all_on_focus = true; le.add_theme_font_override("font", GridTheme.font("mono")); le.add_theme_font_size_override("font_size", GridTheme.fs(14))

@@ -47,7 +47,7 @@ export function annualReview(s: CareerState): Review {
   s.saidiTarget *= 1 - INCENTIVE.targetTightenPct / 100; s.saifiTarget *= 1 - INCENTIVE.targetTightenPct / 100;
   // the end of a price-control period: targets reset to the network's modelled performance plus a deadband, when that is lower
   if ((yearOf(s.t) + 1) % INCENTIVE.periodYears === 0) {
-    s.saidiTarget = Math.min(s.saidiTarget, INCENTIVE.resetFactor * exp.saidi); s.saifiTarget = Math.min(s.saifiTarget, INCENTIVE.resetFactor * exp.saifi);
+    const nt = periodReset(s.saidiTarget, s.saifiTarget, exp); s.saidiTarget = nt.saidi; s.saifiTarget = nt.saifi;
   }
   s.opexAllowance = (s.opexAllowance / Math.max(1, N)) * N;
   s.ar = allowedRevenue(s.rab, s.opexAllowance); s.arYear = yearOf(s.t) + 1;
@@ -57,11 +57,29 @@ export function annualReview(s: CareerState): Review {
 }
 
 /** Ending after a quarter (null = play on). */
+/** Next period's targets: resetFactor x the expected value where that is tighter, but never more than INCENTIVE.maxResetCutPct below the old target in one review (no cliff). */
+export function periodReset(saidiT: number, saifiT: number, exp: { saidi: number; saifi: number }): { saidi: number; saifi: number } {
+  const floor = 1 - INCENTIVE.maxResetCutPct / 100;
+  return { saidi: Math.max(saidiT * floor, Math.min(saidiT, INCENTIVE.resetFactor * exp.saidi)), saifi: Math.max(saifiT * floor, Math.min(saifiT, INCENTIVE.resetFactor * exp.saifi)) };
+}
+
+/** What stands between this career and Chief Engineer at the end (empty = none): keys career.short.<x>. */
+export function chiefShortfalls(s: CareerState): string[] {
+  const out: string[] = [];
+  if (s.yearsMet < ENDINGS.chiefYearsMet) out.push('years');
+  if (avgHealth(s) <= s.startHealth) out.push('health');
+  if (s.cash < 0) out.push('debt');
+  const li = loadIndex(s);
+  if (li.overloaded > 0) out.push('overloaded');
+  if (li.firmShort > 0) out.push('firm');
+  return out;
+}
+
 export function endingOf(s: CareerState, reviewed: boolean): Ending | null {
   if (s.cash < -MONEY.creditLimit) return 'bailedOut';
   if (reviewed && s.severeFineYears >= INCENTIVE.yearsToRevoke) return 'licenceRevoked';
   if (s.t >= ENDINGS.quarters) {
-    if (s.yearsMet >= ENDINGS.chiefYearsMet && avgHealth(s) > s.startHealth && s.cash >= 0) { const li = loadIndex(s); if (li.overloaded === 0 && li.firmShort === 0) return 'chiefEngineer'; }
+    if (chiefShortfalls(s).length === 0) return 'chiefEngineer';   // any debt at the end, an overload, a short primary, too few years met or older assets cap the career below Chief
     return 'steady';
   }
   return null;

@@ -1,6 +1,6 @@
 // The ordering the design asks for (DESIGN-1.1 C2): planner > firefighter > idle on the 10-year score; gold-plater ends bailed out or fined.
-// 1.2 made the career harder (period target resets, Chief needs a clean load index), and the heuristic planner now beats the firefighter on
-// 42 of 50 seeds, not the 45 the design asked: it loses where the district starts far above target (CRITIQUE-1.2). The floor is 40 so a regression shows.
+// The planner must beat the firefighter on 45 of 50 seeds (1.3: 46). When the network cannot meet its targets even in fair weather it goes
+// into reliability emergency mode: every feeder is a candidate, it may borrow and use capacity crews, and it trims more trees.
 import { describe, expect, it } from 'vitest';
 import { firefighter, goldPlater, idle, planner, runPersona, type CareerState } from './index';
 
@@ -16,7 +16,7 @@ describe('persona sweep, seeds 1..50', () => {
     const mean = (rs: { score: number }[]): number => rs.reduce((x, r) => x + r.score, 0) / rs.length;
     console.log('persona means', { idle: mean(R.idle), firefighter: mean(R.firefighter), goldPlater: mean(R.goldPlater), planner: mean(R.planner) }, 'P>F', pf, 'F>I', fi, 'both', all,
       'endings', { idle: count(R.idle), firefighter: count(R.firefighter), goldPlater: count(R.goldPlater), planner: count(R.planner) });
-    expect(all).toBeGreaterThanOrEqual(40);
+    expect(all).toBeGreaterThanOrEqual(45);
     expect(mean(R.planner)).toBeGreaterThan(mean(R.firefighter)); expect(mean(R.firefighter)).toBeGreaterThan(mean(R.idle));
   });
   it('the gold-plater ends bailed out or fined (licence revoked) in most seeds, and never as Chief Engineer', () => {
@@ -27,6 +27,6 @@ describe('persona sweep, seeds 1..50', () => {
   });
   it('idle never reaches Chief Engineer; the planner usually does', () => {
     expect(R.idle.filter((r) => r.state.ending === 'chiefEngineer').length).toBe(0);
-    expect(R.planner.filter((r) => r.state.ending === 'chiefEngineer').length).toBeGreaterThanOrEqual(10);   // Chief now needs targets met 8 of 10 years, healthier assets, cash >= 0 and a clean load index
+    expect(R.planner.filter((r) => r.state.ending === 'chiefEngineer').length).toBeGreaterThanOrEqual(12);   // Chief now needs targets met 8 of 10 years, healthier assets, cash >= 0 and a clean load index
   });
 });

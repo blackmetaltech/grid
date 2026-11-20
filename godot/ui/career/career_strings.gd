@@ -45,5 +45,5 @@ const S := {
 	"CAR_GRADE_good": "GOOD", "CAR_GRADE_ok": "OK", "CAR_GRADE_poor": "POOR", "CAR_RV_CONT": "Next year", "CAR_RV_NOTE": "A simplified performance-based incentive: pay for beating the target, a fine for missing it. No rate case, no inflation.",
 	# ending
 	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years judged.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the career.",
-	"CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
+	"CAR_ED_SHORT": "Short of Chief Engineer:", "CAR_ED_CODE": "Career code: it replays this career exactly.", "CAR_ED_AGAIN": "New career", "CAR_ED_LEAVE": "Back to the title", "CAR_ED_COPY": "Copy code", "CAR_ED_LOOK": "Look at the map",
 }
