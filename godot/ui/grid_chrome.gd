@@ -288,7 +288,21 @@ func _process(_dt: float) -> void:
 	var ph: bool = CbKit.pad_mode and app.pad != null and app.pad.hint.visible
 	if ph != _pad_seen: _pad_seen = ph; layout()
 	radio.position.y = _radio_y()
+	_fade_hud_over_pan()
 	if app.cur == app.home and app.drawer_tab != null and app.drawer_tab.visible: app.drawer_tab.visible = false   # the core re-shows its grip on some paths
+
+## Phone, chapters 4/7/8: once the stage is panned down under the HUD, the title card and the clock fade away so they never cover the chart
+## (a tester read the plot's axis through them at full pan); they come back as the stage pans home.
+func _fade_hud_over_pan() -> void:
+	var panned := false
+	if CbLayout.kind == "phone":
+		for h in [ch4, ch7, ch8]:
+			if h == null or not h.visible: continue
+			for st in h.stages.values():
+				if st != null and st.visible and st._pan.y < -24.0: panned = true
+	var a := 0.0 if panned else 1.0
+	for n in [pin, instruments]:
+		if n != null: n.modulate.a = move_toward(n.modulate.a, a, 0.15)
 
 ## The pad legend strip follows the route tray's mode: surveying with a pad has its own buttons (the shell's default comes back after).
 var _legend_default := ""
