@@ -9,7 +9,7 @@ const S := {
 	"CAR_JOBS_BRIEF": "Ten years, forty quarters, one network. Projects, storms, connections and the regulator's review every year.", "CAR_JOBS_SAVED": "Saved: year %d, quarter %d",
 	"CAR_ERR_LOAD": "The saved career could not be loaded.",
 	# top strip
-	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI so far / cap, min", "CAR_SAIFI": "SAIFI so far / cap", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
+	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI this year / target, min", "CAR_SAIFI": "SAIFI this year / target", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
 	"CAR_HEALTH": "HEALTH", "CAR_HEALTH_VAL": "%s of 10 (start %s)", "CAR_CREWS": "CREWS", "CAR_CREWS_VAL": "%d of %d free", "CAR_MET": "YEARS MET", "CAR_MET_VAL": "%d", "CAR_SCORE": "SCORE", "CAR_PIP_REVIEW": "review, year %d",
 	"CAR_PIP_MET": "year %d: targets met", "CAR_PIP_MISSED": "year %d: targets missed", "CAR_PIP_Q": "year %d, quarter %d",
 	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",
@@ -41,7 +41,7 @@ const S := {
 	"CAR_QR_MONEY": "Revenue %s, capex %s, opex %s, incentive %s. Cash now %s.", "CAR_QR_HEALTH": "Asset health: average %s, worst %s. Losses %s MWh.", "CAR_QR_NET": "%d faults, %d voltage violations, firm margin %s %%, busiest feeder %s %%.",
 	"CAR_QR_CONN": "Connections: %d delivered, %d missed.", "CAR_QR_CONT": "Continue", "CAR_QR_ROW_SAIDI": "SAIDI", "CAR_QR_ROW_SAIFI": "SAIFI", "CAR_QR_NOTE": "Real is one draw of the weather; expected is what the network's failure rates say to plan on.",
 	# review
-	"CAR_RV_TITLE": "ANNUAL REVIEW", "CAR_RV_YEAR": "Year %d", "CAR_RV_MET": "TARGETS MET", "CAR_RV_MISSED": "TARGETS MISSED", "CAR_RV_NUMS": "SAIDI %s min (target %s). SAIFI %s (target %s).", "CAR_RV_INCENTIVE": "Incentive: %s", "CAR_RV_STATE": "Cash %s, asset base %s, average health %s.", "CAR_RV_LOAD": "Load index: %d feeders over their rating at the peak, %d primaries short of firm capacity. Overloaded wire faults more and ages faster.", "CAR_RV_LOAD_OK": "Load index: every feeder within its rating and every primary firm.",
+	"CAR_RV_TITLE": "ANNUAL REVIEW", "CAR_RV_YEAR": "Year %d", "CAR_RV_MET": "TARGETS MET", "CAR_RV_MISSED": "TARGETS MISSED", "CAR_RV_NUMS": "Rolling average: SAIDI %s min (target %s), SAIFI %s (target %s). This year alone: SAIDI %s min.", "CAR_RV_INCENTIVE": "Incentive: %s", "CAR_RV_STATE": "Cash %s, asset base %s, average health %s.", "CAR_RV_LOAD": "Load index: %d feeders over their winter cyclic rating (110 %%) at the peak, %d primaries short of firm capacity. Overloaded wire faults more and ages faster, and Chief Engineer needs both at zero.", "CAR_RV_LOAD_OK": "Load index: every feeder within its cyclic rating and every primary firm.",
 	"CAR_GRADE_good": "GOOD", "CAR_GRADE_ok": "OK", "CAR_GRADE_poor": "POOR", "CAR_RV_CONT": "Next year", "CAR_RV_NOTE": "A simplified performance-based incentive: pay for beating the target, a fine for missing it. No rate case, no inflation.",
 	# ending
 	"CAR_ED_TITLE": "CAREER OVER", "CAR_ED_SCORE": "Score %d", "CAR_ED_YEARS": "Targets met in %d of %d years judged.", "CAR_ED_HEALTH": "Network health %s of 10; you found it at %s.", "CAR_ED_CASH": "Final cash %s, incentives %s over the career.",

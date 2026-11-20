@@ -44,9 +44,9 @@ export function quoteProject(s: CareerState, kind: ProjectKind, target: string):
       if (!nc) return q(false, 'career.err.maxConductor', none);
       return q(true, 'career.quote', PROJECTS.reconductor!, PROJECTS.reconductor!.capexM * conductorRow(nc).costPerKm * sc.sec.lengthKm);
     }
-    case 'newFeeder': {
-      if (!pr) return q(false, 'career.err.target', none);
-      if (s.feeders.length >= DISTRICT.maxFeeders) return q(false, 'career.err.maxFeeders', none);
+    case 'newFeeder': {   // on a primary (splits its busiest feeder) or on a feeder (splits that one)
+      if (!pr && !fd) return q(false, 'career.err.target', none);
+      if (s.feeders.length + s.projects.filter((p) => p.status === 'building' && p.kind === 'newFeeder').length >= DISTRICT.maxFeeders) return q(false, 'career.err.maxFeeders', none);
       return q(true, 'career.quote', PROJECTS.newFeeder!);
     }
     case 'newTransformer': {
@@ -130,7 +130,7 @@ export function allowedShare(s: CareerState, kind: ProjectKind, target: string):
       need = Math.max(clamp((an.loadingPct - 60) / 40, 0, 1), clamp((6 - trueHealth(a, s.t)) / 4, 0, 1)); break;
     }
     case 'replaceAssets': { const a = assetById(s, target); if (a) need = clamp((7 - trueHealth(a, s.t)) / 4, 0, 1); break; }
-    case 'newFeeder': { const fs = primaryFeeders(s, target); need = clamp((Math.max(0, ...fs.map((f) => analyseFeeder(s, f, false).loadingPct)) - 70) / 30, 0, 1); break; }
+    case 'newFeeder': { const fs = fd ? [fd] : primaryFeeders(s, target); need = clamp((Math.max(0, ...fs.map((f) => analyseFeeder(s, f, false).loadingPct)) - 70) / 30, 0, 1); break; }
     case 'newTransformer': need = clamp(1 - firmMarginPct(s, target) / 25, 0, 1); break;
     case 'tieSwitch': case 'remoteSwitch': case 'recloser': {
       const f = fd ?? sectionOf(s, target)?.f; if (!f) break;
@@ -152,12 +152,12 @@ export function completeProject(s: CareerState, p: Project): void {
       break;
     }
     case 'newFeeder': {
-      const fs = primaryFeeders(s, p.target); if (!fs.length) return;
-      const heavy = fs.reduce((m, f) => (hourlyLoad(f, s.t).peakKw > hourlyLoad(m, s.t).peakKw ? f : m), fs[0]!);
+      const own = feederById(s, p.target), fs = own ? [own] : primaryFeeders(s, p.target); if (!fs.length) return;
+      const heavy = fs.reduce((m, f) => (hourlyLoad(f, s.t).peakKw > hourlyLoad(m, s.t).peakKw ? f : m), fs[0]!), pid = heavy.primaryId;
       const n = s.feeders.reduce((m, f) => Math.max(m, Number(f.id.slice(1))), 0) + 1, id = `F${n}`;
       const half = Math.floor(heavy.customers / 2);
       const nf: Feeder = {
-        id, primaryId: p.target, customers: half, baseKw: heavy.baseKw / 2, growthPct: heavy.growthPct, evBias: heavy.evBias, pvBias: heavy.pvBias,
+        id, primaryId: pid, customers: half, baseKw: heavy.baseKw / 2, growthPct: heavy.growthPct, evBias: heavy.evBias, pvBias: heavy.pvBias,
         sections: DISTRICT.sectionLengthsKm.map((len, i) => ({ id: `${id}.${i + 1}`, lengthKm: len, conductor: ['Hyena', 'Dog', 'Dog', 'Rabbit'][i]!, share: DISTRICT.sectionShares[i]!, device: (['none', 'manual', 'manual', 'none'] as const)[i]!, assetId: `${id}.${i + 1}` })),
         tie: false, recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: 0.3,
       };

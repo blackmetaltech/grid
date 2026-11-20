@@ -182,3 +182,29 @@ describe('determinism: a career is a seed and an action list', () => {
     expect(careerHash(6, tampered)).not.toBe(stateHash(r.state));
   });
 });
+
+describe('1.2 regulator: rolling average, period reset, revocation streak, load index', async () => {
+  const C = await import('./index');
+  const review = (s: import('./state').CareerState, saidi: number): import('./state').Review => { const N = C.totalCustomers(s); s.ytdCustMin = saidi * N; s.ytdCustInt = 1 * N; return C.annualReview(s); };
+  it('judges the mean of this year and the previous ones in the period', () => {
+    const s = C.buildDistrict(3); s.t = 3; review(s, 600); s.t = 7; const r = review(s, 300);
+    expect(r.saidi).toBeCloseTo(300, 6); expect(r.saidiRolling).toBeCloseTo(450, 6);
+  });
+  it('resets targets at the end of a period to resetFactor x the expected value when that is tighter', () => {
+    const s = C.buildDistrict(3); s.t = 4 * C.INCENTIVE.periodYears - 1; s.saidiTarget = 1e4; s.saifiTarget = 1e3;
+    const e = C.districtExpected(s); review(s, 100);
+    expect(s.saidiTarget).toBeCloseTo(C.INCENTIVE.resetFactor * e.saidi, 6);
+  });
+  it('counts a severe-fine year toward revocation only on an inadequate network, and only in a row', () => {
+    const s = C.buildDistrict(3); s.t = 3; s.saidiTarget = 1; s.saifiTarget = 0.01;   // nothing meets these: inadequate
+    review(s, 5000); expect(s.severeFineYears).toBe(1);
+    s.t = 7; s.saidiTarget = 1e5; s.saifiTarget = 1e3; review(s, 10); expect(s.severeFineYears).toBe(0);   // a fine year breaks the streak
+    const t = C.buildDistrict(3); t.t = 3; t.saidiTarget = 1e4; t.saifiTarget = 1e3; t.ar = 1;   // adequate network: a bad year alone is weather
+    review(t, 1e6); expect(t.severeFineYears).toBe(0);
+  });
+  it('Chief Engineer needs a clean load index', () => {
+    const s = C.buildDistrict(3); s.t = C.ENDINGS.quarters; s.yearsMet = 10; s.cash = 1; s.startHealth = 0;
+    expect(C.endingOf(s, false)).toBe(C.loadIndex(s).overloaded === 0 && C.loadIndex(s).firmShort === 0 ? 'chiefEngineer' : 'steady');
+    s.feeders[0]!.baseKw *= 3; expect(C.loadIndex(s).overloaded).toBeGreaterThan(0); expect(C.endingOf(s, false)).toBe('steady');
+  });
+});

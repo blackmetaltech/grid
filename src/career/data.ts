@@ -63,7 +63,7 @@ export const DISTRICT: Sourced & {
   conductors: [['Dog', 'Dog', 'Rabbit', 'Weasel'], ['Hyena', 'Dog', 'Dog', 'Rabbit'], ['Dog', 'Dog', 'Rabbit', 'Rabbit']],
   devices: [['none', 'manual', 'none', 'fuse'], ['none', 'manual', 'manual', 'none'], ['none', 'manual', 'none', 'none']],
   tiedFeeders: [1, 4, 5, 8], txAges: [38, 33, 28, 41], swgAges: [32, 35], lineAgeMean: 36, lineAgeSd: 11, wearMin: 0.75, wearMax: 1.35, vegStart: 0.5,
-  crews: 4, maxFeeders: 14, maxUnitsPerPrimary: 3,
+  crews: 4, maxFeeders: 20, maxUnitsPerPrimary: 3,
   source: 'illustrative district for DESIGN-1.1 C1: sizes from the brief; ADMD 0.9 kW, section lengths and ages are made-up typical values', recall: true,
 };
 
@@ -100,8 +100,8 @@ export const MONEY: Sourced & {
 };
 
 /** Incentive (RIIO-style interruption incentive, SIMPLIFIED: one rate per customer-minute lost and per interruption, symmetric around target, capped). */
-export const INCENTIVE: Sourced & { cmiRateM: number; cifRateM: number; rewardCapPct: number; fineCapPct: number; severeFinePct: number; yearsToRevoke: number; targetTightenPct: number; targetHeadroom: number } = {
-  cmiRateM: 0.12e-6, cifRateM: 12e-6, rewardCapPct: 2, fineCapPct: 5, severeFinePct: 3, yearsToRevoke: 3, targetTightenPct: 1.5, targetHeadroom: 0.9,
+export const INCENTIVE: Sourced & { cmiRateM: number; cifRateM: number; rewardCapPct: number; fineCapPct: number; severeFinePct: number; yearsToRevoke: number; targetTightenPct: number; targetHeadroom: number; /** the regulator judges the mean of the last rollingYears years (smooths weather) */ rollingYears: number; /** price-control period (years): at its end the targets reset to resetFactor x the network's modelled expected SAIDI / SAIFI when that is lower (RIIO resets targets each period; SIMPLIFIED) */ periodYears: number; resetFactor: number } = {
+  cmiRateM: 0.12e-6, cifRateM: 12e-6, rewardCapPct: 2, fineCapPct: 5, severeFinePct: 3, yearsToRevoke: 3, targetTightenPct: 1.5, targetHeadroom: 0.9, rollingYears: 3, periodYears: 5, resetFactor: 1.3,
   source: 'RIIO-style ICE: RIIO ICE is roughly GBP 0.2-0.4 per customer-minute lost; scaled down here because this district runs ~3x the SAIDI of a real DNO; caps +2 % / -5 % of allowed revenue (illustrative); targets start 10 % below the day-one expected value (the regulator expects improvement) and tighten 1.5 %/yr',
   recall: true,
 };
@@ -118,7 +118,8 @@ export const CONNECTIONS: ConnRow[] = [
 export const CONN: Sourced & { ratePerQ: number; deadlineMin: number; deadlineMax: number } = { ratePerQ: 0.7, deadlineMin: 4, deadlineMax: 6, source: 'illustrative', recall: true };
 
 /** Endings and score. */
-export const ENDINGS: Sourced & { quarters: number; chiefYearsMet: number } = { quarters: 40, chiefYearsMet: 8, source: 'DESIGN-1.1 C2', recall: false };
+/** Chief Engineer also needs a clean load index at the end: no feeder over its winter cyclic rating (cyclicPct of the static rating; overhead lines carry about 10 % more on a cold winter peak) and no primary short of firm capacity. */
+export const ENDINGS: Sourced & { quarters: number; chiefYearsMet: number; cyclicPct: number } = { quarters: 40, chiefYearsMet: 8, cyclicPct: 110, source: 'DESIGN-1.1 C2; cyclic rating typical of UK practice (ENA ER P27-style), rounded', recall: true };
 export const SCORE: Sourced & { perYearMet: number; perSaidiMin: number; perIncentiveM: number; perHealth: number; perDelivered: number; perMissed: number; perCashM: number; perDebtM: number; chief: number; steady: number; bailed: number; revoked: number; perQuarterLeftLost: number } = {
   perYearMet: 60, perSaidiMin: 0.08, perIncentiveM: 60, perHealth: 40, perDelivered: 15, perMissed: 25, perCashM: 8, perDebtM: 25, chief: 300, steady: 100, bailed: -300, revoked: -300, perQuarterLeftLost: 5,
   source: 'game scoring, not from any source', recall: false,

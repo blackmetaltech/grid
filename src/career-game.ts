@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -100,6 +100,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       const st = c.state, m = (x: number): string => moneyText(s, x), N = st.feeders.reduce((a, f) => a + f.customers, 0);
       const an = st.feeders.map((f) => analyseFeeder(st, f)), exp = districtExpected(st, an);
       const healthOf = (id: string) => { const a = st.assets.find((x) => x.id === id)!; const h = shownHealth(a, st.t); return { health: r1(h.health), inspected: h.inspected, failed: a.failed, outQ: a.outQ }; };
+      const nextT = (i: number) => (st.reviews[i + 1] ? { saidi: st.reviews[i + 1]!.saidiTarget, saifi: st.reviews[i + 1]!.saifiTarget } : { saidi: st.saidiTarget, saifi: st.saifiTarget });
       const ytdSaidi = N ? st.ytdCustMin / N : 0, ytdSaifi = N ? st.ytdCustInt / N : 0;
       return {
         active: true, seed: c.seed, code: encodeCareer(c.seed, c.actions), actions: c.actions.length,
@@ -128,9 +129,10 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
           cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
-        reviews: st.reviews.map((rv) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
-          avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0,
-          verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
+        reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
+          avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
+          resetText: rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
+          verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
         allowedRevenueText: m(allowedRevenue(st.rab, st.opexAllowance)),
       };

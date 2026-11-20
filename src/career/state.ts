@@ -45,7 +45,7 @@ export interface Incident {
 }
 export interface Verdict { axis: 'regulator' | 'finance' | 'crew'; who: string; key: string; grade: 'good' | 'ok' | 'poor'; params: Record<string, number> }
 export interface Review {
-  year: number; saidi: number; saifi: number; saidiTarget: number; saifiTarget: number; exceptionalMin: number; met: boolean; incentiveM: number;
+  year: number; saidi: number; saifi: number; /** what the regulator judged: the rolling mean over INCENTIVE.rollingYears */ saidiRolling: number; saifiRolling: number; saidiTarget: number; saifiTarget: number; exceptionalMin: number; met: boolean; incentiveM: number;
   avgHealth: number; cash: number; rab: number; verdicts: Verdict[];
   /** Load index at the review: feeders over their rating at peak, primaries short of firm capacity. */
   overloaded: number; firmShort: number;
@@ -76,7 +76,7 @@ export interface CareerState {
   saidiTarget: number; saifiTarget: number;
   /** Year-to-date accumulators (customer-minutes, customer-interruptions) counted for the incentive, and excluded exceptional customer-minutes. */
   ytdCustMin: number; ytdCustInt: number; ytdExceptionalMin: number; ytdIncentiveCapex: number;
-  yearsMet: number; severeFineYears: number; delivered: number; missed: number; netIncentiveM: number;
+  yearsMet: number; /** current streak of severe-fine years on an inadequate network (three end the licence) */ severeFineYears: number; delivered: number; missed: number; netIncentiveM: number;
   startHealth: number;
   history: Kpi[]; reviews: Review[]; log: string[];
   ending: Ending | null;

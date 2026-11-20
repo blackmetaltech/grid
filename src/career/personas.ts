@@ -2,9 +2,11 @@
 import { dmath } from '@core/numerics';
 import { shownHealth, trueHealth, wearRate } from './ageing';
 import { INCENTIVE, MONEY, WEIBULL } from './data';
-import { analyseFeeder, conductorRow, stormUplift, type FeederAnalysis } from './district';
+import { analyseFeeder, conductorRow, stormUplift, toRadial, districtExpected, type FeederAnalysis } from './district';
+import { solveRadial } from '../sim/distrib';
+import { DISTRICT } from './data';
 import { forecastPeakKw } from './growth';
-import { committedPerQuarter, crewsFree, primaryFeeders, quoteProject, reliabilityDelta } from './projects';
+import { committedPerQuarter, crewsFree, primaryFeeders, quoteProject, reliabilityDelta, nextConductor } from './projects';
 import { applyAction, type CareerAction } from './replay';
 import { buildDistrict } from './district';
 import { careerScore } from './regulator';
@@ -71,7 +73,10 @@ export const planner: Persona = {
   respond: respondAll,
   plan: (s) => {
     const d = doer(s);
-    const free = (capex: number, lead: number, reserve = 0.8): boolean => d.s.cash - reserve - committedPerQuarter(d.s) * 2 >= capex / lead;
+    const free = (capex: number, lead: number, reserve = 0.8): boolean => d.s.cash - reserve + (d.s.t < 32 ? 3 : 0) - committedPerQuarter(d.s) * 2 >= capex / lead;
+    /** Capacity capex enters the asset base and earns its return, so the planner borrows for it (down to cash -5, half the credit line; other asset work down to -3) but only in the first eight years, to end with cash back above 0. */
+    const onTrack = districtExpected(d.s).saidi <= d.s.saidiTarget;   // reliability first: borrow for capacity only while the network can meet its targets
+    const borrow = (capex: number, lead: number, urgent = false): boolean => d.s.cash + (d.s.t < 32 && (onTrack || urgent) ? 5 : 0) - committedPerQuarter(d.s) >= capex / lead;
     const nice = (capex: number, lead: number): boolean => committedPerQuarter(d.s) < 1.1 && free(capex, lead, 1.2);
     const an: Record<string, FeederAnalysis> = {};
     for (const f of d.s.feeders) an[f.id] = analyseFeeder(d.s, f);
@@ -81,10 +86,14 @@ export const planner: Persona = {
     const fixing = (fid: string): boolean => d.s.projects.some((p) => p.status === 'building' && (p.kind === 'reconductor' || p.kind === 'newFeeder') && (p.target === fid || p.target.startsWith(fid + '.') || d.s.feeders.find((f) => f.id === fid)?.primaryId === p.target));
     for (const r of d.s.requests) {
       const la = loadAfter(r.feederId, r.kw);
-      if (la <= 100 || (r.deadlineQ <= d.s.t + 1 && la <= 115) || (fixing(r.feederId) && la <= 110) || r.kw === 0) d.do({ a: 'accept', id: r.id });
+      if (la <= 80 || (r.deadlineQ <= d.s.t + 1 && la <= 88) || (fixing(r.feederId) && la <= 85) || r.kw === 0) d.do({ a: 'accept', id: r.id });
     }
     const pendingKw: Record<string, number> = {};
     for (const r of d.s.requests) pendingKw[r.feederId] = (pendingKw[r.feederId] ?? 0) + r.kw;
+    const pendingKw0: Record<string, number> = {};
+    for (const r of d.s.requests) pendingKw0[r.feederId] = (pendingKw0[r.feederId] ?? 0) + r.kw;
+    // crews held back for capacity work this quarter: feeders whose forecast peak overloads them (step 4b uses them)
+    const capCrews = Math.min(2, d.s.feeders.filter((f) => { const a = an[f.id]!; return a.peakKw > 0 && (a.loadingPct * (forecastPeakKw(f, d.s.t, 6) + (pendingKw0[f.id] ?? 0))) / a.peakKw > 95 && !d.s.projects.some((p) => p.status === 'building' && (p.target === f.id || p.target === f.primaryId || f.sections.some((x) => x.id === p.target))); }).length);
     // 2. inspections: old assets whose health is only an estimate
     let ins = 0;
     for (const a of d.s.assets.filter((x) => !shownHealth(x, d.s.t).inspected).sort((x, y) => x.installQ - y.installQ)) {
@@ -111,7 +120,7 @@ export const planner: Persona = {
     let rep = 0;
     for (const l of lines) {
       if (rep >= 3 || l.score < 1 / 10) break;
-      if (crewsFree(d.s) >= 1 && free(l.capex, l.lead, 0.6) && d.do({ a: 'start', kind: 'replaceAssets', target: l.id })) rep++;
+      if (crewsFree(d.s) - capCrews >= 1 && free(l.capex, l.lead, 0.6) && d.do({ a: 'start', kind: 'replaceAssets', target: l.id })) rep++;
     }
     // 4. reinforce: feeders forecast over 92 % of rating within 6 quarters, primaries forecast below 8 % firm margin within 8 quarters
     for (const p of d.s.primaries) {
@@ -120,21 +129,31 @@ export const planner: Persona = {
       const cap = firm.reduce((x, y) => x + y, 0) - Math.max(...firm, 0);
       if ((100 * (cap - peak)) / peak < 8 && !d.s.projects.some((x) => x.status === 'building' && x.kind === 'newTransformer' && x.target === p.id)) {
         const q = quoteProject(d.s, 'newTransformer', p.id);
-        if (q.ok && free(q.capexM, q.leadQ)) d.do({ a: 'start', kind: 'newTransformer', target: p.id });
+        if (q.ok && borrow(q.capexM, q.leadQ)) d.do({ a: 'start', kind: 'newTransformer', target: p.id });
       }
     }
+    // 4b. feeder capacity: every section forecast over 95 % of its rating within its lead time gets the next conductor; a feeder whose
+    // overloaded section already has the largest conductor is split by a new feeder at its primary, or (bays full) gets demand response, then a battery
     for (const f of d.s.feeders) {
-      const a = an[f.id]!, pk = forecastPeakKw(f, d.s.t, 6) + (pendingKw[f.id] ?? 0), fc = (a.loadingPct * pk) / Math.max(1, a.peakKw);
-      if (fc < 90) continue;
-      const iHead = pk / (sqrt3 * 11 * 0.95);
-      let best = -1, bl = 0, down = 1;
-      f.sections.forEach((sec, i) => { const dn = f.sections.slice(i).reduce((x, y) => x + y.share, 0); const l = (iHead * dn) / conductorRow(sec.conductor).ampacityA; if (l > bl) { bl = l; best = i; } down = dn; });
-      void down;
-      const inFlight = d.s.projects.some((p) => p.status === 'building' && (p.target === f.id || f.sections.some((x) => x.id === p.target)) && (p.kind === 'reconductor' || p.kind === 'newFeeder'));
-      if (inFlight || best < 0) continue;
-      const q = quoteProject(d.s, 'reconductor', f.sections[best]!.id);
-      if (q.ok && free(q.capexM, q.leadQ)) d.do({ a: 'start', kind: 'reconductor', target: f.sections[best]!.id });
-      else if (!q.ok && q.messageKey === 'career.err.maxConductor' && free(2.8, 4)) d.do({ a: 'start', kind: 'newFeeder', target: f.primaryId });
+      const a = an[f.id]!; if (a.peakKw <= 0) continue;
+      const busy = (kinds: ProjectKind[], targets: string[]): boolean => d.s.projects.some((p) => (p.status === 'building' || p.status === 'active') && kinds.includes(p.kind) && targets.includes(p.target));
+      const scale = (forecastPeakKw(f, d.s.t, 6) + (pendingKw0[f.id] ?? 0)) / a.peakKw;
+      const rp = solveRadial(toRadial(f, a.peakKw * scale), { vSourcePu: 1.03 });
+      const over = f.sections.map((sec, i) => ({ sec, i, l: (rp.sections[i]!.currentA / conductorRow(sec.conductor).ampacityA) * 100 })).filter((x) => x.l > 95).sort((x, y) => y.l - x.l);
+      if (!over.length || busy(['newFeeder'], [f.id, f.primaryId])) continue;
+      let maxed = false;
+      for (const o of over) {
+        if (busy(['reconductor'], [o.sec.id])) continue;
+        if (!nextConductor(o.sec.conductor)) { maxed = true; continue; }
+        const q = quoteProject(d.s, 'reconductor', o.sec.id);
+        if (q.ok && crewsFree(d.s) >= q.crew && borrow(q.capexM, q.leadQ, a.loadingPct > 110)) d.do({ a: 'start', kind: 'reconductor', target: o.sec.id });
+      }
+      if (!maxed) continue;
+      const qf = quoteProject(d.s, 'newFeeder', f.id);   // split this overloaded feeder
+      if (qf.ok && crewsFree(d.s) >= qf.crew && borrow(qf.capexM, qf.leadQ, a.loadingPct > 110)) { d.do({ a: 'start', kind: 'newFeeder', target: f.id }); continue; }
+      if (!busy(['demandResponse'], [f.id]) && f.drKw <= 0) { if (d.do({ a: 'start', kind: 'demandResponse', target: f.id })) continue; }
+      const qb = quoteProject(d.s, 'battery', f.id);
+      if (!busy(['battery'], [f.id]) && qb.ok && free(qb.capexM, qb.leadQ, 1.0)) d.do({ a: 'start', kind: 'battery', target: f.id });
     }
     // 5. voltage problems
     for (const f of d.s.feeders) if (an[f.id]!.vViolation && !f.regulator && free(0.22, 2)) d.do({ a: 'start', kind: 'regulator', target: f.id });
@@ -154,8 +173,8 @@ export const planner: Persona = {
     opts.sort((x, y) => y.score - x.score);
     let started = 0;
     for (const o of opts) {
-      if (started >= 2 || o.score < 1 / 15) break;
-      if (nice(o.capex, o.lead) && d.do({ a: 'start', kind: o.kind, target: o.target })) started++;
+      if (started >= 3 || o.score < 1 / 20) break;
+      if (crewsFree(d.s) - capCrews >= 1 && nice(o.capex, o.lead) && d.do({ a: 'start', kind: o.kind, target: o.target })) started++;
     }
     // 7. vegetation
     const meanVeg = d.s.feeders.reduce((x, f) => x + f.veg, 0) / d.s.feeders.length;

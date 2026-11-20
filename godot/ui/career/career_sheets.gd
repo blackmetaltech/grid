@@ -136,7 +136,7 @@ static func review(sc: CareerScreen, i: int, next: Callable) -> void:
 	st.add_child(PaperKit.lbl(T("CAR_RV_MET") if met else T("CAR_RV_MISSED"), 22 if compact else 30, "title", GREEN if met else PaperKit.RED)); top.add_child(st)
 	var tv := VBoxContainer.new(); tv.add_theme_constant_override("separation", 2); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; top.add_child(tv)
 	var n1 := CareerKit.num
-	tv.add_child(_para(T("CAR_RV_NUMS") % [n1.call(float(rv.saidi), 1), n1.call(float(rv.saidiTarget), 1), n1.call(float(rv.saifi), 2), n1.call(float(rv.saifiTarget), 2)], compact))
+	tv.add_child(_para(T("CAR_RV_NUMS") % [n1.call(float(rv.get("saidiRolling", rv.saidi)), 1), n1.call(float(rv.saidiTarget), 1), n1.call(float(rv.get("saifiRolling", rv.saifi)), 2), n1.call(float(rv.saifiTarget), 2), n1.call(float(rv.saidi), 1)], compact))
 	tv.add_child(PaperKit.lbl(T("CAR_RV_INCENTIVE") % str(rv.incentiveText), 17 if compact else 22, "semi", GREEN if float(rv.incentive) >= 0.0 else PaperKit.RED))
 	body.add_child(PaperKit.rule())
 	var k := 0
@@ -152,6 +152,7 @@ static func review(sc: CareerScreen, i: int, next: Callable) -> void:
 		var gp := PanelContainer.new(); gp.name = "Grade"; gp.add_theme_stylebox_override("panel", GridTheme._sb(Color(0, 0, 0, 0), gcol, 5, 3, 6.0)); gp.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 		gp.add_child(PaperKit.lbl(T("CAR_GRADE_" + grade), 18 if compact else 22, "title", gcol)); hb.add_child(gp)
 	body.add_child(_para(T("CAR_RV_STATE") % [str(rv.cashText), str(rv.rabText), n1.call(float(rv.avgHealth), 1)], compact, Color(PaperKit.INK, 0.8)))
+	if str(rv.get("resetText", "")) != "": body.add_child(_para(str(rv.resetText), compact, PaperKit.AMBER))   # end of a price-control period: the new targets
 	var ov := int(rv.get("overloaded", 0)); var fs := int(rv.get("firmShort", 0))   # the load index: feeders over their rating at peak, primaries short of firm capacity
 	body.add_child(_para(T("CAR_RV_LOAD") % [ov, fs] if ov + fs > 0 else T("CAR_RV_LOAD_OK"), compact, PaperKit.RED if ov + fs > 0 else Color(PaperKit.INK, 0.8)))
 	body.add_child(PaperKit.lbl(T("CAR_RV_NOTE"), 13 if compact else 15, "sans", Color(PaperKit.INK, 0.6), true))
