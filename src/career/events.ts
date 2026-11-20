@@ -66,7 +66,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
       if (fcm > worstCm) { worstCm = fcm; worst = fi; }
     });
     out.faults += nf; out.repairCostM += nf * 0.006 * 1.5;
-    if (nf >= 3 || exceptional) {
+    if (nf >= 3 || (exceptional && nf > 0)) {   // a storm that faulted nothing raises no card (a tester was asked to answer one with 0 faults)
       const wf = worst >= 0 ? s.feeders[worst]! : null;
       out.incidents.push({ id: `I${t}-${nInc++}`, q: t, kind: 'storm', feederId: wf?.id ?? null, primaryId: wf?.primaryId ?? null, severity: sev, faults: nf, custInt: ci, custMin: cm, exceptional, tied: false, crewed: false, hasTie: !!wf?.tie });
     } else if (!exceptional) { out.custInt += ci; out.custMin += cm; }

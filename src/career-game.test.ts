@@ -114,3 +114,15 @@ describe('1.4 weekly board wiring', () => {
     expect(act(e, 'careerLoad', c.code).ok).toBe(true); expect(q(e, 'career').boardLevel).toBe('');
   });
 });
+
+describe('1.4 Old Iron playtest: plant at risk is named before it fails', () => {
+  it('plantRisk lists old transformers / switchgear with their chance of failing and the emergency cost, worst first', () => {
+    const e = play(); act(e, 'careerStart', 21, 'iron');
+    const pr = q(e, 'career').plantRisk as { id: string; pFail: number; text: string; emergencyText: string }[];
+    expect(pr.length).toBeGreaterThan(0);
+    for (let i = 1; i < pr.length; i++) expect(pr[i - 1]!.pFail).toBeGreaterThanOrEqual(pr[i]!.pFail);
+    expect(pr[0]!.text).toContain(pr[0]!.id); expect(pr[0]!.emergencyText).not.toBe('');
+    expect(act(e, 'careerProject', 'replaceAssets', pr[0]!.id).ok).toBe(true);
+    expect((q(e, 'career').plantRisk as { id: string }[]).some((r) => r.id === pr[0]!.id)).toBe(false);   // a replacement under way is not at risk any more
+  });
+});

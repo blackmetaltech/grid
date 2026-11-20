@@ -315,8 +315,19 @@ func _asset_pick(id: String) -> Dictionary:
 func _worst_card(sz: int) -> void:
 	var v := CareerKit.card(drawer_body); v.get_parent().name = "WorstCard"
 	v.add_child(CareerKit.lbl(T("CAR_WORST"), sz + 1, GridTheme.SODIUM, "semi", true))
+	# substation plant first: its failure costs an emergency replacement and a primary outage, which expected SAIDI does not show
+	var plant: Array = d.get("plantRisk", [])
+	for r in plant.slice(0, 2):
+		var pid := str(r.id)
+		var ph := HBoxContainer.new(); ph.add_theme_constant_override("separation", 6); v.add_child(ph)
+		var pk := CareerKit.btn(T("CAR_RISK_ROW") % [pid, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(pid)), sz - 1)
+		pk.name = "RiskPick_" + pid; pk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pk.alignment = HORIZONTAL_ALIGNMENT_LEFT; pk.clip_text = true; ph.add_child(pk)
+		var cost := CareerKit.lbl(T("CAR_RISK_COST") % str(r.emergencyText), sz - 2, GridTheme.BAD, "mono")
+		if compact: v.add_child(cost)
+		else: ph.add_child(cost)
+		var fx := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", ["replaceAssets", pid]), sz - 1); fx.name = "Fix_" + pid; ph.add_child(fx)
 	var rows := worst_assets(3 if compact else 4)
-	if rows.is_empty(): v.add_child(CareerKit.lbl(T("CAR_WORST_NONE"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true)); return
+	if rows.is_empty() and plant.is_empty(): v.add_child(CareerKit.lbl(T("CAR_WORST_NONE"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true)); return
 	for r in rows:
 		var id := str(r.id); var a := _asset_of(id)
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); v.add_child(hb)

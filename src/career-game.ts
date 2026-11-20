@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -100,6 +100,15 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
 }
 
 /** Replacing a transformer or switchboard does not move the expected SAIDI (plant failures are events, not the feeder FMEA), so its card gives the chance it fails in the next year, old against new, and what a failure costs. */
+/** Transformers and switchboards whose chance of failing within a year is at least 5 %, worst first, with the cost of an emergency replacement. */
+function plantRisk(st: CareerState): { id: string; cls: string; health: number; pFail: number; emergencyM: number; building: boolean }[] {
+  return st.assets.filter((a) => a.cls !== 'line' && !a.failed).map((a) => {
+    const w = WEIBULL[a.cls], pFail = failureProb(effectiveAge(a, st.t), 1, w.beta, w.eta);
+    const emergencyM = (a.cls === 'tx' ? PROJECTS.replaceTx!.capexM + MONEY.txFailureDamageM / MONEY.emergencyMult : PROJECTS.replaceSwitchgear!.capexM) * MONEY.emergencyMult;
+    return { id: a.id, cls: a.cls, health: r1(trueHealth(a, st.t)), pFail, emergencyM, building: st.projects.some((p) => p.status === 'building' && p.kind === 'replaceAssets' && p.target === a.id) };
+  }).filter((r) => r.pFail >= 0.05 && !r.building).sort((x, y) => y.pFail - x.pFail);
+}
+
 function plantWhy(st: CareerState, kind: ProjectKind, target: string): string | null {
   const a = st.assets.find((x) => x.id === target);
   if (kind !== 'replaceAssets' || !a || a.cls === 'line') return null;
@@ -119,7 +128,11 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       const nextT = (i: number) => (st.reviews[i + 1] ? { saidi: st.reviews[i + 1]!.saidiTarget, saifi: st.reviews[i + 1]!.saifiTarget } : { saidi: st.saidiTarget, saifi: st.saifiTarget });
       const ytdSaidi = N ? st.ytdCustMin / N : 0, ytdSaifi = N ? st.ytdCustInt / N : 0;
       return {
-        active: true, seed: c.seed, boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
+        active: true, seed: c.seed,
+        // substation plant at risk (transformers, switchboards): expected SAIDI does not count a failure, so the worst-assets list and the
+        // quarter report name them with the chance of failing this year and what an emergency replacement would cost (Old Iron tester)
+        plantRisk: plantRisk(st).map((r) => ({ ...r, pFail: r1(r.pFail * 100), emergencyText: m(r.emergencyM), text: t('career.plantRisk', { id: r.id, pFail: r1(r.pFail * 100), emergency: m(r.emergencyM) }) })),
+        boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
         charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,
         endingText: st.ending ? t(`career.endingName.${st.ending}`) : '', score: careerScore(st),
@@ -130,7 +143,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
         // what each tree-cutting level buys: the expected SAIDI after a year held at that level (the same tree growth rule as turn.ts), and its cost
         vegLevels: [0, 1, 2, 3].map((lv) => { const yr = { ...st, feeders: st.feeders.map((f) => ({ ...f, veg: vegAfterYear(f.veg, lv) })) }; const e = districtExpected(yr);
-          return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: r1(e.saidi - exp.saidi), costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
+          return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: `${e.saidi - exp.saidi > 0 ? '+' : ''}${r1(e.saidi - exp.saidi)}`, costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
         customers: N, health: r2(avgHealth(st)), startHealth: r2(st.startHealth),
         targets: { saidi: r1(st.saidiTarget), saifi: r2(st.saifiTarget) }, ytd: { saidi: r1(ytdSaidi), saifi: r2(ytdSaifi) }, expected: { saidi: r1(exp.saidi), saifi: r2(exp.saifi) },
         primaries: st.primaries.map((p) => ({ id: p.id, name: t(p.name), peakMva: r1(primaryPeakMVA(st, p.id)), firmMva: r1(firmCapacityMVA(st, p.id)), firmMarginPct: r1(firmMarginPct(st, p.id)),
@@ -156,13 +169,13 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
-          nextText: rv.year % INCENTIVE.periodYears !== INCENTIVE.periodYears - 1 ? t('career.review.next', { saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi), tightenPct: INCENTIVE.targetTightenPct }) : '',
-          resetText: rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
+          nextText: rv.year + 1 < ENDINGS.quarters / 4 && rv.year % INCENTIVE.periodYears !== INCENTIVE.periodYears - 1 ? t('career.review.next', { saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi), tightenPct: INCENTIVE.targetTightenPct }) : '',
+          resetText: rv.year + 1 < ENDINGS.quarters / 4 && rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
           verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
         allowedRevenueText: m(allowedRevenue(st.rab, st.opexAllowance)),
         // the year a price-control period ends: say what the reset will do, before it happens
-        resetWarnText: Math.floor(st.t / 4) % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 && !st.ending ? (() => { const nt = periodReset(st.saidiTarget * (1 - INCENTIVE.targetTightenPct / 100), st.saifiTarget * (1 - INCENTIVE.targetTightenPct / 100), exp); return t('career.resetWarn', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiNow: r1(st.saidiTarget), saidiNext: r1(nt.saidi), saifiNext: r2(nt.saifi) }); })() : '',
+        resetWarnText: Math.floor(st.t / 4) % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 && st.t < ENDINGS.quarters - 4 && !st.ending ? (() => { const nt = periodReset(st.saidiTarget * (1 - INCENTIVE.targetTightenPct / 100), st.saifiTarget * (1 - INCENTIVE.targetTightenPct / 100), exp); return t('career.resetWarn', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiNow: r1(st.saidiTarget), saidiNext: r1(nt.saidi), saifiNext: r2(nt.saifi) }); })() : '',
         crewCostText: m(MONEY.dispatchM * (crewsFree(st) >= 1 ? 1 : 2)), tieSavingPct: 35, crewSavingPct: 20,
       };
     },

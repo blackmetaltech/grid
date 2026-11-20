@@ -118,6 +118,8 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	if str(h.get("opexPartsText", "")) != "": body.add_child(_para(str(h.opexPartsText), compact, Color(PaperKit.INK, 0.8)))   # what the running costs are made of
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
 	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
+	for r in sc.d.get("plantRisk", []):   # substation plant likely to fail this year: warned before the emergency bill, not after (Old Iron tester)
+		if float(r.pFail) >= 10.0: body.add_child(_para(T("CAR_RISK") % str(r.text), compact, PaperKit.RED))
 	body.add_child(_para(T("CAR_QR_HEALTH") % [n1.call(float(h.avgHealth), 1), n1.call(float(h.worstHealth), 1), n1.call(float(h.lossesMWh), 0)], compact))
 	body.add_child(_para(T("CAR_QR_NET") % [int(h.faults), int(h.vViolations), n1.call(float(h.firmMarginPct), 0), n1.call(float(h.maxLoadingPct), 0)], compact))
 	body.add_child(_para(T("CAR_QR_CONN") % [int(h.delivered), int(h.missed)], compact))
@@ -182,6 +184,10 @@ static func ending(sc: CareerScreen) -> void:
 		Career.board_submit(sc.app, c, bl)
 	var n1 := CareerKit.num
 	body.add_child(_para(T("CAR_ED_YEARS") % [int(c.yearsMet), (c.reviews as Array).size()], compact))
+	var missed: Array = []
+	for rv in c.reviews:
+		if not bool(rv.met): missed.append(str(int(rv.year)))
+	if not missed.is_empty(): body.add_child(_para(T("CAR_ED_MISSED") % ", ".join(missed), compact, Color(PaperKit.INK, 0.8)))   # which years, not only how many (Old Iron tester)
 	body.add_child(_para(T("CAR_ED_HEALTH") % [n1.call(float(c.health), 1), n1.call(float(c.startHealth), 1)], compact))
 	body.add_child(_para(T("CAR_ED_CASH") % [str(c.cashText), str(c.netIncentiveText)], compact))
 	var sf: Array = c.get("shortfalls", [])
