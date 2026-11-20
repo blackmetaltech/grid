@@ -10,6 +10,7 @@ const STAMP_DELAY := 0.42
 const CHAPTER_END := {"L03": "L04", "L30": "L07", "L09": "L10", "L13": "L14", "L18": "L19", "L22": "L23", "L27": "L28"}   ## last job of a chapter -> the first job of the next one (opens the chapter-end card, not the work order). L30 closes chapter 2; L07 opens chapter 3 (src/level/chapters/ch3.ts)
 const HIST_MIN_N := 10                ## fewer designs than this and the histogram says so instead of drawing a lonely bar
 static var _d: Dictionary = {}
+static var _force_short := false   ## a report taller than the screen (L16's long lesson and next-lamp note at 1080 p) reopens in the scrolling layout
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
 
@@ -26,7 +27,7 @@ static func open(app: CbApp) -> bool:
 	var stars := int(app.b.g.get("stars", 0)) if won else 0
 	if won and lid != "": GridSettings.record_stars(lid, stars); GridSettings.record_pass(lid)
 	var compact := PaperKit.compact(app) or app.vs_h() < 860.0   # Deck 1280x800 / 768p laptops: the compact sheet fits without the "more" cue over ADA's note
-	var short: bool = app.vs_h() < 920.0
+	var short: bool = app.vs_h() < 920.0 or _force_short
 	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
 	var w: float = dock.w
 	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.34, 16.0 if compact else 30.0)
@@ -70,6 +71,10 @@ static func open(app: CbApp) -> bool:
 		if primary == null: primary = retry
 	else:
 		var lk := PaperKit.btn(T("REP_LOOK"), false, func(): _look(app, won), 20); lk.name = "Look"; row.add_child(lk); primary = retry
+	if not short and pn.get_combined_minimum_size().y > app.vs_h() - 24.0:   # too tall to fit: build it again in the scrolling layout, before anything is submitted
+		host.queue_free(); _d = {}; app.end_ui = null
+		_force_short = true; var r := open(app); _force_short = false
+		return r
 	if won and lid != "" and app.scores != null:
 		var line: String = app.scores_submit_level(lid)
 		if line != "": vb.add_child(PaperKit.lbl(line, 14, "sans", Color(PaperKit.INK, 0.6), true))
