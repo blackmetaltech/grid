@@ -4,7 +4,7 @@
 #   source-dir: a checkout of that tag (default: this repo; it must be clean at the tag). Never makes the repo public.
 # Steps: build the sidecar -> export Linux and Windows (Godot 4.7.2 templates) -> bundle the pinned Node runtime + sidecar
 # (core/ci/package.sh) -> zip -> smoke-run the Linux build headless (CB_SMOKE=1, must print SMOKE OK, no SCRIPT ERROR)
-# -> SHA256SUMS.txt -> gh release create (notes = that version's CHANGELOG section) on the private repo ixaxaar/grid.
+# -> SHA256SUMS.txt -> gh release create (notes = that version's CHANGELOG section) on ixaxaar/grid (public: upload happens only after the headless smoke passes).
 set -euo pipefail
 ver=$1; src=${2:-$(cd "$(dirname "$0")/.." && pwd)}; upload=1
 [ "${3:-}" = "--no-upload" ] && upload=0
@@ -55,7 +55,6 @@ awk -v v="$v" '/^## \[/{p=index($0,"["v"]")>0; next} p' CHANGELOG.md > "$out/not
 printf '\n---\nBuilt locally from tag %s. Extract and run; Node.js is bundled.\n- **Linux (x86_64)**: unzip, run `GRID/grid.sh` (needs a Vulkan driver).\n- **Windows**: unzip, run `GRID\\GRID.exe` (unsigned: SmartScreen, More info, Run anyway). Not yet played on Windows.\n' "$ver" >> "$out/notes.md"
 ls -la "$out/dist"
 if [ $upload = 1 ]; then
-  [ "$(gh repo view ixaxaar/grid --json visibility -q .visibility)" = PRIVATE ] || { echo "repo is not private: refusing" >&2; exit 1; }
   title=$(grep -m1 "^## \[$v\]" CHANGELOG.md | sed -E 's/^## \[[^]]*\] - //; s/ \(tag.*//')
   gh release create "$ver" -R ixaxaar/grid --title "GRID $v $title" --notes-file "$out/notes.md" "$out"/dist/*
   log "released"
