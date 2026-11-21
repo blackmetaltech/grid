@@ -28,7 +28,8 @@ static func _btn_sb(bg: Color, edge: Color, bw := 2) -> StyleBoxFlat:
 	return s
 
 static func _focus_sb() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new(); s.draw_center = false; s.border_color = INK; s.set_border_width_all(3); s.set_corner_radius_all(8); s.set_expand_margin_all(3)
+	# 1.8 pad pass: an amber ring and a faint wash (the old 3 px ink ring was lost against a row's own ink border at 1280x800)
+	var s := StyleBoxFlat.new(); s.bg_color = Color(AMBER, 0.12); s.border_color = AMBER; s.set_border_width_all(4); s.set_corner_radius_all(8); s.set_expand_margin_all(4)
 	return s
 
 ## A button in paper style: `primary` = sodium (the one action), otherwise a ghost with an ink border.

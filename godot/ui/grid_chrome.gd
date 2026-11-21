@@ -144,6 +144,14 @@ func handle_input(e: InputEvent) -> bool:
 		return tr.pad_button(jb.button_index)
 	return false
 
+## 1.8 pad: A on a focused, editable number box opens the on-screen number pad (ui/grid_numpad.gd); a pad cannot type.
+func _input(e: InputEvent) -> void:
+	if not (e is InputEventJoypadButton) or not e.pressed or not CbKit.pad_mode: return
+	if (e as InputEventJoypadButton).button_index != JOY_BUTTON_A: return
+	var f := get_viewport().gui_get_focus_owner()
+	if not (f is LineEdit) or not (f as LineEdit).editable or app.root.get_node_or_null("Numpad") != null: return
+	GridNumpad.open_for(f as LineEdit, app.root); get_viewport().set_input_as_handled()
+
 ## QA screenshots (CB_CAM "ui=..."): hut | reel/2.5 | hover/2.5 | peg/2 | run/0 | tag/cable/main | tag/hamlet/h1
 func qa_ui(spec: String) -> void:
 	if tray == null: return
@@ -290,6 +298,9 @@ func layout() -> void:
 
 var _pad_seen := false
 func _process(_dt: float) -> void:
+	if app != null and CbKit.pad_mode and app.pad != null and app.pad.hint.visible and app.pad.hint.text != _legend_now():   # title and dialogs too
+		app.pad.hint.text = _legend_now()
+		if _on and radio != null: layout()
 	if not _on or radio == null or app == null: return
 	var ph: bool = CbKit.pad_mode and app.pad != null and app.pad.hint.visible
 	if ph != _pad_seen: _pad_seen = ph; layout()
@@ -311,9 +322,13 @@ func _fade_hud_over_pan() -> void:
 		if n != null: n.modulate.a = move_toward(n.modulate.a, a, 0.15)
 
 ## The pad legend strip follows the route tray's mode: surveying with a pad has its own buttons (the shell's default comes back after).
-var _legend_default := ""
-func _pad_legend(m: String) -> void:
-	var hint = app.pad.hint if app.pad != null else null
-	if hint == null: return
-	if _legend_default == "": _legend_default = str(hint.text)
-	hint.text = tr("PAD_LEGEND_SURVEY") if m == "survey" else (tr("PAD_LEGEND_XF") if m == "xfmr" else _legend_default)
+## 1.8: the strip names GRID's own buttons in a level (the shell's "LB/RB drawers" pointed at drawers GRID does not have) and only the
+## menu buttons over a dialog or the title.
+var _rt_mode := ""
+func _pad_legend(m: String) -> void: _rt_mode = m
+
+func _legend_now() -> String:
+	if not app.started or app.modal() != null: return tr("PAD_LEGEND_MENU")
+	if _rt_mode == "survey": return tr("PAD_LEGEND_SURVEY")
+	if _rt_mode == "xfmr": return tr("PAD_LEGEND_XF")
+	return tr("PAD_LEGEND_GRID")

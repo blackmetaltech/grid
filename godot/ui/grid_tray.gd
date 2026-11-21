@@ -300,7 +300,7 @@ func activate(i: int, down := false) -> void:
 	if is_locked() and not _live(str(it.action)): refuse_locked(); return
 	close_op(); if tags != null: tags.close()
 	if mode == "pick" and armed == i:   # a second click keeps the part in hand and says how to put it down (testers lost placements to a silent toggle-off)
-		_hint(); chip_text += tx("GT_HINT_PUTDOWN"); chip_dot = GridTheme.SODIUM; queue_redraw(); return
+		_hint(); chip_text += tx("GTP_PUTDOWN") if CbKit.pad_mode else tx("GT_HINT_PUTDOWN"); chip_dot = GridTheme.SODIUM; queue_redraw(); return
 	_cancel_quiet()
 	var sp := _spec(str(it.action))
 	if str(it.action) == "placeUnit" and knobs.has("mw") and _tail_number(str(it.get("part", ""))) != "": knobs.mw = clampf(float(_tail_number(str(it.part))), KNOBS.mw.min, KNOBS.mw.max)   # the size starts at the unit's rating (L20's 105 MW peaker was bought as a 20 MW unit)
@@ -316,6 +316,7 @@ func _kind_of_pick() -> String:
 func _hint() -> void:
 	var s := tx("GT_HINT_" + _kind_of_pick()) % tx_part(items[armed]) if tx("GT_HINT_" + _kind_of_pick()).contains("%s") else tx("GT_HINT_" + _kind_of_pick())
 	if CbLayout.touch: s = s.replace("Click", "Tap").replace("click", "tap")
+	if CbKit.pad_mode: s = tx("GTP_PICK") % s.trim_prefix("Click ")   # 1.8: a pad has no mouse to click with
 	chip_text = s; chip_dot = Color.TRANSPARENT; chip_cell = -1; chip_at = Vector2(size.x * 0.5, -10.0)
 
 # ---- the elements of the world a pick can land on ------------------------------------------------------------------------------------
