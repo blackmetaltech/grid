@@ -81,7 +81,7 @@ func _draw_stage() -> void:
 	var g: Dictionary = q.givens; var u: Array = g.units; var a: Dictionary = g.ps17; var b: Dictionary = g.ps18; var c: Dictionary = g.ps24
 	var lines := [T("C7_G27_A") % [WorkOrder.num(a.genX), WorkOrder.num(b.genX2), WorkOrder.num(b.genX0), WorkOrder.num(a.xfmrX), WorkOrder.num(a.lineXOhm), WorkOrder.num(b.lineX0Ohm), int(a.kv)]]
 	for k in 3: lines.append(T("C7_G27_B") % [k + 1, WorkOrder.num(u[k].a), WorkOrder.num(u[k].b), WorkOrder.num(u[k].c), int(u[k].pMin), int(u[k].pMax)])
-	lines.append(T("C7_G27_B2") % [int(g.demandNoLimitsMW), int(g.demandMW)]); lines.append(T("C7_G27_C") % [int(c.f0), WorkOrder.num(c.H), WorkOrder.num(c.Pm), WorkOrder.num(c.Pmax)]); lines.append(T("C7_G27_D"))
+	lines.append(T("C7_G27_B2") % [int(g.demandNoLimitsMW), int(g.demandMW)]); lines.append(T("C7_G27_C") % [int(c.f0), WorkOrder.num(c.H), WorkOrder.num(c.Pm), WorkOrder.num(c.Pmax)]); var bd: Dictionary = q.get("board", {}); lines.append(T("C7_G27_D") % [WorkOrder.num(float(bd.get("z1", 0))), WorkOrder.num(float(bd.get("z2", 0))), WorkOrder.num(float(bd.get("z0", 0))), WorkOrder.num(float(bd.get("ibKA", 0)))])
 	_text(_semi(), 11, gr.position + Vector2(12.0, 20.0), T("C7_GIV_CAP"), GridTheme.SODIUM)
 	var cl := []
 	for ln in lines: cl.append([ln, Color(GridTheme.TEXT, 0.82)])

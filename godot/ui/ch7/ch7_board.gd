@@ -39,7 +39,7 @@ func _draw_panel_body() -> void:
 	_text(_mono(), 12, inner.position + Vector2(392, 104), T("C7_UNIT_kA"), Color(GridTheme.TEXT, 0.8))
 	if _revealed():
 		var ok := bool(q.get("ok", false))
-		_text(_mono(), 14, inner.position + Vector2(260, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
+		_text(_mono(), 14, inner.position + Vector2(432, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
 
 func _draw_stage() -> void:
 	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)

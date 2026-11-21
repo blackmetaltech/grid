@@ -22,8 +22,8 @@ export const EN_CH6: Record<string, string> = {
 
   // ---- L19 Fifty Hertz
   'level.L19.title': 'Fifty Hertz',
-  'level.L19.brief': 'The southern region is islanded for maintenance: 6.9 GW of evening load on twelve coal units and four hydro units, no sun. At 20:00 the largest coal unit trips. Keep the frequency above the first load-shedding stage, with no town shed.',
-  'level.L19.place': 'The southern region, islanded · 20:00',
+  'level.L19.brief': 'The southern region is islanded for maintenance: 6.9 GW of evening load on twelve coal units and four hydro units, no sun. The shift starts at 16:00; at 20:00 the largest coal unit trips. Keep the frequency above the first load-shedding stage, with no town shed.',
+  'level.L19.place': 'The southern region, islanded · 16:00',
   'level.L19.story1': 'ADA: The region is cut off from the national grid for a day of maintenance. Whatever frequency we hold, we hold alone.',
   'level.L19.story2': 'TOBI: Twelve coal units and four hydro, six point nine gigawatts. The biggest unit trips at eight. Nobody knows why, only when.',
   'level.L19.story3': 'VANCE: Every unit I keep spinning is fuel on my bill. Every town the relays shed is a phone call on yours.',
@@ -37,7 +37,7 @@ export const EN_CH6: Record<string, string> = {
   'coach.L19.reserve.why': 'Headroom must be at least the size of the biggest unit and it only works on units that follow frequency (droop). A battery answers in a fifth of a second but cannot last for hours.',
   'coach.L19.predict': 'Before you run: predict the RoCoF (rate of change of frequency: how fast the frequency falls, in Hz per second) at the instant of the trip.',
   'coach.L19.predict.why': 'RoCoF = dP x f0 / (2 H S): the lost power over the stored energy of the machines that remain. Heavy spinning machines (large H x S) hold their speed, so more inertia slows the fall.',
-  'coach.L19.run': 'Run the shift to 22:30.',
+  'coach.L19.run': 'Run the shift to 21:30.',
   'coach.L19.run.why': 'The nadir is the lowest point of the swing. The first load-shedding stage is the line you must not cross.',
 
   // ---- L20 Sun Goes Down

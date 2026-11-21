@@ -6,6 +6,8 @@ import { economicDispatch, solveWaterValue, type EdUnit } from '../dispatch';
 import { SC, type PlantData } from './data';
 import type { DispatchMode, L26Design, Window } from './state';
 
+/** The block the L26 coach asks the player to price (20:00): the price study records the load-area price at this block. */
+export const L26_PRICE_BLOCK = 80;
 export const PLANTS = Object.keys(SC.l26.plants);
 export const PLANT_LABEL_KEY: Record<string, string> = { coalsub: 'ch7.plant.coalsub', coalsc: 'ch7.plant.coalsc', ccgt: 'ch7.plant.ccgt', ocgt: 'ch7.plant.ocgt' };
 
@@ -97,7 +99,7 @@ export function studyL26(d: L26Design, detail = false): L26Study {
     for (const k of avail) prev[k] = out[k]!;
     avail.forEach((k, i) => { const u = units[i]!, p = out[k]!; cost += (u.a + u.b * p + u.c * p * p) * DT; });
     maxFlow = Math.max(maxFlow, Math.abs(flow));
-    if (b === 80) lam20 = { g: lamG, s: lamS, flowMW: flow };
+    if (b === L26_PRICE_BLOCK) lam20 = { g: lamG, s: lamS, flowMW: flow };
     if (detail) { det.flow.push(flow); det.lamG.push(lamG); det.lamS.push(lamS); for (const k of PLANTS) det.p[k]!.push(out[k] ?? 0); det.hydro.push(hy); det.solar.push(sol); det.demand.push(D); det.shortfall.push(sf); }
   }
   const kind: L26Fail | null = trip ? 'congestion' : ens >= 0.05 || surplus >= 0.05 ? 'imbalance' : null;

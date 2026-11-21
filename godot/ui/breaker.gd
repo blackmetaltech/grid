@@ -1,23 +1,22 @@
 class_name Breaker
 extends Control
 ## The breaker (UI.md 5): a big knife-switch handle bottom-right, labelled "Run the night" / "Pause". Pull = app.set_speed(rate); pulling again
-## pauses. A small knob (tap, + / -, D-pad up / down, or pad X toggles run) cycles 1x / 2x / 4x (app speed levels 1 / 2 / 3). Glows sodium while the night runs. Always enabled: the engine decides.
+## pauses. Above it a row of three speed keys 1x / 2x / 4x (app speed levels 1 / 2 / 3; also + / -, D-pad up / down); 1.6 made them full-width keys,
+## since the old knob's notches were a 16 px target. Glows sodium while the night runs. Always enabled: the engine decides.
 
 signal toggled(running: bool)
 const RATES := ["1×", "2×", "4×"]
 var app: CbApp
 var rate := 2                 ## 1..3 (1x / 2x / 4x), remembered while paused; a bench level's night starts at 2x
 var _level := ""
-var _speed_rect := Rect2()    ## the speed knob and its caption: one generous tap target
+var _speed_rect := Rect2()    ## the row of speed keys (1x 2x 4x): each key a third of it
 var _pos := 0.0               ## lever position 0 (off) .. 1 (on), eased
 var _hover := false
 var _plate := Rect2()
-var _knob_c := Vector2()
-var _knob_r := 16.0
 
 func _init() -> void:
 	TrayStrings.load_strings()
-	custom_minimum_size = Vector2(190, 168); mouse_filter = Control.MOUSE_FILTER_STOP; focus_mode = CbKit.focus_mode()
+	custom_minimum_size = Vector2(210, 196); mouse_filter = Control.MOUSE_FILTER_STOP; focus_mode = CbKit.focus_mode()
 	mouse_exited.connect(func(): _hover = false; queue_redraw())
 	tooltip_text = TranslationServer.translate("BREAKER_KEYS")   # the keyboard is not shown anywhere else: Space runs, + / − change the speed, . steps once
 
@@ -89,8 +88,16 @@ func _process(dt: float) -> void:
 func _layout_rects() -> void:
 	var w := size.x; var h := size.y
 	_plate = Rect2(Vector2(6, 4), Vector2(w - 12, h - 8))
-	_knob_r = 19.0; _knob_c = Vector2(w - 46.0, 58.0)
-	_speed_rect = Rect2(Vector2(w - 84.0, 8.0), Vector2(76.0, 100.0))
+	_speed_rect = Rect2(Vector2(14.0, 10.0), Vector2(w - 28.0, 60.0))
+
+## The speed key under a point (0..2), or -1.
+func _key_at(p: Vector2) -> int:
+	if not _speed_rect.has_point(p): return -1
+	return clampi(int((p.x - _speed_rect.position.x) / (_speed_rect.size.x / 3.0)), 0, 2)
+
+func _key_rect(k: int) -> Rect2:
+	var kw := _speed_rect.size.x / 3.0
+	return Rect2(_speed_rect.position + Vector2(kw * k + 3.0, 0.0), Vector2(kw - 6.0, _speed_rect.size.y))
 
 func _gui_input(e: InputEvent) -> void:
 	_layout_rects()
@@ -99,13 +106,8 @@ func _gui_input(e: InputEvent) -> void:
 		if hv != _hover: _hover = hv; queue_redraw()
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		var p: Vector2 = (e as InputEventMouseButton).position
-		if _speed_rect.has_point(p):   # a click on a notch (1×, 2×, 4×) picks it; elsewhere on the knob steps to the next (a repeated click wrapped 4× back to 1×)
-			var near := -1; var nd := 16.0
-			for k in 3:
-				var d := p.distance_to(_pt(_knob_c, _knob_r + 14.0, -50.0 + 50.0 * k))
-				if d < nd: nd = d; near = k
-			if near >= 0: set_rate(near + 1)
-			else: cycle_rate()
+		var key := _key_at(p)
+		if key >= 0: set_rate(key + 1)   # a click on a speed key picks that speed
 		else: toggle()
 		accept_event()
 	elif has_focus() and e.is_action_pressed("ui_accept"): toggle(); accept_event()
@@ -139,30 +141,21 @@ func _draw() -> void:
 	draw_circle(tip, 13.0, GridTheme.NIGHT); draw_circle(tip, 10.0, grip)
 	draw_circle(tip + Vector2(-3, -3), 3.0, Color(1, 1, 1, 0.35))
 	draw_circle(pv, 7.0, GridTheme.NIGHT); draw_circle(pv, 3.0, GridTheme.SODIUM_DIM)
-	# speed knob (top right): its caption "speed 2×" and the three notches 1× 2× 4× around it; the whole box is the tap target
-	draw_style_box(_speed_sb(), _speed_rect)
-	draw_circle(_knob_c, _knob_r + 3.0, GridTheme.NIGHT); draw_circle(_knob_c, _knob_r, GridTheme.INK.lightened(0.12))
-	var ka := -50.0 + 50.0 * (rate - 1)
-	draw_line(_knob_c, _pt(_knob_c, _knob_r - 3.0, ka), GridTheme.SODIUM, 3.5, true)
-	var mf := GridTheme.font("mono"); var msz := GridTheme.fs(12)
+	# speed keys (top): 1× 2× 4×, the chosen one lit; each is a third of the plate's width and 60 px tall
+	var mf := GridTheme.font("mono"); var msz := GridTheme.fs(18)
 	for k in 3:
+		var kr := _key_rect(k); var sel := k == rate - 1
+		var sb := StyleBoxFlat.new(); sb.set_corner_radius_all(8); sb.bg_color = Color(GridTheme.SODIUM, 0.22) if sel else Color(GridTheme.NIGHT, 0.55)
+		sb.border_color = GridTheme.SODIUM if sel else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35); sb.set_border_width_all(2 if sel else 1)
+		draw_style_box(sb, kr)
 		var tl: String = RATES[k]; var kw := mf.get_string_size(tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz)
-		var tp := _pt(_knob_c, _knob_r + 14.0, -50.0 + 50.0 * k)
-		draw_string(mf, tp + Vector2(-kw.x * 0.5, 4.0), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if k == rate - 1 else Color(GridTheme.DIM, 0.8))
-	var cap := TranslationServer.translate("BREAKER_SPEED") % rate_text(); var csz := GridTheme.fs(13)
-	var cw := mf.get_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, -1, csz)
-	draw_string(mf, Vector2(_speed_rect.get_center().x - cw.x * 0.5, _speed_rect.end.y - 10.0), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, csz, GridTheme.SODIUM if on else GridTheme.TEXT)
+		draw_string(mf, Vector2(kr.get_center().x - kw.x * 0.5, kr.get_center().y + msz * 0.35), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if sel else Color(GridTheme.TEXT, 0.75))
 	# label
 	var f := GridTheme.font("semi"); var fsz := GridTheme.fs(17); var lt := label_text()
 	var lw := f.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var lx := (w - lw.x) * 0.5 + (12.0 if CbKit.pad_mode else 0.0)
 	draw_string(f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.TEXT)
 	if CbKit.pad_mode: _pad_glyph(Vector2(lx - 17.0, h - 18.0), "X")
-
-func _speed_sb() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new(); sb.bg_color = Color(GridTheme.NIGHT, 0.5); sb.set_corner_radius_all(8)
-	sb.border_color = Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.3); sb.set_border_width_all(1)
-	return sb
 
 ## A round controller button glyph ("X"): shown while the last input was a pad.
 func _pad_glyph(c: Vector2, t: String) -> void:

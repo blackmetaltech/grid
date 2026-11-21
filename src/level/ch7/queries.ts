@@ -7,7 +7,7 @@ import { formatMoney } from '@core/regions';
 import { REGIONS } from '../../regions';
 import type { GridState } from '../../types';
 import { SC, r1, r2, r3, hhmm } from '../../sim/ch7/data';
-import { studyL23, preGensKA } from '../../sim/ch7/board';
+import { studyL23, preGensKA, grownBoard } from '../../sim/ch7/board';
 import { studyL24 } from '../../sim/ch7/feeder';
 import { studyL25, critical, smibInput, pDeltaCurves } from '../../sim/ch7/swing';
 import { studyL26, PLANTS, hydroSchedule } from '../../sim/ch7/merit';
@@ -92,6 +92,8 @@ export function buildCh7Queries(): Record<string, QueryFn<GridState>> {
         ...base, design: d, ratings: SC.l27.breakerRatingsKA,
         givens: { ps17: SC.l27.textbook.ps17, ps18: SC.l27.textbook.ps18, ps24: SC.l27.textbook.ps24, units: SC.l27.ed.units, demandNoLimitsMW: SC.l27.ed.demandNoLimitsMW, demandMW: SC.l27.ed.demandMW, tonightH: SC.l27.ed.tonightH, ps22: SC.l27.textbook.ps22 },
         units: SC.l27.ed.units, demandMW: SC.l27.ed.demandMW,
+        // the grown board's sequence impedances: the breaker rating is worked out from these, not guessed (a 1.6 tester could not derive it)
+        board: (() => { const g = grownBoard(); return { z1: Number(g.z1.toFixed(4)), z2: Number(g.z2.toFixed(4)), z0: Number(g.z0.toFixed(4)), baseMVA: 100, kv: 33, ibKA: Number((100 / (Math.sqrt(3) * 33)).toFixed(3)) }; })(),
         questions: qs.map((q) => { const p = s.metrics.predictions.find((x) => x.id === q.id); return { id: q.id, unitKey: q.unitKey, predicted: p ? p.predicted : null, ...(revealed ? { actual: Number(q.actual.toFixed(q.dp)), within: p ? Math.abs((p.predicted - q.actual) / q.actual) * 100 <= SC.l27.predictTolPct : false } : {}) }; }),
         ...(revealed ? { boardKA: { threePh: r2(st.boardKA.threePh), slg: r2(st.boardKA.slg) }, ratingOk: st.ratingOk, dispatch: { sumMW: r1(st.dispatch.sumMW), costPerH: r2(st.dispatch.costPerH), optCostPerH: r2(st.dispatch.optCostPerH), ok: st.dispatch.ok } } : {}),
       };

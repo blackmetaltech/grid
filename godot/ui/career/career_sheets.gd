@@ -121,6 +121,15 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
 	if str(sc.d.get("rollingText", "")) != "": body.add_child(_para(str(sc.d.rollingText), compact, Color(PaperKit.INK, 0.8) if bool(sc.d.get("rollingOk", true)) else PaperKit.AMBER))   # the 3-year rule, before the review
 	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
+	# 1.6 Storm Coast: what readiness is costing, an offer to stand it down after a settled forecast, and a nudge when cash sits idle while SAIDI heads for a strike
+	if str(sc.d.get("readyRunText", "")) != "": body.add_child(_para(str(sc.d.readyRunText), compact, Color(PaperKit.INK, 0.8)))
+	if str(sc.d.get("standDownText", "")) != "":
+		var sdl := _para(str(sc.d.standDownText), compact, GREEN); body.add_child(sdl)
+		var sdb := PaperKit.btn(T("CAR_QR_STANDDOWN"), false, func():
+			var r := sc.act("careerReadiness", [0]); sdl.text = str(r.get("message", "")), 17 if compact else 18)
+		sdb.name = "StandDown"; sdb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; body.add_child(sdb)
+	if str(sc.d.get("stormNudgeText", "")) != "":
+		var nl := _para(str(sc.d.stormNudgeText), compact, PaperKit.AMBER); nl.name = "StormNudge"; body.add_child(nl)
 	for po in sc.d.get("plantOut", []): body.add_child(_para(str(po), compact, PaperKit.AMBER))
 	for r in sc.d.get("plantRisk", []):   # substation plant likely to fail this year: warned before the emergency bill, not after (Old Iron tester)
 		if float(r.pFail) >= 10.0: body.add_child(_para(T("CAR_RISK") % str(r.text), compact, PaperKit.RED))

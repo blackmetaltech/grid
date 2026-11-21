@@ -120,6 +120,7 @@ export function finaleTrack(s: GridState, standardRangeHz: [number, number]): vo
     tr.freqDips = (tr.freqDips ?? 0) + 1; tr.freqNadirHz = Math.min(tr.freqNadirHz ?? 50, s.metrics.nadirHz);
     return;
   }
+  tr.bandLoHz = standardRangeHz[0]; tr.bandHiHz = standardRangeHz[1];   // the band the count uses, for the debrief
   const out = hz < standardRangeHz[0] - 1e-9 || hz > standardRangeHz[1] + 1e-9;
   tr.freqViolBlocks = (tr.freqViolBlocks ?? 0) + (out ? 1 : 0);
   if (out && Math.abs(hz - 50) > Math.abs((tr.freqWorstDevHz ?? 0))) { tr.freqWorstDevHz = hz - 50; tr.freqWorstBlock = s.clock.block; tr.freqWorstDay = s.clock.day; }

@@ -139,3 +139,31 @@ describe('1.4 Lean Years playtest: the score and the 3-year rule explained', () 
     expect(c.scoreParts.map((p: any) => p.key)).toContain('missed');
   });
 });
+
+describe('1.6 Storm Coast passive player', () => {
+  it('a passive Storm Coast career is told, with the cash it holds, what readiness and hardening would buy; readiness shows its running cost and offers to stand down when calm', () => {
+    let nudged = '', seed = 0;
+    for (const s0 of [3, 5, 8, 11, 13, 17, 21, 29]) {
+      const e = play(); act(e, 'careerStart', s0, 'storm');
+      for (let i = 0; i < 16 && !e.state.career!.state.ending; i++) { act(e, 'careerEndQuarter', false); const c = q(e, 'career'); if (c.stormNudgeText) { nudged = c.stormNudgeText; seed = s0; break; } }
+      if (nudged) break;
+    }
+    expect(seed, 'no passive Storm Coast career was ever nudged').toBeGreaterThan(0);
+    expect(nudged).toMatch(/free while SAIDI heads for/); expect(nudged).toMatch(/hardening a feeder/);
+    const e = play(); act(e, 'careerStart', 11, 'storm');
+    expect(q(e, 'career').readyRunText).toBe('');
+    expect(act(e, 'careerReadiness', 1).ok).toBe(true);
+    let sawRun = false, sawStand = false;
+    for (let i = 0; i < 12 && !e.state.career!.state.ending; i++) {
+      act(e, 'careerEndQuarter', false); const c = q(e, 'career');
+      if (c.readyRunText) { sawRun = true; expect(c.readyRunText).toMatch(/level 1 costs .* a quarter; .* spent on it so far/); }
+      expect(Boolean(c.standDownText)).toBe(c.forecast === 'calm' && c.readiness > 0);
+      if (c.standDownText) sawStand = true;
+    }
+    expect(sawRun).toBe(true); expect(sawStand).toBe(true);
+  });
+  it('the standard charter is never nudged about storms', () => {
+    const e = play(); act(e, 'careerStart', 11);
+    for (let i = 0; i < 12 && !e.state.career!.state.ending; i++) { act(e, 'careerEndQuarter', false); expect(q(e, 'career').stormNudgeText).toBe(''); }
+  });
+});

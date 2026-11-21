@@ -27,6 +27,8 @@ export interface BoardFault {
   threePhKA: number; slgKA: number; mva: number;
   /** Thevenin impedance at the fault bus (pu). */
   zth: number;
+  /** 1.6: the sequence impedances at the fault bus (pu on 100 MVA), so L27's breaker can be sized from the givens: I_3ph = I_b / Z1, I_slg = 3 I_b / (Z1 + Z2 + Z0). */
+  z1: number; z2: number; z0: number;
   /** Current through each breaker of the board for a 3-phase fault on the feeder just beyond F1 (kA): the feeder sees all of it, each source breaker its own share. */
   duty: { id: string; kA: number; role: string }[];
 }
@@ -45,7 +47,7 @@ export function boardFault(m: FaultModel): BoardFault {
     const v = f3.V1[g.bus] ?? cx(1, 0), d = sub(cx(1, 0), v);
     duty.push({ id: 'G' + (i + 1), kA: (abs(d) / g.x1) * ib, role: 'generator' });
   });
-  return { threePhKA: f3.iFaultKA, slgKA: fg.iFaultKA, mva: f3.sMVA, zth: abs(f3.z1), duty };
+  return { threePhKA: f3.iFaultKA, slgKA: fg.iFaultKA, mva: f3.sMVA, zth: abs(f3.z1), z1: abs(fg.z1), z2: abs(fg.z2), z0: fg.z0 ? abs(fg.z0) : 0, duty };
 }
 
 /** x of a series reactance from v1 to a constant-PQ load: |V2|^4 + (2 q x - v1^2)|V2|^2 + x^2 (p^2 + q^2) = 0, larger root (lossless line). */

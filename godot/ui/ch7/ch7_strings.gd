@@ -11,7 +11,7 @@ const S := {
 	"C7_G27_A": "Faults (100 MVA base, pre-fault V = 1.0 pu): gen X''d %s, X2 %s, X0 %s (blocked by the delta); transformer X = %s; line X1 = %s ohm, X0 = %s ohm at %d kV.", "C7_G27_A2": "3-phase at the line end: Z1 = gen + T + line. SLG: Z1 + Z2 + Z0, with the line X0 and the transformer X0 = its X.",
 	"C7_G27_B": "Unit %d: C = %s + %s P + %s P^2 ($/h), %d to %d MW.", "C7_G27_B2": "Lambda no limits: demand %d MW, ignore the limits. Lambda with limits: demand %d MW, clip each unit to its range, then re-solve the rest.",
 	"C7_G27_C": "Swing at %d Hz: H = %s s, P_m = %s pu, P_max = %s pu before and after, terminal fault (P during = 0).",
-	"C7_G27_D": "Grown board: the L23 board plus one 80 MVA transformer and one 31.25 MVA generator.",
+	"C7_G27_D": "Grown board (L23 plus one 80 MVA transformer and one 31.25 MVA generator), at the 33 kV section on 100 MVA: Z1 %s, Z2 %s, Z0 %s pu; I_b = %s kA. I_3ph = I_b / Z1, I_slg = 3 I_b / (Z1 + Z2 + Z0); rate the breakers for the larger of the two.",
 	"C7_WO_L27_1": "Breakers rated at least the larger of the 3-phase and the SLG fault of the grown board", "C7_WO_L27_2": "Tonight's dispatch adds up to 1000 MW with every unit inside its limits", "C7_WO_L27_3": "A prediction written before you run",
 	"C7_LAMP_L27_2": "Right-sized breakers and a near-optimal dispatch", "C7_LAMP_L27_3": "The least-cost dispatch (equal lambda) and 4 of 5 predictions within 2 %", "C7_KIT_CAP": "build incl. starting kit", "C7_MARGIN2": "spare over the 0.3 s interval: %s s",
 	"C7_FN_ps17": "I = V/Z_th; kA = pu x base/(1.73 kV)", "C7_FN_ps18": "I_a = 3V / (Z1 + Z2 + Z0)", "C7_FN_ps20": "equal lambda, no limits", "C7_FN_ps21": "equal lambda, then clip to limits", "C7_FN_ps24": "t = sqrt(4H(d_cr-d_0)/(w P_m))",

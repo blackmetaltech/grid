@@ -38,6 +38,15 @@ export function buildFreqQueries(d: { getParams: (s: GridState) => SimParams }):
       for (const h of s.shunts) if (pur[h.id] !== undefined) out.push({ name: 'placeShunt', args: [h.bus, h.catalogId, h.steps] });
       for (const h of s.shunts) out.push(h.auto ? { name: 'setShuntAuto', args: [h.id, h.auto.vLowPu, h.auto.vHighPu, h.auto.delayBlocks] } : { name: 'setShuntSteps', args: [h.id, h.on] });
       for (const b of s.branches) if (b.tap) out.push(b.tap.auto ? { name: 'setTapAuto', args: [b.id, b.tap.auto.vSet, b.tap.auto.deadband, b.tap.auto.delayBlocks] } : { name: 'setTap', args: [b.id, b.tap.pos] });
+      // 1.6: chapter 7's designs (a 1.6 tester's L27 retry put the dispatch back to 350/350/300 and the breaker to 25 kA without a word)
+      const c7 = s.ch7;
+      if (c7?.l23) out.push({ name: 'setBreakerRating', args: [c7.l23.rating] }, { name: 'setBusCoupler', args: [c7.l23.coupler === 'open'] }, { name: 'setSeriesReactor', args: [c7.l23.reactor] }, { name: 'setTransformerZ', args: [c7.l23.uk] });
+      if (c7?.l24) c7.l24.relays.forEach((r, i) => out.push({ name: 'setRelayCurve', args: [`R${i + 1}`, r.curve] }, { name: 'setRelayPickup', args: [`R${i + 1}`, r.pct] }, { name: 'setRelayTms', args: [`R${i + 1}`, r.tms] }));
+      if (c7?.l25) out.push({ name: 'setRelayType', args: [c7.l25.relay] }, { name: 'setBreakerCycles', args: [c7.l25.cycles] }, { name: 'setAutoReclose', args: [c7.l25.reclose] });
+      if (c7?.l26) { out.push({ name: 'setDispatchMode', args: [c7.l26.mode] }); for (const [p, w] of Object.entries(c7.l26.windows)) out.push({ name: 'setCommitment', args: [p, w[0], w[1]] }); }
+      if (c7?.l27) out.push({ name: 'setBreakerRating', args: [c7.l27.rating] }, { name: 'setDispatch3', args: [...c7.l27.dispatch] });
+      // the player's predictions: the boxes still show them after a Retry, so the new attempt must count them (it said "0 of 0 predictions")
+      for (const p of s.metrics.predictions) out.push({ name: 'predict', args: [p.id, p.predicted, p.unit] });
       return out;
     },
     /** netForecast: net load (MW) per block of the day from the loads' shapes and the clear-sky PV model, and the steepest climb in MW/min. Shapes only: loads without one are skipped. */

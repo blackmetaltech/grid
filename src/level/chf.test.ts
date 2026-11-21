@@ -114,7 +114,8 @@ describe('lesson, hint, coach, determinism, speed', () => {
     expect(li).toMatch(/Day 1: demand peaked at (\d+) MW and the lowest voltage was ([\d.]+) pu/);
     expect(Number(li.match(/peaked at (\d+) MW/)![1])).toBe(Math.round(e.state.metrics.track.peakDemandMW!));
     expect(li).toMatch(/Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew [\d.]+ MWh through a battery: 124\.\d MWh of nameplate/);
-    expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu; losses over the three days [\d.]+ %.*0 blocks outside 49\.90 to 50\.05 Hz/);
+    expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu; losses over the three days [\d.]+ %.*0 quarter-hours spent outside (49\.\d\d) to 50\.05 Hz/);
+    expect(Number(li.match(/outside (49\.\d\d) to/)![1])).toBe(e.state.metrics.track.bandLoHz);   // the band the count used (it was always printed as 49.90)
     const lost = run(play([])); expect(info(lost).tryHint).toMatch(/A bus fell below 0\.95 pu/);
     const isl = run(play(spec.reference.filter((a) => a.name !== 'placeStorage'))); expect(info(isl).tryHint).toMatch(/at least 125 MWh of nameplate/);
   });

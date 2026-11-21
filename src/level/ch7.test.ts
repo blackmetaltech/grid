@@ -102,3 +102,29 @@ describe('frozen targets', () => {
   });
 });
 void ({} as GridState);
+
+describe('1.6 Retry keeps chapter 7 designs and predictions (controlDesign)', () => {
+  const env = (id: string, actions: { name: string; args: unknown[] }[]): Env<GridState> => { const e = new Env(GAME); e.reset({ seed: 1, level: id, region: 'global' }); for (const a of actions) expect(e.step(a as any).info.ok, a.name).toBe(true); return e; };
+  for (const [id, design] of [
+    ['L27', [{ name: 'setBreakerRating', args: [40] }, { name: 'setDispatch3', args: [400, 300, 300] }, { name: 'predict', args: ['ps17', 0.91, 'kA'] }, { name: 'predict', args: ['ps24', 0.5, 's'] }]],
+    ['L23', [{ name: 'setBreakerRating', args: [40] }, { name: 'setBusCoupler', args: [true] }, { name: 'setSeriesReactor', args: [0.1] }, { name: 'predict', args: ['faultKA', 30, 'kA'] }]],
+    ['L26', [{ name: 'setDispatchMode', args: ['corridor'] }, { name: 'setCommitment', args: ['ocgt', 17, 23] }, { name: 'predict', args: ['lambda20', 59.2, '$/MWh'] }]],
+  ] as [string, { name: string; args: unknown[] }[]][]) {
+    it(`${id}: the design and every prediction come back on a fresh level`, () => {
+      const a = env(id, design);
+      const allowed = specOf(id)!.allowed.actions as readonly string[];
+      const cd = ((GAME.queries!.controlDesign as any)(a.state) as { name: string; args: unknown[] }[]).filter((x) => allowed.includes(x.name) || x.name === 'predict');
+      const b = env(id, cd);
+      expect(b.state.ch7).toEqual(a.state.ch7);
+      expect(b.state.metrics.predictions.map((p) => [p.id, p.predicted])).toEqual(a.state.metrics.predictions.map((p) => [p.id, p.predicted]));
+    });
+  }
+});
+
+describe('1.6 L27 breaker sizing from the givens', () => {
+  it('the grown board\'s Z1, Z2, Z0 give its 3-phase and SLG fault currents by the textbook formulas', () => {
+    const g = grownBoard(), ib = 100 / (Math.sqrt(3) * 33);
+    expect(Math.abs(ib / g.z1 - g.threePhKA) / g.threePhKA).toBeLessThan(0.01);
+    expect(Math.abs(3 * ib / (g.z1 + g.z2 + g.z0) - g.slgKA) / g.slgKA).toBeLessThan(0.03);
+  });
+});

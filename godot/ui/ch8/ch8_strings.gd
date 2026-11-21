@@ -63,5 +63,5 @@ const S := {
 	"TH_lossMax": "Line losses \u2264\u00a0%s\u00a0%%", "TH_ensStar": "Energy not supplied \u2264\u00a0%s MWh a year", "TH_marginStar": "Every fuse saved with \u2265\u00a0%s s to spare",
 	"TH_lolMid": "Transformer life lost \u2264\u00a0%s days", "TH_lolMax": "Transformer life lost \u2264\u00a0%s days", "TH_pvStar": "Host \u2265\u00a0%s kW of rooftop solar",
 	"TH_boughtMin": "Fix the voltage with kit, not with a lower solar limit", "TH_errOk": "Every prediction within\u00a0%s\u00a0%%", "TH_whyRight": "The \u201cwhy\u201d card right",
-	"C8_LAMP_PCT": "Score \u2264 %s\u00a0%%", "C8_LAMP_PCT3": "Score \u2264 %s\u00a0%%%s",
+	"C8_LAMP_PCT": "Mean prediction error \u2264 %s\u00a0%%", "C8_LAMP_PCT3": "Mean prediction error \u2264 %s\u00a0%%%s",
 }

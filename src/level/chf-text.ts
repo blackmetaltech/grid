@@ -14,6 +14,12 @@ export function islandNeed(s: Readonly<GridState>): { mwh: number; needMWh: numb
   return { mwh, needMWh: mwh / ETA_ONE_WAY / SOC_USABLE };
 }
 
+/** The 400 kV ring's charging at 1 pu, MVAr (bc is pu on 100 MVA), to the nearest 10: what the light-load voltage rise has to absorb. */
+export function ringChargingMVAr(s: Readonly<GridState>): number {
+  const kv = (id: string): number => s.buses.find((b) => b.id === id)?.kvNom ?? 0;
+  return Math.round(s.branches.filter((b) => b.kind === 'line' && kv(b.from) >= 380).reduce((a, b) => a + b.bc * 100, 0) / 10) * 10;
+}
+
 export function finaleLesson(s: GridState): string {
   const tr = s.metrics.track, f = s.rules.finale;
   if (!f || tr.demandMWh === undefined) return '';
@@ -28,7 +34,7 @@ export function finaleLesson(s: GridState): string {
     const path = bats.length > 0 ? t('level.L28.lessonIslandBattery', { need: fmt(needMWh, 1), have: fmt(bats.reduce((a, b) => a + b.mwh, 0), 0) }) : t('level.L28.lessonIslandLine');
     parts.push(t('level.L28.lessonIsland', { mwh: fmt(mwh, 1), path }));
   }
-  if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0 }));
+  if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0, lo: fmt(tr.bandLoHz ?? 49.9, 2), hi: fmt(tr.bandHiHz ?? 50.05, 2) }));
   return parts.join(' ');
 }
 
@@ -38,7 +44,7 @@ export function finaleTryHint(s: GridState): string {
   if (k === 'level.lost.budget') return t('level.L28.tryBudget');
   if (k.startsWith('level.lost.island')) { const { mwh, needMWh } = islandNeed(s); return t('level.L28.tryIsland', { mwh: mwh.toFixed(0) || '75', need: Math.ceil(needMWh || 100.6) }); }
   if (k === 'level.lost.voltageLow') return t('level.L28.tryLow');
-  if (k === 'level.lost.voltageHigh') return t('level.L28.tryHigh');
+  if (k === 'level.lost.voltageHigh') return t('level.L28.tryHigh', { mvar: ringChargingMVAr(s) });
   if (k === 'level.lost.ens' || k === 'level.lost.blackout') return t('level.L28.tryEns');
   void tr; void BLOCKS_PER_DAY; void hhmm;
   return '';

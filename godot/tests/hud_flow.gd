@@ -67,9 +67,11 @@ func _initialize() -> void:
 	br.step_rate(-1); br.step_rate(-1); br.step_rate(-1); T.check(br.rate == 1 and app.speed == 1, "- walks down to 1x")
 	br._layout_rects()
 	var c := br._speed_rect.get_center()
-	T.check(br._speed_rect.size.x >= 60.0 and br._speed_rect.size.y >= 60.0, "speed knob tap area is generous (%s)" % str(br._speed_rect.size))
+	T.check(br._speed_rect.size.y >= 60.0 and br._key_rect(0).size.x >= 50.0, "each speed key is a big target (%s)" % str(br._key_rect(0).size))
 	var ev := InputEventMouseButton.new(); ev.pressed = true; ev.button_index = MOUSE_BUTTON_LEFT; ev.position = c + Vector2(10, 12)
-	br._gui_input(ev); T.check(br.rate == 2 and app.speed == 2, "clicking near the knob cycles the speed")
+	br._gui_input(ev); T.check(br.rate == 2 and app.speed == 2, "clicking the middle key picks 2x")
+	ev.position = br._key_rect(2).get_center(); br._gui_input(ev); T.check(br.rate == 3 and app.speed == 3, "clicking the right key picks 4x")
+	ev.position = br._key_rect(1).get_center(); br._gui_input(ev); T.check(br.rate == 2, "and back to 2x")
 	ev.position = Vector2(60, 100); br._gui_input(ev); T.check(app.speed == 0, "clicking the handle pauses")
 	T.check(TranslationServer.translate("BREAKER_SPEED") % br.rate_text() == "speed 2×", "caption reads 'speed 2×'")
 	# ---- tray locks ----

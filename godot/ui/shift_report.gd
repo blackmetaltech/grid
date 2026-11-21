@@ -211,7 +211,7 @@ static func _grid_design(app: CbApp) -> Array:
 	var cd = app.b.q("controlDesign")   # chapter 5: shunts bought, steps, tap positions and automatic settings (only what this level lets the player touch)
 	if cd is Array:
 		for a in cd:
-			if allowed.has(str(a.name)): out.append([str(a.name), a.args])
+			if allowed.has(str(a.name)) or str(a.name) == "predict": out.append([str(a.name), a.args])   # predict is always allowed (it is not in the level's list)
 	return out
 
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).

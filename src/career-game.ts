@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, stormForecast, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, stormForecast, charterOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -120,6 +120,27 @@ function rollingProj(st: CareerState, ytdSaidi: number, expSaidi: number): { rol
   return { rollingText: t(ok ? 'career.rolling.ok' : 'career.rolling.bad', { years: past.length + 1, thisYear: r1(thisYear), avg: r1(avg), target: r1(st.saidiTarget) }), rollingOk: ok };
 }
 
+/** 1.6 Storm Coast, the passive player: what readiness is costing, whether to stand it down after a settled forecast, and a nudge when cash sits idle
+ * while SAIDI heads past its target (a 1.5 tester kept cash in the bank, set no readiness and lost the licence to storms they never prepared for). */
+function stormAdvice(st: CareerState, m: (x: number) => string, ytdSaidi: number, expSaidi: number): { readyRunText: string; standDownText: string; stormNudgeText: string } {
+  const none = { readyRunText: '', standDownText: '', stormNudgeText: '' };
+  if (st.ending) return none;
+  const lv = st.readiness ?? 0, costQ = STORM.readyCostQ[lv]!, spent = st.history.reduce((a, k) => a + (k.opexParts?.ready ?? 0), 0), fc = stormForecast(st);
+  const readyRunText = lv > 0 ? t('career.ready.running', { level: lv, costQ: m(costQ), spent: m(spent) }) : '';
+  const standDownText = lv > 0 && fc === 'calm' ? t('career.ready.standDown', { costQ: m(costQ) }) : '';
+  // heading for a strike: the 3-year rule (or this year alone, early in a period) projected over the expected rest of the year
+  const inP = Math.floor(st.t / 4) % INCENTIVE.periodYears, k = Math.min(INCENTIVE.rollingYears - 1, inP), past = k > 0 ? st.reviews.slice(-k).map((r) => r.saidi) : [];
+  const thisYear = ytdSaidi + expSaidi * (4 - (st.t % 4)) / 4, avg = (past.reduce((a, b) => a + b, 0) + thisYear) / (past.length + 1);
+  const free = st.cash - owedM(st), unhardened = st.feeders.filter((f) => !f.hardened).length;
+  let stormNudgeText = '';
+  if (avg > st.saidiTarget && free >= PROJECTS.harden!.capexM && (lv < 2 || unhardened > 0) && charterOf(st).storm > 1) {
+    const next = Math.min(2, lv + 1);
+    stormNudgeText = t('career.stormNudge', { free: m(free), avg: r1(avg), target: r1(st.saidiTarget), level: next, costQ: m(STORM.readyCostQ[next]!), cm: Math.round((1 - STORM.readyCmFactor[next]!) * 100),
+      harden: m(PROJECTS.harden!.capexM), hardenPct: Math.round((1 - STORM.hardenFactor) * 100), unhardened });
+  }
+  return { readyRunText, standDownText, stormNudgeText };
+}
+
 function plantWhy(st: CareerState, kind: ProjectKind, target: string): string | null {
   const a = st.assets.find((x) => x.id === target);
   if (kind !== 'replaceAssets' || !a || a.cls === 'line') return null;
@@ -150,6 +171,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         // 1.5 storm levers: this quarter's forecast and the readiness levels (the storm card is a decision, not a dice roll)
         forecast: st.ending ? '' : stormForecast(st), forecastText: st.ending ? '' : t(`career.forecast.${stormForecast(st)}`),
         readiness: st.readiness ?? 0,
+        ...stormAdvice(st, m, ytdSaidi, exp.saidi),
         readyLevels: [0, 1, 2].map((lv) => ({ level: lv, costQText: m(STORM.readyCostQ[lv]!), text: t(`career.ready.${lv}`, { costQ: m(STORM.readyCostQ[lv]!), cm: Math.round((1 - STORM.readyCmFactor[lv]!) * 100), ci: Math.round((1 - STORM.readyCiFactor[lv]!) * 100) }) })),
         // plant out of service after a failure: when it is back (a tester read firm margin -100 % after the 'replacement' and took it for a bug)
         plantOut: st.assets.filter((a) => a.cls !== 'line' && a.failed && a.outQ > 0).map((a) => t('career.plantOut', { id: a.id, n: a.outQ })),

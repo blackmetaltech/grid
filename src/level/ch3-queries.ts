@@ -21,6 +21,8 @@ export function pfLesson(s: GridState, lessonKey: string): string {
   const pl = tr.peakLoadMW, ql = tr.peakLoadMVAr ?? 0, sl = dmath.hypot(pl, ql), v = tr.peakVPu ?? 1, kv = kvOfLoad(s);
   const i0 = sl * 1000 / (Math.sqrt(3) * kv * v);
   let out = t(lessonKey, { time: hhmm(tr.peakBlock ?? 0), pl: f2(pl), ql: f2(ql), sl: f2(sl), pfl: f2(pl / sl), i0: Math.round(i0), v: f3(v), rated: feederRatedA(s) });
+  // the supply point's P is what the cards show (a 1.5 tester read 1.85-1.90 MW on screen against 1.70 here): name both, and the difference
+  if (tr.peakMW > pl + 0.005) out += ' ' + t('level.L07.lessonSupply', { ps: f2(tr.peakMW), pl: f2(pl), loss: f2(tr.peakMW - pl) });
   const banks = s.shunts.filter((h) => h.kind === 'cap'), qc = tr.peakBankMVAr ?? 0;
   if (banks.length > 0 && qc > 1e-9) {
     const kvar = Math.round(banks.reduce((a, h) => a + h.mvarStep * h.steps, 0) * 1000), qf = ql - qc, sf = dmath.hypot(pl, qf);
