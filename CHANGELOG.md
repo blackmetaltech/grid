@@ -23,6 +23,10 @@ All notable changes to GRID. The release workflow publishes the section whose he
   - A storm that faults nothing raises no incident card.
   - The ending sheet lists the years the targets were missed.
   - The tree-cutting deltas are signed.
+- After the Lean Years playtest (a finance analyst played all ten years and ended Steady with 7 of 10 years met, scoring it 6/10):
+  - The ending sheet breaks the score into its parts. Missed connection requests cost 25 points each, which nobody had been told.
+  - The quarter report projects the regulator's three-year average from this year so far plus the expected rest. A good year still dragged under by bad ones is flagged before the review, not after.
+  - Lean Years now cuts 4 % of all allowed revenue on top of 5 % of the opex allowance. The tester ended with $12M and found it "not lean". In that charter the planner persona borrows only for urgent work, and it still beats the firefighter on 8 of 12 seeds.
 
 ## [1.3.0] - "Charters" (tag v1.3.0; driven by docs/CRITIQUE-1.2.md and CRITIQUE-1.0's long-term score; design in docs/DESIGN-1.3.md, review in docs/CRITIQUE-1.3.md)
 ### Added

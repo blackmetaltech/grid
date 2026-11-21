@@ -1,12 +1,12 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.3.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.4.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
 The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
 
-> **1.3 "Charters" (private).** The whole campaign, now eight chapters, is playable and has been played to a win at every chapter. A ten-year Career mode runs a distribution district, in seven district charters and a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.3.md).
+> **1.4 "Old Iron" (private).** The whole campaign, now eight chapters, is playable and has been played to a win at every chapter. A ten-year Career mode runs a distribution district, in seven district charters and a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.4.md).
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
 
@@ -25,7 +25,7 @@ The front end is a **Godot 4.7** game: an isometric diorama of the island and th
 
 **Career: The Utility.** Ten years, one quarter at a time, as the district engineer for about 40,000 customers on two primary substations and nine feeders. You pick projects from a board: reconductoring, new feeders and transformers, ties, remote switches, reclosers, tree clearance, replacing worn assets, batteries and demand response. Each card shows what it does to expected SAIDI, loading and firm margin. Assets age along Weibull curves, load grows, storms and failures are drawn from the quarter's odds, and connection requests arrive with deadlines. Each year the regulator, the finance director and the crew chief review you. A simplified performance incentive pays or fines on the rolling three-year SAIDI and SAIFI against target, and every five years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets, three years running, never for one bad storm season. It ends as Chief Engineer (which also needs every feeder within its cyclic rating and every substation firm), Steady, Bailed out or Licence revoked. Any debt at the end also rules out Chief, and a reset never tightens a target by more than 25 % at once. A career is a seed plus your actions, so its code is also the save.
 
-**Charters and the weekly district.** A Career can start in one of seven districts, each pushing a different pressure: Home Counties (balanced), Storm Coast (storms), Boomtown (connections and growth), Old Iron (ageing assets), Solar Valley (rooftop PV and voltage), Lean Years (a tight allowance) and Forest Line (trees). Targets come from each district's own expected performance, so every one can be won, but not with the same plan. Each ISO week also has one seed and one charter, the same for everyone; the game keeps your best score for the week.
+**Charters and the weekly district.** A Career can start in one of seven districts, each pushing a different pressure: Home Counties (balanced), Storm Coast (storms), Boomtown (connections and growth), Old Iron (ageing assets), Solar Valley (rooftop PV and voltage), Lean Years (a tight allowance) and Forest Line (trees). Targets come from each district's own expected performance, so every one can be won, but not with the same plan. Each ISO week also has one seed and one charter, the same for everyone. The game keeps your best score for the week. With a [cobanana-scores](../cobanana-scores) server (`CB_SCORES_URL`), a finished weekly career goes to that week's board: the server replays the career code to check the score. GRID ships no server address; nothing is sent without one, and nothing is sent before the first-run notice is accepted.
 
 **Modes.** **Learner** explains as it goes. **Engineer** uses per-unit values and stricter limits. A **Cute** toggle in the pause menu adds faces and doodles; the drawings still follow the physics. Two region packs ship with the engine: `global` (US$, IEC voltages, the default) and `in` (₹, the Indian grid code). Both are run by the test suite.
 
@@ -109,12 +109,12 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 ## Status
 
-1.3, private. **1411 engine tests in 65 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag (the perf budgets need an idle machine). Known gaps:
+1.4, private. **1416 engine tests in 65 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag (the perf budgets need an idle machine). Known gaps:
 
 - Played on desktop Linux only. No pass on a real phone or a gamepad for this release; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
 - Windows and macOS builds are produced but untested.
 - Sound is functional, not finished.
-- The weekly district's best score is kept on the device only; there is no shared leaderboard (the career code can be shared by hand).
+- The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.3.md](docs/CRITIQUE-1.3.md) for the harsh version.
+See [docs/CRITIQUE-1.4.md](docs/CRITIQUE-1.4.md) for the harsh version.
