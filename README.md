@@ -1,14 +1,24 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.6.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.7.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
 The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
 
-> **1.6 "Truth Pass" (private).** The whole campaign, now eight chapters, is playable and has been played to a win at every chapter. A ten-year Career mode runs a distribution district, in seven district charters and a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.6.md).
+> **1.7 "Sound and speed".** The whole campaign, now eight chapters, is playable and has been played to a win at every chapter. A ten-year Career mode runs a distribution district, in seven district charters and a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.7.md).
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
+
+### What's new in 1.7
+
+| The Career warns on the main screen | The quarter report names the idle cash and what it would buy |
+|---|---|
+| ![strike alarm](docs/readme/new17/career-alarm.png) | ![quarter report](docs/readme/new17/quarter-nudge.png) |
+| **A protection fault, in your own numbers (L23)** | **The event log names what it lost** |
+| ![fault report](docs/readme/fault.png) | ![event log](docs/readme/new17/log-names.png) |
+
+Four music tracks of 2-3 minutes each and six new sound cues (trips, blackouts, money, the speed keys). Every cue and track is rendered and measured in [docs/audio/ANALYSIS.md](docs/audio/ANALYSIS.md).
 
 ## What you actually do
 
@@ -53,23 +63,21 @@ The front end is a **Godot 4.7** game: an isometric diorama of the island and th
 
 ## Download
 
-Releases are private for now. Each `v*` tag builds archives through `.github/workflows/release.yml`. Node.js is bundled; nothing else to install.
+From [Releases](https://github.com/ixaxaar/grid/releases). Each release is built and smoke-tested on Linux before upload, with a `SHA256SUMS.txt`. Node.js is bundled; nothing else to install.
 
 | OS | File | Run |
 |---|---|---|
-| Linux (x86_64) | `GRID-<ver>-linux.tar.xz` | `tar xf`, then `GRID/grid.sh` (needs a Vulkan-capable GPU/driver) |
-| Windows (x64) | `GRID-<ver>-windows.zip` | `GRID\GRID.exe` (SmartScreen: *More info → Run anyway*) |
-| macOS, Apple Silicon | `GRID-<ver>-macos-arm64.tar.xz` | `xattr -dr com.apple.quarantine GRID.app`, then open |
-| macOS, Intel | `GRID-<ver>-macos-x64.tar.xz` | same as above |
+| Linux (x86_64) | `GRID-<ver>-linux-x86_64.zip` | unzip, then `GRID/grid.sh` (needs a Vulkan-capable GPU/driver) |
+| Windows (x64) | `GRID-<ver>-windows-x64.zip` | unzip, then `GRID\GRID.exe` (unsigned: SmartScreen, *More info → Run anyway*). Not yet played on Windows. |
 
-Builds are unsigned, hence the OS warnings. An Android debug APK can be built locally with `core/qa/buildapk.sh`.
+No macOS build is attached yet. An Android debug APK can be built locally with `core/qa/buildapk.sh`.
 
 ## Run from source
 
 Needs **Node.js 18+**, **pnpm** and **Godot 4.7**.
 
 ```sh
-git clone --recursive <this repo>        # or: git submodule update --init
+git clone --recursive <this repo>        # core/ is the cobanana-core submodule (not public yet)
 pnpm install
 pnpm bridge                              # builds the engine sidecar → godot/sidecar/bridge.mjs
 godot --headless --path godot --import   # once, and after adding class_name scripts
@@ -109,12 +117,13 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 ## Status
 
-1.6, private. **1503 engine tests in 66 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag (the perf budgets need an idle machine). Every clock time and quantity a level's text quotes is checked against the engine by a test. Known gaps:
+1.7. **1505 engine tests in 66 files** and **23 Godot steps** (22 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
 
 - Played on desktop Linux only. No pass on a real phone or a gamepad for this release; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
-- Windows and macOS builds are produced but untested.
-- Sound is functional, not finished.
+- The Windows build is produced but not played on Windows; there is no macOS build on the releases.
+- Sound: four synthesised tracks and a cue per interaction, measured (loudness, clipping, structure) but not yet listened to by a person.
+- Building from source needs the cobanana-core submodule, which is not public yet.
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.6.md](docs/CRITIQUE-1.6.md) for the harsh version.
+See [docs/CRITIQUE-1.7.md](docs/CRITIQUE-1.7.md) for the harsh version.

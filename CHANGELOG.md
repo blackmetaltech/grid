@@ -2,6 +2,45 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.7.0] - "Sound and speed" (tag v1.7.0; driven by docs/CRITIQUE-1.6.md; review in docs/CRITIQUE-1.7.md)
+### Added
+- **A music catalogue.** Four synthesised night-shift tracks, 156-195 s each, play in turn. 1.6 looped one 8-bar phrase of 27 s.
+  - "Night Shift": D dorian, 70 BPM, warm pad, music box.
+  - "Load Follow": F lydian, 84 BPM, glass pad, eighth-note bass, plucks.
+  - "Low Frequency": A aeolian, 58 BPM, drone, ostinato bass, flute.
+  - "Morning Ramp": G mixolydian, 100 BPM, reed pad, walking bass, bells.
+  - Each has its own form. A section heard again is varied, with a re-seeded motif, a different answer in its last bar and an opened voicing.
+  - The next track renders on a worker thread while the current one plays.
+- **Six new sound cues:**
+  - a detent click on the speed keys;
+  - a protection trip (relay chatter, the breaker's open, a falling whine);
+  - a blackout spin-down;
+  - coins when the regulator pays;
+  - a register when a project starts;
+  - the ledger closing at the end of a quarter.
+
+  Trips and blackouts were silent before.
+- **The audio is measured, not just claimed.** `godot/audio/render_samples.gd` renders every cue and track, and `tools/audio/analyse_audio.py` measures them. Results are in `docs/audio/ANALYSIS.md`, with spectrograms in `docs/audio/spec/` and compressed copies in `docs/audio/ogg/`:
+  - loudness (EBU R128), true peak and clipping;
+  - each track's section map from bar-by-bar chroma;
+  - a cross-track structure and harmony check;
+  - a one-shot similarity check.
+
+  **A human listening pass is still owed.**
+- **A strike alarm on the Career HUD.** When the year, projected and averaged the way the regulator will average it, ends over the SAIDI target, the top strip says so. It also says whether that would be a licence strike (with the count) or only a fine.
+- **Local private releases.** `scripts/release-local.sh` exports Linux and Windows, bundles the Node runtime and the engine sidecar, smoke-runs the Linux build headless, writes SHA256SUMS and creates a private GitHub release. v1.6.0 and v1.7.0 were released this way.
+### Changed
+- L13: the − / + buttons step the excitation by 0.01 pu (right-click or Shift: 0.001). The arrow keys step it while the pointer is over the slider. The status line no longer overlaps itself.
+- Exams with nothing to build (L13) drop the cost line, the loss line and the build-cost histogram from the result card.
+- L27's dispatch sum updates as you type.
+- The event log names the elements it lost ("T27, the Capital 400 / Capital 220 transformer") rather than bare ids. The 10-bus trip-day golden was regenerated for this log text only, in its own commit.
+- Storm readiness: the stand-down offer says that "settled" means storms are unlikely, not impossible, and its button goes once used.
+- Incident cards: a feeder with no tie gets a note instead of a dead button, and "exceptional" is explained.
+### Known gaps
+- No human has listened to the new music or cues.
+- The Career's first screen is still dense for a newcomer. L20's briefing is long, and its commit-then-start order is unclear (fun-critic tester).
+- In L01, dragging a cable can also pan the camera.
+
 ## [1.6.0] - "Truth Pass" (tag v1.6.0; driven by docs/CRITIQUE-1.5.md; review in docs/CRITIQUE-1.6.md)
 ### Added
 - **Text truth test.** Every clock time and every quantity that a level's brief, place line, story, coach line, "why?" or debrief template quotes is checked against the engine. The test runs on all levels in both packs and replays each level's lesson build.
