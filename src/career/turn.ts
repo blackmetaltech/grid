@@ -1,5 +1,5 @@
 // The quarter: instalments and completions, growth, ageing, analysis, events, incident responses, money, review, endings.
-import { MONEY, PROJECT_DETAIL } from './data';
+import { MONEY, PROJECT_DETAIL, STORM } from './data';
 import { avgHealth, worstHealth } from './ageing';
 import { analyseFeeder, districtExpected, charterOf } from './district';
 import { rollQuarter } from './events';
@@ -74,7 +74,8 @@ function settle(s: CareerState): ActionResult {
   const drCost = s.projects.filter((p) => p.status === 'active' && p.kind === 'demandResponse').length * PROJECT_DETAIL.drCostQ;
   const vegCost = s.vegLevel * MONEY.vegPerLevelFeederQ * s.feeders.length;
   const baseQ = baseOpexQ(N, s.crews), lossQ = (out.lossesMWh * MONEY.lossCostPerMWh) / 1e6, vQ = out.vViolations * 0.01 * charterOf(s).vPenalty;
-  const opex = baseQ + out.repairCostM + lossQ + drCost + vegCost + vQ;
+  const readyQ = STORM.readyCostQ[s.readiness ?? 0]!;   // 1.5 storm readiness, charged for the quarter it covered
+  const opex = baseQ + out.repairCostM + lossQ + drCost + vegCost + vQ + readyQ;
   const capex = out.capexM + out.emergencyCapexM;
   s.cash += revenue - opex - capex + interestQ(s.cash);
   s.rab = rabNext(s.rab, out.rabAddM);
@@ -91,7 +92,7 @@ function settle(s: CareerState): ActionResult {
     saidiYtd: saidiYtdBefore, saifiYtd: saifiYtdBefore, lossesMWh: out.lossesMWh, capexM: capex, opexM: opex, revenueM: revenue, incentiveM: incentiveBooked, cash: s.cash, rab: s.rab,
     avgHealth: avgHealth(s), worstHealth: worstHealth(s), delivered: s.delivered, missed: s.missed, vViolations: out.vViolations, firmMarginPct: out.firmMarginPct,
     maxLoadingPct: out.maxLoadingPct, customers: N, faults: out.faults, emergencyM: out.emergencyCapexM,
-    opexParts: { base: baseQ, repairs: out.repairCostM, losses: lossQ, dr: drCost, veg: vegCost, voltage: vQ },
+    opexParts: { base: baseQ, repairs: out.repairCostM, losses: lossQ, dr: drCost, veg: vegCost, voltage: vQ, ...(readyQ > 0 ? { ready: readyQ } : {}) },
   });
   void ex;
   s.projects = s.projects.filter((p) => p.status === 'building' || p.status === 'active');

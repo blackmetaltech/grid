@@ -4,8 +4,8 @@ import { hashOf } from '@core/kit';
 import type { SwitchKind } from '../sim/distrib/reliability';
 
 export type AssetClass = 'line' | 'tx' | 'switchgear';
-export type ProjectKind = 'reconductor' | 'newFeeder' | 'newTransformer' | 'tieSwitch' | 'remoteSwitch' | 'recloser' | 'vegetation' | 'replaceAssets' | 'regulator' | 'battery' | 'demandResponse';
-export const PROJECT_KINDS: ProjectKind[] = ['reconductor', 'newFeeder', 'newTransformer', 'tieSwitch', 'remoteSwitch', 'recloser', 'vegetation', 'replaceAssets', 'regulator', 'battery', 'demandResponse'];
+export type ProjectKind = 'reconductor' | 'newFeeder' | 'newTransformer' | 'tieSwitch' | 'remoteSwitch' | 'recloser' | 'harden' | 'vegetation' | 'replaceAssets' | 'regulator' | 'battery' | 'demandResponse';
+export const PROJECT_KINDS: ProjectKind[] = ['reconductor', 'newFeeder', 'newTransformer', 'tieSwitch', 'remoteSwitch', 'recloser', 'harden', 'vegetation', 'replaceAssets', 'regulator', 'battery', 'demandResponse'];
 export type Ending = 'chiefEngineer' | 'steady' | 'bailedOut' | 'licenceRevoked';
 
 export interface Asset {
@@ -31,6 +31,8 @@ export interface Feeder {
   baseKw: number; growthPct: number; evBias: number; pvBias: number;
   sections: Section[];
   tie: boolean; recloser: boolean; regulator: boolean; batteryKw: number; drKw: number; solarKw: number;
+  /** 1.5 storm hardening (covered conductor, wider clearance on the exposed spans): storm faults on this feeder x STORM.hardenFactor */
+  hardened?: boolean;
   /** Vegetation overgrowth, 0..1. */
   veg: number;
 }
@@ -59,7 +61,7 @@ export interface Kpi {
   /** Emergency replacement of failed plant this quarter (included in capexM), at MONEY.emergencyMult times the planned price. */
   emergencyM?: number;
   /** Opex of the quarter by cause (sums to opexM). */
-  opexParts?: { base: number; repairs: number; losses: number; dr: number; veg: number; voltage: number };
+  opexParts?: { base: number; repairs: number; losses: number; dr: number; veg: number; voltage: number; ready?: number };
 }
 export type Phase = 'plan' | 'incident' | 'over';
 export interface QuarterOutcome {
@@ -75,6 +77,8 @@ export interface CareerState {
   v: 1; seed: number; t: number; phase: Phase;
   /** DESIGN-1.3 district charter; absent = 'standard' (Home Counties), so 1.2 careers hash the same */
   charter?: CharterId;
+  /** 1.5 storm readiness for the quarter: 0 none, 1 pre-storm switching and crews on standby, 2 mutual aid booked (absent = 0) */
+  readiness?: number;
   cash: number; rab: number; ar: number; arYear: number; opexAllowance: number;
   feeders: Feeder[]; primaries: Primary[]; assets: Asset[];
   projects: Project[]; requests: Request[]; incidents: Incident[];

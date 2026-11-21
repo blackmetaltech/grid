@@ -12,4 +12,5 @@ export const DYNAMIC_KEYS = [
   'career.short.years', 'career.short.health', 'career.short.debt', 'career.short.overloaded', 'career.short.firm',
   'career.charter.standard.name', 'career.charter.standard.text', 'career.charter.storm.name', 'career.charter.storm.text', 'career.charter.boom.name', 'career.charter.boom.text', 'career.charter.iron.name', 'career.charter.iron.text', 'career.charter.sun.name', 'career.charter.sun.text', 'career.charter.lean.name', 'career.charter.lean.text', 'career.charter.forest.name', 'career.charter.forest.text',
   'career.scorePart.years', 'career.scorePart.saidi', 'career.scorePart.incentive', 'career.scorePart.health', 'career.scorePart.delivered', 'career.scorePart.missed', 'career.scorePart.cash', 'career.scorePart.ending',
+  'career.kind.harden', 'career.blurb.harden', 'career.why.harden', 'career.ready.0', 'career.ready.1', 'career.ready.2', 'career.forecast.calm', 'career.forecast.unsettled', 'career.forecast.stormy',
 ] as const;

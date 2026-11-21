@@ -5,13 +5,20 @@ extends Control
 ## "why this helps"), the running projects and the connection requests. Sheets (incidents, quarter report, annual review, ending) are paper dockets (career_sheets.gd).
 ## Display and input only: every number is the engine's `career`, `careerBoard` and `careerQuote` queries, every change an engine action through app.b.act.
 
-const KIND_TARGET := {"reconductor": "section", "remoteSwitch": "section", "newFeeder": "feeder", "newTransformer": "primary", "tieSwitch": "feeder", "recloser": "feeder",
+const KIND_TARGET := {"reconductor": "section", "harden": "feeder", "remoteSwitch": "section", "newFeeder": "feeder", "newTransformer": "primary", "tieSwitch": "feeder", "recloser": "feeder",
 	"vegetation": "feeder", "regulator": "feeder", "battery": "feeder", "demandResponse": "feeder", "replaceAssets": "asset"}
 
 var app: CbApp
 var d: Dictionary = {}
 var board: Dictionary = {}
 var sel: Dictionary = {}
+## Board stability (1.4 testers misclicked: a Start re-sorted the cards and pulled the next one under the pointer). Until the quarter or the
+## selection changes, the card order is kept and whatever was started stays in place as a "Started" placeholder of the same height.
+var _held := {}            ## "kind|target" or "fix|asset" -> height of the card/row that was started
+var _held_t := -1          ## the quarter _held belongs to
+var _order: Array = []     ## the board's kind order for _order_key
+var _order_key := ""
+var _rows_prev: Array = [] ## the worst-asset card's row ids as last shown (plant and sections), for the same order after a Start
 var tab := "board"
 var colour := "load"
 var msg := ""
@@ -253,6 +260,7 @@ func _feeder_text(f: Dictionary) -> String:
 	var has: Array = []
 	if bool(f.tie): has.append(T("CAR_B_tie"))
 	if bool(f.recloser): has.append(T("CAR_B_recloser"))
+	if bool(f.get("hardened", false)): has.append(T("CAR_B_harden"))
 	if bool(f.regulator): has.append(T("CAR_B_regulator"))
 	if float(f.batteryKw) > 0.0: has.append(T("CAR_B_battery") % int(f.batteryKw))
 	if float(f.drKw) > 0.0: has.append(T("CAR_B_dr") % int(f.drKw))
@@ -316,27 +324,35 @@ func _worst_card(sz: int) -> void:
 	var v := CareerKit.card(drawer_body); v.get_parent().name = "WorstCard"
 	v.add_child(CareerKit.lbl(T("CAR_WORST"), sz + 1, GridTheme.SODIUM, "semi", true))
 	# substation plant first: its failure costs an emergency replacement and a primary outage, which expected SAIDI does not show
-	var plant: Array = d.get("plantRisk", [])
-	for r in plant.slice(0, 2):
-		var pid := str(r.id)
-		var ph := HBoxContainer.new(); ph.add_theme_constant_override("separation", 6); v.add_child(ph)
-		var pk := CareerKit.btn(T("CAR_RISK_ROW") % [pid, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(pid)), sz - 1)
-		pk.name = "RiskPick_" + pid; pk.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pk.alignment = HORIZONTAL_ALIGNMENT_LEFT; pk.clip_text = true; ph.add_child(pk)
-		var cost := CareerKit.lbl(T("CAR_RISK_COST") % str(r.emergencyText), sz - 2, GridTheme.BAD, "mono")
-		if compact: v.add_child(cost)
-		else: ph.add_child(cost)
-		var fx := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", ["replaceAssets", pid]), sz - 1); fx.name = "Fix_" + pid; ph.add_child(fx)
-	var rows := worst_assets(3 if compact else 4)
-	if rows.is_empty() and plant.is_empty(): v.add_child(CareerKit.lbl(T("CAR_WORST_NONE"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true)); return
-	for r in rows:
-		var id := str(r.id); var a := _asset_of(id)
+	var entries := {}; var fresh: Array = []
+	for r in (d.get("plantRisk", []) as Array).slice(0, 2): entries[str(r.id)] = {"plant": true, "r": r}; fresh.append(str(r.id))
+	for r in worst_assets(3 if compact else 4): entries[str(r.id)] = {"plant": false, "r": r}; fresh.append(str(r.id))
+	# after a Start this quarter: the rows keep the order they had, the started one stays as a placeholder (no row slides under the pointer)
+	var order: Array = []
+	if not _held.is_empty():
+		for id in _rows_prev:
+			if _held.has("fix|" + str(id)) or entries.has(str(id)): order.append(str(id))
+	for id in fresh:
+		if not order.has(id): order.append(id)
+	_rows_prev = order
+	if order.is_empty(): v.add_child(CareerKit.lbl(T("CAR_WORST_NONE"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true)); return
+	for id in order:
+		if not entries.has(id):
+			_held_placeholder(v, "fix|" + id, id); continue
+		var e: Dictionary = entries[id]; var r: Dictionary = e.r
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); v.add_child(hb)
-		var pick := CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1)
-		pick.name = "WorstPick_" + id; pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; hb.add_child(pick)
-		var gain := CareerKit.lbl("%s  %s" % [T("CAR_WORST_GAIN") % CareerKit.num(float(r.dSaidi), 1), str(r.capexText)], sz - 2, GridTheme.GOOD, "mono")
-		if compact: v.add_child(gain)   # the phone drawer is narrow: the gain goes on a line of its own
-		else: hb.add_child(gain)
-		var fix := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", ["replaceAssets", id]), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
+		var pick: Button; var extra: Label
+		if bool(e.plant):
+			pick = CareerKit.btn(T("CAR_RISK_ROW") % [id, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "RiskPick_" + id
+			extra = CareerKit.lbl(T("CAR_RISK_COST") % str(r.emergencyText), sz - 2, GridTheme.BAD, "mono")
+		else:
+			var a := _asset_of(id)
+			pick = CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "WorstPick_" + id
+			extra = CareerKit.lbl("%s  %s" % [T("CAR_WORST_GAIN") % CareerKit.num(float(r.dSaidi), 1), str(r.capexText)], sz - 2, GridTheme.GOOD, "mono")
+		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; hb.add_child(pick)
+		if compact: v.add_child(extra)   # the phone drawer is narrow: the gain or cost goes on a line of its own
+		else: hb.add_child(extra)
+		var fix := CareerKit.btn(T("CAR_START"), true, func(): _start_held("fix|" + id, hb, "replaceAssets", id), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
 
 func _asset_of(id: String) -> Dictionary:
 	for f in d.feeders:
@@ -347,7 +363,9 @@ func _asset_of(id: String) -> Dictionary:
 	return {}
 
 func _board_tab() -> void:
+	if int(d.t) != _held_t: _held.clear(); _held_t = int(d.t); _rows_prev = []
 	var sz := 14 if compact else 15
+	_ready_card(sz)
 	_veg_card()
 	_worst_card(sz)
 	var t := str(sel.get("type", ""))
@@ -355,6 +373,7 @@ func _board_tab() -> void:
 	if t == "section": head = T("CAR_TARGET_IS") % (T("CAR_SEC_TITLE") % str(sel.id))
 	elif t == "primary": head = T("CAR_TARGET_IS") % str(primary_of(str(sel.id)).get("name", sel.id))
 	var hl := CareerKit.lbl(head, sz, GridTheme.SODIUM if t != "" else Color(GridTheme.TEXT, 0.7), "semi", true); hl.name = "TargetLine"; drawer_body.add_child(hl)
+	var okey := "%s|%s|%d" % [str(sel.get("type", "")), str(sel.get("id", "")), int(d.t)]
 	var cards: Array = []
 	for k in board.get("kinds", []):
 		var kind := str(k.kind); var tg := target_for(kind)
@@ -362,11 +381,30 @@ func _board_tab() -> void:
 		for o in k.options:
 			if str(o.target) == tg and tg != "": opt = o
 		cards.append({"k": k, "target": tg, "opt": opt, "rank": 0 if not opt.is_empty() else (1 if tg != "" else 2)})
-	cards.sort_custom(func(a, b): return int(a.rank) < int(b.rank))
+	if okey == _order_key and _order.size() == cards.size():   # same selection, same quarter: keep the order the player is looking at
+		cards.sort_custom(func(a, b): return _order.find(str(a.k.kind)) < _order.find(str(b.k.kind)))
+	else:
+		cards.sort_custom(func(a, b): return int(a.rank) < int(b.rank))
+		_order = cards.map(func(c): return str(c.k.kind)); _order_key = okey
 	for c in cards: _kind_card(c, sz)
+
+## Start from a card or row, keeping its place: the rebuilt board shows a same-height "Started" placeholder there.
+func _start_held(key: String, holder: Control, kind: String, target: String) -> void:
+	var h := holder.size.y
+	_held[key] = h
+	var r := act("careerProject", [kind, target])
+	if not bool(r.get("ok", false)): _held.erase(key); _build_drawer()
+
+func _held_placeholder(parent: Control, key: String, label: String) -> bool:
+	if not _held.has(key): return false
+	var pc := PanelContainer.new(); pc.name = "Held_" + key.replace("|", "_"); pc.custom_minimum_size.y = float(_held[key])
+	pc.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.GOOD, 0.08), Color(GridTheme.GOOD, 0.5), 1, 8, 10.0, 6.0))
+	pc.add_child(CareerKit.lbl(T("CAR_STARTED") % label, 14 if compact else 15, GridTheme.GOOD, "semi", true)); parent.add_child(pc)
+	return true
 
 func _kind_card(c: Dictionary, sz: int) -> void:
 	var k: Dictionary = c.k; var kind := str(k.kind); var tg := str(c.target); var opt: Dictionary = c.opt
+	if _held_placeholder(drawer_body, kind + "|" + tg, "%s, %s" % [str(k.name), tg]): return
 	var v := CareerKit.card(drawer_body, GridTheme.SODIUM if not opt.is_empty() else Color(0, 0, 0, 0)); v.get_parent().name = "Card_" + kind
 	var top := HBoxContainer.new(); top.add_theme_constant_override("separation", 8); v.add_child(top)
 	var nm := CareerKit.lbl(str(k.name), sz + 3, GridTheme.TEXT if not opt.is_empty() or tg == "" else Color(GridTheme.TEXT, 0.6), "semi"); nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL; top.add_child(nm)
@@ -390,9 +428,23 @@ func _kind_card(c: Dictionary, sz: int) -> void:
 		var od := str(q.get("overdrawText", "")) if q is Dictionary else ""
 		if od != "":   # warn before the money goes, not at the review
 			var ol := CareerKit.lbl(od, sz - 1, GridTheme.BAD, "sans", true); ol.name = "Overdraw"; v.add_child(ol)
-		var sb := CareerKit.btn(T("CAR_START"), true, func(): act("careerProject", [kind, tg]), 15); sb.name = "Start_" + kind; sb.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(sb)
+		var card := v.get_parent() as Control
+		var sb := CareerKit.btn(T("CAR_START"), true, func(): _start_held(kind + "|" + tg, card, kind, tg), 15); sb.name = "Start_" + kind; sb.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(sb)
 	else:
 		var rl := CareerKit.lbl(str(q.get("text", "")) if q is Dictionary else T("CAR_CANT"), sz - 1, Color(GridTheme.WARN, 0.9), "sans", true); rl.name = "Why"; v.add_child(rl)
+
+## 1.5 storm readiness: the quarter's forecast and three levels (none / pre-switching and standby crews / mutual aid), each with its effect and cost.
+func _ready_card(sz: int) -> void:
+	var v := CareerKit.card(drawer_body); v.get_parent().name = "ReadyCard"
+	var fc := str(d.get("forecast", ""))
+	v.add_child(CareerKit.lbl(T("CAR_READY"), sz + 1, GridTheme.SODIUM, "semi", true))
+	var fl := CareerKit.lbl(str(d.get("forecastText", "")), sz, GridTheme.BAD if fc == "stormy" else (GridTheme.WARN if fc == "unsettled" else GridTheme.GOOD), "semi", true); fl.name = "Forecast"; v.add_child(fl)
+	var lv := int(d.get("readiness", 0))
+	for row in d.get("readyLevels", []):
+		var l := int(row.level)
+		var b := CareerKit.btn(str(row.text), l == lv, func(): act("careerReadiness", [l]), sz - 1); b.name = "Ready%d" % l
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; v.add_child(b)
+	v.add_child(CareerKit.lbl(T("CAR_READY_NOTE"), sz - 2, Color(GridTheme.TEXT, 0.55), "sans", true))
 
 func _veg_card() -> void:
 	var sz := 14 if compact else 15

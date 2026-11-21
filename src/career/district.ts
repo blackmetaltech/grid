@@ -2,7 +2,7 @@
 import { dmath } from '@core/numerics';
 import { CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
 import { systemRng } from '../sim/rngs';
-import { CHARTERS, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
+import { CHARTERS, STORM, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
 import { wearRate, avgHealth } from './ageing';
 import { hourlyLoad } from './growth';
 import type { Asset, CareerState, Feeder, Primary, Section } from './state';
@@ -128,7 +128,7 @@ export function analyseFeeder(s: CareerState, f: Feeder, solve = true): FeederAn
     const a = (hl.peakKw / (dmath.sqrt(3) * 11 * GROWTH.pf));
     loading = (a / conductorRow(f.sections[0]!.conductor).ampacityA) * 100;
   }
-  const uplift = stormUplift(f.veg, charterOf(s).storm);
+  const uplift = stormUplift(f.veg, charterOf(s).storm) * (f.hardened ? STORM.hardenFactor : 1);
   const secs = toReliability(f, s.assets, s.t, hl.peakKw, loading, uplift);
   const rel = reliability(secs, { manualH: TIMES.manualH, remoteH: TIMES.remoteH, fuseH: TIMES.fuseH });
   const perFault: SectionOutage[] = f.sections.map((sec) => {

@@ -166,6 +166,7 @@ func _badges(f: Dictionary) -> Array:
 	var out: Array = []
 	if bool(f.tie): out.append(["T", GridTheme.TEXT])
 	if bool(f.recloser): out.append(["R", GridTheme.SODIUM])
+	if bool(f.get("hardened", false)): out.append(["H", GridTheme.SODIUM])
 	if bool(f.regulator): out.append(["V", Color("#8FD3FF")])
 	if float(f.batteryKw) > 0.0: out.append(["B", GridTheme.GOOD])
 	if float(f.drKw) > 0.0: out.append(["D", Color("#E6A0FF")])

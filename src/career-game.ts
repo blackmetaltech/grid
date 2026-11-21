@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, stormForecast, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
@@ -90,6 +90,8 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
     careerCancel: (s, id: unknown) => act(s, { a: 'cancel', id: str(id) }),
     careerInspect: (s, asset: unknown) => act(s, { a: 'inspect', asset: str(asset) }),
     /** Routine vegetation budget 0..3 (per feeder per quarter). */
+    /** 1.5: storm readiness for the coming quarters, 0-2 (sticky, charged each quarter). */
+    careerReadiness: (s, level: unknown) => act(s, { a: 'ready', level: Number(level) }),
     careerVegetation: (s, level: unknown) => act(s, { a: 'veg', level: Number(level) }),
     careerAccept: (s, id: unknown) => act(s, { a: 'accept', id: str(id) }),
     careerTie: (s, id: unknown) => act(s, { a: 'tie', id: str(id) }),
@@ -145,6 +147,10 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         // the 3-year rule, ahead of the review: this year as it has gone so far plus the expected rest, averaged with the period's earlier years
         // (a tester was fined for a good year because of two bad ones before it, and only learned why at the review)
         ...rollingProj(st, ytdSaidi, exp.saidi),
+        // 1.5 storm levers: this quarter's forecast and the readiness levels (the storm card is a decision, not a dice roll)
+        forecast: st.ending ? '' : stormForecast(st), forecastText: st.ending ? '' : t(`career.forecast.${stormForecast(st)}`),
+        readiness: st.readiness ?? 0,
+        readyLevels: [0, 1, 2].map((lv) => ({ level: lv, costQText: m(STORM.readyCostQ[lv]!), text: t(`career.ready.${lv}`, { costQ: m(STORM.readyCostQ[lv]!), cm: Math.round((1 - STORM.readyCmFactor[lv]!) * 100), ci: Math.round((1 - STORM.readyCiFactor[lv]!) * 100) }) })),
         boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
         charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,
@@ -164,7 +170,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         feeders: st.feeders.map((f, i) => {
           const a = an[i]!;
           return { id: f.id, primaryId: f.primaryId, customers: f.customers, peakKw: Math.round(a.peakKw), loadingPct: r1(a.loadingPct), minV: r2(a.minVPu), maxV: r2(a.maxVPu), vViolation: a.vViolation,
-            saidi: r1(a.rel.saidi), saifi: r2(a.rel.saifi), veg: r2(f.veg), tie: f.tie, recloser: f.recloser, regulator: f.regulator, batteryKw: f.batteryKw, drKw: Math.round(f.drKw), solarKw: f.solarKw,
+            saidi: r1(a.rel.saidi), saifi: r2(a.rel.saifi), veg: r2(f.veg), tie: f.tie, recloser: f.recloser, hardened: !!f.hardened, regulator: f.regulator, batteryKw: f.batteryKw, drKw: Math.round(f.drKw), solarKw: f.solarKw,
             sections: f.sections.map((sec) => ({ id: sec.id, km: sec.lengthKm, conductor: sec.conductor, device: sec.device, assetId: sec.assetId, ...healthOf(sec.assetId) })) };
         }),
         projects: st.projects.map((p) => ({ id: p.id, kind: p.kind, kindName: t(`career.kind.${p.kind}`), target: p.target, left: p.left, leadQ: p.leadQ, crew: p.crew, status: p.status, capexText: m(p.capexM), spentText: m(p.spentM) })),
@@ -177,12 +183,13 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         }),
         incidents: st.incidents.map((x) => ({ ...x, kindName: t(`career.incident.${x.kind}`), custMin: Math.round(x.custMin), saidiMin: r1(N ? x.custMin / N : 0) })),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
-          cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexPartsText: k.opexParts ? t('career.opexParts', { base: m(k.opexParts.base), repairs: m(k.opexParts.repairs), losses: m(k.opexParts.losses), dr: m(k.opexParts.dr), veg: m(k.opexParts.veg), voltage: m(k.opexParts.voltage) }) : '',
+          cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexPartsText: k.opexParts ? t('career.opexParts', { base: m(k.opexParts.base), repairs: m(k.opexParts.repairs), losses: m(k.opexParts.losses), dr: m(k.opexParts.dr), veg: m(k.opexParts.veg), voltage: m(k.opexParts.voltage) }) + (k.opexParts.ready ? ' ' + t('career.opexReady', { ready: m(k.opexParts.ready) }) : '') : '',
           emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),
-          nextText: rv.year + 1 < ENDINGS.quarters / 4 && rv.year % INCENTIVE.periodYears !== INCENTIVE.periodYears - 1 ? t('career.review.next', { saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi), tightenPct: INCENTIVE.targetTightenPct }) : '',
+          nextText: rv.year + 1 < ENDINGS.quarters / 4 && rv.year % INCENTIVE.periodYears !== INCENTIVE.periodYears - 1 ? (() => { const pct = (1 - nextT(i).saidi / rv.saidiTarget) * 100, fast = pct > INCENTIVE.targetTightenPct + 0.05;
+            return t(fast ? 'career.review.nextFast' : 'career.review.next', { saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi), tightenPct: fast ? r1(pct) : INCENTIVE.targetTightenPct }); })() : '',
           resetText: rv.year + 1 < ENDINGS.quarters / 4 && rv.year % INCENTIVE.periodYears === INCENTIVE.periodYears - 1 ? t('career.review.reset', { resetPct: Math.round(INCENTIVE.resetFactor * 100), cutPct: INCENTIVE.maxResetCutPct, saidiTarget: r1(nextT(i).saidi), saifiTarget: r2(nextT(i).saifi) }) : '',
           verdicts: rv.verdicts.map((v) => { const p = withMoney(s, { ...v.params, saidi: r1(Number(v.params.saidi ?? 0)), saifi: r2(Number(v.params.saifi ?? 0)), saidiYear: r1(Number(v.params.saidiYear ?? v.params.saidi ?? 0)), saidiTarget: r1(Number(v.params.saidiTarget ?? 0)), saifiTarget: r2(Number(v.params.saifiTarget ?? 0)), health: r1(Number(v.params.health ?? 0)), prevHealth: r1(Number(v.params.prevHealth ?? 0)) });
             return { axis: v.axis, who: t(`career.who.${v.axis}`), grade: v.grade, text: t(v.key, p) }; }) })),
@@ -223,7 +230,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
       const st = c.state, targets: Record<ProjectKind, string[]> = {
         reconductor: st.feeders.flatMap((f) => f.sections.map((x) => x.id)), remoteSwitch: st.feeders.flatMap((f) => f.sections.map((x) => x.id)),
         newFeeder: st.feeders.map((f) => f.id), newTransformer: st.primaries.map((p) => p.id),
-        tieSwitch: st.feeders.map((f) => f.id), recloser: st.feeders.map((f) => f.id), vegetation: st.feeders.map((f) => f.id), regulator: st.feeders.map((f) => f.id), battery: st.feeders.map((f) => f.id), demandResponse: st.feeders.map((f) => f.id),
+        tieSwitch: st.feeders.map((f) => f.id), recloser: st.feeders.map((f) => f.id), harden: st.feeders.map((f) => f.id), vegetation: st.feeders.map((f) => f.id), regulator: st.feeders.map((f) => f.id), battery: st.feeders.map((f) => f.id), demandResponse: st.feeders.map((f) => f.id),
         replaceAssets: st.assets.map((a) => a.id),
       };
       return { active: true, kinds: PROJECT_KINDS.map((k) => ({ kind: k, name: t(`career.kind.${k}`), blurb: t(`career.blurb.${k}`),

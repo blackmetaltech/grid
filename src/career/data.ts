@@ -76,6 +76,7 @@ export const PROJECTS: Record<string, ProjectRow> = {
   tieSwitch: { capexM: 0.35, leadQ: 2, crew: 1, source: 'normally-open tie with two switches and 1 km of line', recall: true },
   remoteSwitch: { capexM: 0.14, leadQ: 1, crew: 1, source: 'motorised remote-controlled sectionaliser with telecoms', recall: true },
   recloser: { capexM: 0.09, leadQ: 1, crew: 1, source: 'pole-mounted recloser', recall: true },
+  harden: { capexM: 0.45, leadQ: 2, crew: 1, source: 'storm hardening of a feeder\'s exposed spans: covered conductor, wider clearance, stronger poles (illustrative)', recall: true },
   vegetation: { capexM: 0.06, leadQ: 1, crew: 1, source: 'one-off deep clearance of a feeder corridor', recall: true },
   replaceLine: { capexM: 0.07, leadQ: 2, crew: 1, source: 'like-for-like rebuild per km (poles, cross-arms, conductor)', recall: true },
   replaceTx: { capexM: 3.0, leadQ: 4, crew: 1, source: 'like-for-like primary transformer replacement', recall: true },
@@ -100,8 +101,8 @@ export const MONEY: Sourced & {
 };
 
 /** Incentive (RIIO-style interruption incentive, SIMPLIFIED: one rate per customer-minute lost and per interruption, symmetric around target, capped). */
-export const INCENTIVE: Sourced & { cmiRateM: number; cifRateM: number; rewardCapPct: number; fineCapPct: number; severeFinePct: number; yearsToRevoke: number; targetTightenPct: number; targetHeadroom: number; /** the regulator judges the mean of the last rollingYears years (smooths weather) */ rollingYears: number; /** price-control period (years): at its end the targets reset to resetFactor x the network's modelled expected SAIDI / SAIFI when that is lower (RIIO resets targets each period; SIMPLIFIED) */ periodYears: number; resetFactor: number; /** a reset never tightens a target by more than this in one review (no cliff) */ maxResetCutPct: number } = {
-  cmiRateM: 0.12e-6, cifRateM: 12e-6, rewardCapPct: 2, fineCapPct: 5, severeFinePct: 3, yearsToRevoke: 3, targetTightenPct: 1.5, targetHeadroom: 0.9, rollingYears: 3, periodYears: 5, resetFactor: 1.3, maxResetCutPct: 25,
+export const INCENTIVE: Sourced & { cmiRateM: number; cifRateM: number; rewardCapPct: number; fineCapPct: number; severeFinePct: number; yearsToRevoke: number; targetTightenPct: number; targetHeadroom: number; /** the regulator judges the mean of the last rollingYears years (smooths weather) */ rollingYears: number; /** price-control period (years): at its end the targets reset to resetFactor x the network's modelled expected SAIDI / SAIFI when that is lower (RIIO resets targets each period; SIMPLIFIED) */ periodYears: number; resetFactor: number; /** a reset never tightens a target by more than this in one review (no cliff) */ maxResetCutPct: number; /** a year's tightening may reach this while the network beats its target by a wide margin */ glideMaxPct: number } = {
+  cmiRateM: 0.12e-6, cifRateM: 12e-6, rewardCapPct: 2, fineCapPct: 5, severeFinePct: 3, yearsToRevoke: 3, targetTightenPct: 1.5, targetHeadroom: 0.9, rollingYears: 3, periodYears: 5, resetFactor: 1.3, maxResetCutPct: 25, glideMaxPct: 8,
   source: 'RIIO-style ICE: RIIO ICE is roughly GBP 0.2-0.4 per customer-minute lost; scaled down here because this district runs ~3x the SAIDI of a real DNO; caps +2 % / -5 % of allowed revenue (illustrative); targets start 10 % below the day-one expected value (the regulator expects improvement) and tighten 1.5 %/yr',
   recall: true,
 };
@@ -140,3 +141,12 @@ export const CHARTERS: Record<CharterId, CharterRow> = {
   forest: { ...NONE, vegAdd: 0.25, storm: 1.25 },
 };
 export const CHARTER_IDS = Object.keys(CHARTERS) as CharterId[];
+
+/** 1.5 storm levers (illustrative): readiness before a storm (pre-switching, standby crews, mutual aid) and hardening. */
+export const STORM: Sourced & { readyCostQ: number[]; readyCmFactor: number[]; readyCiFactor: number[]; hardenFactor: number } = {
+  readyCostQ: [0, 0.06, 0.2],        // GBP m a quarter: standby crews and control-room cover; mutual aid booked from neighbouring utilities
+  readyCmFactor: [1, 0.7, 0.45],      // storm customer-minutes: faster isolation and restoration
+  readyCiFactor: [1, 0.85, 0.85],     // storm customer interruptions: pre-storm switching sectionalises before the faults come
+  hardenFactor: 0.4,                  // storm fault rate on a hardened feeder
+  source: 'illustrative; mutual-aid agreements and pre-storm sectionalising are standard practice (e.g. UK DNO storm plans)', recall: true,
+};

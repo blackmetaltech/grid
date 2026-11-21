@@ -44,7 +44,7 @@ export function annualReview(s: CareerState): Review {
   crew.key = `career.review.crew.${crew.grade}`;
   const rv: Review = { year: yearOf(s.t), saidi, saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, exceptionalMin: N ? s.ytdExceptionalMin / N : 0, met, incentiveM: inc, saidiRolling: saidiR, saifiRolling: saifiR, avgHealth: health, cash: s.cash, rab: s.rab, verdicts: [reg, fin, crew], ...loadIndex(s) };
   // next year
-  s.saidiTarget *= 1 - INCENTIVE.targetTightenPct / 100; s.saifiTarget *= 1 - INCENTIVE.targetTightenPct / 100;
+  { const g = yearStep(s.saidiTarget, s.saifiTarget, exp); s.saidiTarget = g.saidi; s.saifiTarget = g.saifi; }
   // the end of a price-control period: targets reset to the network's modelled performance plus a deadband, when that is lower
   if ((yearOf(s.t) + 1) % INCENTIVE.periodYears === 0) {
     const nt = periodReset(s.saidiTarget, s.saifiTarget, exp); s.saidiTarget = nt.saidi; s.saifiTarget = nt.saifi;
@@ -57,6 +57,14 @@ export function annualReview(s: CareerState): Review {
 }
 
 /** Ending after a quarter (null = play on). */
+/** One year's tightening: targetTightenPct, and more (up to glideMaxPct in all) while the network's expected performance x resetFactor
+ * is well below the target, so targets follow a network that heals fast instead of waiting for the five-year reset (Old Iron tester). */
+export function yearStep(saidiT: number, saifiT: number, exp: { saidi: number; saifi: number }): { saidi: number; saifi: number } {
+  const step = (t: number, e: number): number => { const base = t * (1 - INCENTIVE.targetTightenPct / 100), aim = INCENTIVE.resetFactor * e;
+    return aim >= base ? base : Math.max(aim, t * (1 - INCENTIVE.glideMaxPct / 100)); };
+  return { saidi: step(saidiT, exp.saidi), saifi: step(saifiT, exp.saifi) };
+}
+
 /** Next period's targets: resetFactor x the expected value where that is tighter, but never more than INCENTIVE.maxResetCutPct below the old target in one review (no cliff). */
 export function periodReset(saidiT: number, saifiT: number, exp: { saidi: number; saifi: number }): { saidi: number; saifi: number } {
   const floor = 1 - INCENTIVE.maxResetCutPct / 100;

@@ -1,7 +1,7 @@
 // Projects (the C1 board) and the planning actions. Pure functions: each returns {ok, state, messageKey, params}; `state` is a new object.
 import { CONDUCTORS } from '../sim/distrib';
 import { systemRng, fnv } from '../sim/rngs';
-import { DISTRICT, MONEY, PROJECT_DETAIL, PROJECTS } from './data';
+import { DISTRICT, MONEY, PROJECT_DETAIL, PROJECTS, STORM } from './data';
 import { analyseFeeder, conductorRow, districtExpected } from './district';
 import { trueHealth, avgHealth } from './ageing';
 import { hourlyLoad } from './growth';
@@ -61,6 +61,7 @@ export function quoteProject(s: CareerState, kind: ProjectKind, target: string):
       return sc.sec.device === 'remote' ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.remoteSwitch!);
     }
     case 'recloser': return !fd ? q(false, 'career.err.target', none) : fd.recloser ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.recloser!);
+    case 'harden': return !fd ? q(false, 'career.err.target', none) : fd.hardened ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.harden!);
     case 'vegetation': return !fd ? q(false, 'career.err.target', none) : fd.veg < 0.25 ? q(false, 'career.err.notNeeded', none) : q(true, 'career.quote', PROJECTS.vegetation!);
     case 'regulator': return !fd ? q(false, 'career.err.target', none) : fd.regulator ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.regulator!);
     case 'battery': return !fd ? q(false, 'career.err.target', none) : q(true, 'career.quote', PROJECTS.battery!);
@@ -105,6 +106,16 @@ export function inspect(state: CareerState, assetId: string): ActionResult {
   const a = assetById(state, assetId)!, known = { health: trueHealth(a, state.t), q: state.t };
   const s: CareerState = { ...state, cash: state.cash - MONEY.inspectionM, assets: state.assets.map((x) => (x === a ? { ...x, known } : x)) };
   return ok(s, 'career.inspect', { asset: assetId, health: Math.round(known.health * 10) / 10, costM: MONEY.inspectionM });
+}
+
+/** 1.5: storm readiness for the coming quarter (0 none, 1 pre-switching and standby crews, 2 mutual aid booked); charged each quarter it is set. */
+export function setReadiness(state: CareerState, level: number): ActionResult {
+  if (state.phase !== 'plan') return fail(state, 'career.err.phase');
+  const l = Math.round(level);
+  if (!(l >= 0 && l <= 2)) return fail(state, 'career.err.range', { level });
+  const s: CareerState = { ...state, readiness: l };
+  if (l === 0) delete s.readiness;
+  return ok(s, 'career.ready.set', { level: l, costPerQuarterM: STORM.readyCostQ[l]! });
 }
 
 export function setVegetationBudget(state: CareerState, level: number): ActionResult {
@@ -177,6 +188,7 @@ export function completeProject(s: CareerState, p: Project): void {
     case 'tieSwitch': if (fd) fd.tie = true; break;
     case 'remoteSwitch': { const sc = sectionOf(s, p.target); if (sc) sc.sec.device = 'remote'; break; }
     case 'recloser': if (fd) fd.recloser = true; break;
+    case 'harden': if (fd) fd.hardened = true; break;
     case 'vegetation': if (fd) fd.veg = Math.min(fd.veg, PROJECT_DETAIL.deepClearVeg); break;
     case 'regulator': if (fd) fd.regulator = true; break;
     case 'battery': if (fd) fd.batteryKw += PROJECT_DETAIL.batteryKw; break;
@@ -201,7 +213,7 @@ export function previewProject(state: CareerState, kind: ProjectKind, target: st
   completeProject(c, { id: 'preview', kind, target, startQ: c.t, leadQ: 0, left: 0, crew: 0, capexM: 0, spentM: 0, status: 'building' });
   const after = districtExpected(c);
   const fa = c.feeders.find((x) => x.id === f?.id), la = fa ? analyseFeeder(c, fa).loadingPct : 0;
-  const whyKey = ({ reconductor: 'career.why.reconductor', newFeeder: 'career.why.newFeeder', newTransformer: 'career.why.newTransformer', tieSwitch: 'career.why.tie', remoteSwitch: 'career.why.remote', recloser: 'career.why.recloser', vegetation: 'career.why.vegetation', replaceAssets: 'career.why.replace', regulator: 'career.why.regulator', battery: 'career.why.battery', demandResponse: 'career.why.dr' } as Record<ProjectKind, string>)[kind];
+  const whyKey = ({ reconductor: 'career.why.reconductor', newFeeder: 'career.why.newFeeder', newTransformer: 'career.why.newTransformer', tieSwitch: 'career.why.tie', remoteSwitch: 'career.why.remote', recloser: 'career.why.recloser', harden: 'career.why.harden', vegetation: 'career.why.vegetation', replaceAssets: 'career.why.replace', regulator: 'career.why.regulator', battery: 'career.why.battery', demandResponse: 'career.why.dr' } as Record<ProjectKind, string>)[kind];
   return { quote, dSaidi: after.saidi - before.saidi, dSaifi: after.saifi - before.saifi, loadingBeforePct: lb, loadingAfterPct: la, firmBeforePct: fb, firmAfterPct: pid ? firmMarginPct(c, pid) : 0, allowedShare: allowedShare(state, kind, target), whyKey };
 }
 

@@ -2,12 +2,12 @@ import { CHARTER_IDS, type CharterId } from './data';
 // A career is a seed plus an action list. The career code is a compact text form of it; replaying it reproduces the final state exactly.
 import { buildDistrict } from './district';
 import { acceptConnection, dispatchCrew, switchTie } from './events';
-import { cancelProject, inspect, setVegetationBudget, startProject } from './projects';
+import { cancelProject, inspect, setReadiness, setVegetationBudget, startProject } from './projects';
 import { stateHash, fail, type ActionResult, type CareerState, type ProjectKind, PROJECT_KINDS } from './state';
 import { endQuarter } from './turn';
 
 export type CareerAction =
-  | { a: 'start'; kind: ProjectKind; target: string } | { a: 'cancel'; id: string } | { a: 'inspect'; asset: string } | { a: 'veg'; level: number }
+  | { a: 'start'; kind: ProjectKind; target: string } | { a: 'cancel'; id: string } | { a: 'inspect'; asset: string } | { a: 'veg'; level: number } | { a: 'ready'; level: number }
   | { a: 'accept'; id: string } | { a: 'tie'; id: string } | { a: 'crew'; id: string } | { a: 'end'; interactive?: boolean };
 
 export function applyAction(s: CareerState, act: CareerAction): ActionResult {
@@ -16,6 +16,7 @@ export function applyAction(s: CareerState, act: CareerAction): ActionResult {
     case 'cancel': return cancelProject(s, act.id);
     case 'inspect': return inspect(s, act.asset);
     case 'veg': return setVegetationBudget(s, act.level);
+    case 'ready': return setReadiness(s, act.level);
     case 'accept': return acceptConnection(s, act.id);
     case 'tie': return switchTie(s, act.id);
     case 'crew': return dispatchCrew(s, act.id);
@@ -38,6 +39,7 @@ const tok = (a: CareerAction): string => {
     case 'cancel': return `c:${a.id}`;
     case 'inspect': return `i:${a.asset}`;
     case 'veg': return `v:${a.level}`;
+    case 'ready': return `r:${a.level}`;
     case 'accept': return `a:${a.id}`;
     case 'tie': return `t:${a.id}`;
     case 'crew': return `d:${a.id}`;
@@ -62,6 +64,7 @@ export function decodeCareer(code: string): { seed: number; actions: CareerActio
     else if (k === 'c' && a) actions.push({ a: 'cancel', id: a });
     else if (k === 'i' && a) actions.push({ a: 'inspect', asset: a });
     else if (k === 'v' && a) actions.push({ a: 'veg', level: Number(a) });
+    else if (k === 'r' && a) actions.push({ a: 'ready', level: Number(a) });
     else if (k === 'a' && a) actions.push({ a: 'accept', id: a });
     else if (k === 't' && a) actions.push({ a: 'tie', id: a });
     else if (k === 'd' && a) actions.push({ a: 'crew', id: a });

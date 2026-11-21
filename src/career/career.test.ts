@@ -248,3 +248,33 @@ describe('1.3 district charters and the weekly district', async () => {
     expect(C.isoWeekOf(2026, 11, 20)).toEqual({ year: 2026, week: 47 }); expect(C.isoWeekOf(2021, 1, 1)).toEqual({ year: 2020, week: 53 }); expect(C.isoWeekOf(2024, 12, 30)).toEqual({ year: 2025, week: 1 });
   });
 });
+
+describe('1.5 storm levers: forecast, readiness, hardening; targets glide after a fast-healing network', async () => {
+  const C = await import('./index');
+  it('readiness is an action with a replay token, charged per quarter, and cuts storm customer-minutes', () => {
+    let s = C.buildDistrict(5, 'storm');
+    const r = C.applyAction(s, { a: 'ready', level: 2 }); expect(r.ok).toBe(true); s = r.state; expect(s.readiness).toBe(2);
+    expect(C.applyAction(s, { a: 'ready', level: 5 }).ok).toBe(false);
+    expect(C.encodeCareer(5, [{ a: 'ready', level: 2 }])).toBe('C1/5/r:2');
+    expect(C.decodeCareer('C1/5/r:1')!.actions).toEqual([{ a: 'ready', level: 1 }]);
+    // over three years the same seed with mutual aid always booked loses fewer minutes than without (same storms, same faults)
+    const run = (lv: number) => { let x = C.buildDistrict(7, 'storm'); if (lv) x = C.applyAction(x, { a: 'ready', level: lv }).state; let mins = 0, cost = 0;
+      for (let q = 0; q < 12 && x.phase !== 'over'; q++) { x = C.applyAction(x, { a: 'end' }).state; const k = x.history[x.history.length - 1]; if (k) { mins += k.saidiReal; cost += k.opexParts?.ready ?? 0; } }
+      return { mins, cost }; };
+    const a = run(0), b = run(2); expect(b.mins).toBeLessThan(a.mins); expect(b.cost).toBeGreaterThan(0); expect(a.cost).toBe(0);
+  });
+  it('the forecast is deterministic and mostly right', async () => {
+    const { systemRng } = await import('../sim/rngs');
+    let right = 0, n = 0;
+    for (let sd = 1; sd <= 40; sd++) for (let t = 0; t < 8; t++) { const s = { ...C.buildDistrict(sd), t }; const f = C.stormForecast(s); expect(C.stormForecast(s)).toBe(f);
+      const storms = C.poisson(systemRng(s.seed, t, 0, 'storms'), C.WEATHER.stormRate[t % 4]!); if (f !== 'unsettled') { n++; if ((f === 'stormy') === storms > 0) right++; } }
+    expect(right / n).toBeGreaterThan(0.75);
+  });
+  it('hardening a feeder lowers its expected SAIDI through the storm uplift', () => {
+    const s = C.buildDistrict(5, 'storm'); const p = C.previewProject(s, 'harden', 'F1'); expect(p.quote.ok).toBe(true); expect(p.dSaidi).toBeLessThan(0);
+  });
+  it('a yearly tightening follows a network far better than its target, up to glideMaxPct', () => {
+    const g = C.yearStep(400, 3, { saidi: 100, saifi: 1 }); expect(g.saidi).toBeCloseTo(400 * (1 - C.INCENTIVE.glideMaxPct / 100), 6);
+    const n = C.yearStep(400, 3, { saidi: 400, saifi: 3 }); expect(n.saidi).toBeCloseTo(400 * (1 - C.INCENTIVE.targetTightenPct / 100), 6);
+  });
+});

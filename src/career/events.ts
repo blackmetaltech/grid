@@ -3,7 +3,7 @@ import { dmath } from '@core/numerics';
 import type { Rng } from '@core/kit';
 import { runCycle } from '../sim/distrib';
 import { fnv, systemRng } from '../sim/rngs';
-import { CONN, CONNECTIONS, MONEY, PEAK_DAY_SHARE, PROJECTS, SHAPES, WEATHER, WEIBULL } from './data';
+import { CONN, CONNECTIONS, MONEY, PEAK_DAY_SHARE, PROJECTS, SHAPES, WEATHER, WEIBULL, STORM } from './data';
 import { effectiveAge, failureProb, thermalYearsFromLoL } from './ageing';
 import { analyseFeeder, charterOf, wearShare, type FeederAnalysis } from './district';
 import { hourlyLoad } from './growth';
@@ -52,6 +52,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
   const rs = systemRng(s.seed, t, 0, 'storms');
   const nStorms = poisson(rs, WEATHER.stormRate[season]! * charterOf(s).storm);
   out.storms = nStorms;
+  const rl = s.readiness ?? 0, rdCi = STORM.readyCiFactor[rl]!, rdCm = STORM.readyCmFactor[rl]!;   // 1.5: readiness bought before the quarter
   for (let j = 0; j < nStorms; j++) {
     const u = rs.next(), sev = 0.5 + 2.5 * u * u, exceptional = sev > WEATHER.exceptionalSeverity;
     let ci = 0, cm = 0, nf = 0, worst = -1, worstCm = -1;
@@ -59,8 +60,8 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
       const A = an[fi]!, r = systemRng(s.seed, t, fnv(f.id) + j + 1, 'storm');
       let fcm = 0;
       f.sections.forEach((_, si) => {
-        const n = poisson(r, A.calmLambda[si]! * WEATHER.stormMult * sev * (0.5 + f.veg) * (WEATHER.stormDays / 365));
-        nf += n; ci += n * A.perFault[si]!.ci; cm += n * A.perFault[si]!.cm; fcm += n * A.perFault[si]!.cm;
+        const n = poisson(r, A.calmLambda[si]! * WEATHER.stormMult * sev * (0.5 + f.veg) * (WEATHER.stormDays / 365) * (f.hardened ? STORM.hardenFactor : 1));
+        nf += n; ci += n * A.perFault[si]!.ci * rdCi; cm += n * A.perFault[si]!.cm * rdCm; fcm += n * A.perFault[si]!.cm;
         wearAttribute(fi, si, r, n);
       });
       if (fcm > worstCm) { worstCm = fcm; worst = fi; }
@@ -168,3 +169,12 @@ export function dispatchCrew(state: CareerState, incidentId: string): ActionResu
   return ok(s, 'career.incident.crewed', { id: incidentId, saving: 20, costM: cost });
 }
 export const INCIDENT_TIE_SAVING = 0.35, INCIDENT_CREW_SAVING = 0.2;
+
+/** 1.5 storm forecast for the quarter about to be played: honest but noisy. It peeks at the quarter's own storm draw (the same rng the
+ * quarter will use) and blurs it with a separate rng, so 'stormy' usually, not always, means storms. */
+export function stormForecast(s: CareerState): 'calm' | 'unsettled' | 'stormy' {
+  const n = poisson(systemRng(s.seed, s.t, 0, 'storms'), WEATHER.stormRate[s.t % 4]! * charterOf(s).storm), u = systemRng(s.seed, s.t, 0, 'forecast').next();
+  if (n === 0) return u < 0.8 ? 'calm' : 'unsettled';
+  if (n === 1) return u < 0.15 ? 'calm' : u < 0.75 ? 'unsettled' : 'stormy';
+  return u < 0.1 ? 'unsettled' : 'stormy';
+}

@@ -35,12 +35,12 @@ export function verifyWeekly(levelId: string, code: string, budget: () => void =
 }
 
 const levels: Record<string, { metrics: MetricSpec[]; epoch: string }> = {};
-for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { metrics: METRICS, epoch: '1' };
+for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { metrics: METRICS, epoch: '2' };   // 1.5 changed scoring (storm levers, target glide): a fresh board
 
 export const verifier = {
   game: 'grid',
-  rulesVersion: '1.4.0',
-  gameVersions: ['1.4.0'],
+  rulesVersion: '1.5.0',
+  gameVersions: ['1.5.0'],
   regionRulesets: ['global'],
   levels: { global: levels },
   maxSolutionBytes: 65536,

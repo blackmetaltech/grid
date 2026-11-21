@@ -7,7 +7,8 @@ import { analyseFeeder, charterOf, conductorRow, stormUplift, toRadial, district
 import { solveRadial } from '../sim/distrib';
 import { DISTRICT } from './data';
 import { forecastPeakKw } from './growth';
-import { committedPerQuarter, crewsFree, primaryFeeders, quoteProject, reliabilityDelta, nextConductor } from './projects';
+import { committedPerQuarter, crewsFree, primaryFeeders, quoteProject, reliabilityDelta, nextConductor, previewProject } from './projects';
+import { stormForecast } from './events';
 import { applyAction, type CareerAction } from './replay';
 import { buildDistrict } from './district';
 import { careerScore } from './regulator';
@@ -166,11 +167,11 @@ export const planner: Persona = {
     const order = [...d.s.feeders].sort((x, y) => an[y.id]!.rel.saidi * y.customers - an[x.id]!.rel.saidi * x.customers).slice(0, emergency ? d.s.feeders.length : 4);
     const opts: { kind: ProjectKind; target: string; score: number; capex: number; lead: number }[] = [];
     for (const f of order) {
-      const cand: [ProjectKind, string][] = [['tieSwitch', f.id], ['recloser', f.id]];
+      const cand: [ProjectKind, string][] = [['tieSwitch', f.id], ['recloser', f.id], ['harden', f.id]];
       f.sections.forEach((sec, i) => { if (i > 0) cand.push(['remoteSwitch', sec.id]); });
       for (const [k, t] of cand) {
         const q = quoteProject(d.s, k, t); if (!q.ok) continue;
-        const pv = reliabilityDelta(d.s, k as 'tieSwitch' | 'recloser' | 'remoteSwitch', t), val = -(pv.dSaidi * INCENTIVE.cmiRateM + pv.dSaifi * INCENTIVE.cifRateM) * N;
+        const pv = k === 'harden' ? previewProject(d.s, 'harden', t) : reliabilityDelta(d.s, k as 'tieSwitch' | 'recloser' | 'remoteSwitch', t), val = -(pv.dSaidi * INCENTIVE.cmiRateM + pv.dSaifi * INCENTIVE.cifRateM) * N;
         if (val > 0) opts.push({ kind: k, target: t, score: val / (q.capexM * (behind ? 0.7 : 1)), capex: q.capexM, lead: q.leadQ });
       }
     }
@@ -183,6 +184,9 @@ export const planner: Persona = {
     }
     // 7. vegetation
     const meanVeg = d.s.feeders.reduce((x, f) => x + f.veg, 0) / d.s.feeders.length;
+    // 1.5 storm readiness by the forecast: mutual aid when storms are likely and the year is at risk, standby crews when unsettled and behind
+    const fc = stormForecast(d.s), want = fc === 'stormy' ? (behind || emergency ? 2 : 1) : fc === 'unsettled' && (behind || emergency) ? 1 : 0;
+    if (want !== (d.s.readiness ?? 0)) d.do({ a: 'ready', level: want });
     d.do({ a: 'veg', level: emergency ? (meanVeg > 0.4 ? 3 : 2) : meanVeg > 0.6 ? 2 : meanVeg < 0.25 ? 0 : 1 });
     void trueHealth;
     return d.acts;
