@@ -42,7 +42,7 @@ export const EN_CH6: Record<string, string> = {
 
   // ---- L20 Sun Goes Down
   'level.L20.title': 'Sun Goes Down',
-  'level.L20.brief': 'A desert region with 3 GW of solar and nine coal units. Serve a whole day with the frequency inside the standard range in nearly every block. At noon the sun is too much; at dusk the sun leaves just as the evening peak climbs. A gas peaker helps only once it is committed: tap it and press Start.',
+  'level.L20.brief': 'One clear desert day: 3 GW of sun and nine coal units. At dusk the sun leaves faster than coal can follow. Before 14:00, add quick flexibility (peakers ordered on, a store, or the pumps moved to noon), then run the whole day.',
   'level.L20.place': 'The desert region · one clear day',
   'level.L20.story1': 'ADA: Clear sky all day. By noon the sun carries the town. By seven it carries nothing.',
   'level.L20.story2': 'TOBI: A coal unit takes two and a half hours to get on the grid, and it cannot go below its technical minimum. That is the whole problem.',
@@ -51,10 +51,8 @@ export const EN_CH6: Record<string, string> = {
   'level.L20.dirLow': 'low', 'level.L20.dirHigh': 'high',
   'level.L20.tryBand': 'The sun leaves faster than the coal can follow. Add flexibility that is quick: peakers ordered before the ramp, a store that charges at noon and discharges at dusk, or the irrigation pumps moved to the sun.',
   'level.L20.tryBudget': 'The stores cost more than the budget. Peakers and moving the pumps are the cheaper flexibility; a pumped-hydro unit is the dearest.',
-  'coach.L20.watch': 'Press Run and watch the net load: demand minus the sun. Find the ramp at dusk.',
-  'coach.L20.watch.why': 'The coal units hold the base; the sun takes the middle of the day away from them and then leaves in two hours while the town is still switching its lights on.',
-  'coach.L20.flex': 'Add flexibility: peakers, a store, or move the irrigation pumps to noon. A peaker only helps once it is ordered on: press its button in the control-room card (on from 14:00). Four 105 MW peakers and the pumps at noon is the cheapest pass.',
-  'coach.L20.flex.why': 'A peaker is a fast gas turbine, a store holds the noon surplus for dusk, and a pump moved to noon turns a dusk load into a noon one for free.',
+  'coach.L20.flex': 'First build, then run. 1: place peakers from the tray (or a store, or move the pumps to noon). 2: order each peaker on with its button in the control-room card. 3: run the day. Four 105 MW peakers and the pumps at noon is the cheapest pass.',
+  'coach.L20.flex.why': 'The sun takes the middle of the day from the coal and leaves in two hours while the town switches its lights on; a coal unit needs two and a half hours from order to grid. A peaker is a fast gas turbine, a store holds the noon surplus for dusk, and a pump moved to noon turns a dusk load into a noon one for free.',
   'coach.L20.clock': 'Set a store to charge in the sun and discharge at dusk, or shift the pumps. Then run the day.',
   'coach.L20.clock.why': 'Charge while the sun is surplus (it would be curtailed) and discharge when the net load climbs.',
   'coach.L20.run': 'Run the whole day.',

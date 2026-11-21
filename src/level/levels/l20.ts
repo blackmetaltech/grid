@@ -59,7 +59,7 @@ export const L20: GridLevelSpec = {
   // frozen from the bot population (42 designs per region, capex only: the day's fuel is the same for every design that passes; budget = 1.1 x the dearer of lesson and reference, rounded up to 2 significant figures)
   frozen: { global: { budget: 1100000000, starA: 802860000, starB: 660690000 }, in: { budget: 30000000000, starA: 23875000000, starB: 21862500000 } },
   coach: [
-    { id: 'watch-ramp', textKey: 'coach.L20.watch', whyKey: 'coach.L20.watch.why', done: (s) => s.tick > s.levelStart + 4 },
+    // 1.8: build first (a tester followed the old "press Run and watch" step and got an hour of flat night at 50 Hz, then never built)
     { id: 'add-flex', textKey: 'coach.L20.flex', whyKey: 'coach.L20.flex.why', done: (s) => s.actionLog.some((a) => a.name === 'placeUnit' || a.name === 'placeStorage' || a.name === 'shiftLoad') },
     { id: 'clock', textKey: 'coach.L20.clock', whyKey: 'coach.L20.clock.why', done: (s) => s.actionLog.some((a) => a.name === 'setStoreClock' || a.name === 'shiftLoad') },
     { id: 'run', textKey: 'coach.L20.run', whyKey: 'coach.L20.run.why', done: (s) => s.status !== 'playing' },
