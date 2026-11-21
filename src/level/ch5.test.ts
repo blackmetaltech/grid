@@ -208,3 +208,16 @@ describe('chapter 5 fix wave: reactor dwell, thin margins, new-line length', () 
     const b = e.state.branches[e.state.branches.length - 1]!; near(b.lengthKm, 31.6, 1, 'chord km'); expect(b.x).toBeGreaterThan(0.02);
   });
 });
+
+describe('1.5 Retry keeps chapter 5 settings (controlDesign)', () => {
+  it('L14: a cap bank and automatic tap changers come back on a fresh level, with the same spend', () => {
+    const design = [...opt('L14', specOf('L14')!.sites[0]!.id, 'auto-d2'), ...opt('L14', 'capacitor', 'cap-2')].map((a) => ({ name: a.name, args: a.args ?? [] }));
+    const a = fresh('L14', 'global', design);
+    const cd = (GAME.queries!.controlDesign as any)(a.state) as { name: string; args: unknown[] }[];
+    const allowed = specOf('L14')!.allowed.actions as readonly string[];
+    const b = fresh('L14', 'global', cd.filter((x) => allowed.includes(x.name)));
+    expect(b.state.budget.spent).toBeCloseTo(a.state.budget.spent, 6);
+    expect(b.state.shunts.map((h) => [h.bus, h.catalogId, h.on])).toEqual(a.state.shunts.map((h) => [h.bus, h.catalogId, h.on]));
+    expect(b.state.branches.filter((x) => x.tap?.auto).map((x) => x.id)).toEqual(a.state.branches.filter((x) => x.tap?.auto).map((x) => x.id));
+  });
+});

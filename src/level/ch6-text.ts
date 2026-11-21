@@ -10,6 +10,13 @@ const f1 = (x: number): string => x.toFixed(1), f2 = (x: number): string => x.to
 const hh = (b: number): string => String(Math.floor((b % 96) / 4)).padStart(2, '0'), mm = (b: number): string => String((b % 4) * 15).padStart(2, '0');
 const tripped = (s: GridState): { unit: string; block: number } | null => { const e = s.events.log.find((x) => x.causeKey === 'cascade.initial-trip'); return e ? { unit: e.element, block: e.block } : null; };
 
+/** The player's chapter 6 predictions against what happened (a 1.5 tester typed a RoCoF and never saw it compared). */
+function predLines(s: GridState): string {
+  const ps = s.metrics.predictions.filter((p) => p.actual !== null);
+  return ps.map((p) => ' ' + t('level.ch6.predLine', { q: t(`level.ch6.pred.${p.id}`), predicted: Math.round(p.predicted * 1000) / 1000, actual: Math.round((p.actual as number) * 1000) / 1000, unit: p.unit,
+    off: Math.round(Math.abs(p.predicted - (p.actual as number)) / Math.max(1e-9, Math.abs(p.actual as number)) * 100) })).join('');
+}
+
 /** The shift report's consolidation line of a chapter 6 level ('' until there is something to say). */
 export function freqLesson(s: GridState, p: SimParams, th: Record<string, number>, id: string): string {
   const tr = s.metrics.track;
@@ -18,7 +25,7 @@ export function freqLesson(s: GridState, p: SimParams, th: Record<string, number
   const ev = tripped(s);
   if (!ev || tr.hSys === undefined) return '';
   const base = { unit: ev.unit, hh: hh(ev.block), mm: mm(ev.block), lost: Math.round(tr.lostMW ?? 0), s: Math.round(tr.sSys ?? 0), h: f2(tr.hSys), f0: p.f0, rocof: f2(tr.rocof0 ?? 0), headroom: Math.round(tr.headroomMW ?? 0), cover: f2(tr.reserveCover ?? 0), nadir: f2(tr.nadirHz ?? p.f0), fend: f2(tr.fEndHz ?? p.f0), shed: Math.round(tr.shedMW ?? 0) };
-  if (id === 'L19') return t('level.L19.lesson', base) + ' ' + ((tr.reserveCover ?? 0) < 1 ? t('level.L19.lessonShort', base) : t('level.L19.lessonOk', base));
+  if (id === 'L19') return t('level.L19.lesson', base) + ' ' + ((tr.reserveCover ?? 0) < 1 ? t('level.L19.lessonShort', base) : t('level.L19.lessonOk', base)) + predLines(s);
   const hs = Math.round((tr.hSys ?? 0) * (tr.sSys ?? 0));
   const l21 = t('level.L21.lesson', { ...base, hs, rocof: f2((base.lost * p.f0) / (2 * Math.max(1, hs))) });
   const slope = f2(tr.rocof500 ?? 0);

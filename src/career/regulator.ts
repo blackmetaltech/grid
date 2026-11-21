@@ -38,6 +38,10 @@ export function annualReview(s: CareerState): Review {
     key: '', params: { saidi: saidiR, saifi: saifiR, saidiYear: saidi, saifiYear: saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, incentiveM: inc },
   };
   reg.key = `career.review.regulator.${reg.grade}`;
+  if (reg.grade === 'poor') {   // say which it is: a strike toward the licence (count it) or a fine that does not count (a tester read the same threat every year)
+    reg.key = s.severeFineYears > 0 ? 'career.review.regulator.strike' : 'career.review.regulator.poorNoStrike';
+    reg.params = { ...reg.params, strike: s.severeFineYears, strikes: INCENTIVE.yearsToRevoke };
+  }
   const fin: Verdict = { axis: 'finance', who: 'Vance', grade: s.cash >= 2 ? 'good' : s.cash >= 0 ? 'ok' : 'poor', key: '', params: { cash: s.cash, rab: s.rab, arM: s.ar, creditM: MONEY.creditLimit } };
   fin.key = `career.review.finance.${fin.grade}`;
   const crew: Verdict = { axis: 'crew', who: 'Tobi', grade: bl >= 5 || health < prevHealth - 0.4 ? 'poor' : bl <= 2 && health >= prevHealth - 0.05 ? 'good' : 'ok', key: '', params: { health, prevHealth, backlog: bl } };

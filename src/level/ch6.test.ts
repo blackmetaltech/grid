@@ -209,3 +209,10 @@ describe('Retry keeps L20 peakers ordered on', () => {
     expect(JSON.stringify(b.state.units.map((u) => [u.id, u.commit.schedule.findIndex((x) => x === 1)]))).toBe(JSON.stringify(a.state.units.map((u) => [u.id, u.commit.schedule.findIndex((x) => x === 1)])));
   });
 });
+
+describe('1.5: L19 compares the player\'s prediction in the lesson', () => {
+  it('a RoCoF prediction is reported with what happened', () => {
+    const e = run(play('L19', [{ name: 'predict', args: ['rocof0', 0.5, 'Hz/s'] }]));
+    expect(info(e).lesson as string).toMatch(/You predicted the initial RoCoF 0\.5 Hz\/s; it was [\d.]+ Hz\/s \(\d+ % off\)/);
+  });
+});

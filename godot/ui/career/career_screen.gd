@@ -399,7 +399,8 @@ func _held_placeholder(parent: Control, key: String, label: String) -> bool:
 	if not _held.has(key): return false
 	var pc := PanelContainer.new(); pc.name = "Held_" + key.replace("|", "_"); pc.custom_minimum_size.y = float(_held[key])
 	pc.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.GOOD, 0.08), Color(GridTheme.GOOD, 0.5), 1, 8, 10.0, 6.0))
-	pc.add_child(CareerKit.lbl(T("CAR_STARTED") % label, 14 if compact else 15, GridTheme.GOOD, "semi", true)); parent.add_child(pc)
+	var sl := CareerKit.lbl(T("CAR_STARTED") % label, 14 if compact else 15, GridTheme.GOOD, "semi", true); sl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER; sl.size_flags_vertical = Control.SIZE_FILL
+	pc.add_child(sl); parent.add_child(pc)
 	return true
 
 func _kind_card(c: Dictionary, sz: int) -> void:

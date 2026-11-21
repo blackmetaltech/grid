@@ -20,7 +20,9 @@ export function endQuarter(state: CareerState, interactive = false): ActionResul
   if (s.phase === 'plan') {
     const out = roll(s);
     s.pending = out;
-    if (interactive && s.incidents.length) { s.phase = 'incident'; return ok(s, 'career.incidents', { count: s.incidents.length }); }
+    // pause only for incidents there is something to decide on: one that interrupted nobody (a transformer lost with its twin carrying the load) is just reported
+    const live = s.incidents.filter((x) => x.custInt > 0).length;
+    if (interactive && live) { s.phase = 'incident'; return ok(s, 'career.incidents', { count: live }); }
   }
   return settle(s);
 }

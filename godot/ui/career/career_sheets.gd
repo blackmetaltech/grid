@@ -81,6 +81,8 @@ static func incidents(sc: CareerScreen) -> void:
 			v.add_child(PaperKit.lbl(T("CAR_INC_LINE") % [str(inc.kindName), where], 20 if compact else 24, "title", PaperKit.RED))
 			v.add_child(_para(T("CAR_INC_FACTS") % [int(inc.faults), CareerKit.num(float(inc.custInt), 0), CareerKit.num(float(inc.saidiMin), 1)], compact))
 			if bool(inc.exceptional): v.add_child(PaperKit.lbl(T("CAR_INC_EXC"), 14 if compact else 16, "mono", PaperKit.AMBER, true))
+			if float(inc.custInt) <= 0.0:   # nobody was interrupted (the twin carried the load): nothing to decide, say so instead of offering buttons
+				v.add_child(_para(T("CAR_INC_NOONE"), compact, Color(PaperKit.INK, 0.7))); continue
 			var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 10); v.add_child(row)
 			var tie_txt := T("CAR_INC_TIED") if bool(inc.tied) else (T("CAR_INC_TIE") % int(sc.d.get("tieSavingPct", 35)) if bool(inc.hasTie) else T("CAR_INC_NOTIE"))
 			var tb := PaperKit.btn(tie_txt, false, func():
@@ -119,6 +121,7 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
 	if str(sc.d.get("rollingText", "")) != "": body.add_child(_para(str(sc.d.rollingText), compact, Color(PaperKit.INK, 0.8) if bool(sc.d.get("rollingOk", true)) else PaperKit.AMBER))   # the 3-year rule, before the review
 	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
+	for po in sc.d.get("plantOut", []): body.add_child(_para(str(po), compact, PaperKit.AMBER))
 	for r in sc.d.get("plantRisk", []):   # substation plant likely to fail this year: warned before the emergency bill, not after (Old Iron tester)
 		if float(r.pFail) >= 10.0: body.add_child(_para(T("CAR_RISK") % str(r.text), compact, PaperKit.RED))
 	body.add_child(_para(T("CAR_QR_HEALTH") % [n1.call(float(h.avgHealth), 1), n1.call(float(h.worstHealth), 1), n1.call(float(h.lossesMWh), 0)], compact))

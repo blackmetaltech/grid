@@ -30,6 +30,16 @@ export function buildFreqQueries(d: { getParams: (s: GridState) => SimParams }):
       if ((s.metrics.track.rideFitted ?? 0) > 0) out.push({ name: 'upgradeRideThrough', args: [] });
       return out;
     },
+    /** controlDesign: chapter 5's settings as actions for Retry (a 1.5 tester's L14 retry kept nothing: the cap bank they bought and the tap
+     * changers they put on automatic were gone while the radio said the build stood). Shunts the player placed, every shunt's steps or automatic
+     * band, every tap changer's position or automatic setting. The caller keeps only the actions the level allows. */
+    controlDesign: (s) => {
+      const out: { name: string; args: unknown[] }[] = [], pur = s.purchases ?? {};
+      for (const h of s.shunts) if (pur[h.id] !== undefined) out.push({ name: 'placeShunt', args: [h.bus, h.catalogId, h.steps] });
+      for (const h of s.shunts) out.push(h.auto ? { name: 'setShuntAuto', args: [h.id, h.auto.vLowPu, h.auto.vHighPu, h.auto.delayBlocks] } : { name: 'setShuntSteps', args: [h.id, h.on] });
+      for (const b of s.branches) if (b.tap) out.push(b.tap.auto ? { name: 'setTapAuto', args: [b.id, b.tap.auto.vSet, b.tap.auto.deadband, b.tap.auto.delayBlocks] } : { name: 'setTap', args: [b.id, b.tap.pos] });
+      return out;
+    },
     /** netForecast: net load (MW) per block of the day from the loads' shapes and the clear-sky PV model, and the steepest climb in MW/min. Shapes only: loads without one are skipped. */
     netForecast: (s) => {
       const p = d.getParams(s), doy = ((START_DOY - 1 + s.clock.day) % 365) + 1;

@@ -2,6 +2,23 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.5.0] - "Storm Plan" (tag v1.5.0; driven by docs/CRITIQUE-1.4.md; review in docs/CRITIQUE-1.5.md)
+### Added
+- **Storm levers: a storm year is now a decision, not a dice roll.**
+  - Each quarter has a **forecast**: settled, unsettled or deep lows. It is honest but noisy, read from the quarter's own storm draw and blurred.
+  - **Storm readiness** is set for the coming quarters and charged each quarter:
+    - level 0: ordinary rosters;
+    - level 1: pre-storm switching and crews on standby, storm customer-minutes −30 % and interruptions −15 %;
+    - level 2: mutual aid booked from the neighbours, minutes −55 %.
+  - **Storm hardening** is a new project on a feeder: covered conductor, wider clearance and stronger poles. It cuts storm faults on that feeder by 60 % and pays back in 3-4 years on a storm-prone district.
+  - The planner persona books readiness from the forecast.
+- Career codes gain the readiness token `r:<level>`.
+### Changed
+- **The board no longer shifts under the pointer.** After a Start, the cards keep their order, and the started card or row stays in place as a same-height "Started" placeholder until the quarter or the selection changes. Both 1.4 testers misclicked because of this.
+- **Targets follow a fast-healing network.** Each year's tightening is 1.5 %. While the network's expected SAIDI × 1.3 is well under the target, it is more, up to 8 % a year, and the review says by how much. Old Iron's targets no longer wait for the five-year reset while a rebuilt network runs far under them.
+- Over 50 Home Counties seeds the planner now reaches Chief Engineer on 18 (was 13) and beats the firefighter on 47.
+- The weekly board's rules are now 1.5.0, epoch 2: a fresh board, because scoring changed.
+
 ## [1.4.0] - "Old Iron" (tag v1.4.0; driven by docs/CRITIQUE-1.3.md; review in docs/CRITIQUE-1.4.md)
 ### Added
 - **The weekly district has a leaderboard.** It runs on the shared cobanana-scores service.

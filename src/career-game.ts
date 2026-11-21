@@ -151,6 +151,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         forecast: st.ending ? '' : stormForecast(st), forecastText: st.ending ? '' : t(`career.forecast.${stormForecast(st)}`),
         readiness: st.readiness ?? 0,
         readyLevels: [0, 1, 2].map((lv) => ({ level: lv, costQText: m(STORM.readyCostQ[lv]!), text: t(`career.ready.${lv}`, { costQ: m(STORM.readyCostQ[lv]!), cm: Math.round((1 - STORM.readyCmFactor[lv]!) * 100), ci: Math.round((1 - STORM.readyCiFactor[lv]!) * 100) }) })),
+        // plant out of service after a failure: when it is back (a tester read firm margin -100 % after the 'replacement' and took it for a bug)
+        plantOut: st.assets.filter((a) => a.cls !== 'line' && a.failed && a.outQ > 0).map((a) => t('career.plantOut', { id: a.id, n: a.outQ })),
         boardScore: Math.round(careerScore(st)), boardLevel: c.weekly ? `career.${c.weekly}` : '', code: encodeCareer(c.seed, c.actions, st.charter ?? 'standard'), actions: c.actions.length,
         charter: st.charter ?? 'standard', charterName: t(`career.charter.${st.charter ?? 'standard'}.name`), charterText: t(`career.charter.${st.charter ?? 'standard'}.text`), weekly: c.weekly ?? '',
         t: st.t, year: Math.floor(st.t / 4) + 1, quarter: (st.t % 4) + 1, quarters: ENDINGS.quarters, phase: st.phase, ending: st.ending,

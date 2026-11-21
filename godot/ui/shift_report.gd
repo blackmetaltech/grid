@@ -207,6 +207,11 @@ static func _grid_design(app: CbApp) -> Array:
 	for st in app.b.g.get("storage", []): out.append(["placeStorage", [str(st.bus), str(st.catalogId)]])   # L30: the island battery
 	var fd = app.b.q("freqDesign")   # chapter 6: units placed and held, store clocks, pumps, ride-through, in build order (the level places its own units first, so the ids come out the same)
 	if fd is Array: for a in fd: out.append([str(a.name), a.args])
+	var li = app.b.q("levelInfo"); var allowed: Array = li.get("allowedActions", []) if li is Dictionary else []
+	var cd = app.b.q("controlDesign")   # chapter 5: shunts bought, steps, tap positions and automatic settings (only what this level lets the player touch)
+	if cd is Array:
+		for a in cd:
+			if allowed.has(str(a.name)): out.append([str(a.name), a.args])
 	return out
 
 ## Rebuilds the design; returns how many steps the engine refused (the radio must not claim a design was kept when part of it was not).
