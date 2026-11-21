@@ -29,6 +29,7 @@ static func _play_until_over(app: CbApp, max_ticks: int) -> void:
 	for i in max_ticks:
 		if str(app.b.g.get("status", "playing")) != "playing": break
 		app.next_tick(); await _frames(app, 1)
+		while app.get("ticker") != null and app.ticker.busy(): await _frames(app, 1)   # 1.8: the tick runs off the main thread
 
 static func run(app: CbApp) -> void:
 	var ck := CbSmoke._check

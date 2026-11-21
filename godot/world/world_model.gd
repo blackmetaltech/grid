@@ -82,7 +82,7 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 		var p := Vector2(float(bus.x), float(bus.y)); pos[bus.id] = p; kvs[bus.id] = float(bus.kv); live[bus.id] = bool(bus.get("energised", true))
 		var v: float = float(vv[bus.id]) if vv.has(bus.id) else 0.0
 		if float(bus.demandMW) > 0.0 or float(bus.peakMW) > 0.0 or bus.kind == "load":
-			var n := clampi(6 + int(maxf(float(bus.peakMW), float(bus.demandMW)) / 4.0), 6, 40) if not has_terrain else 14   # a market town on the 50 m map: more roofs
+			var n := clampi(6 + int((float(bus.peakMW) if float(bus.peakMW) > 0.0 else float(bus.demandMW)) / 4.0), 6, 40) if not has_terrain else 14   # 1.8: from the stable peak, not live demand (a heatwave above the peak changed the house count every tick, and every change rebuilt the whole map)   # a market town on the 50 m map: more roofs
 			m.towns.append(_town(str(bus.id), str(bus.name), p, n, v, float(bus.shed), "town", 0))
 			if has_terrain:   # chapter 2: the market gets the bulb mascot; its face is the voltage band (the level's band floor from levelInfo, worried within 0.02 pu)
 				var tw: Dictionary = m.towns[-1]

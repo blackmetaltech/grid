@@ -98,12 +98,14 @@ func game_build_chrome(r: Control) -> void:
 	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
+	if QaPad.want(): var qp := QaPad.new(); qp.name = "QaPad"; add_child(qp)   # 1.8 QA: a scripted pad tour in this window (qa_pad.gd)
 	if OS.is_debug_build() and not OS.has_environment("CB_SMOKE"):   # perf log for device runs: "CB_FPS fps=.. min=.." every 5 s (logcat / stdout)
 		var tm := Timer.new(); tm.wait_time = 5.0; tm.autostart = true; add_child(tm)
 		tm.timeout.connect(func():
 			var pf: Dictionary = grid_world.perf if grid_world != null else {}
 			var fr := maxf(1.0, float(Engine.get_frames_per_second()) * 5.0)
-			print("CB_FPS fps=%d frame_ms=%.1f level=%s static_ms=%.1f dyn_ms=%.2f top_ms=%.2f model_ms=%.1f models=%d static_n=%d homes_n=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, str(b.q("levelInfo").get("id", "-")) if started else "title", float(pf.get("static_us", 0)) / 1000.0, float(pf.get("dyn_us", 0)) / 1000.0 / fr, float(pf.get("top_us", 0)) / 1000.0 / fr, float(pf.get("model_us", 0)) / 1000.0 / maxf(1.0, float(pf.get("models", 1))), int(pf.get("models", 0)), int(pf.get("static_n", 0)), int(pf.get("homes_n", 0))])
+			print("CB_FPS fps=%d frame_ms=%.1f level=%s static_ms=%.1f dyn_ms=%.2f top_ms=%.2f model_ms=%.1f models=%d static_n=%d homes_n=%d tick=%s" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, str(b.q("levelInfo").get("id", "-")) if started else "title", float(pf.get("static_us", 0)) / 1000.0, float(pf.get("dyn_us", 0)) / 1000.0 / fr, float(pf.get("top_us", 0)) / 1000.0 / fr, float(pf.get("model_us", 0)) / 1000.0 / maxf(1.0, float(pf.get("models", 1))), int(pf.get("models", 0)), int(pf.get("static_n", 0)), int(pf.get("homes_n", 0)), ("busy%d/applied%d/dropped%d/apply_ms%d/speed%d" % [int(ticker.busy()), ticker.applied, ticker.dropped, ticker.apply_us / 1000, speed]) if ticker != null else "-"])
+			if ticker != null: ticker.apply_us = 0
 			if grid_world != null: for k in grid_world.perf: grid_world.perf[k] = 0)
 func game_chrome_visible(v: bool) -> void:
 	if chrome != null: chrome.set_chrome_visible(v)
@@ -184,7 +186,27 @@ func _skin_pin() -> void:
 	if t.text != tt: t.text = tt
 	if sub.text != ss: sub.text = ss
 
+## 1.8: the tick runs on a worker thread (ui/grid_ticker.gd), so no frame waits on the sidecar. CB_SYNC_TICK=1 (and the CB_SMOKE run) keep the shell's blocking tick.
+var ticker: GridTicker
+func next_tick() -> void:
+	if OS.has_environment("CB_SYNC_TICK") or OS.has_environment("CB_SMOKE"): super(); return   # the shell smoke checks the tick a frame after Space; tests/ticker_flow.gd covers the worker path
+	if ticker == null: ticker = GridTicker.new(b); tree_exiting.connect(func(): if ticker != null: ticker.finish())
+	if not started or str(b.g.get("status", "playing")) != "playing" or ticker.busy(): return
+	audio.play("tick")
+	ticker.start()
+
+func _poll_tick() -> void:
+	if ticker == null: return
+	var res := ticker.poll()
+	if res.is_empty(): return
+	if not bool(res.ok): toast(str(res.message), "bad"); return
+	var ms: Array = res.missions
+	if ms.is_empty(): return
+	banner.text = tr("MISSION_BANNER") % [ms[0].title, ms[0].get("lesson", "")]; _banner_life = 4.5; audio.play("win")
+	_claim()   # any further finished missions (rare)
+
 func _process(dt: float) -> void:
+	_poll_tick()
 	super(dt)
 	if _bullet_until > 0 and Time.get_ticks_msec() > _bullet_until: _bullet_until = 0; cfg.tick_seconds = TICKS_NORMAL.duplicate()
 	if _pin_kind != "" and chrome != null and chrome.pin != null and started:
