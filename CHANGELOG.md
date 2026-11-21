@@ -18,6 +18,12 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **Targets follow a fast-healing network.** Each year's tightening is 1.5 %. While the network's expected SAIDI × 1.3 is well under the target, it is more, up to 8 % a year, and the review says by how much. Old Iron's targets no longer wait for the five-year reset while a rebuilt network runs far under them.
 - Over 50 Home Counties seeds the planner now reaches Chief Engineer on 18 (was 13) and beats the firefighter on 47.
 - The weekly board's rules are now 1.5.0, epoch 2: a fresh board, because scoring changed.
+- After the full-campaign regression playtest (a returning student who last played 1.0 sampled one level per chapter plus the finale's first day and three Storm Coast years: 7 of 9 levels passed first try, 0 script errors):
+  - **Retry keeps chapter 5's settings.** L14's cap bank and automatic tap changers were dropped while the radio said the build still stood; a new `controlDesign` query rebuilds shunts, steps, tap positions and automatic modes.
+  - L19's lesson compares the player's RoCoF (or nadir, settled frequency, shed) prediction with what happened.
+  - The regulator names the licence strike ("strike 2 of 3"), or says plainly that a fine does not count toward the licence. Before, the same threat was printed every poor year.
+  - A transformer out of service after a failure says when it will be back, so firm margin −100 % is explained.
+  - An incident that interrupted nobody no longer asks for a decision.
 
 ## [1.4.0] - "Old Iron" (tag v1.4.0; driven by docs/CRITIQUE-1.3.md; review in docs/CRITIQUE-1.4.md)
 ### Added
