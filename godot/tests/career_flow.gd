@@ -58,6 +58,7 @@ static func run(app: CbApp) -> void:
 	Career.path = "user://career_flow_test.cfg"; Career.forget()
 	GridUi.load_strings()
 	# --- entry: the title has a Career line; its docket offers New career only while nothing is saved ---
+	CareerScreen.guide_all = false
 	app.to_title(); await _frames(app)
 	var title: Control = app.root.get_node_or_null("title")
 	ck.call(title != null and _node(title, "Line_career") != null, "career flow: the title has a Career line")
@@ -75,6 +76,9 @@ static func run(app: CbApp) -> void:
 	# --- strip: year label, 40 pips, End quarter, readouts ---
 	ck.call(sc.year_lbl.text.contains("1") and int(sc.timeline.d.quarters) == 40 and sc.end_btn != null and not sc.end_btn.disabled, "career flow: the strip shows year 1 quarter 1, the 40-quarter timeline and End quarter")
 	ck.call(sc.bar_saidi.target > 0.0 and sc.bar_saifi.target > 0.0 and sc.stats.cash.text.begins_with("$"), "career flow: cash and SAIDI / SAIFI against target are shown (%s)" % str(sc.stats.cash.text))
+	ck.call(_node(sc.drawer, "GuideCard") != null and _node(sc.drawer, "VegCard") == null and _node(sc.drawer, "Card_recloser") == null, "career flow: quarter 1 is guided: one job, the other tools held back")
+	ck.call(not sc.sel.is_empty(), "career flow: quarter 1 picks the weakest asset on the map")
+	ck.call(_press(app, sc.drawer, "GuideAll"), "career flow: Show every tool ends the guide"); await _frames(app, 2)
 	# --- map: every feeder has points; a tap on a section selects it; the board lights up for it ---
 	var pk := sc.map.point_of({"type": "section", "id": "F1.2"})
 	ck.call(pk.x > 0.0 and sc.map.pick_at(pk).get("id", "") == "F1.2", "career flow: the map puts F1.2 on screen and picks it (%s)" % str(pk))

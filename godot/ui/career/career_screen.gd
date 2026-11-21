@@ -147,13 +147,41 @@ func _say(text: String, good: bool) -> void:
 
 ## One engine action; the result sentence goes under the map, the career code is saved, every panel refreshes.
 func act(name_: String, args: Array) -> Dictionary:
+	var fo := get_viewport().gui_get_focus_owner(); var fname := str(fo.name) if fo != null and is_ancestor_of(fo) else ""
 	var r: Dictionary = app.b.act(name_, args)
 	msg = str(r.get("message", "")); msg_good = bool(r.get("ok", false))
 	# 1.7: money sounds like money: a register for a project started, the ledger closing at the end of a quarter
 	app.sfx(("spend" if name_ == "careerProject" else ("quarter" if name_ == "careerEndQuarter" else "confirm")) if msg_good else "bad")
 	Career.save(app)
 	refresh()
+	if fname != "" and CbKit.pad_mode: _refocus.call_deferred(fname)   # 1.8 pad: the rebuilt board keeps the focus on the same control
 	return r
+
+func _refocus(fname: String) -> void:
+	var n := find_child(fname, true, false)
+	if n is Control and (n as Control).is_visible_in_tree(): (n as Control).grab_focus()
+
+## 1.8 pad: LB / RB walk the map's pickables (the primaries, then every feeder section) since a pad cannot tap the map.
+func pickables() -> Array:
+	var out: Array = []
+	for p in d.get("primaries", []): out.append({"type": "primary", "id": str(p.id)})
+	for f in d.get("feeders", []):
+		for sct in f.sections: out.append({"type": "section", "id": str(sct.id), "feeder": str(f.id)})
+	return out
+
+func pad_walk(dir: int) -> void:
+	var all := pickables()
+	if all.is_empty(): return
+	var at := -1
+	for i in all.size():
+		if str(all[i].type) == str(sel.get("type", "")) and str(all[i].id) == str(sel.get("id", "")): at = i
+	_on_pick(all[posmod(at + dir, all.size()) if at >= 0 else (0 if dir > 0 else all.size() - 1)])
+
+func _input(e: InputEvent) -> void:
+	if not (e is InputEventJoypadButton) or not e.pressed or not CbPad.enabled or app.modal() != self: return
+	var jb := e as InputEventJoypadButton
+	if jb.button_index == JOY_BUTTON_LEFT_SHOULDER or jb.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+		pad_walk(-1 if jb.button_index == JOY_BUTTON_LEFT_SHOULDER else 1); get_viewport().set_input_as_handled()
 
 func refresh() -> void:
 	var q = app.b.q("career")
@@ -258,7 +286,7 @@ func _build_info() -> void:
 				var al := CareerKit.lbl(_asset_line(a[2], str(a[0])), sz - 1, GridTheme.TEXT, "sans", true); rr.add_child(al)
 				var ib2 := CareerKit.btn(T("CAR_INSPECT") % str(a[0]), false, func(): act("careerInspect", [str(a[0])]), 14); ib2.name = "Inspect"; rr.add_child(ib2)
 	else:
-		if msg == "": info_box.add_child(CareerKit.lbl(T("CAR_SEL_NONE"), sz, Color(GridTheme.TEXT, 0.75), "sans", true))
+		if msg == "": info_box.add_child(CareerKit.lbl(T("CAR_SEL_NONE_PAD") if CbKit.pad_mode else T("CAR_SEL_NONE"), sz, Color(GridTheme.TEXT, 0.75), "sans", true))
 
 func _feeder_text(f: Dictionary) -> String:
 	var s: String = T("CAR_FDR_INFO") % [str(f.id), str(primary_of(str(f.primaryId)).get("name", f.primaryId)), int(f.customers), int(f.peakKw), CareerKit.num(float(f.loadingPct), 0), CareerKit.num(float(f.minV), 2), CareerKit.num(float(f.saidi), 0), CareerKit.num(float(f.saifi), 2)]
@@ -367,12 +395,47 @@ func _asset_of(id: String) -> Dictionary:
 		if str(p.switchgear.id) == id: return p.switchgear
 	return {}
 
+## 1.8 the guided first year (the fun critic's lowest score was the Career's first screen: "a spreadsheet for a newcomer"). Quarter 1 shows one
+## job (the weakest asset, picked on the map) and End quarter; the readiness card opens in quarter 2, tree cutting in 3, every project in 4.
+## "Show every tool now" ends the guide for this session. Quarter 5 on, the board is the full one.
+static var guide_all := false
+func guided() -> int:
+	if guide_all or d.get("ending") != null or int(d.get("t", 99)) >= 4: return -1
+	return int(d.t)
+
+func _guide_card(sz: int, gq: int, hidden: int) -> void:
+	var v := CareerKit.card(drawer_body, GridTheme.SODIUM); v.get_parent().name = "GuideCard"
+	v.add_child(CareerKit.lbl(T("CAR_GUIDE_T") % (gq + 1), sz + 1, GridTheme.SODIUM, "semi", true))
+	var body := ""
+	if gq == 0:
+		var w := worst_assets(1)
+		if not (d.projects as Array).is_empty(): body = T("CAR_GUIDE_Q1_DONE")
+		elif w.is_empty(): body = T("CAR_GUIDE_Q1_NONE")
+		else: body = T("CAR_GUIDE_Q1") % [str(w[0].id), str(w[0].capexText)]
+	else: body = T("CAR_GUIDE_Q%d" % (gq + 1))
+	var bl := CareerKit.lbl(body, sz, GridTheme.TEXT, "sans", true); bl.name = "GuideText"; v.add_child(bl)
+	if hidden > 0: v.add_child(CareerKit.lbl(T("CAR_GUIDE_MORE") % hidden, sz - 2, Color(GridTheme.TEXT, 0.55), "sans", true))
+	var all := CareerKit.btn(T("CAR_GUIDE_ALL"), false, func(): guide_all = true; _build_drawer(), sz - 1); all.name = "GuideAll"; all.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(all)
+
 func _board_tab() -> void:
 	if int(d.t) != _held_t: _held.clear(); _held_t = int(d.t); _rows_prev = []
 	var sz := 14 if compact else 15
-	_ready_card(sz)
-	_veg_card()
-	_worst_card(sz)
+	var gq := guided()
+	if gq == 0 and sel.is_empty():   # quarter 1: the weakest asset is already picked on the map
+		var w := worst_assets(1)
+		if not w.is_empty(): sel = _asset_pick(str(w[0].id)); map.sel = sel; map.queue_redraw(); _build_info()
+	if gq >= 0:
+		var kinds := (board.get("kinds", []) as Array).size()
+		var hidden := (0 if gq >= 1 else 1) + (0 if gq >= 2 else 1) + (0 if gq >= 3 else kinds)
+		_guide_card(sz, gq, hidden)
+		if gq >= 1: _ready_card(sz)
+		if gq >= 2: _veg_card()
+		_worst_card(sz)
+		if gq < 3: return
+	else:
+		_ready_card(sz)
+		_veg_card()
+		_worst_card(sz)
 	var t := str(sel.get("type", ""))
 	var head := T("CAR_BOARD_NONE")
 	if t == "section": head = T("CAR_TARGET_IS") % (T("CAR_SEC_TITLE") % str(sel.id))

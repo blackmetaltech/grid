@@ -17,13 +17,21 @@ const S := {
 	"CAR_COLOUR_BY": "colour by", "CAR_BY_LOAD": "Loading", "CAR_BY_HEALTH": "Health", "CAR_LEG_LOAD": "Loading of the feeder at this quarter's peak (winter is the highest): green under 70 %, amber to 100 %, red above.", "CAR_LEG_HEALTH": "Health of each section, 1 (worn out) to 10 (new).",
 	"CAR_LEG_BADGES": "T tie  R recloser  H storm-hardened  V regulator  B battery  D demand response  x patched, replace it", "CAR_FEEDER_LABEL": "%s  %d %%", "CAR_FEEDER_LABEL_H": "%s", "CAR_FIRM_TAG": "firm margin %s %%",
 	# selection panel
-	"CAR_SEL_NONE": "Tap a section, a feeder line or a primary on the map to look at it and to choose where a project goes.", "CAR_SEC_TITLE": "Section %s", "CAR_SEC_INFO": "%s km of %s wire, %s.",
+	"CAR_SEL_NONE_PAD": "LB / RB: walk the map (primaries, then every feeder section) to choose where a project goes.", "CAR_SEL_NONE": "Tap a section, a feeder line or a primary on the map to look at it and to choose where a project goes.", "CAR_SEC_TITLE": "Section %s", "CAR_SEC_INFO": "%s km of %s wire, %s.",
 	"CAR_DEV_none": "no switch", "CAR_DEV_manual": "manual switch at its head", "CAR_DEV_remote": "remote switch at its head", "CAR_DEV_fuse": "fuse at its head",
 	"CAR_FDR_INFO": "Feeder %s from %s: %d customers, peak %d kW, loading %s %%, lowest voltage %s pu. SAIDI %s min, SAIFI %s a year (expected).", "CAR_HAS": "Has: %s.", "CAR_HAS_NONE": "No tie, recloser, regulator, battery or demand response yet.",
 	"CAR_B_tie": "tie", "CAR_B_recloser": "recloser", "CAR_B_harden": "storm-hardened", "CAR_B_regulator": "regulator", "CAR_B_battery": "battery %d kW", "CAR_B_dr": "demand response %d kW", "CAR_VVIOL": "Voltage outside the band at the far end.",
 	"CAR_ASSET_HEALTH": "%s: health %s of 10, %s.", "CAR_INSPECTED": "inspected", "CAR_ESTIMATE": "estimate, not inspected", "CAR_FAILED": "OUT OF SERVICE, back in %d quarters", "CAR_PATCHED": "patched after a fault, still wearing: replace it for a proper fix", "CAR_INSPECT": "Inspect %s",
 	"CAR_PRIMARY_INFO": "%s: peak %s MVA, firm capacity %s MVA (the biggest unit out), firm margin %s %%.", "CAR_UNIT": "%s, %s MVA", "CAR_SWGEAR": "%s switchgear",
 	# drawer
+	# 1.8 the guided first year: one job per quarter, the other tools open as the year goes on
+	"CAR_GUIDE_T": "YEAR ONE · QUARTER %d OF 4: WHAT TO DO", "CAR_GUIDE_ALL": "Show every tool now", "CAR_GUIDE_MORE": "%d more tools open later this year (or show them all now).",
+	"CAR_GUIDE_Q1": "1  Your weakest asset is %s: it is picked on the map.\n2  Press Start on its row below (%s, one crew).\n3  Press End quarter at the top right. A quarter is three months; the regulator reviews you after quarter 4.",
+	"CAR_GUIDE_Q1_NONE": "1  Pick a feeder on the map.\n2  Start a project on it.\n3  Press End quarter at the top right.",
+	"CAR_GUIDE_Q1_DONE": "Started. Now press End quarter at the top right and see what the three months bring.",
+	"CAR_GUIDE_Q2": "Storm season. Read the forecast in the readiness card and pick a level: standby crews cut the hours lost in a storm and cost money every quarter. Then End quarter.",
+	"CAR_GUIDE_Q3": "Trees on the lines cause most feeder faults. The tree-cutting card sets the budget per feeder per quarter; a higher level means fewer faults next year. Then End quarter.",
+	"CAR_GUIDE_Q4": "Every project is open now. Pick a feeder or a substation on the map, read the cards, start what buys the most minutes for the money. After this quarter the regulator compares your SAIDI with the target.",
 	"CAR_WORST": "Worst assets: replace for the biggest gain", "CAR_WORST_ROW": "%s  health %s%s", "CAR_WORST_PATCH": ", patched", "CAR_WORST_GAIN": "SAIDI %s min", "CAR_WORST_NONE": "Nothing is worth replacing right now.", "CAR_TAB_BOARD": "Board", "CAR_TAB_RUN": "Running %d", "CAR_TAB_REQ": "Requests %d", "CAR_BOARD_NONE": "Choose a target on the map: cards light up for what can be built there.", "CAR_TARGET_IS": "Target: %s",
 	"CAR_TGT_section": "a section", "CAR_TGT_feeder": "a feeder", "CAR_TGT_primary": "a primary", "CAR_TGT_asset": "an asset", "CAR_NEEDS": "Pick %s on the map.", "CAR_START": "Start", "CAR_COST_LINE": "%s, %d quarters, %d crew",
 	"CAR_FROM": "from %s", "CAR_ON": "on %s", "CAR_CANT": "Not possible here", "CAR_OPTIONS": "%d places", "CAR_QUOTE_FAIL": "Not here",
