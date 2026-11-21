@@ -2,6 +2,32 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.6.0] - "Truth Pass" (tag v1.6.0; driven by docs/CRITIQUE-1.5.md; review in docs/CRITIQUE-1.6.md)
+### Added
+- **Text truth test.** Every clock time and every quantity that a level's brief, place line, story, coach line, "why?" or debrief template quotes is checked against the engine. The test runs on all levels in both packs and replays each level's lesson build.
+  - Times must be ones the engine uses: the start and end, scripted events, `*Block` fields, and the blocks where the load steps.
+  - Quantities must match state, levelInfo or the chapter data tables to the printed precision. The few numbers a sentence derives (a rated current, a capacitor size) are listed with the engine function that gives them.
+  - A control case checks that invented numbers and times are caught.
+- **Storm Coast, the passive player:**
+  - When cash sits idle while SAIDI heads past its target, the quarter report names the free cash and what readiness or hardening would buy.
+  - Readiness shows its running cost and what has been spent on it so far.
+  - After a settled forecast, the quarter report offers a **Stand readiness down** button.
+- **L27 breaker sizing from the givens.** The givens card now lists the grown board's Z1, Z2, Z0 and I_b, so the breaker rating can be worked out rather than guessed.
+### Fixed
+- Found by the text truth test:
+  - L19's coach said to run to 22:30; the shift ends at 21:30.
+  - L19's place line said 20:00 for a shift that starts at 16:00, which explains the "16:00" stamp on the coach card. The brief now says both times.
+  - The finale's debrief printed the frequency band as 49.90-50.05 Hz in every pack. It now prints the band the count used (49.95 in `global`).
+  - The finale's "about 760 MVAr" for the 400 kV ring is now computed from the line data.
+- L07's debrief names the supply point's P (what the card shows) next to the loads' P, and the feeder losses between them.
+- L23's fault result was drawn under the prediction box ("(1726 MVA)" peeking out). It now sits beside the unit label.
+- **Retry keeps chapter 7's designs and the player's predictions.** After a Retry, L27 used to say "0 of 0 predictions" while the boxes still showed the old numbers, and it reset the dispatch and breaker without a word.
+- L36's lamps read "Mean prediction error ≤ …" (was "Score ≤ …"). Its result card prints the error in % rather than as money ("$0").
+- The finale's debrief says that the short dips after a trip are reported, not counted against the band (a tester read "dipped 4 times" against "0 blocks outside").
+### Changed
+- **The speed dial is now three full-width keys, 1× 2× 4×, each about 60 px square.** The old knob's notches were a 16 px target.
+- The weekly board's verifier accepts game version 1.6.0 on the same rules (1.5.0, epoch 2): 1.6 changed no scoring rule.
+
 ## [1.5.0] - "Storm Plan" (tag v1.5.0; driven by docs/CRITIQUE-1.4.md; review in docs/CRITIQUE-1.5.md)
 ### Added
 - **Storm levers: a storm year is now a decision, not a dice roll.**
