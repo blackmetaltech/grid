@@ -45,4 +45,9 @@ describe('ui queries', () => {
     expect(r.metricKey).toBe('hist.metric.lossPct'); expect(r.label).toBe('Every design the job allows (offline sample, not real players yet)'); expect(r.histogram).toBe('lossPct');
     expect((start('P0').q('resultCard') as any).active).toBe(false);
   }, 60000);
+  it('1.7: an exam with nothing to build (L13) has no build-cost card', () => {
+    const r = start('L13').q('resultCard') as any;
+    expect(r.active).toBe(false); expect(r.noBuild).toBe(true);
+    expect((start('L07', 4).q('resultCard') as any).noBuild).toBeUndefined();
+  }, 60000);
 });

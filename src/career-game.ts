@@ -141,6 +141,18 @@ function stormAdvice(st: CareerState, m: (x: number) => string, ytdSaidi: number
   return { readyRunText, standDownText, stormNudgeText };
 }
 
+/** 1.7 HUD alarm (fun-critic tester: "it needs a visible alarm on the HUD, not text inside a scrolling report"): when the year, projected over its
+ * expected rest and averaged as the regulator will average it, ends over the SAIDI target. It says whether that would be a licence strike (the
+ * same test as regulator.ts: the network's fair-weather SAIDI or SAIFI is over target) and how many strikes are already on the books. */
+function strikeAlarm(st: CareerState, ytdSaidi: number, exp: { saidi: number; saifi: number }): string {
+  if (st.ending) return '';
+  const inP = Math.floor(st.t / 4) % INCENTIVE.periodYears, k = Math.min(INCENTIVE.rollingYears - 1, inP), past = k > 0 ? st.reviews.slice(-k).map((r) => r.saidi) : [];
+  const thisYear = ytdSaidi + exp.saidi * (4 - (st.t % 4)) / 4, avg = (past.reduce((a, b) => a + b, 0) + thisYear) / (past.length + 1);
+  if (avg <= st.saidiTarget) return '';
+  const inadequate = exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget;
+  return t(inadequate ? 'career.alarm.strike' : 'career.alarm.fine', { avg: r1(avg), target: r1(st.saidiTarget), strike: st.severeFineYears + 1, strikes: INCENTIVE.yearsToRevoke, exp: r1(exp.saidi) });
+}
+
 function plantWhy(st: CareerState, kind: ProjectKind, target: string): string | null {
   const a = st.assets.find((x) => x.id === target);
   if (kind !== 'replaceAssets' || !a || a.cls === 'line') return null;
@@ -172,6 +184,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         forecast: st.ending ? '' : stormForecast(st), forecastText: st.ending ? '' : t(`career.forecast.${stormForecast(st)}`),
         readiness: st.readiness ?? 0,
         ...stormAdvice(st, m, ytdSaidi, exp.saidi),
+        alarmText: strikeAlarm(st, ytdSaidi, exp), alarmStrike: !st.ending && (exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget) && strikeAlarm(st, ytdSaidi, exp) !== '',
         readyLevels: [0, 1, 2].map((lv) => ({ level: lv, costQText: m(STORM.readyCostQ[lv]!), text: t(`career.ready.${lv}`, { costQ: m(STORM.readyCostQ[lv]!), cm: Math.round((1 - STORM.readyCmFactor[lv]!) * 100), ci: Math.round((1 - STORM.readyCiFactor[lv]!) * 100) }) })),
         // plant out of service after a failure: when it is back (a tester read firm margin -100 % after the 'replacement' and took it for a bug)
         plantOut: st.assets.filter((a) => a.cls !== 'line' && a.failed && a.outQ > 0).map((a) => t('career.plantOut', { id: a.id, n: a.outQ })),

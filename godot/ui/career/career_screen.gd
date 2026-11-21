@@ -27,6 +27,7 @@ var compact := false
 var map: CareerMap
 var timeline: CareerTimeline
 var bar_saidi: CareerBar
+var alarm_lbl: Label   ## 1.7: "SAIDI is heading for ... strike 2 of 3" on the main screen, not only in the quarter report
 var bar_saifi: CareerBar
 var year_lbl: Label
 var charter_lbl: Label   ## the district's charter (DESIGN-1.3) under the year, and 'this week' for the weekly district
@@ -96,6 +97,7 @@ func _build_strip() -> Control:
 	timeline = CareerTimeline.new(); timeline.compact = compact; timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL; timeline.custom_minimum_size.y = 30 if compact else 40; r1.add_child(timeline)
 	end_btn = CareerKit.btn(T("CAR_END_Q"), true, _on_end, 17 if compact else 20); end_btn.name = "EndQuarter"; r1.add_child(end_btn)
 	stat_box = HBoxContainer.new(); stat_box.add_theme_constant_override("separation", 16 if compact else 26); v.add_child(stat_box)
+	alarm_lbl = CareerKit.lbl("", 13 if compact else 15, GridTheme.BAD, "semi", true); alarm_lbl.name = "StrikeAlarm"; alarm_lbl.visible = false; v.add_child(alarm_lbl)   # 1.7: the strike risk on the HUD
 	stats["cash"] = _stat(T("CAR_CASH"), 150 if compact else 200)
 	stats["owed"] = CareerKit.lbl("", 11 if compact else 13, Color(GridTheme.TEXT, 0.62), "mono"); (stats.cash as Label).get_parent().add_child(stats.owed)   # what the projects building still owe, and the cash after
 	bar_saidi = CareerBar.new(); bar_saidi.compact = compact; bar_saidi.name = "BarSaidi"; bar_saidi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saidi)
@@ -147,7 +149,8 @@ func _say(text: String, good: bool) -> void:
 func act(name_: String, args: Array) -> Dictionary:
 	var r: Dictionary = app.b.act(name_, args)
 	msg = str(r.get("message", "")); msg_good = bool(r.get("ok", false))
-	app.sfx("confirm" if msg_good else "bad")
+	# 1.7: money sounds like money: a register for a project started, the ledger closing at the end of a quarter
+	app.sfx(("spend" if name_ == "careerProject" else ("quarter" if name_ == "careerEndQuarter" else "confirm")) if msg_good else "bad")
 	Career.save(app)
 	refresh()
 	return r
@@ -170,6 +173,8 @@ func refresh() -> void:
 	(stats.owed as Label).text = T("CAR_CASH_OWED") % [str(d.get("owedText", "")), str(d.get("cashAfterText", ""))] if str(d.get("owedText", "")) != "" and float(d.get("committedQ", 0.0)) > 0.0 else ""
 	(stats.owed as Label).add_theme_color_override("font_color", Color(GridTheme.TEXT, 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else GridTheme.BAD)
 	bar_saidi.set_vals(T("CAR_SAIDI"), float(d.ytd.saidi), float(d.targets.saidi), float(d.expected.saidi), 1)
+	var al := str(d.get("alarmText", "")); alarm_lbl.text = "⚠  " + al if al != "" else ""; alarm_lbl.visible = al != ""
+	alarm_lbl.add_theme_color_override("font_color", GridTheme.BAD if bool(d.get("alarmStrike", false)) else GridTheme.WARN)
 	bar_saifi.set_vals(T("CAR_SAIFI"), float(d.ytd.saifi), float(d.targets.saifi), float(d.expected.saifi), 2)
 	(stats.health as Label).text = T("CAR_HEALTH_VAL") % [CareerKit.num(float(d.health), 1), CareerKit.num(float(d.startHealth), 1)]
 	(stats.crews as Label).text = T("CAR_CREWS_VAL") % [int(d.crewsFree), int(d.crews)]

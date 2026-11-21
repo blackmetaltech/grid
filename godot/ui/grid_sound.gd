@@ -15,6 +15,8 @@ var _lit := {}                 ## "town:index" -> bool
 var _mood := ""
 var _music := false
 var _vol_sig := ""
+var _in_svc := -1             ## lines in service at the last refresh (a drop while the clock runs is a trip)
+var _dark := false            ## blackout at the last refresh
 
 func setup(a: CbApp) -> void:
 	app = a
@@ -75,7 +77,7 @@ func on_changed(model: Dictionary) -> void:
 	var c = app.b.q("clock"); var tick: int = int(c.tick) if c is Dictionary and not c.is_empty() else -1
 	var cur_lit := _snapshot(model); var mood := overall_mood(model)
 	if fresh:   # a new job: no sounds for what was already true, then the music and the hum begin
-		_level = lvl; _music = true; _tick = tick; _lit = cur_lit; _mood = mood
+		_level = lvl; _music = true; _tick = tick; _lit = cur_lit; _mood = mood; _in_svc = _lines_in(model); _dark = bool(model.get("blackout", false))
 		audio.set_cute(GridSettings.cute); audio.set_hum_volume(-6.0); audio.start_music()
 	else:
 		if kind == "bench" and tick > _tick: audio.cable_tick()
@@ -91,9 +93,20 @@ func on_changed(model: Dictionary) -> void:
 		if mood == "happy" and (_mood == "sad" or _mood == "asleep"): _later(0.07 * k + 0.2, func(): audio.play("cheer"))
 		elif mood == "sad" and _mood != "sad": audio.play("aww")
 		_lit = cur_lit; _mood = mood
+		# 1.7: a protection trip and a blackout are heard, not only seen (they were silent)
+		var n_in := _lines_in(model); var dark := bool(model.get("blackout", false))
+		if dark and not _dark: audio.play("blackout")
+		elif n_in >= 0 and _in_svc >= 0 and n_in < _in_svc and app.speed > 0: audio.play("trip")
+		_in_svc = n_in; _dark = dark
 	var stress := float(MOOD_STRESS.get(mood, 0.2))
 	if kind == "grid": stress = 1.0 if bool(model.get("blackout", false)) else 0.2
 	audio.set_stress(stress)
+
+static func _lines_in(model: Dictionary) -> int:
+	var n := 0
+	for l in model.get("lines", []):
+		if bool((l as Dictionary).get("in_service", true)): n += 1
+	return n
 
 func _later(delay: float, f: Callable) -> void:
 	if delay <= 0.0 or not is_inside_tree(): f.call(); return

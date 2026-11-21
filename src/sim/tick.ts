@@ -358,7 +358,7 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       for (const k of Object.keys(res.state) as (keyof GridState)[]) (s as unknown as Record<string, unknown>)[k] = res.state[k];
       s.block.eventWindow = true; s.block.trips = real;
       s.clock.phase = 'event';
-      log(s, t('log.eventWindow', { n: real.length, ids: real.join(', ') }), 'bad');
+      log(s, t('log.eventWindow', { n: real.length, ids: real.map((id) => elementName(s, id)).join(', ') }), 'bad');
     } },
 
     // 11. blockFrequency: quasi-steady frequency from the imbalance (when no event window ran), UFLS stages.
@@ -492,4 +492,14 @@ export function buildPipeline(getParams: (s: GridState) => SimParams, getBench?:
       if (over > 0) s.history.entries.splice(0, over);
     } },
   ];
+}
+
+/** 1.7: an element named for the log ("T27, the Capital 400 / Capital 220 transformer"); the finale ticker printed bare ids (T27, U1, U5). */
+export function elementName(s: Readonly<GridState>, id: string): string {
+  const bus = (b: string): string => s.buses.find((x) => x.id === b)?.name || b;
+  const br = s.branches.find((x) => x.id === id);
+  if (br) return t(br.kind === 'xfmr' ? 'log.el.xfmr' : 'log.el.line', { id, from: bus(br.from), to: bus(br.to) });
+  const u = s.units.find((x) => x.id === id);
+  if (u) return t('log.el.unit', { id, kind: t(`unitKind.${u.kind}`), at: bus(u.bus) });
+  return id;
 }

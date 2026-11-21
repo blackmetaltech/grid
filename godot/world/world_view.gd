@@ -99,7 +99,14 @@ func set_model(m: Dictionary) -> void:
 		if not first: _zoom = 1.0; _pan = Vector2.ZERO
 	_night = float(m.night); _gain = WorldMath.lights_gain(_night); _nl = WorldMath.ground_light(_night)
 	var key := JSON.stringify([_sig, snappedf(_night, 0.01), cute, m.lines.map(func(l): return [l.band, l.in_service, l.get("mm2")])])
-	if key != _static_key: _static_key = key; repaint_static()
+	if key != _static_key:
+		# 1.7 perf: a change of topology repaints at once; a change of light or loading band only (dusk, dawn, load following) is coalesced
+		# to at most STATIC_HZ repaints a second. At 4x the finale repainted the island 4-5 times a second (each 0.01 of night, each band change): 1.2-1.75 s of static
+		# painting per 5 s on the desk.
+		var topo := _static_key == "" or not _static_key.begins_with(JSON.stringify([_sig]).trim_suffix("]"))
+		_static_key = key
+		if topo or Time.get_ticks_msec() - _static_at >= 1000.0 / STATIC_HZ: _static_at = Time.get_ticks_msec(); _static_pending = false; repaint_static()
+		else: _static_pending = true
 	if _homes_split():
 		var hv := PackedInt32Array()
 		for t in m.towns:
@@ -107,8 +114,14 @@ func set_model(m: Dictionary) -> void:
 			for e in t.energies: hv.append(roundi(float(e) * 50.0))
 		var hk := "%s|%.2f|%s|%s" % [_sig.hash(), _night, cute, hv]
 		if hk != _bld_key:
+			# 1.7 perf: home lights follow the load every refresh (about 5 a second at 4x in the finale, ~70 ms each on a software renderer);
+			# a new map repaints at once, light changes at most STATIC_HZ times a second
+			var fresh_map := not _bld_key.begins_with(str(_sig.hash()) + "|")
 			_bld_key = hk
-			if _bld_layer != null: _bld_layer.queue_redraw()
+			if fresh_map or Time.get_ticks_msec() - _bld_at >= 1000.0 / STATIC_HZ:
+				_bld_at = Time.get_ticks_msec(); _bld_pending = false
+				if _bld_layer != null: _bld_layer.queue_redraw()
+			else: _bld_pending = true
 	_sync_layers()
 	queue_redraw()
 
@@ -582,6 +595,10 @@ func _tap_extras(pos: Vector2, button: int) -> void:
 func _process(dt: float) -> void:
 	if not is_visible_in_tree() or size.x < 4.0: return
 	_t += dt; _rot += dt
+	if _static_pending and Time.get_ticks_msec() - _static_at >= 1000.0 / STATIC_HZ: _static_at = Time.get_ticks_msec(); _static_pending = false; repaint_static()
+	if _bld_pending and Time.get_ticks_msec() - _bld_at >= 1000.0 / STATIC_HZ:
+		_bld_at = Time.get_ticks_msec(); _bld_pending = false
+		if _bld_layer != null: _bld_layer.queue_redraw()
 	if _flash > 0.0: _flash = maxf(0.0, _flash - dt / 1.2); _top_layer.queue_redraw()
 	if _press and not _press_long and _press_moved < TAP_PX:
 		_press_t += dt
@@ -691,7 +708,12 @@ const HOMES_SPLIT := 150   # buildings on the map above which steady homes leave
 var _top_layer: Node2D
 var _static_key := ""
 var static_paints := 0
-var perf := {"static_us": 0, "dyn_us": 0, "top_us": 0, "model_us": 0, "models": 0}   # accumulated since the last CB_FPS line        # how many times the static island was painted (perf test reads it)
+const STATIC_HZ := 1.0   ## light-only repaints a second (each repaint of the island is ~70 ms on a software renderer)
+var _static_at := 0
+var _static_pending := false
+var _bld_at := 0
+var _bld_pending := false
+var perf := {"static_us": 0, "dyn_us": 0, "top_us": 0, "model_us": 0, "models": 0, "static_n": 0, "homes_n": 0}   # accumulated since the last CB_FPS line        # how many times the static island was painted (perf test reads it)
 
 func _make_layers() -> void:
 	_static_layer = Node2D.new(); _static_layer.name = "StaticIsland"; add_child(_static_layer)
@@ -713,7 +735,7 @@ func repaint_static() -> void:
 
 func _paint_static() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
-	static_paints += 1
+	static_paints += 1; perf.static_n += 1
 	var t0 := Time.get_ticks_usec()
 	_draw_slab()
 	for t in _tiles: _draw_tile(t)
@@ -731,6 +753,7 @@ func _homes_split() -> bool:
 
 func _paint_homes() -> void:
 	if _tiles.is_empty() or size.x < 4.0 or not _homes_split(): return
+	perf.homes_n += 1
 	var t0 := Time.get_ticks_usec()
 	for ob in _objs_d:
 		if ob.t == "bld" and not _town_flickers(int(ob.ti)): _draw_obj(ob)

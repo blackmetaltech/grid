@@ -167,3 +167,12 @@ describe('1.6 Storm Coast passive player', () => {
     for (let i = 0; i < 12 && !e.state.career!.state.ending; i++) { act(e, 'careerEndQuarter', false); expect(q(e, 'career').stormNudgeText).toBe(''); }
   });
 });
+
+describe('1.7 strike alarm on the HUD', () => {
+  it('a passive Storm Coast career shows the alarm, naming the strike count when the network is inadequate; a career projected under its target shows none', () => {
+    const e = play(); act(e, 'careerStart', 3, 'storm'); act(e, 'careerEndQuarter', false);
+    const c = q(e, 'career'); expect(c.alarmText).toMatch(/heading for [\d.]+ min against a target of [\d.]+/);
+    if (c.expected.saidi > c.targets.saidi) expect(c.alarmText).toMatch(/strike 1 of 3/); else expect(c.alarmText).toMatch(/not a licence strike/);
+    const s = play(); act(s, 'careerStart', 11); s.state.career!.state.saidiTarget = 1e6; expect(q(s, 'career').alarmText).toBe('');   // projected under the target: no alarm
+  });
+});

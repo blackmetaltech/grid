@@ -13,7 +13,7 @@ extends Node
 ##   One-shots (pool of 8 voices on the SFX bus): play(kind) with kind in ONE_SHOTS, plink(i) for home number i
 ##     (i = 0..9 rises as a little pentatonic arpeggio; wraps after 10), and
 ##     "breaker_close" "breaker_open" "relay_tick" "radio" "plink" "cheer" "aww" "place" "reel" "stamp" "page" "tick".
-##   Music (calm night-shift ambient, D dorian, 70 BPM, 8-bar loop rendered once on a worker thread):
+##   Music (the GridMusic catalogue: four 2-3 minute night-shift tracks played in turn, each rendered on a worker thread):
 ##     start_music() / stop_music(fade)
 ##     set_stress(0..1)        pad+bass always; soft percussion fades in above 0.5.
 ##     set_cute(bool)          adds the music-box lead.
@@ -28,11 +28,12 @@ const HUM_RATE := 16000    ## hum generator rate (partials top out near 300 Hz)
 const MRATE := 16000       ## music rate
 const PEAK_N6 := 0.5012    ## -6 dBFS
 const BPM := 70.0
-const BARS := 8
-const ONE_SHOTS := ["breaker_close", "breaker_open", "relay_tick", "radio", "plink", "cheer", "aww", "place", "reel", "stamp", "page", "tick"]
+const ONE_SHOTS := ["breaker_close", "breaker_open", "relay_tick", "radio", "plink", "cheer", "aww", "place", "reel", "stamp", "page", "tick",
+	"speed", "trip", "blackout", "coin", "spend", "quarter"]   ## 1.7: speed keys, a protection trip, a blackout, Career money in / out, the quarter closing
 const PLINK_SEMIS := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]
 const KIND_DB := {"breaker_close": -4.0, "breaker_open": -4.0, "relay_tick": -8.0, "radio": -8.0, "plink": -7.0, "cheer": -11.0, "aww": -9.0,
-	"place": -6.0, "reel": -9.0, "stamp": -5.0, "page": -10.0, "tick": -14.0}
+	"place": -6.0, "reel": -9.0, "stamp": -5.0, "page": -10.0, "tick": -14.0,
+	"speed": -10.0, "trip": -5.0, "blackout": -6.0, "coin": -9.0, "spend": -9.0, "quarter": -8.0}
 
 var mode := "dc"
 var frequency := 50.0
@@ -52,7 +53,9 @@ var _stems_players := {}     # name -> AudioStreamPlayer
 var _stem_db := {"pad": -80.0, "perc": -80.0, "lead": -80.0}
 var _thread: Thread
 var _music_wanted := false
-static var _stem_cache := {}
+static var _stem_cache := {}      ## stems of the track now playing (GridMusic.render_track)
+static var _next_cache := {}      ## stems of the next track, rendered on the worker thread while this one plays
+static var _track := 0            ## GridMusic track index now playing (1.7: four tracks of 2-3 minutes play in turn; 1.6 looped one 27 s phrase)
 
 # ---------------------------------------------------------------- public API
 func set_mode(m: String) -> void:
@@ -106,7 +109,7 @@ func start_music() -> void:
 	if headless or CbSettings.music_mode == "off": return
 	if _stems_players.is_empty():
 		if _stem_cache.is_empty():
-			if _thread == null: _thread = Thread.new(); _thread.start(func(): _stem_cache = render_stems())
+			if _thread == null: _thread = Thread.new(); _thread.start(func(): _stem_cache = GridMusic.render_track(_track))
 		else: _build_music_players()
 	else:
 		for p in _stems_players.values():
@@ -162,8 +165,12 @@ func _process(delta: float) -> void:
 			for i in n: v[i] = Vector2(s[i], s[i])
 			_hum_pb.push_buffer(v)
 	if _thread != null and _thread.is_started() and not _thread.is_alive():
-		_thread.wait_to_finish()
+		_thread.wait_to_finish(); _thread = null
 		if _music_wanted: _build_music_players()
+		if _next_cache.is_empty() and not _stem_cache.is_empty():   # render the next track while this one plays
+			_thread = Thread.new(); var nxt := _track + 1; _thread.start(func(): _next_cache = GridMusic.render_track(nxt))
+	if _music_wanted and _stems_players.has("pad") and not (_stems_players["pad"] as AudioStreamPlayer).playing and not _next_cache.is_empty() and (_thread == null or not _thread.is_alive()):
+		_next_track()
 	if not _stems_players.is_empty():
 		var gains := stem_gains(stress, cute)
 		for k in _stems_players:
@@ -176,9 +183,20 @@ func _process(delta: float) -> void:
 func _build_music_players() -> void:
 	if _stem_cache.is_empty() or not _stems_players.is_empty(): return
 	for k in ["pad", "perc", "lead"]:
-		var p := AudioStreamPlayer.new(); p.bus = "Music"; p.volume_db = -80.0
-		p.stream = to_wav(_stem_cache[k], MRATE, true); add_child(p); _stems_players[k] = p
+		var p := AudioStreamPlayer.new(); p.bus = "Music"; p.volume_db = -80.0 if k != "pad" else float(_stem_db.get(k, -80.0))
+		p.stream = to_wav(_stem_cache[k], MRATE, false); add_child(p); _stems_players[k] = p
 	for p in _stems_players.values(): p.play()
+
+## The track ended: swap in the pre-rendered next one (the stems' own fades make the join) and start rendering the one after.
+func _next_track() -> void:
+	for p in _stems_players.values(): (p as AudioStreamPlayer).queue_free()
+	_stems_players.clear()
+	_track = posmod(_track + 1, GridMusic.count()); _stem_cache = _next_cache; _next_cache = {}
+	_build_music_players()
+	_thread = Thread.new(); var nxt := _track + 1; _thread.start(func(): _next_cache = GridMusic.render_track(nxt))
+
+## Title of the track now playing ("" before the first one is ready).
+func track_title() -> String: return str(_stem_cache.get("title", ""))
 
 # ---------------------------------------------------------------- hum synth
 ## Streaming hum generator. fill(n) returns n mono samples. Parameters ease (pitch 40 ms, load 200 ms, mode 350 ms).
@@ -399,7 +417,7 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 			for i in zz.size():
 				var t := float(i) / RATE
 				pz += lerpf(900.0, 3200.0, t / 0.45) / RATE
-				zz[i] = sin(TAU * pz) * 0.12 * minf(1.0, t / 0.03) * minf(1.0, (0.45 - t) / 0.1)
+				zz[i] = sin(TAU * pz) * 0.4 * minf(1.0, t / 0.03) * minf(1.0, (0.45 - t) / 0.1)   # 1.7: a stronger rising tone, so the reel is not mistaken for the page slide
 			_add(b, zz, 0.0)
 		"stamp":           # paper stamp: thud + slap + rattle
 			b = _buf(0.3)
@@ -414,6 +432,41 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 				pn[i] = r.randf_range(-1.0, 1.0) * pow(sin(PI * pow(u, 0.6)), 2.0)
 			_add(b, _bp(pn, 2200.0, 4200.0, 0.9), 0.0)
 			_add(b, _bp(_nb(r, 0.04, 80.0, 0.5), 500.0, 500.0, 1.0), 0.0)
+		"speed":           # a rotary detent: short click with a little spring
+			b = _buf(0.12)
+			_add(b, _bp(_nb(r, 0.015, 300.0, 1.0), 2600.0, 2600.0, 2.0), 0.0); _add(b, _modal(1250.0, 60.0, 0.35, 0.1), 0.004)
+		"trip":            # a protection trip: relay chatter, then the breaker's heavy open and a falling whine as the line drops
+			b = _buf(0.75)
+			for k in 3: _add(b, _bp(_nb(r, 0.012, 300.0, 0.6), 3000.0, 3000.0, 2.5), 0.025 * k)
+			_add(b, _thump(70.0, 32.0, 16.0, 9.0, 1.0, 0.5), 0.09)
+			_add(b, _bp(_nb(r, 0.06, 60.0, 0.6), 1600.0, 600.0, 1.0), 0.09)
+			var wh := _buf(0.6); var pw := 0.0
+			for i in wh.size():
+				var t := float(i) / RATE; pw += lerpf(400.0, 90.0, t / 0.6) / RATE
+				wh[i] = sin(TAU * pw) * 0.25 * exp(-t * 4.0) * minf(1.0, t / 0.01)
+			_add(b, wh, 0.12)
+		"blackout":        # everything spins down: a low chord gliding to nothing, the hum dying with it
+			b = _buf(0.78)
+			for fr in [100.0, 150.0, 200.0]:
+				var gl := _buf(0.78); var pg := 0.0
+				for i in gl.size():
+					var t := float(i) / RATE; pg += fr * pow(0.25, t / 0.78) / RATE
+					gl[i] = sin(TAU * pg) * 0.4 * minf(1.0, t / 0.01) * (1.0 - t / 0.78)
+				_add(b, gl, 0.0)
+			_add(b, _thump(55.0, 30.0, 8.0, 5.0, 0.8, 0.7), 0.0)
+		"coin":            # money in: two bright coin rings, a fifth apart
+			b = _buf(0.5)
+			for c in [[1976.0, 0.0], [2960.0, 0.07]]:
+				_add(b, _modal(c[0], 9.0, 1.0, 0.42), c[1]); _add(b, _modal(c[0] * 2.4, 16.0, 0.35, 0.3), c[1])
+		"spend":           # money out: a register's drawer clunk and bell
+			b = _buf(0.55)
+			_add(b, _thump(160.0, 90.0, 30.0, 25.0, 0.9, 0.2), 0.0)
+			_add(b, _bp(_nb(r, 0.08, 50.0, 0.5), 1200.0, 700.0, 1.0), 0.03)
+			_add(b, _modal(2093.0, 6.0, 0.7, 0.45), 0.1); _add(b, _modal(4186.0, 12.0, 0.2, 0.3), 0.1)
+		"quarter":         # the ledger closes: a book shut and a low two-note chime
+			b = _buf(0.7)
+			_add(b, _thump(140.0, 70.0, 30.0, 22.0, 0.9, 0.2), 0.0); _add(b, _bp(_nb(r, 0.05, 90.0, 0.6), 900.0, 900.0, 0.8), 0.0)
+			_add(b, _modal(587.3, 5.0, 0.6, 0.55), 0.12); _add(b, _modal(440.0, 5.0, 0.6, 0.45), 0.25)
 		_:
 			if kind.begins_with("plink"):
 				var idx := int(kind.substr(5)) % PLINK_SEMIS.size()
@@ -449,57 +502,6 @@ static func stem_gains(stress_v: float, cute_v: bool) -> Dictionary:
 static func _nf(root_midi: int, scale: Array, deg: int, oct: int) -> float:
 	var o := int(floor(float(deg) / scale.size())); var d := posmod(deg, scale.size())
 	return 440.0 * pow(2.0, float(root_midi + int(scale[d]) + 12 * (oct + o) - 69) / 12.0)
-
-## Render the three stems (pad+bass, percussion, music-box lead) of the 8-bar D-dorian loop at 70 BPM.
-## All stems have identical length and wrap around seamlessly. Deterministic in seed_.
-static func render_stems(seed_ := 70) -> Dictionary:
-	var r := _rng(seed_)
-	var dorian := [0, 2, 3, 5, 7, 9, 10]
-	var root := 50                                  # D3
-	var prog := [0, 3, 6, 4, 0, 3, 1, 4]            # Dm G C Am | Dm G Em Am
-	var beat := 60.0 / BPM; var bar := beat * 4.0
-	var n := int(BARS * bar * MRATE)
-	var pad := PackedFloat32Array(); pad.resize(n)
-	var perc := PackedFloat32Array(); perc.resize(n)
-	var lead := PackedFloat32Array(); lead.resize(n)
-	for b in BARS:
-		var deg: int = prog[b]; var t0 := b * bar
-		var tones := [0, 2, 4] + ([8] if b % 2 == 1 else [])
-		for k in tones:
-			var f := _nf(root, dorian, deg + int(k), 0); var dur := bar * 1.2
-			var nb := int(dur * MRATE); var note := PackedFloat32Array(); note.resize(nb)
-			var p1 := r.randf(); var p2 := r.randf(); var p3 := r.randf()
-			for i in nb:
-				var t := float(i) / MRATE
-				var env := minf(1.0, t / 1.0) * minf(1.0, (dur - t) / 1.0)
-				p1 += f / MRATE; p2 += f * 1.004 / MRATE; p3 += f * 2.0 / MRATE
-				note[i] = (sin(TAU * p1) + sin(TAU * p2) + 0.2 * sin(TAU * p3)) * env * 0.12
-			_add(pad, note, t0, 1.0, MRATE, true)
-		var bf := _nf(root, dorian, deg, -1)                          # bass, soft, one note per bar
-		var bn := _buf(bar * 0.95, MRATE); var pb := 0.0
-		for i in bn.size():
-			var t := float(i) / MRATE; pb += bf / MRATE
-			bn[i] = (sin(TAU * pb) + 0.25 * sin(TAU * 2.0 * pb)) * 0.3 * minf(1.0, t / 0.25) * minf(1.0, (bar * 0.95 - t) / 0.5)
-		_add(pad, bn, t0, 1.0, MRATE, true)
-		# percussion: soft kick on 1 and 3, rim on 2 and 4 "and", brushed 8th hats
-		for k in [0, 2]: _add(perc, _thump(85.0, 48.0, 22.0, 11.0, 0.9, 0.3, MRATE), t0 + k * beat, 1.0, MRATE, true)
-		_add(perc, _bp(_nb(r, 0.03, 160.0, 0.5, MRATE), 1100.0, 1100.0, 3.0, MRATE), t0 + 3.5 * beat, 1.0, MRATE, true)
-		for e in 8:
-			_add(perc, _hp(_nb(r, 0.09, 45.0, 0.3 if e % 2 == 1 else 0.16, MRATE), 3000.0, MRATE), t0 + e * beat * 0.5, 1.0, MRATE, true)
-		# music-box lead: chord tones on strong steps, scale steps between, rests
-		var cur := deg + 7
-		for s in 8:
-			if not (s in [0, 3, 4, 6]) and r.randf() < 0.6: continue
-			if s == 0 or s == 4: cur = deg + [0, 2, 4, 7][r.randi() % 4] + 7
-			else: cur += [-1, 1, 2, -2, 0][r.randi() % 5]
-			cur = clampi(cur, deg + 4, deg + 11)
-			var lf := _nf(root, dorian, cur, 1)
-			var mb := _buf(1.4, MRATE)
-			_add(mb, _modal(lf, 3.2, 1.0, 1.4, MRATE), 0.0); _add(mb, _modal(lf * 4.0, 11.0, 0.18, 0.5, MRATE), 0.0)
-			_add(mb, _modal(lf * 2.76, 14.0, 0.12, 0.4, MRATE), 0.0)
-			_add(lead, mb, t0 + s * beat * 0.5, 0.5, MRATE, true)
-	normalize(pad, 0.5); normalize(perc, 0.6); normalize(lead, 0.45)
-	return {"pad": pad, "perc": perc, "lead": lead}
 
 ## Mix stems for `seconds` (looping) at the given stress/cute settings, peak-normalised to 0.8, with fades.
 static func mix_music(stems: Dictionary, seconds: float, stress_v: float, cute_v: bool) -> PackedFloat32Array:

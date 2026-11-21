@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| Slug / repo | `grid` (`/home/ixaxaar/src/ORGS/cobanana/grid`, core as submodule `core/`) |
+| Slug / repo | `grid` (core as submodule `core/`) |
 | Android id / engine port / Xvfb | `in.ixaxaar.cobanana.grid` / 47901 / `:200-:219` |
 | Accent | Grid cyan `#39E1FF` on night indigo |
 | Audience | JEE Class 12 (AC chapter, EMI), EE undergrads (power systems), Steam sim/puzzle players |

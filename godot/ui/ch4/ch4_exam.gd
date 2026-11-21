@@ -47,9 +47,17 @@ func _set_exc(v: float) -> void: _act("setExcitation", [snappedf(clampf(v, 0.5, 
 
 func _press(h: Dictionary, p: Vector2) -> void:
 	var pt := stepper_parts(h.rect)
-	if (pt.minus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() - (0.01 if bool(h.get("right", false)) else 0.001))
-	elif (pt.plus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() + (0.01 if bool(h.get("right", false)) else 0.001))
+	# − / + step 0.01 pu of E; right-click or Shift steps 0.001 for the last few thousandths of Q (1.6: + moved 0.001 and "barely moved it")
+	if (pt.minus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() - (0.001 if bool(h.get("right", false)) else 0.01))
+	elif (pt.plus as Rect2).grow(6.0).has_point(p): _set_exc(_exc() + (0.001 if bool(h.get("right", false)) else 0.01))
 	elif on_track(h.rect, p): _drag(h, p)
+
+## Left / Right arrows step the excitation while the pointer is over its slider (Shift: fine steps); elsewhere the arrows keep their usual jobs.
+func _unhandled_key_input(e: InputEvent) -> void:
+	if not visible or _locked() or not str(hover).begins_with("exc/") or not (e is InputEventKey) or not e.pressed: return
+	var k := (e as InputEventKey).keycode
+	if k == KEY_LEFT or k == KEY_RIGHT:
+		_set_exc(_exc() + (1.0 if k == KEY_RIGHT else -1.0) * (0.001 if e.shift_pressed else 0.01)); get_viewport().set_input_as_handled()
 
 func _drag(h: Dictionary, p: Vector2) -> void:
 	var tr: Rect2 = stepper_parts(h.rect).track
@@ -170,4 +178,7 @@ func _draw_panel_body() -> void:
 	var pred_txt := T("C4_ENTER") if pp.E == null or pp.delta == null or pp.pmax == null else (T("C4_CHK_PRED") % _pe() if bool(q.running) else T("C4_ENTERED"))
 	var checks := [[pred_txt, float(q.predErrPct) <= 5.0 and int(q.predictions.size()) == 3 and q.predictions.E != null and q.predictions.delta != null and q.predictions.pmax != null], [T("C4_CHK_TASK"), bool(q.night.taskDone)]]
 	var x := inner.position.x
-	for c in checks: _text(mono, 11, Vector2(x, inner.position.y + 168.0), ("✓ " if c[1] else "· ") + str(c[0]), _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6)); x += 210.0
+	for c in checks:   # each check starts after the previous one's text (1.6: a fixed 210 px step overlapped "press Run to score" with the night task)
+		var ct := ("✓ " if c[1] else "· ") + str(c[0])
+		_text(mono, 11, Vector2(x, inner.position.y + 168.0), ct, _good(bool(c[1])) if bool(c[1]) else Color(GridTheme.TEXT, 0.6))
+		x += mono.get_string_size(ct, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x + 28.0

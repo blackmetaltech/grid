@@ -63,7 +63,9 @@ func cycle_rate() -> void: set_rate(rate % 3 + 1)
 func step_rate(d: int) -> void: set_rate(clampi(rate + d, 1, 3))
 
 func set_rate(r: int) -> void:
+	var was := rate
 	rate = clampi(r, 1, 3)
+	if rate != was and app != null: app.sfx("speed")   # 1.7: a detent click when the speed changes
 	if running(): app.set_speed(rate)
 	queue_redraw()
 

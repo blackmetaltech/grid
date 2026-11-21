@@ -34,7 +34,7 @@ const S := {
 	"CAR_MSG_OK": "%s", "CAR_CREWS_LEFT": "crews free %d",
 	# incidents
 	"CAR_INC_TITLE": "INCIDENTS", "CAR_INC_SUB": "Major events this quarter. Answer each one, then settle the quarter.", "CAR_INC_LINE": "%s on %s", "CAR_INC_NOFEEDER": "the primary", "CAR_INC_FACTS": "%d faults, %s customers interrupted, %s min of SAIDI on its own.",
-	"CAR_INC_EXC": "Exceptional: the regulator does not count it.", "CAR_INC_TIE": "Switch ties (about %d %% fewer customer-minutes)", "CAR_INC_TIED": "Ties switched", "CAR_INC_NOTIE": "No tie on this feeder (build one from the board)", "CAR_INC_CREW": "Send crew (repair %d %% faster, %s)", "CAR_INC_CREWED": "Crew sent",
+	"CAR_INC_EXC": "An exceptional storm, beyond what the network is designed for: the regulator leaves it out of your SAIDI.", "CAR_INC_TIE": "Switch ties (about %d %% fewer customer-minutes)", "CAR_INC_TIED": "Ties switched", "CAR_INC_NOTIE": "No tie to switch on this feeder. A tie (built from the board) lets you back-feed the next fault.", "CAR_INC_CREW": "Send crew (repair %d %% faster, %s)", "CAR_INC_CREWED": "Crew sent",
 	"CAR_INC_DONE": "Done: settle the quarter", "CAR_INC_RESULT": "%s",
 	# quarter report
 	"CAR_QR_TITLE": "QUARTER REPORT", "CAR_QR_SUB": "Year %d, quarter %d", "CAR_QR_SAIDI": "SAIDI this quarter: %s min (expected %s). Year so far %s of %s.", "CAR_QR_SAIFI": "SAIFI this quarter: %s (expected %s). Year so far %s of %s.",

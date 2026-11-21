@@ -14,5 +14,6 @@ export const DYNAMIC_KEYS = [
   'career.scorePart.years', 'career.scorePart.saidi', 'career.scorePart.incentive', 'career.scorePart.health', 'career.scorePart.delivered', 'career.scorePart.missed', 'career.scorePart.cash', 'career.scorePart.ending',
   'career.kind.harden', 'career.blurb.harden', 'career.why.harden', 'career.ready.0', 'career.ready.1', 'career.ready.2', 'career.forecast.calm', 'career.forecast.unsettled', 'career.forecast.stormy',
   'career.review.regulator.strike', 'career.review.regulator.poorNoStrike',
+  'unitKind.coal', 'unitKind.gas', 'unitKind.diesel', 'unitKind.biomass', 'unitKind.nuclear', 'unitKind.hydro', 'unitKind.psp', 'unitKind.pv', 'unitKind.wind', 'unitKind.synccon',   // src/sim/tick.ts elementName
   'level.ch6.pred.rocof0', 'level.ch6.pred.nadirHz', 'level.ch6.pred.fEndHz', 'level.ch6.pred.shedMW',
 ] as const;

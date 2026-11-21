@@ -1,4 +1,4 @@
-import sys;sys.path.insert(0,"/tmp/claude-1000/-run-media-ixaxaar-src-code-src-ORGS-cobanana/758c6b34-e328-45a8-9a79-f4c864a0a1c9/scratchpad/oracle_recheck")
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 Zb=132**2/100;Ib=100e3/(sqrt(3)*132)
 R('PS-01','Zb',174.2,Zb);R('PS-01','Ib',437.4,Ib);R('PS-01','20',0.1148,20/Zb);R('PS-01','50',.2870,50/Zb)

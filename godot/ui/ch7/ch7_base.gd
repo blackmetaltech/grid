@@ -11,7 +11,7 @@ func _init() -> void:
 
 func _edit(key: String, w := 78.0) -> LineEdit:
 	var e := LineEdit.new(); e.placeholder_text = "?"; e.custom_minimum_size = Vector2(w, 30); e.size = Vector2(w, 30); e.alignment = HORIZONTAL_ALIGNMENT_RIGHT; e.visible = false
-	e.text_submitted.connect(func(_s): _submit(key)); e.focus_exited.connect(func(): _submit(key)); add_child(e); edits[key] = e
+	e.text_submitted.connect(func(_s): _submit(key)); e.focus_exited.connect(func(): _submit(key)); e.text_changed.connect(func(_t): queue_redraw()); add_child(e); edits[key] = e
 	return e
 
 ## What a box sends (the subclass says how: predict, or a setting built from several boxes).

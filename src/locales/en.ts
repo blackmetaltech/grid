@@ -88,6 +88,11 @@ export const en: Record<string, string> = {
   'act.predict.ok': 'Prediction recorded: {q} = {value} {unit}. It is compared with what happens.',
   // log lines of the pipeline
   'log.overloadTrip': 'Branch {id} tripped on thermal overload at {pct} % of its rating.',
+  'unitKind.coal': 'coal', 'unitKind.gas': 'gas', 'unitKind.diesel': 'diesel', 'unitKind.biomass': 'biomass', 'unitKind.nuclear': 'nuclear', 'unitKind.hydro': 'hydro',
+  'unitKind.psp': 'pumped-storage', 'unitKind.pv': 'solar', 'unitKind.wind': 'wind', 'unitKind.synccon': 'synchronous condenser',
+  'log.el.line': '{id}, the {from} to {to} line',
+  'log.el.xfmr': '{id}, the {from} / {to} transformer',
+  'log.el.unit': '{id}, the {kind} unit at {at}',
   'log.eventWindow': 'Event: {n} element(s) lost ({ids}).',
   'log.ufls': 'Under-frequency load shedding stage {stage} operated at {hz} Hz and shed {pct} % of demand.',
   // needs-you-now cards

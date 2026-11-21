@@ -1,4 +1,4 @@
-import sys;sys.path.insert(0,"/tmp/claude-1000/-run-media-ixaxaar-src-code-src-ORGS-cobanana/758c6b34-e328-45a8-9a79-f4c864a0a1c9/scratchpad/oracle_recheck")
+import os, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
 from scipy.optimize import fsolve, brentq
 # 3-bus

@@ -85,9 +85,12 @@ static func incidents(sc: CareerScreen) -> void:
 				v.add_child(_para(T("CAR_INC_NOONE"), compact, Color(PaperKit.INK, 0.7))); continue
 			var row := HFlowContainer.new(); row.add_theme_constant_override("h_separation", 10); v.add_child(row)
 			var tie_txt := T("CAR_INC_TIED") if bool(inc.tied) else (T("CAR_INC_TIE") % int(sc.d.get("tieSavingPct", 35)) if bool(inc.hasTie) else T("CAR_INC_NOTIE"))
-			var tb := PaperKit.btn(tie_txt, false, func():
-				var r := sc.act("careerTie", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
-			tb.name = "Tie_" + iid; tb.disabled = bool(inc.tied) or not bool(inc.hasTie); row.add_child(tb)
+			if not bool(inc.hasTie):   # 1.7: a feeder without a tie gets a note, not a dead button (fun-critic tester)
+				var nt := _para(tie_txt, compact, Color(PaperKit.INK, 0.6)); nt.name = "NoTie_" + iid; row.add_child(nt)
+			else:
+				var tb := PaperKit.btn(tie_txt, false, func():
+					var r := sc.act("careerTie", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
+				tb.name = "Tie_" + iid; tb.disabled = bool(inc.tied); row.add_child(tb)
 			var cb := PaperKit.btn(T("CAR_INC_CREWED") if bool(inc.crewed) else T("CAR_INC_CREW") % [int(sc.d.get("crewSavingPct", 20)), str(sc.d.get("crewCostText", ""))], false, func():
 				var r := sc.act("careerCrew", [iid]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), 17 if compact else 19)
 			cb.name = "Crew_" + iid; cb.disabled = bool(inc.crewed); row.add_child(cb)
@@ -125,9 +128,11 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	if str(sc.d.get("readyRunText", "")) != "": body.add_child(_para(str(sc.d.readyRunText), compact, Color(PaperKit.INK, 0.8)))
 	if str(sc.d.get("standDownText", "")) != "":
 		var sdl := _para(str(sc.d.standDownText), compact, GREEN); body.add_child(sdl)
+		var held := [null]   # the button itself, for the lambda (a lambda captures locals as they are when it is made)
 		var sdb := PaperKit.btn(T("CAR_QR_STANDDOWN"), false, func():
-			var r := sc.act("careerReadiness", [0]); sdl.text = str(r.get("message", "")), 17 if compact else 18)
-		sdb.name = "StandDown"; sdb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; body.add_child(sdb)
+			var r := sc.act("careerReadiness", [0]); sdl.text = str(r.get("message", ""))
+			if bool(r.get("ok", false)) and held[0] != null: (held[0] as Control).visible = false, 17 if compact else 18)   # 1.7: the button goes once it has done its job
+		held[0] = sdb; sdb.name = "StandDown"; sdb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN; body.add_child(sdb)
 	if str(sc.d.get("stormNudgeText", "")) != "":
 		var nl := _para(str(sc.d.stormNudgeText), compact, PaperKit.AMBER); nl.name = "StormNudge"; body.add_child(nl)
 	for po in sc.d.get("plantOut", []): body.add_child(_para(str(po), compact, PaperKit.AMBER))
@@ -156,6 +161,7 @@ static func review(sc: CareerScreen, i: int, next: Callable) -> void:
 	var n1 := CareerKit.num
 	tv.add_child(_para(T("CAR_RV_NUMS") % [n1.call(float(rv.get("saidiRolling", rv.saidi)), 1), n1.call(float(rv.saidiTarget), 1), n1.call(float(rv.get("saifiRolling", rv.saifi)), 2), n1.call(float(rv.saifiTarget), 2), n1.call(float(rv.saidi), 1)], compact))
 	tv.add_child(PaperKit.lbl(T("CAR_RV_INCENTIVE") % str(rv.incentiveText), 17 if compact else 22, "semi", GREEN if float(rv.incentive) >= 0.0 else PaperKit.RED))
+	if float(rv.incentive) > 0.0: sc.app.sfx("coin")   # 1.7: the regulator pays: coins
 	# next year's targets, at the top where they are seen (a tester found the five-year reset below the fold): the reset in amber, the yearly step plainly
 	if str(rv.get("resetText", "")) != "": tv.add_child(_para(str(rv.resetText), compact, PaperKit.AMBER))
 	elif str(rv.get("nextText", "")) != "": tv.add_child(_para(str(rv.nextText), compact, Color(PaperKit.INK, 0.8)))

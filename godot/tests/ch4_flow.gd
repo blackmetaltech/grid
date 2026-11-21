@@ -68,6 +68,10 @@ func _initialize() -> void:
 	var tr13: Rect2 = ex.stepper_parts(sl13.rect).track
 	ex._drag(sl13, Vector2(tr13.position.x + tr13.size.x * (1.047 - 0.5) / 1.5, tr13.position.y)); _sync(T, ex)
 	T.check(bool(T.b.q("ch4Status").night.taskDone), "the slider at 1.047 pu absorbs 0.2 pu: Q %s" % str(T.b.q("ch4Status").night.q))
+	var e0: float = ex._exc(); var sp: Dictionary = ex.stepper_parts(sl13.rect); var hr := sl13.duplicate(); hr["right"] = true
+	ex._press(sl13, (sp.plus as Rect2).get_center()); _sync(T, ex); T.check(absf(ex._exc() - (e0 + 0.01)) < 1e-6, "+ steps E by 0.01 (%s)" % str(ex._exc()))
+	ex._press(hr, (sp.minus as Rect2).get_center()); _sync(T, ex); T.check(absf(ex._exc() - (e0 + 0.009)) < 1e-6, "right-click − steps 0.001 (%s)" % str(ex._exc()))
+	ex._press(sl13, (sp.minus as Rect2).get_center()); _sync(T, ex); ex._press(hr, (sp.plus as Rect2).get_center()); _sync(T, ex); T.check(absf(ex._exc() - e0) < 1e-6, "and back to %s" % str(e0))
 	T.b.act("tick", [6]); T.check(str(T.b.g.get("status")) == "won" and int(T.b.g.get("stars", 0)) == 3, "L13: 3 lamps through the stage")
 	T.check(T.b.q("ch4Status").answers != null, "the answers show once the exam is marked")
 	T.finish("CH4-FLOW", self)

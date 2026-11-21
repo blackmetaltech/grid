@@ -51,8 +51,10 @@ func _draw_panel_body() -> void:
 	for k in 3:
 		var de: LineEdit = edits["disp%d" % k]; _text(_mono(), 10, de.position + Vector2(8.0, 19.0), T("C7_UNIT_MW"), Color(GridTheme.TEXT, 0.5))
 	_text(_semi(), 10, inner.position + Vector2(0, 12), T("C7_BREAKERS"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(340, 12), T("C7_DISPATCH_CAP"), Color(GridTheme.TEXT, 0.65))
-	var s := 0.0
-	for k in 3: s += float(q.design.dispatch[k])
+	var s := 0.0   # the boxes as typed (1.6: the sum stayed stale until a box lost focus)
+	for k in 3:
+		var tx: String = (edits["disp%d" % k] as LineEdit).text.strip_edges().replace(",", ".")
+		s += float(tx) if tx.is_valid_float() else float(q.design.dispatch[k])
 	_text(_mono(), 12, inner.position + Vector2(340, 84), T("C7_DISPATCH_SUM") % [WorkOrder.num(s), int(q.demandMW)], Color(GridTheme.TEXT, 0.8))
 	if _revealed():
 		_text(_mono(), 12, inner.position + Vector2(0, 84), T("C7_BOARD_KA") % [WorkOrder.num(float(q.boardKA.threePh)), WorkOrder.num(float(q.boardKA.slg))], _good(bool(q.ratingOk)))

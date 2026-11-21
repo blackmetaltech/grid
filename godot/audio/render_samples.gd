@@ -1,7 +1,8 @@
 extends SceneTree
 ## Render every GRID sound to WAV for listening and assert basic sanity.
 ## godot --headless --path godot -s audio/render_samples.gd [-- out_dir]
-const OUT := "/home/ixaxaar/src/ORGS/cobanana/.qa/grid/audio/"
+## Default output: the user data dir (pass an output dir after `--` to choose; tools/audio/analyse_audio.py reads it).
+var OUT := OS.get_user_data_dir() + "/audio/"
 const GA = preload("res://audio/grid_audio.gd")
 var fails := 0
 
@@ -34,12 +35,15 @@ func _init() -> void:
 	print("hum 49 Hz fundamental = %.2f Hz (want 98 +- 1); 50 Hz = %.2f Hz" % [fund, fund50])
 	_check(absf(fund - 98.0) <= 1.0, "49 Hz hum fundamental 98 +- 1")
 	_check(absf(fund50 - 100.0) <= 1.0, "50 Hz hum fundamental 100 +- 1")
-	var s1 := GA.render_stems(); var s2 := GA.render_stems()
-	_check(s1["pad"] == s2["pad"] and s1["perc"] == s2["perc"] and s1["lead"] == s2["lead"], "music deterministic")
-	var m := GA.mix_music(s1, 20.0, 1.0, true)
-	_report("music_stress1_cute", m, GA.MRATE, out)
-	_report("music_calm", GA.mix_music(s1, 20.0, 0.0, false), GA.MRATE, out)
-	_report("music_calm_cute", GA.mix_music(s1, 20.0, 0.0, true), GA.MRATE, out)
+	# 1.7 music catalogue: every track rendered in full, with all stems (stress 1, cute) and as the calm mix (pad and bass only)
+	var GM = load("res://audio/grid_music.gd")
+	for ti in GM.count():
+		var st: Dictionary = GM.render_track(ti); var secs: float = GM.seconds(ti)
+		_check(secs >= 120.0, "%s is at least 2 minutes (%.1f s)" % [st.id, secs])
+		_report("music_%d_%s_full" % [ti + 1, st.id], GA.mix_music(st, (st.pad as PackedFloat32Array).size() / float(GA.MRATE), 1.0, true), GA.MRATE, out)
+		_report("music_%d_%s_calm" % [ti + 1, st.id], GA.mix_music(st, (st.pad as PackedFloat32Array).size() / float(GA.MRATE), 0.0, false), GA.MRATE, out)
+	var a1: Dictionary = GM.render_track(2); var a2: Dictionary = GM.render_track(2)
+	_check(a1.pad == a2.pad and a1.lead == a2.lead and a1.perc == a2.perc, "music deterministic")
 	print("RESULT: %s (%d failures)" % ["PASS" if fails == 0 else "FAIL", fails])
 	quit(1 if fails > 0 else 0)
 
