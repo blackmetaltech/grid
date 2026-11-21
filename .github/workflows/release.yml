@@ -164,9 +164,20 @@ jobs:
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
+      # A release built and smoke-tested locally (scripts/release-local.sh) must never be overwritten or
+      # duplicated by CI builds: if the tag already has a release, publish nothing.
+      - name: Skip if the release already exists
+        id: exists
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if gh release view "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $GITHUB_REF_NAME exists (local, smoke-tested): not publishing"; echo "skip=1" >> "$GITHUB_OUTPUT"
+          else echo "skip=0" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/download-artifact@v4
+        if: steps.exists.outputs.skip == '0'
         with: { pattern: dist-*, path: dist, merge-multiple: true }
       - name: Release notes from CHANGELOG.md
+        if: steps.exists.outputs.skip == '0'
         run: |
           ver=${GITHUB_REF_NAME#v}
           awk -v v="$ver" '/^## \[/{p=index($0,"["v"]")>0; next} p' CHANGELOG.md > notes.md
@@ -174,7 +185,9 @@ jobs:
           [ -s notes.md ] || { echo "no CHANGELOG entry for $ver"; exit 1; }
           cat tail.md >> notes.md
       - run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
+        if: steps.exists.outputs.skip == '0'
       - uses: softprops/action-gh-release@v2
+        if: steps.exists.outputs.skip == '0'
         with:
           files: dist/*
           body_path: notes.md
