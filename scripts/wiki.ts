@@ -4,8 +4,11 @@
 import { t } from '../src/i18n';
 import { LEVEL_SPECS } from '../src/level';
 import { LEVELS } from '../src/levels';
-import { CHARTER_IDS } from '../src/career/data';
+import { CHARTER_IDS, INCENTIVE, MONEY, OVERLOAD, OWNERS } from '../src/career/data';
 import { buildDistrict } from '../src/career/district';
+import { careerMoney } from '../src/career-game';
+import { formatMoney } from '../core/ts/regions';
+import { REGIONS } from '../src/regions';
 
 /** Chapter number → title (the job board's headings) and a real screenshot from docs/readme. */
 export const CHAPTERS: { n: number; title: string; intro: string; shot?: [string, string] }[] = [
@@ -24,6 +27,8 @@ export const CHAPTERS: { n: number; title: string; intro: string; shot?: [string
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** A rendered string, or '' when it still carries a run-time {placeholder} (those need the player's own numbers). */
 const tx = (key: string, p?: Record<string, unknown>): string => { const s = t(key, p as Record<string, number>); return s === key || /\{[a-zA-Z]+\}/.test(s) ? '' : s; };
+/** Money as the game shows it in the default region pack (global, US$). */
+const money = (m: number): string => formatMoney(careerMoney({ region: 'global' }, m), REGIONS.get('global'), { decimals: 0 });
 const words = (slug: string): string => slug.replace(/-/g, ' ');
 
 function page(title: string, desc: string, body: string, crumbs: string): string {
@@ -108,8 +113,8 @@ const KINDS = ['reconductor', 'newFeeder', 'newTransformer', 'tieSwitch', 'remot
 const ENDINGS = ['chiefEngineer', 'steady', 'bailedOut', 'licenceRevoked'];
 const DISTRICT_SHOT: Record<string, [string, string]> = {
   standard: ['home-counties-map.jpg', 'Home Counties: fields, named villages, the hospital on its feeder'],
-  city: ['harbour-city-map.jpg', 'Harbour City: city blocks, the harbour and underground cable'],
-  moor: ['high-moor-map.jpg', 'High Moor in winter: long lines, snow on the roofs'],
+  city: ['harbour-city-map.jpg', 'Harbour City: cable routes along a street grid down to the harbour'],
+  moor: ['high-moor-map.jpg', 'High Moor: one substation far up the moor, long trunks down the valleys'],
 };
 
 function careerPage(): string {
@@ -126,7 +131,10 @@ function careerPage(): string {
 <dl class="terms">
 <dt>SAIDI</dt><dd>Minutes off per customer in a year: all the customer-minutes without power, divided by the customers.</dd>
 <dt>SAIFI</dt><dd>Power cuts per customer in a year: every customer interruption longer than five minutes (IEEE 1366), divided by the customers.</dd>
-<dt>Targets</dt><dd>The regulator pays or fines on the rolling three-year average against target. Every five years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets even in fair weather, three years running.</dd>
+<dt>Owners</dt><dd>At each annual review the owners take ${Math.round(OWNERS.payout * 100)} % of the cash above the reserve (${money(OWNERS.reserveM)} plus ${OWNERS.reserveQuarters} quarters of committed project instalments) as a dividend. Money you do not plan to spend does not stay.</dd>
+<dt>Price-control close</dt><dd>Every ${INCENTIVE.periodYears} years, if the network's average health ended below where the period started and the replacement money it was allowed (the asset base over its ${MONEY.lifeYears}-year life) was not all spent, the regulator takes back the unspent part plus ${OWNERS.narmPenaltyPct} %.</dd>
+<dt>Overload</dt><dd>Past its cyclic rating a line faults more and ages faster. Past ${OVERLOAD.emergencyPct} % of its rating at the season's peak it cannot carry the load at all: the control room cuts customers in ${OVERLOAD.rotaBlockH}-hour rota blocks, and those count in SAIDI and SAIFI.</dd>
+<dt>Targets</dt><dd>The regulator pays or fines on the rolling ${INCENTIVE.rollingYears}-year average against target. Every ${INCENTIVE.periodYears} years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets even in fair weather, ${INCENTIVE.yearsToRevoke} years running.</dd>
 </dl>
 <h2>The people</h2>\n${storyHtml('../')}\n<h2>Districts</h2>
 <p>A career starts in one district. Each pushes a different pressure, and its targets come from its own expected performance, so every one can be won, though not with the same plan. Each ISO week also has one district and seed, the same for everyone.</p>
