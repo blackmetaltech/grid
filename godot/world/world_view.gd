@@ -1545,7 +1545,7 @@ func _draw_line_overlay() -> void:
 	var far := clampf((float(look3d.dist) - 300.0) / 1800.0, 0.3, 1.0)
 	var gen: bool = look3d.field is GenField
 	var zl := 30.0 if gen else 9.0   # the generated province's lines hang on lattice towers
-	if gen: far = clampf((float(look3d.dist) - 2500.0) / 9000.0, 0.08, 1.0)   # close in, the towers and conductors carry the line; the overlay fades
+	if gen: far = clampf((float(look3d.dist) - 2500.0) / 14000.0, 0.06, 1.0)   # close in, the towers and conductors carry the line; the overlay fades
 	for l in model.lines:
 		var kind := str(l.kind)
 		if kind == "xfmr": continue

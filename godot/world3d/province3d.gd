@@ -110,7 +110,10 @@ func _make_env() -> void:
 	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_AGX
 	env.tonemap_exposure = 1.0
-	env.glow_enabled = true
+	env.glow_enabled = quality != "low"
+	if quality == "low":   # integrated GPUs: ambient from a fixed colour set by the clock (no sky radiance updates), no reflections
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; env.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
+		env.sky.process_mode = Sky.PROCESS_MODE_QUALITY; env.sky.radiance_size = Sky.RADIANCE_SIZE_32
 	env.glow_intensity = 0.7; env.glow_bloom = 0.04; env.glow_hdr_threshold = 1.1
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	env.fog_enabled = true
@@ -142,6 +145,8 @@ func _make_env() -> void:
 		get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
 	elif quality == "medium":
 		get_viewport().msaa_3d = Viewport.MSAA_2X
+	else:   # low: the 3D view renders at 60 % and is scaled up; the UI stays at full resolution
+		get_viewport().scaling_3d_scale = 0.6
 
 ## Palette by minute of the day (docs/LOOK2.md "Light"): day, golden hour, blue hour, night.
 func _sky_at(mn: float) -> Dictionary:
@@ -244,6 +249,7 @@ func _build_static() -> void:
 	var fn := FastNoiseLite.new(); fn.frequency = 0.008; fn.fractal_octaves = 4; mn.noise = fn
 	_terrain_mat.set_shader_parameter("macro_noise", mn)
 	if field is GenField: _terrain_mat.set_shader_parameter("grass_tint", Vector3(0.78, 1.0, 0.66))
+	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var step := 12.5 if quality == "high" else (20.0 if quality == "medium" else 30.0)
 	var margin := 900.0
 	if field is GenField: step = maxf(step * 2.0, map_size.x / 1400.0) if quality == "high" else maxf(step * 2.5, map_size.x / 700.0)
@@ -345,7 +351,7 @@ func _build_forests(near: Rect2) -> void:
 	var tmat := ShaderMaterial.new(); tmat.shader = load("res://world3d/shaders/tree.gdshader")
 	var con := Props3D.conifer(); var brd := Props3D.broadleaf()
 	var xc: Array = []; var cc: Array = []; var xb: Array = []; var cb: Array = []
-	var dens := 1.0 if quality == "high" else (0.55 if quality == "medium" else 0.25)
+	var dens := 1.0 if quality == "high" else (0.55 if quality == "medium" else 0.12)
 	var cell := (9.0 if not field is GenField else 24.0) / sqrt(dens)
 	var nx := int(near.size.x / cell); var nz := int(near.size.y / cell)
 	for j in nz:
@@ -586,6 +592,7 @@ func _build_town_lamps(lamp_list: Array) -> void:
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(mi)
 		_town_lampmm[id] = [mm, dns, xfs, mi]
 		var n_pool := clampi(ls.size() / 14, 1, 6 if quality != "low" else 2)
+		if quality == "low": n_pool = 0   # no dynamic lights on the low tier: the amber disc and the windows carry the town
 		for k in n_pool:   # warm pools of light on the streets (they also light the volumetric haze over the town)
 			var l: Vector3 = ls[(k * ls.size()) / n_pool][0]
 			var o := OmniLight3D.new(); o.position = l + Vector3(0, 14, 0); o.omni_range = 160.0; o.light_color = Color(1.0, 0.7, 0.42)
@@ -595,7 +602,7 @@ func _build_town_lamps(lamp_list: Array) -> void:
 		for l in ls: spread = maxf(spread, (l[0] as Vector3).distance_to(c))
 		var pool := MeshInstance3D.new(); var pd := CylinderMesh.new(); var rad := clampf(spread * 1.15, 60.0, 1400.0)
 		pd.top_radius = rad; pd.bottom_radius = rad; pd.height = 0.2; pd.radial_segments = 40; pool.mesh = pd
-		var pg := _glow_mat(Color(1.0, 0.6, 0.25, 0.2), 1.0); pg.set_shader_parameter("radial", rad); pool.material_override = pg
+		var pg := _glow_mat(Color(1.0, 0.6, 0.25, 0.07 if field is GenField else 0.2), 1.0); pg.set_shader_parameter("radial", rad); pool.material_override = pg
 		pool.position = c - Vector3(0, 6.0, 0); pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_root_infra.add_child(pool); nodes.append(pool)   # an amber haze over a lit town, readable from the whole province
 		_town_lamps[id] = nodes
@@ -632,6 +639,7 @@ func _build_yard(s: Dictionary) -> void:
 	lamp.material_override = _glow_mat(Color(0.75, 0.85, 1.0), 4.0); lamp.position = Vector3(0, 8, -8); y.add_child(lamp)
 	var o := OmniLight3D.new(); o.position = Vector3(0, 10, 0); o.omni_range = 45.0; o.light_color = Color(0.8, 0.88, 1.0); o.light_energy = 1.5; y.add_child(o)
 	_yard_lights[str(s.id)] = [lamp, o]
+	if quality == "low": o.free(); _yard_lights[str(s.id)] = [lamp]
 
 ## The switchgear of a yard: fence posts and top rail, three breaker bays, the busbars on posts and a red warning light on the gantry.
 func _yard_kit(y: Node3D, steel: Material) -> void:

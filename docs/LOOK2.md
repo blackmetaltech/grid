@@ -90,3 +90,23 @@ The integrated GPU result is a real gap. The low tier as built is not fit for a 
 | Critique rounds and fixes, README and release per layer | 10 |
 | **Total** | **about 116 hours, 10-12 sessions** under the 5-hour usage limit |
 Asset gaps: none blocking. CC0 textures cover the ground. Lattice towers, plants, cooling towers, wind turbines and solar parks will be procedural. Audio for the landscape (wind, sea, transformer hum, crowd murmur in lit towns) is needed and not sourced.
+
+## Round 2 (2026-11-22): the proof level is L28
+
+**Why L28, not L19 or L34.** I ran all three on the engine. L19 is one bus; its under-frequency shed is 5 %. L34 is three buses with no map; it sheds 45 % at 18:15 and goes dark at 21:45, but it is a study, not a network. L28 "Keep the Lights On" is the 26-bus national grid the player reinforces (lines, transformers, capacitors, batteries, spinning reserve). With taps and capacitors but no spinning reserve, the coal unit trip at 18:30 on day 2 sheds 21 % of every town for one block, and the towns come back at 18:45. Without a second feeder or a battery, Saltmarsh Island goes dark at 23:30 on day 2 and the job is lost. Mateo named L28 as well. L30 still works as before.
+
+**Generated province.** L28 has no engine terrain. `world3d/gen_field.gd` draws one round the engine's buses, seeded by the level id: hills in the north-west, a river, the coast and the island in the east. The scale is 300 m per tile, so the map is 30 x 13 km. The real tile size is 4 km; I chose the smaller scale so the towns can be read. Every number on screen still comes from the engine.
+
+**Towns.** `world3d/town_gen.gd` gives each town a street grid set at its own angle, a main street, a square with a hall, shop blocks near the centre and houses further out, and lamps along the streets. Town size follows the house count WorldModel takes from peak MW. Energy indices run round the town by angle, so a 21 % shed darkens a 21 % wedge of streets. When a town's energies change, the lights switch building by building in a wave out from the centre that takes 3.2 s. Lamps follow the same wave.
+
+**Infrastructure.** Lines of 66 kV and above stand on double-circuit lattice towers: 27, 36 and 46 m by voltage, about 330 m spans, six conductors and an earth wire, with the sag from the span. Yards have fence posts and rails, three breaker bays, busbars on posts and a red warning light. Tower tops carry red lights that blink at night.
+
+**Light.** At blue hour the sky has a deep blue zenith and a peach horizon band instead of a red wash. The golden sun is less red. The moon is low and brighter (0.85), so the relief shows at night. Depth fog scales with the size of the province. Lit houses glow warm and dark ones stay dark.
+
+**Incident report.** The report is now glass in the LOOK2 skin. It is docked left at a third of the width, with no dim, so the dark district stays in view (`PaperKit.glass`). Every other paper screen is unchanged.
+
+**Low tier.** This is the Compatibility renderer. It trades away: shadows, SSAO, SDFGI, SSR, volumetric fog, glow, reflections, sky radiance (ambient is a fixed colour set by the clock), dynamic town lights (only windows and the amber disc remain), half the houses and 12 % of the trees. There is no lightmap bake. "Baked" here means static ambient only.
+
+**Frame times, round 2 (L28 at 18:45, default camera, `CB_FRAMETIME=1`).** RTX 4090, high, 1920x1080: 12.8 ms GPU. AMD Raphael iGPU, Compatibility renderer, low, 1280x800: 80 ms GPU before the low-tier cuts and 16.7 ms after (3D at 60 % scale, a cheap terrain shader, the cuts listed above). On a 60 Hz desktop that is a steady 30 fps. The app's own frame cap holds both runs at 33 ms.
+
+**Evidence.** `docs/look2/r2-*.jpg` and `docs/look2/capture-town-lights-up-10s.mp4`. The capture starts at 18:30 on day 2, with Capital's shed wedge dark. At 18:45 the engine restores the load and the wedge lights up street by street.

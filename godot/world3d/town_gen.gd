@@ -43,6 +43,9 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 						var dn := p.distance_to(c) / r
 						if dn > 1.0: continue
 						if p.distance_to(c) < 34.0: continue   # the square
+						var in_yard := false
+						for f in gf.flats: if (f.c as Vector2).distance_to(p) < float(f.r) * 0.5 + 18.0: in_yard = true
+						if in_yard: continue   # yards and plants stay clear
 						var keep := lerpf(0.97, 0.3, pow(dn, 1.4)) * keep_k
 						if WorldMath.hash2(ti * 17 + k, q * 2 + int(side > 0), 905 + dir) > keep: continue
 						var core := dn < 0.28

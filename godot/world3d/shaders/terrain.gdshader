@@ -17,7 +17,8 @@ uniform sampler2D field_a : source_color, filter_linear_mipmap_anisotropic, repe
 uniform sampler2D macro_noise : filter_linear_mipmap, repeat_enable;
 uniform float tile_m = 22.0;
 uniform float night = 0.0;
-uniform vec3 grass_tint = vec3(1.0);   // the generated province: greener farmland
+uniform vec3 grass_tint = vec3(1.0);
+uniform bool cheap = false;   // low tier: one sample per kind, no field plots, no normal maps   // the generated province: greener farmland
 
 varying vec3 wpos;
 varying vec3 wnrm;
@@ -55,6 +56,12 @@ void fragment() {
 	float sum = w.r + w.g + w.b + w.a + mud + paved + 1e-4;
 	w /= sum; mud /= sum; paved /= sum;
 
+	if (cheap) {
+		vec3 cc = texture(grass_a, p).rgb * grass_tint * w.r + texture(forest_a, p * 1.3).rgb * vec3(0.55, 0.62, 0.45) * w.g + texture(rock_a, p * 0.6).rgb * w.b
+			+ texture(sand_a, p * 1.5).rgb * w.a + texture(mud_a, p).rgb * mud + vec3(0.36, 0.35, 0.33) * paved;
+		cc *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
+		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)); ROUGHNESS = 0.92; SPECULAR = 0.25;
+	} else {
 	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
 	vec2 fq = wpos.xz / 170.0;
 	vec2 fi = floor(fq); vec2 ff = fract(fq);
@@ -94,4 +101,5 @@ void fragment() {
 	ALBEDO = col;
 	ROUGHNESS = mix(0.95, 0.75, w.b) * mix(1.0, 0.5, mud);
 	SPECULAR = 0.3;
+	}
 }

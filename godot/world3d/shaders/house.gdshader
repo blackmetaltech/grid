@@ -30,6 +30,7 @@ void fragment() {
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
 		float dark = (1.0 - step(0.001, ic.r)) * night;   // a dark town at night: roofs lose the lamplight they would catch
 		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.8;
+		EMISSION = lamp * step(0.001, ic.r) * night * 0.05 * smoothstep(900.0, 4000.0, length(VERTEX));
 	} else {
 		vec3 base = COLOR.rgb;
 		// along-wall coordinate in metres
@@ -44,5 +45,6 @@ void fragment() {
 		ROUGHNESS = mix(0.85, 0.15, win);
 		float flick = 0.85 + 0.15 * h21(cell * 3.1 + ic.g);
 		EMISSION = lamp * lit * lamp_power * flick * (0.15 + 0.85 * night);
+		EMISSION += lamp * step(0.001, ic.r) * night * 0.55 * smoothstep(900.0, 4000.0, length(VERTEX));   // a lit house reads as a warm dot from the whole province; a dark one is dark
 	}
 }
