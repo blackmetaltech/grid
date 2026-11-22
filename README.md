@@ -2,9 +2,9 @@
 
 **[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.15.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
-**Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
+**Build a power grid one job at a time. Then run the day and watch it hold, or fail.** Demand climbs at dusk. A storm opens a line. Towns go dark street by street, because the windows are lit by your own power flow.
 
-The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
+The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript engine**: an AC load flow, the swing equation, harmonics, relay curves. The same inputs always give the same day.
 
 > **Alpha, 1.15.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The finale is now drawn in a new 3D look.** The other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
 
@@ -18,74 +18,45 @@ The front end is a **Godot 4.7** game: an isometric diorama of the island and th
 | **The capital lights up street by street on the first solve** | **The incident report docks at the side, so you can still see the dark island** |
 | ![town lights up](docs/readme/new115/town-lights.gif) | ![incident](docs/readme/new115/incident.jpg) |
 
-The finale, *Keep the Lights On*, now draws the province in 3D: hills, a river, the coast and the island, towns with streets and lit windows, and lattice towers. The lights follow the engine. When load is shed or a bus goes dark, the houses go dark street by street. The map is drawn compressed so towns can be read (each 4 km square is drawn as 300 m), and the screen says so. The parts shelf no longer names the answer, and a $60M budget makes you choose. Textures are no longer grainy. On integrated graphics the game picks a low tier.
+The finale is drawn in 3D. The lights follow the engine: shed load or lose a bus, and the houses go dark street by street. The map is compressed so towns can be read, and the screen says so. The parts shelf no longer names the answer.
 
-### What's new in 1.14
-
-| Harbour City: readable streets and harbour, every label on a paper chip, none overlapping | High Moor: village names placed clear of lines and houses |
-|---|---|
-| ![harbour city](docs/readme/new114/city.png) | ![high moor](docs/readme/new114/moor.png) |
-| **The board: each asset a card with its picture, a health gauge and the gain in words; picked on the map, outlined here** | |
-| ![asset cards](docs/readme/new114/board.png) | |
-
-Every map label goes through one placement pass, and a test checks all nine districts for overlapping labels. The board's worst assets are cards. Standing costs sit on one labelled line under Cash.
-
-### What's new in 1.13
-
-| Before a review the top bar shows what the owners will take, so you can commit it first | The review quarter's report names the dividend |
-|---|---|
-| ![owners on the top bar](docs/readme/new113/owners.png) | ![report with dividend](docs/readme/new113/report.png) |
-| **Harbour City's guide explains cable faults (there are no trees to cut)** | |
-| ![cable guide](docs/readme/new113/cable-guide.png) | |
-
-A first year in Harbour City, played as a newcomer would, turned up five things. The fixes: the dividend is announced before it is taken; the strike alarm gives the fair-weather SAIDI it measures; transformer rows show the replacement price beside the failure cost; the guide no longer points to a tree card the city does not have; request cards fit. The scripted planner now beats the late firefighter on every Storm Coast seed.
-
-### What's new in 1.12
-
-| Harbour City: a street grid to the waterfront, cable under the streets, cranes and the tram | High Moor: one substation far up the moor, long trunks down the valleys |
-|---|---|
-| ![harbour city](docs/readme/new112/city.png) | ![high moor](docs/readme/new112/moor.png) |
-| **The part in hand follows the pointer; a miss names the pegs; Run has its own panel** | |
-| ![L20 part in hand](docs/readme/new112/l20-hand.png) | |
-
-Money now has somewhere to go. The owners take most of the cash above a working reserve at each review. At each five-year close the regulator takes back replacement money left unspent on a network that got older. A feeder pushed past its emergency rating sheds customers in rota blocks, and those minutes count. The scripted players prove it: the careful planner ends with little slack, and the purely reactive player loses the licence. Each district now has its own geography. Overhead lines are drawn as poles and spans along the roads, and cable as trenches under the streets. Harbour City uses real 11 kV XLPE cable sizes.
+Older releases: see the [CHANGELOG](CHANGELOG.md).
 
 ## What you actually do
 
 | | |
 |---|---|
-| **Read the job** | Each level opens with a work order: the place, three characters on the radio, the goal in plain words, the pass conditions with their numbers, and the three lamps you can earn. |
-| **Build** | A tray at the bottom holds the level's parts: cables by cross-section, pole families and conductors for a surveyed line route, transformers, capacitor banks and reactors, STATCOMs, gas units, pumped hydro and batteries. Each part shows its price, and the budget tag keeps the running total. |
-| **Operate** | Click anything you built for its tag: breakers, tap changers, capacitor steps and automatic bands, governor droop, unit commitment, store charging clocks. |
-| **Run the day** | A lever runs the 24-hour clock at 1×, 2× or 4×. Bus voltages, line loadings and the frequency move on the dials and on the map while it runs. |
-| **Read the report** | A shift report or an incident report. A lost day names the first thing that failed, with the numbers from your own run, and what to try next. A won day lights one to three lamps for passing, cost and a stretch goal. **Retry** keeps your build. |
-| **Prove it** | The exam-bridge levels hand you the givens and ask for the number before the game shows it: a Gauss-Seidel iteration, a fault level, droop and RoCoF, a merit-order λ. |
+| **Read the job** | A goal, the numbers to pass, three lamps to earn. |
+| **Build** | Pick parts from the tray. Every part has a price. |
+| **Operate** | Click what you built: breakers, tap changers, capacitor steps, unit commitment. |
+| **Run the day** | Pull the lever. Voltages, loadings and frequency move as the clock runs. |
+| **Read the report** | What happened, in your own numbers. A lost day names the first thing that failed. |
+| **Prove it** | Exam levels ask for the number before the game shows it. |
 
-**The campaign.** A prologue and **36 levels** in eight chapters and a finale. Chapter 1 is a DC bench (Ohm's law, cable resistance, the price of distance). Chapter 2 is the mainland line: route survey, sag and clearance, pole spans over a river, transformers at each end, salt on the insulators, and bringing the island home on a sea cable. Chapter 3 covers phasors, power factor and harmonics. Chapter 4 covers three-phase systems and machines (unbalance, star and delta, the P-δ curve). Chapter 5 is load flow and voltage (per unit, the long line, loop flow, the nose curve). Chapter 6 is frequency and renewables (fifty hertz, the duck curve, inertia). Chapter 7 is protection and markets (fault level, relay coordination, clearing time, merit order). Chapter 8 is distribution, the work of a junior engineer at a distribution company: voltage drop down a 16 km feeder, SAIFI and SAIDI with fuses, sectionalisers and a tie, recloser-fuse coordination on a time-current chart, N-1 at a primary substation with transformer hot-spot ageing, and rooftop solar hosting with tap-changer line-drop compensation and volt-var. The finale, **Keep the Lights On**, runs the whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday with full sun and no factories.
+**The campaign.** A prologue, 36 levels, eight chapters and a finale. It runs from Ohm's law on a beach to a 400 kV province.
 
-**Career: The Utility.** Ten years, one quarter at a time, as the district engineer for about 40,000 customers on two primary substations and nine feeders. You pick projects from a board: reconductoring, new feeders and transformers, ties, remote switches, reclosers, tree clearance, replacing worn assets, batteries and demand response. Each card shows what it does to expected SAIDI, loading and firm margin. Assets age along Weibull curves, load grows, storms and failures are drawn from the quarter's odds, and connection requests arrive with deadlines. Each year the regulator, the finance director and the crew chief review you. A simplified performance incentive pays or fines on the rolling three-year SAIDI and SAIFI against target, and every five years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets, three years running, never for one bad storm season. It ends as Chief Engineer (which also needs every feeder within its cyclic rating and every substation firm), Steady, Bailed out or Licence revoked. Storms come with a forecast each quarter: book standby crews or mutual aid before they hit, or harden the exposed feeders for good. Any debt at the end also rules out Chief, and a reset never tightens a target by more than 25 % at once. The owners take most of the cash above a working reserve at each review, and at each five-year close the regulator claws back replacement money left unspent on a network that got older. A feeder past its emergency rating sheds customers in rota blocks at the peak. A career is a seed plus your actions, so its code is also the save.
+**Career: The Utility.** Ten years as a district engineer, one quarter at a time. Nine districts, plus one weekly district that is the same for everyone.
 
-**Charters and the weekly district.** A Career can start in one of nine districts, each pushing a different pressure: Home Counties (balanced), Storm Coast (storms), Boomtown (connections and growth), Old Iron (ageing assets), Solar Valley (rooftop PV and voltage), Lean Years (a tight allowance), Forest Line (trees), Harbour City (a street grid of underground cable: rare, day-long faults, where ties and remote switching pay and auto-reclose stays off) and High Moor (long overhead lines from a market-town substation and one far up the moor, winter storms, mostly passing faults, where reclosers pay). Targets come from each district's own expected performance, so every one can be won, but not with the same plan. Each ISO week also has one seed and one of the first seven charters, the same for everyone. The game keeps your best score for the week. With a [cobanana-scores](../cobanana-scores) server (`CB_SCORES_URL`), a finished weekly career goes to that week's board: the server replays the career code to check the score. GRID ships no server address; nothing is sent without one, and nothing is sent before the first-run notice is accepted.
+**Modes.** Learner explains as it goes. Engineer uses per-unit values and stricter limits. Cute adds faces; the drawings still follow the physics.
 
-**Modes.** **Learner** explains as it goes. **Engineer** uses per-unit values and stricter limits. A **Cute** toggle in the pause menu adds faces and doodles; the drawings still follow the physics. Two region packs ship with the engine: `global` (US$, IEC voltages, the default) and `in` (₹, the Indian grid code). Both are run by the test suite.
-
-**Honest by design.** The rules are textbook equations, not tuned curves. The grid levels solve a full AC load flow every 15-minute block. A trip runs a 10 ms RK4 frequency window with governors, batteries and under-frequency load shedding. Relays use IEC inverse-time curves, and conductors carry their real names and resistances. The engine is checked against **71 core oracle cases** and a set per chapter, all computed independently in Python (`tools/oracles/`). Each level has a "naive" build that must fail and a reference build that must pass, both in the test suite. Some things are simplified. Time runs in 15-minute blocks, with second-scale dynamics only in the window after an event. Transients are not electromagnetic. Places and companies are fictional. Prices are typical figures, not quotes.
+**Honest by design.** Textbook equations, not tuned curves. A full AC load flow every 15 minutes.
 
 ## See it in action
 
-![The finale running at 4x: a night, a day and a night pass over the province while voltages move and a storm trips a line](site/assets/shots/finale-run.gif)
+![Lightning takes the island's only feeder and the island goes dark street by street](docs/readme/new115/blackout.gif)
 
-*Recorded in the game: the finale at 4×, about forty hours in ten seconds.*
+*Recorded in the game.*
 
-## Screenshots
+## Classic look (chapters 1 to 8 and the Career)
+
+These chapters still use the 2D look.
+
 
 | The work order | The river line (chapter 2) |
 |---|---|
 | ![work order](docs/readme/workorder.png) | ![river line](docs/readme/river.png) |
 | **The bench: one cable to a hamlet (chapter 1)** | **A plain capacitor bank: resonance at h = 8.6, near the 7th (chapter 3)** |
 | ![bench](docs/readme/bench.png) | ![harmonics](docs/readme/harmonics.png) |
-
-## The chapters
 
 | Generator phasors (chapter 4) | The nose of the curve (chapter 5) |
 |---|---|

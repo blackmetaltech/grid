@@ -47,7 +47,7 @@
       <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux</span><span>Windows (untested)</span></p>
       <h1>GRID</h1>
       <p class="tagline">Keep the lights on with real physics.</p>
-      <p class="lede">Build a province's power grid one job at a time, then press Run and watch the day happen to it. Demand climbs at dusk, the sun goes down on the solar farms, a storm takes out a line. The rules are the textbook equations: a full AC load flow every 15 minutes, real conductors, real relay curves.</p>
+      <p class="lede">Build a power grid one job at a time. Then run the day and watch it hold, or fail. The rules are textbook equations.</p>
       <div class="cta">
         <a class="btn go" id="dl-main" href="https://github.com/blackmetaltech/grid/releases/latest">Download <small id="dl-main-sub">latest release</small></a>
         <a class="btn" href="wiki/">Player wiki</a>
@@ -65,26 +65,27 @@
   <div class="wrap">
     <p class="kicker">How it plays</p>
     <h2>One shift, start to finish</h2>
+    <p class="intro">Shown in the finale, the first part of the game in the new 3D look.</p>
     <ol class="steps">
       <li class="step">
-        <a href="assets/shots/bench.jpg" class="zoom"><img src="assets/shots/bench.jpg" alt="L01 First Light: a battery hut on the beach, ten homes, the radio log and the parts tray" width="1600" height="900" loading="lazy"></a>
+        <a href="assets/shots/look-job.jpg" class="zoom"><img src="assets/shots/look-job.jpg" alt="The finale's work order over the province: the goal, the pass conditions and three people on the radio" width="1600" height="900" loading="lazy"></a>
         <h3><b>1</b> Take the job</h3>
-        <p>A place, three people on the radio, the goal in plain words, the pass conditions with their numbers and the three lamps you can earn.</p>
+        <p>A goal, the numbers to pass, three lamps to earn.</p>
       </li>
       <li class="step">
-        <a href="assets/shots/river.jpg" class="zoom"><img src="assets/shots/river.jpg" alt="Surveying a line route over a river and a ridge, with the parts tray at the bottom" width="1600" height="900" loading="lazy"></a>
+        <a href="assets/shots/look-build.jpg" class="zoom"><img src="assets/shots/look-build.jpg" alt="The finale before the run: the parts shelf with prices on the right, the parts tray at the bottom" width="1600" height="900" loading="lazy"></a>
         <h3><b>2</b> Build</h3>
-        <p>Cables by cross-section, pole families and named conductors on a surveyed route, transformers, capacitor banks, gas units, pumped hydro, batteries. Every part has a price.</p>
+        <p>Every part has a price. The budget will not buy them all.</p>
       </li>
       <li class="step">
-        <a href="assets/shots/nose.jpg" class="zoom"><img src="assets/shots/nose.jpg" alt="The map at noon with dials for the clock and frequency, and the P-V nose curve" width="1600" height="900" loading="lazy"></a>
+        <a href="assets/shots/look-run.jpg" class="zoom"><img src="assets/shots/look-run.jpg" alt="The province at night while the day runs: lit towns, glowing lines, the clock and the frequency dial" width="1600" height="900" loading="lazy"></a>
         <h3><b>3</b> Run the day</h3>
-        <p>A lever runs the 24-hour clock at 1×, 2× or 4×. Voltages, line loadings and the frequency move on the dials and on the map.</p>
+        <p>Pull the lever. Demand, voltage and frequency move as the clock runs.</p>
       </li>
       <li class="step">
-        <a href="assets/shots/report.jpg" class="zoom"><img src="assets/shots/report.jpg" alt="The shift report: three lamps earned, cost, losses and what happened, in the player's own numbers" width="1600" height="900" loading="lazy"></a>
-        <h3><b>4</b> Read the shift report</h3>
-        <p>What happened, in your own numbers, and what to try next. Fail, and the incident report names the bus and the minute.</p>
+        <a href="assets/shots/look-report.jpg" class="zoom"><img src="assets/shots/look-report.jpg" alt="The shift report beside the province: three lamps, the cost and what happened in the player's own numbers" width="1600" height="900" loading="lazy"></a>
+        <h3><b>4</b> Read the report</h3>
+        <p>What happened, in your own numbers. Fail, and it names the minute.</p>
       </li>
     </ol>
   </div>
@@ -99,9 +100,8 @@
     <div>
       <p class="kicker">See it run</p>
       <h2>Three days, one province</h2>
-      <p>The finale, <em>Keep the Lights On</em>, is drawn in 3D and runs everything you have learned for three days: a heatwave that sags the far ends, a storm that trips a line, a generator and a transformer, and a holiday of full sun and no factories. The ticker on the right names each event as it lands.</p>
-      <p class="fine">The 3D look is new in 1.15 and covers the finale. The other chapters and the Career keep the classic 2D look for now. The map is drawn compressed (each 4 km square as 300 m) so towns can be read.</p>
-      <p class="fine">A trip runs a 10 ms frequency window with governors, batteries and under-frequency load shedding before the clock moves on.</p>
+      <p>The finale runs three days: a heatwave, a storm, a holiday. You keep the province lit.</p>
+      <p class="fine">The map is drawn compressed so towns can be read. The screen says so.</p>
     </div>
   </div>
 </section>
@@ -110,7 +110,7 @@
   <div class="wrap">
     <p class="kicker">The campaign</p>
     <h2>A prologue, 36 jobs, eight chapters and a finale</h2>
-    <p class="intro">It starts with one cable from a battery hut to ten homes on a beach and ends running a 400 kV province. Each chapter opens a part of a real power-engineering course.</p>
+    <p class="intro">One cable to ten homes at the start. A 400 kV province at the end. Each chapter is a part of a real power-engineering course.</p>
     <ul class="chapters" id="chapters">
       <li><a href="wiki/chapter-1.html"><b>1</b><span>The Island</span><em>Ohm's law, cable resistance, the price of distance</em></a></li>
       <li><a href="wiki/chapter-2.html"><b>2</b><span>The Mainland</span><em>Route survey, sag and clearance, transformers, a sea cable</em></a></li>
@@ -122,6 +122,7 @@
       <li><a href="wiki/chapter-8.html"><b>8</b><span>Distribution</span><em>Feeder voltage drop, SAIFI and SAIDI, fuse saving, rooftop solar</em></a></li>
       <li><a href="wiki/chapter-9.html"><b>F</b><span>Keep the Lights On</span><em>The whole province for three days</em></a></li>
     </ul>
+    <p class="fine">Chapters 1 to 8 still use the classic 2D look:</p>
     <div class="gallery" id="gallery">
       <figure><a href="assets/shots/harmonics.jpg"><img src="assets/shots/harmonics.jpg" alt="Chapter 3: the harmonic spectrum of a mill feeder beside the map" width="1600" height="900" loading="lazy"></a><figcaption><b>Resonance at the fifth</b> · chapter 3</figcaption></figure>
       <figure><a href="assets/shots/phasors.jpg"><img src="assets/shots/phasors.jpg" alt="Chapter 4: generator phasors drawn from the player's answer" width="1600" height="900" loading="lazy"></a><figcaption><b>Generator phasors</b> · chapter 4</figcaption></figure>
@@ -137,7 +138,7 @@
   <div class="wrap">
     <p class="kicker">The story</p>
     <h2>Five people, ten years, and they remember</h2>
-    <p class="intro">Between the projects, letters land on the desk and calls come in during storms. Every one has two honest answers. Here is the first letter from the hospital, word for word from the game:</p>
+    <p class="intro">Letters land on your desk between projects. Each has two honest answers. Here is the first, from the hospital:</p>
 <!--story-->
 <div class="story-grid">
 <div class="letter card"><p class="letter-title">A letter from the hospital</p><p>Dr Ines Kovač, estates manager at St Brigid's Hospital: &quot;Our generators carry the theatres for six hours. Feeder F1 has no tie and no remote switch, so a fault there is a long one. Will you commit, in writing, to a tie or a remote switch on F1 within two years?&quot;</p>
@@ -156,12 +157,12 @@
     <h2>Ten years as a district engineer</h2>
     <div class="career-grid">
       <div class="career-copy">
-        <p>Two primary substations and nine feeders (about 40,000 customers in Home Counties), one quarter at a time. Pick projects from a board: reconductoring, new feeders, ties, remote switches, reclosers, tree clearance, batteries. Every card shows what it does to expected SAIDI, loading and firm margin before you buy it.</p>
+        <p>Two substations, nine feeders, about 40,000 customers. One quarter at a time. Each project card shows what it does before you buy it. Classic 2D look.</p>
         <dl class="terms">
           <dt>SAIDI</dt><dd>minutes off per customer in a year</dd>
           <dt>SAIFI</dt><dd>power cuts per customer in a year</dd>
         </dl>
-        <p>Assets age, load grows, storms come with a forecast. Tobi the crew chief, Vance from finance, the regulator, the hospital and the villages write to you, and a promise in writing comes due two years later. Nine districts teach different things, and each ISO week has one district and seed that is the same for everyone.</p>
+        <p>Assets age. Load grows. Storms come with a forecast. Nine districts, plus one weekly district that is the same for everyone.</p>
         <p><a href="wiki/career.html">The Career guide in the wiki →</a></p>
       </div>
       <figure class="taped"><img src="assets/shots/career-letter.jpg" alt="The Career screen: a letter from the hospital on the desk, the district map behind it" width="1400" height="787" loading="lazy"><figcaption>A letter on the desk. Each answer shows its cost first.</figcaption></figure>
@@ -194,7 +195,7 @@
   <div class="wrap">
     <p class="kicker">Download</p>
     <h2>Free. Unzip and play.</h2>
-    <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. It has been played on desktop Linux; the Windows build is made and smoke-tested on every release but not yet played on Windows. Node.js is bundled; nothing else to install.</p>
+    <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. Played on Linux. The Windows build is smoke-tested but not yet played. Nothing else to install.</p>
     <div class="dl-row">
       <a class="dl" id="dl-linux" href="https://github.com/blackmetaltech/grid/releases/latest"><b>Linux</b><span>x86_64 · zip</span><em>unzip, then run <code>GRID/grid.sh</code> (needs a Vulkan-capable driver)</em></a>
       <a class="dl" id="dl-windows" href="https://github.com/blackmetaltech/grid/releases/latest"><b>Windows</b><span>x64 · zip</span><em><b class="untested">Untested build:</b> made and smoke-run on Linux for every release, never yet run on Windows. Unzip, then run <code>GRID\GRID.exe</code> (unsigned: More info → Run anyway).</em></a>
