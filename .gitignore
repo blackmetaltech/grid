@@ -3,6 +3,7 @@ node_modules/
 *.log
 godot/.godot/
 *.import
+!godot/world3d/**/*.import
 godot/sidecar/
 godot/build/
 godot/android/build/

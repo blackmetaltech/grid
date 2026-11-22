@@ -28,6 +28,8 @@ window/handheld/orientation=4
 
 [rendering]
 
+anti_aliasing/screen_space_roughness_limiter/enabled=true
+
 renderer/rendering_method="forward_plus"
 renderer/rendering_method.mobile="mobile"
 textures/vram_compression/import_etc2_astc=true
@@ -37,3 +39,10 @@ environment/defaults/default_clear_color=Color(0.03, 0.05, 0.08, 1)
 
 locale/translations=PackedStringArray("res://locales/strings.en.translation")
 locale/fallback="en"
+
+[importer_defaults]
+
+texture={
+"compress/mode": 2,
+"mipmaps/generate": true
+}

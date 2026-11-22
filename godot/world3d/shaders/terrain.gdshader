@@ -33,13 +33,20 @@ void vertex() {
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
 // two samples at different scales and rotations, blended by a macro noise: kills the grid of repeats
-vec3 tex2(sampler2D t, vec2 p, float m) {
+// detail fades with distance (the owner saw grain: a 22 m tile seen from kilometres is noise): near = two rotated samples,
+// mid = an 8x larger tiling, far = the texture's mean colour (its last mip), so the land reads as colour, not sparkle
+vec3 tex2f(sampler2D t, vec2 p, float m, float g_mid, float g_far) {
 	vec2 q = mat2(vec2(0.8, -0.6), vec2(0.6, 0.8)) * p * 0.37 + vec2(0.31, 0.17);
-	return mix(texture(t, p).rgb, texture(t, q).rgb, 0.35 + 0.3 * m);
+	vec3 nearc = mix(texture(t, p).rgb, texture(t, q).rgb, 0.35 + 0.3 * m);
+	vec3 midc = texture(t, q * 0.125).rgb;
+	vec3 farc = textureLod(t, p, 10.0).rgb;
+	return mix(mix(nearc, midc, g_mid), farc, g_far);
 }
 vec3 nrm2(sampler2D t, vec2 p) { return texture(t, p).rgb; }
 
 void fragment() {
+	float vd = length(VERTEX);
+	float g_mid = smoothstep(250.0, 1400.0, vd) * 0.7; float g_far = smoothstep(1800.0, 6000.0, vd);
 	vec2 p = wpos.xz / tile_m;
 	float m1 = texture(macro_noise, wpos.xz / 1900.0).r;
 	float m2 = texture(macro_noise, wpos.xz / 420.0 + vec2(0.37, 0.71)).r;
@@ -73,11 +80,11 @@ void fragment() {
 		if (dd < d1) { d2 = d1; d1 = dd; cell = fi + o; } else if (dd < d2) { d2 = dd; }
 	}
 	float crop = h21(cell * 1.31);
-	vec3 g = tex2(grass_a, p, m);
+	vec3 g = tex2f(grass_a, p, m, g_mid, g_far);
 	vec3 plot = g;
 	if (crop < 0.34) plot = g * vec3(0.96, 1.04, 0.88);
 	else if (crop < 0.52) plot = mix(g, vec3(0.55, 0.52, 0.32), 0.30);
-	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(g, tex2(field_a, rp / 14.0, m) * vec3(1.0, 0.92, 0.82), 0.6); }
+	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(g, tex2f(field_a, rp / 14.0, m, g_mid, g_far) * vec3(1.0, 0.92, 0.82), 0.6); }
 	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);
 	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
@@ -86,10 +93,10 @@ void fragment() {
 	vec3 grass = mix(g, plot, 0.6) * grass_tint;
 
 	vec3 col = grass * w.r
-		+ tex2(forest_a, p * 1.3, m) * vec3(0.55, 0.62, 0.45) * w.g
-		+ tex2(rock_a, p * 0.6, m) * w.b
-		+ tex2(sand_a, p * 1.5, m) * w.a
-		+ tex2(mud_a, p, m) * vec3(0.85, 0.9, 0.8) * mud
+		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g
+		+ tex2f(rock_a, p * 0.6, m, g_mid, g_far) * w.b
+		+ tex2f(sand_a, p * 1.5, m, g_mid, g_far) * w.a
+		+ tex2f(mud_a, p, m, g_mid, g_far) * vec3(0.85, 0.9, 0.8) * mud
 		+ mix(vec3(0.32, 0.31, 0.30), vec3(0.42, 0.40, 0.37), m2) * paved;
 	// macro colour drift: some hillsides drier, some lusher
 	col *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
@@ -98,9 +105,9 @@ void fragment() {
 
 	vec3 n = nrm2(grass_n, p) * (w.r + paved) + nrm2(forest_n, p * 1.3) * (w.g + mud) + nrm2(rock_n, p * 0.6) * w.b + nrm2(sand_n, p * 1.5) * w.a;
 	NORMAL_MAP = n;
-	NORMAL_MAP_DEPTH = 0.9;
+	NORMAL_MAP_DEPTH = 0.9 * (1.0 - smoothstep(150.0, 1500.0, vd));   // normal detail only up close: no specular sparkle far away
 	ALBEDO = col;
-	ROUGHNESS = mix(0.95, 0.75, w.b) * mix(1.0, 0.5, mud);
+	ROUGHNESS = max(mix(0.95, 0.75, w.b) * mix(1.0, 0.5, mud), mix(0.0, 0.97, smoothstep(300.0, 2500.0, vd)));
 	SPECULAR = 0.3;
 	}
 }

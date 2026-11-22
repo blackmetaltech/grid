@@ -141,12 +141,15 @@ func _make_env() -> void:
 	add_child(moon)
 	if quality == "high":
 		RenderingServer.directional_shadow_atlas_set_size(8192, true)
-		get_viewport().msaa_3d = Viewport.MSAA_4X
-		get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA
+		get_viewport().msaa_3d = Viewport.MSAA_4X   # geometry edges
+		get_viewport().use_taa = true                # thousands of small instances and thin lattice members: temporal AA stops the shimmer
+		get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	elif quality == "medium":
 		get_viewport().msaa_3d = Viewport.MSAA_2X
+		get_viewport().use_taa = true
 	else:   # low: the 3D view renders at 60 % and is scaled up; the UI stays at full resolution
 		get_viewport().scaling_3d_scale = 0.6
+		get_viewport().scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR; get_viewport().fsr_sharpness = 0.35   # FSR 1 upscale with sharpening, not a bilinear blur
 
 ## Palette by minute of the day (docs/LOOK2.md "Light"): day, golden hour, blue hour, night.
 func _sky_at(mn: float) -> Dictionary:
