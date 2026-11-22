@@ -110,3 +110,19 @@ Asset gaps: none blocking. CC0 textures cover the ground. Lattice towers, plants
 **Frame times, round 2 (L28 at 18:45, default camera, `CB_FRAMETIME=1`).** RTX 4090, high, 1920x1080: 12.8 ms GPU. AMD Raphael iGPU, Compatibility renderer, low, 1280x800: 80 ms GPU before the low-tier cuts and 16.7 ms after (3D at 60 % scale, a cheap terrain shader, the cuts listed above). On a 60 Hz desktop that is a steady 30 fps. The app's own frame cap holds both runs at 33 ms.
 
 **Evidence.** `docs/look2/r2-*.jpg` and `docs/look2/capture-town-lights-up-10s.mp4`. The capture starts at 18:30 on day 2, with Capital's shed wedge dark. At 18:45 the engine restores the load and the wedge lights up street by street.
+
+## Phase B (2026-11-23)
+
+**Decision: presentation scale.** L28's province stays compressed: 300 m on screen for each 4 km engine tile. A note on screen says so (`WORLD_SCALE_NOTE`). At true scale (400 x 176 km) a town would be a few pixels at any zoom where two towns are in view, and the slice is about towns lighting up. Every number (line km, MW, pu) is the engine's. This can be reversed: one constant in `Province3D.set_model`.
+
+**Grainy textures (owner, 11-22).** Cause: all 18 terrain textures were imported without mipmaps, because `.import` files were git-ignored and the defaults won. Fix:
+- mipmaps on and VRAM compression for every texture under `world3d/`, with normal maps as RGTC;
+- `.import` files under `world3d/` are now tracked, and `[importer_defaults]` sets the same for new textures;
+- `src/look2-textures.test.ts` fails if a 3D texture has mipmaps off;
+- terrain detail fades to an 8x tiling and then to the texture's mean colour with distance, normal strength falls with distance, roughness rises with distance, and the screen-space roughness limiter is on;
+- TAA on high and medium;
+- FSR 1 with sharpening on the low tier.
+
+Trade: VRAM compression is now the default for any new texture in the project, including 2D. UI art that needs to stay crisp must say so in its own `.import`.
+
+**Decision: CI perf budgets.** Wall-clock budgets run locally only (`pnpm perf`). The manager decided this (factory DECISIONS 8), and it can be reversed.
