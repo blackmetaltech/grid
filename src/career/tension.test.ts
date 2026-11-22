@@ -25,6 +25,7 @@ describe('cash tension', () => {
         else expect(failed(r.state.ending), `${ch}/${seed} reactiveOnly`).toBe(true);
         expect(failed(runPersona(seed, goldPlater, 40, ch).state.ending), `${ch}/${seed} goldPlater`).toBe(true);
         expect(f.state.ending, `${ch}/${seed} firefighter`).not.toBe('chiefEngineer');
+        if (ch === 'storm') expect(p.score, `${ch}/${seed} planner beats the late firefighter`).toBeGreaterThan(f.score);   // 1.13 gate: storm play
         pSum += p.score; fSum += f.score;
       }
       expect(fSum, `${ch}: firefighter total vs planner total`).toBeLessThan(0.75 * pSum);

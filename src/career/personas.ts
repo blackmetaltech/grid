@@ -87,10 +87,14 @@ export const planner: Persona = {
   plan: (s) => {
     const d = doer(s);
     const lean = charterOf(d.s).revenue < 1;   // an efficiency challenge on revenue: borrow only for urgent work, not for capacity while on track
-    const free = (capex: number, lead: number, reserve = 0.8): boolean => d.s.cash - reserve + (d.s.t < 32 ? 3 : 0) - committedPerQuarter(d.s) * 2 >= capex / lead;
+    const line = 5 * Math.min(1, Math.max(0, (32 - d.s.t) / 8));   // the credit the planner will use tapers over years 7-8 so the career ends out of debt
+    /** the last two years: a project starts only if everything already committed and this one can be paid from the cash in hand and the surplus still to come, so the career ends out of debt */
+    const owed = (): number => d.s.projects.filter((p) => p.status === 'building').reduce((a, p) => a + p.capexM - p.spentM, 0);
+    const endOk = (capex: number): boolean => d.s.t < 32 || d.s.cash + 0.4 * (40 - d.s.t) - owed() - capex >= 0.5;   // ~0.4 m a quarter of operating surplus still to come
+    const free = (capex: number, lead: number, reserve = 0.8): boolean => endOk(capex) && d.s.cash - reserve + (d.s.t < 32 ? 3 : 0) - committedPerQuarter(d.s) * 2 >= capex / lead;
     /** Capacity capex enters the asset base and earns its return, so the planner borrows for it (down to cash -5, half the credit line; other asset work down to -3) but only in the first eight years, to end with cash back above 0. */
     const onTrack = districtExpected(d.s).saidi <= d.s.saidiTarget;   // reliability first: borrow for capacity only while the network can meet its targets
-    const borrow = (capex: number, lead: number, urgent = false): boolean => d.s.cash + (d.s.t < 32 && (lean ? urgent : onTrack || urgent) ? 5 : 0) - committedPerQuarter(d.s) >= capex / lead;
+    const borrow = (capex: number, lead: number, urgent = false): boolean => endOk(capex) && d.s.cash + ((lean ? urgent : onTrack || urgent) ? line : 0) - committedPerQuarter(d.s) >= capex / lead;
     const nice = (capex: number, lead: number): boolean => committedPerQuarter(d.s) < 1.1 && free(capex, lead, 1.2);
     const an: Record<string, FeederAnalysis> = {};
     for (const f of d.s.feeders) an[f.id] = analyseFeeder(d.s, f);
@@ -190,7 +194,7 @@ export const planner: Persona = {
     let started = 0;
     for (const o of opts) {
       if (started >= (emergency ? 4 : 3) || o.score < 1 / 20) break;
-      const okMoney = emergency ? d.s.cash + 3 - committedPerQuarter(d.s) >= o.capex / o.lead : nice(o.capex, o.lead);
+      const okMoney = emergency ? endOk(o.capex) && d.s.cash + (d.s.t < 32 ? 3 : 0) - committedPerQuarter(d.s) >= o.capex / o.lead : nice(o.capex, o.lead);
       if (crewsFree(d.s) - (emergency ? 0 : capCrews) >= 1 && okMoney && d.do({ a: 'start', kind: o.kind, target: o.target })) started++;
     }
     // 7. vegetation
