@@ -1166,6 +1166,7 @@ func _draw() -> void:
 		_draw_chip(chip_at, chip_text, chip_dot)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
+	if GridTheme.look2: return GridTheme.glass_cell_sb(fill, lit)
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
 	s.border_color = GridTheme.SODIUM if lit else Color(GridTheme.SODIUM_DIM, 0.28); s.set_border_width_all(2 if lit else 1)
 	return s
@@ -1183,7 +1184,7 @@ func _draw_price_tag() -> void:
 	var spent := CbRegion.money(float(bud.get("spent", 0.0)), false, 0); var budget := CbRegion.money(float(bud.get("capexLimit", 0.0)), false, 0)
 	var over: bool = float(bud.get("spent", 0.0)) > float(bud.get("capexLimit", 0.0))
 	var txt := tx("TRAY_BUDGET") % [spent, budget]
-	var mono := GridTheme.font("mono"); var semi := GridTheme.font("semi")
+	var mono := GridTheme.font("mono"); var semi := GridTheme.font(GridTheme.skin_font("semi"))
 	var fsz := GridTheme.fs(15)
 	var tw := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	if mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(12)).x > TAG_W - 30.0:   # millions do not fit at a readable size (L20: "$980,425,000 / $1,100,000,000"): $980.4M / $1.1B
@@ -1191,13 +1192,13 @@ func _draw_price_tag() -> void:
 	while tw > TAG_W - 30.0 and fsz > 10: fsz -= 1; tw = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var w := TAG_W; var h := 62.0
 	var org := Vector2(size.x - PAD - w, 17.0) if _tag_inline else Vector2(size.x - PAD - w, -h - 6.0)
-	draw_set_transform(org + Vector2(w, 0.0) * 0.5, deg_to_rad(-1.6), Vector2.ONE)
-	draw_style_box(GridTheme.paper_sb(3, 0.0), Rect2(Vector2(-w * 0.5, 0.0), Vector2(w, h)))
-	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
-	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.PAPER_INK, 0.6), false, 1.0)
-	draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
-	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
-	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	draw_set_transform(org + Vector2(w, 0.0) * 0.5, deg_to_rad(GridTheme.chit_tilt()), Vector2.ONE)
+	draw_style_box(GridTheme.chit_sb(3, 0.0), Rect2(Vector2(-w * 0.5, 0.0), Vector2(w, h)))
+	if not GridTheme.look2: draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
+	if not GridTheme.look2: draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.chit_ink(), 0.6), false, 1.0)
+	if not GridTheme.look2: draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
+	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), GridTheme.G_DIM if GridTheme.look2 else Color(GridTheme.PAPER_INK, 0.7))
+	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.chit_ink())
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 ## The paper chip: one line, or wrapped (a refusal is a sentence) in a box at most 620 px wide; the dot says good / thin / bad.
@@ -1220,14 +1221,14 @@ func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 	var x := gx - global_position.x
 	var bh := f.get_height(fsz) * (lines + nlines) + 12.0
 	var rect := Rect2(Vector2(x - (tw + dw) * 0.5 - 10.0, at.y - bh - 4.0), Vector2(tw + dw + 20.0, bh))
-	draw_style_box(GridTheme.paper_sb(4, 0.0), rect)
-	draw_colored_polygon(PackedVector2Array([Vector2(x - 6.0, rect.end.y - 1.0), Vector2(x + 6.0, rect.end.y - 1.0), Vector2(x, rect.end.y + 7.0)]), GridTheme.PAPER)
+	draw_style_box(GridTheme.chit_sb(4, 0.0), rect)
+	draw_colored_polygon(PackedVector2Array([Vector2(x - 6.0, rect.end.y - 1.0), Vector2(x + 6.0, rect.end.y - 1.0), Vector2(x, rect.end.y + 7.0)]), GridTheme.chit_bg())
 	var tx0 := rect.position.x + 10.0
 	if dw > 0.0:
-		draw_circle(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, dot); draw_arc(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, 0.0, TAU, 16, GridTheme.PAPER_INK, 1.3)
+		draw_circle(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, dot); draw_arc(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, 0.0, TAU, 16, GridTheme.chit_ink(), 1.3)
 	tx0 += dw
-	GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
-	if note != "": GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz) + f.get_height(fsz) * lines), note, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0, fsz, -1, Color("#9A5200"))
+	GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.chit_ink())
+	if note != "": GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz) + f.get_height(fsz) * lines), note, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0, fsz, -1, (GridTheme.WARN if GridTheme.look2 else Color("#9A5200")))
 
 # ---- icons ----------------------------------------------------------------------------------------------------------------------------
 func _icon_survey(c: Vector2) -> void:

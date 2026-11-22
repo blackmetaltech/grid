@@ -493,6 +493,7 @@ func _draw() -> void:
 		_chip_anchor(); _draw_chip(chip_at, chip_text)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
+	if GridTheme.look2: return GridTheme.glass_cell_sb(fill, lit)
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
 	s.border_color = GridTheme.SODIUM if lit else Color(GridTheme.SODIUM_DIM, 0.28); s.set_border_width_all(2 if lit else 1)
 	return s
@@ -501,23 +502,23 @@ func _draw_price_tag() -> void:
 	var spent := str(kit.get("spentText", "")); var budget := str(kit.get("budgetText", ""))
 	var over: bool = float(kit.get("spent", 0.0)) > float(kit.get("budget", 0.0))
 	var txt := tx("TRAY_BUDGET") % [spent, budget]
-	var mono := GridTheme.font("mono"); var semi := GridTheme.font("semi")
+	var mono := GridTheme.font("mono"); var semi := GridTheme.font(GridTheme.skin_font("semi"))
 	var fsz := GridTheme.fs(15)
 	var tw := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw > TAG_W - 30.0 and fsz > 10: fsz -= 1; tw = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var w := TAG_W; var h := 62.0
 	var org := Vector2(size.x - PAD - w, 17.0) if _tag_inline else Vector2(size.x - PAD - w, -h - 6.0)   # narrow trays: the tag hangs fully above the shelf, never over the reels
-	var ang := deg_to_rad(-1.6)
+	var ang := deg_to_rad(GridTheme.chit_tilt())
 	draw_set_transform(org + Vector2(w, 0.0) * 0.5, ang, Vector2.ONE)
 	var rect := Rect2(Vector2(-w * 0.5, 0.0), Vector2(w, h))
-	var sb := GridTheme.paper_sb(3, 0.0)
+	var sb := GridTheme.chit_sb(3, 0.0)
 	draw_style_box(sb, rect)
 	# a clipped corner, the eyelet and the string loop
-	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
-	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.PAPER_INK, 0.6), false, 1.0)
-	draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
-	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
-	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	if not GridTheme.look2: draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
+	if not GridTheme.look2: draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.chit_ink(), 0.6), false, 1.0)
+	if not GridTheme.look2: draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
+	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), GridTheme.G_DIM if GridTheme.look2 else Color(GridTheme.PAPER_INK, 0.7))
+	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.chit_ink())
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_hint() -> void:
@@ -532,9 +533,9 @@ func _draw_chip(at: Vector2, s: String) -> void:
 	gx = clampf(gx, tw * 0.5 + 18.0, vw - tw * 0.5 - 18.0)
 	var x := gx - global_position.x
 	var rect := Rect2(Vector2(x - tw * 0.5 - 10.0, at.y - fsz - 14.0), Vector2(tw + 20.0, fsz + 12.0))
-	draw_style_box(GridTheme.paper_sb(4, 0.0), rect)
-	draw_colored_polygon(PackedVector2Array([Vector2(x - 6.0, rect.end.y - 1.0), Vector2(x + 6.0, rect.end.y - 1.0), Vector2(x, rect.end.y + 7.0)]), GridTheme.PAPER)
-	GridText.ds(self, f, Vector2(x - tw * 0.5, rect.position.y + fsz + 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.PAPER_INK)
+	draw_style_box(GridTheme.chit_sb(4, 0.0), rect)
+	draw_colored_polygon(PackedVector2Array([Vector2(x - 6.0, rect.end.y - 1.0), Vector2(x + 6.0, rect.end.y - 1.0), Vector2(x, rect.end.y + 7.0)]), GridTheme.chit_bg())
+	GridText.ds(self, f, Vector2(x - tw * 0.5, rect.position.y + fsz + 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.chit_ink())
 
 # ---- icons ----------------------------------------------------------------------------------------------------------------------------
 func _icon_hut(c: Vector2) -> void:
