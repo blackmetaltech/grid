@@ -39,6 +39,7 @@ func is_evening_shift() -> bool:
 ## The level's verb: a shift that starts from 18:00 through the small hours is a night, anything else a day.
 func is_night_shift() -> bool:
 	if app == null or app.b == null: return true
+	if _full_day: return false   # 1.12 a run of 20 h or more is a day whatever the hour it starts (L20 starts at 00:00)
 	var ls = app.b.g.get("levelStart")
 	if ls == null: return true
 	var mins := fposmod(float(ls) * 15.0, 1440.0)
@@ -75,11 +76,13 @@ func sync() -> void:
 		var li = app.b.q("levelInfo"); var id: String = str(li.get("id", "")) if li is Dictionary and li.get("active", false) else ""
 		if id != _level:
 			_level = id
+			_full_day = li is Dictionary and li.get("horizonBlocks") != null and int(li.get("horizonBlocks")) >= 80
 			if id != "": rate = 2 if str(li.get("kind", "")) == "bench" or (li.get("horizonBlocks") != null and int(li.get("horizonBlocks")) <= 60) else 1   # short runs (bench nights, L05 evening, L29 night) start at 2x
 	if app != null and app.speed > 0: rate = clampi(app.speed, 1, 3)
 	queue_redraw()
 
 var _pad_seen := false
+var _full_day := false
 func _process(dt: float) -> void:
 	if CbKit.pad_mode != _pad_seen: _pad_seen = CbKit.pad_mode; queue_redraw()
 	var goal := 1.0 if running() else 0.0
@@ -131,6 +134,12 @@ func _draw() -> void:
 	if not CbKit.pad_mode: screws.append(Vector2(18, h - 16))
 	for s in screws:   # screws
 		draw_circle(s, 4.0, GridTheme.NIGHT); draw_line(s + Vector2(-2.5, 1.5), s + Vector2(2.5, -1.5), GridTheme.SODIUM_DIM, 1.2)
+	# 1.12 the run panel: its own green-edged field under a rule, so a click meant for Run does not land on a speed key (a tester's did)
+	var run_r := Rect2(Vector2(12.0, _speed_rect.end.y + 12.0), Vector2(w - 24.0, h - _speed_rect.end.y - 20.0))
+	draw_line(Vector2(16.0, _speed_rect.end.y + 6.0), Vector2(w - 16.0, _speed_rect.end.y + 6.0), Color(GridTheme.SODIUM_DIM, 0.5), 1.0)
+	var rsb := StyleBoxFlat.new(); rsb.set_corner_radius_all(8); rsb.bg_color = Color(GridTheme.GOOD, 0.10 if not on else 0.04)
+	rsb.border_color = Color(GridTheme.GOOD, 0.85 if not on else 0.35); rsb.set_border_width_all(2)
+	draw_style_box(rsb, run_r)
 	# knife switch: slot, pivot at the bottom, blade swings between OFF (leaning left) and ON (leaning right)
 	var pv := Vector2(w * 0.29, h - 56.0)
 	draw_rect(Rect2(pv + Vector2(-34, -4), Vector2(68, 10)), GridTheme.NIGHT, true)
@@ -153,10 +162,10 @@ func _draw() -> void:
 		var tl: String = RATES[k]; var kw := mf.get_string_size(tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz)
 		GridText.ds(self, mf, Vector2(kr.get_center().x - kw.x * 0.5, kr.get_center().y + msz * 0.35), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if sel else Color(GridTheme.TEXT, 0.75))
 	# label
-	var f := GridTheme.font("semi"); var fsz := GridTheme.fs(17); var lt := label_text()
+	var f := GridTheme.font("title"); var fsz := GridTheme.fs(22); var lt := label_text()
 	var lw := f.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var lx := (w - lw.x) * 0.5 + (12.0 if CbKit.pad_mode else 0.0)
-	GridText.ds(self, f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.TEXT)
+	GridText.ds(self, f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.GOOD.lightened(0.25))
 	if CbKit.pad_mode: _pad_glyph(Vector2(lx - 17.0, h - 18.0), "X")
 
 ## A round controller button glyph ("X"): shown while the last input was a pad.

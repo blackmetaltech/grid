@@ -276,6 +276,7 @@ func step_knob(id: String, d: int) -> float:
 # ---- picking ----------------------------------------------------------------------------------------------------------------------------
 func _cancel_quiet() -> void:
 	mode = ""; armed = -1; picks = []; target_hi = -1; chip_text = ""; _targets = []
+	if world != null and world.has_method("set_hand"): world.set_hand(Vector2(-1, -1), "")
 	if world != null: world.set_site_pegs([], -1)
 
 func cancel() -> bool:
@@ -505,11 +506,21 @@ func on_tap(pos: Vector2) -> bool:
 	if mode == "pick":
 		var i := _target_at(pos, _targets)
 		if i >= 0: press_target(str(_targets[i].id)); return true
-		cancel(); return true
+		_miss(); return true   # 1.12 a miss keeps the part in hand and says where it can go (a tester's clicks on tiles vanished: the old miss cancelled silently)
 	var hit := op_target_at(pos)
 	if not hit.is_empty(): open_op(str(hit.kind), str(hit.id)); return true
 	if op_kind != "": close_op(); return true
 	return false
+
+## 1.12 A click in pick mode that hit no legal place: keep the part, name the places it can go and light them brighter.
+func _miss() -> void:
+	if _targets.is_empty(): cancel(); return
+	var names: Array = []
+	for t in _targets.slice(0, 4): names.append(str(t.label))
+	chip_text = tx("GT_MISS") % (", ".join(names) + (" …" if _targets.size() > 4 else ""))
+	chip_dot = GridTheme.WARN; chip_cell = -1; chip_at = Vector2(size.x * 0.5, -10.0)
+	set_target_hi(0 if target_hi < 0 else target_hi)
+	queue_redraw()
 
 func on_long(pos: Vector2) -> bool:
 	if mode == "pick": return remove_last()
@@ -518,7 +529,9 @@ func on_long(pos: Vector2) -> bool:
 	return false
 
 func on_hover(pos: Vector2) -> void:
-	if world == null or mode != "pick": return
+	if world == null: return
+	if world.has_method("set_hand"): world.set_hand(pos, tx_part(items[armed]) if mode == "pick" and armed >= 0 and armed < items.size() else "")
+	if mode != "pick": return
 	var i := _target_at(pos, _targets)
 	if i != target_hi: set_target_hi(i)
 

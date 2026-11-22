@@ -1006,6 +1006,7 @@ func _paint_top() -> void:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
 	_draw_labels()
 	_draw_pegs()
+	_draw_hand()
 	_draw_breakers()
 	perf.top_us += Time.get_ticks_usec() - t0
 
@@ -1546,6 +1547,21 @@ func set_site_pegs(pegs: Array, highlight := -1) -> void:
 	_pegs = pegs; _peg_hi = highlight; queue_redraw()
 
 func peg_count() -> int: return _pegs.size()
+
+## 1.12 The part in hand follows the pointer as a ghost (a tester could not tell that a tool was selected): `label` empty clears it.
+var _hand_at := Vector2(-1, -1); var _hand_label := ""
+func set_hand(at: Vector2, label: String) -> void:
+	if at == _hand_at and label == _hand_label: return
+	_hand_at = at; _hand_label = label; _top_layer.queue_redraw()
+
+func _draw_hand() -> void:
+	if _hand_label == "" or _hand_at.x < 0.0: return
+	var font := GridTheme.font("semi"); var fsz := GridTheme.fs(14)
+	var tw := font.get_string_size(_hand_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	_dc(_hand_at, 11.0, Color(GridTheme.SODIUM, 0.35)); _bt_flush(); _ci.draw_arc(_hand_at, 11.0, 0.0, TAU, 20, GridTheme.SODIUM, 2.0, true)
+	var r := Rect2(_hand_at + Vector2(16.0, -fsz - 10.0), Vector2(tw + 14.0, fsz + 10.0))
+	_dr(r, Color(GridTheme.INK, 0.88)); _dr(r, GridTheme.SODIUM, false, 1.5)
+	_bt_flush(); GridText.ds(_ci, font, r.position + Vector2(7.0, fsz + 3.0), _hand_label, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM)
 
 func _poly_screen(pts: Array) -> PackedVector2Array:
 	var out := PackedVector2Array()
