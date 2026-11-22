@@ -1490,6 +1490,11 @@ func _route_pulses(l: Dictionary) -> void:
 func _draw_labels() -> void:
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
+	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
+	if _l3() and look3d.field is GenField:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
+		var note := tr("WORLD_SCALE_NOTE"); var nw := font.get_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+		var nr := Rect2(Vector2(size.x * 0.5 - nw * 0.5 - 10.0, 156.0), Vector2(nw + 20.0, 20.0))
+		_dr(nr, Color(0.03, 0.05, 0.08, 0.55)); _bt_flush(); GridText.ds(_ci, font, nr.position + Vector2(10, 15), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.78, 0.84, 0.9))
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	var site_seen := {}
 	var placed: Array[Rect2] = []; _town_boxes = placed   # (kept for the pegs, which leave a town name readable) grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
@@ -1545,7 +1550,9 @@ func _draw_line_overlay() -> void:
 	var far := clampf((float(look3d.dist) - 300.0) / 1800.0, 0.3, 1.0)
 	var gen: bool = look3d.field is GenField
 	var zl := 30.0 if gen else 9.0   # the generated province's lines hang on lattice towers
-	if gen: far = clampf((float(look3d.dist) - 2500.0) / 14000.0, 0.06, 1.0)   # close in, the towers and conductors carry the line; the overlay fades
+	if gen: far = clampf((float(look3d.dist) - 9000.0) / 12000.0, 0.0, 0.8)   # 3D conductors carry the line at play zoom; the overlay only at whole-province zoom
+	var only_dead: bool = gen and far <= 0.01   # close in: only lines out of service keep their dashed overlay
+	if only_dead: far = 0.7
 	for l in model.lines:
 		var kind := str(l.kind)
 		if kind == "xfmr": continue
@@ -1562,6 +1569,7 @@ func _draw_line_overlay() -> void:
 					pts.append(_iso(w.x, w.y, (PXM * 1.0) if kind == "cable" else _zat(w) + zl * PXM))
 			if raw.size() >= 2: var e := _tc(raw[raw.size() - 1]); pts.append(_iso(e.x, e.y, (PXM * 1.0) if kind == "cable" else _zat(e) + zl * PXM))
 		if pts.size() < 2: continue
+		if only_dead and bool(l.in_service): continue
 		var live := bool(l.in_service) and int(l.dir) != 0
 		var col: Color = l.color if bool(l.in_service) else WorldMath.GREY
 		if kind == "cable" and bool(l.in_service): col = GridTheme.SODIUM
@@ -1636,6 +1644,8 @@ func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, plac
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := at - Vector2(w * 0.5, 0.0)
+	if _l3():   # keep the chip whole inside the view: slide it in from the edges (the leader still points at the place)
+		p.x = clampf(p.x, 18.0, size.x - w - 14.0); p.y = maxf(p.y, float(fs) + 8.0)
 	if _l3():   # LOOK2 instrument language: dark glass chip, hairline edge, a lit/dark tick, a leader down to the place
 		var r := Rect2(p + Vector2(-14, -fs - 4), Vector2(w + 24, fs + 13))
 		_dl(Vector2(at.x, r.end.y), Vector2(at.x, r.end.y + 26.0), Color(col, 0.55), 1.0, true)

@@ -81,8 +81,9 @@ void fragment() {
 	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);
 	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
+	plot = mix(g, plot, smoothstep(0.0, 0.12, d2 - d1));   // soft field edges: crops fade into the hedge line
 	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.6);
-	vec3 grass = mix(g, plot, 0.75) * grass_tint;
+	vec3 grass = mix(g, plot, 0.6) * grass_tint;
 
 	vec3 col = grass * w.r
 		+ tex2(forest_a, p * 1.3, m) * vec3(0.55, 0.62, 0.45) * w.g

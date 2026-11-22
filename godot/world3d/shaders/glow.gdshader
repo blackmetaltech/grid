@@ -6,8 +6,12 @@ uniform float power = 2.0;
 uniform float pulse = 0.0;      // > 0: travelling pulses along UV.x at this speed (flow)
 uniform float fade_v = 0.0;     // > 0: fade along UV.y (beams)
 uniform float radial = 0.0;     // > 0: soft disc, fading to the edge at this radius (light pools)
+uniform float inflate = 0.0;    // > 0: tubes grow with camera distance (metres per metre), so a conductor keeps a few pixels of width at play zoom
 varying vec3 lp;
-void vertex() { lp = VERTEX; }
+void vertex() {
+	lp = VERTEX;
+	if (inflate > 0.0) { float d = length((MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz); VERTEX += NORMAL * inflate * d; }
+}
 void fragment() {
 	float k = 1.0;
 	if (pulse != 0.0) k = 0.35 + 0.65 * pow(0.5 + 0.5 * sin((UV.x - TIME * pulse) * 6.2832), 6.0);

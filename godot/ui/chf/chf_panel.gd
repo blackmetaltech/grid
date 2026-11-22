@@ -18,6 +18,20 @@ var _toggle: Button
 var _scroll: ScrollContainer
 var _open := true
 var _kit_sig := ""
+var _skin := ""   # "paper" | "glass": LOOK2 draws the card in the glass language
+
+## Ink for this card: dark on paper, light on glass.
+func ink(a := 1.0) -> Color: return Color(GridTheme.G_TEXT if GridTheme.look2 else GridTheme.PAPER_INK, a)
+
+func _apply_skin() -> void:
+	var want := "glass" if GridTheme.look2 else "paper"
+	if want == _skin: return
+	_skin = want
+	add_theme_stylebox_override("panel", GridTheme.glass_sb(0.74, 4, 10.0) if GridTheme.look2 else GridTheme.paper_sb(4, 10.0))
+	for l in [_day_lbl, _threat, _stats, _ticker]: (l as Label).add_theme_color_override("font_color", ink())
+	_day_lbl.add_theme_font_override("font", GridTheme.font(GridTheme.skin_font("title")))
+	_toggle.add_theme_color_override("font_color", ink())
+	_kit_sig = ""
 
 func _init() -> void:
 	name = "ChfPanel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
@@ -51,6 +65,7 @@ func refresh() -> void:
 	var li = app.b.q("levelInfo")
 	visible = li is Dictionary and li.get("active", false) and str(li.id) == LEVEL
 	if not visible: return
+	_apply_skin()
 	var g := _g()
 	var day := clampi(int(g.clock.day) + (1 if int(g.clock.block) > 0 or int(g.tick) == 0 else 0), 1, 3)
 	if int(g.clock.day) == 3: day = 3
@@ -58,7 +73,9 @@ func refresh() -> void:
 	else: _day_lbl.text = tx("CF_DAY") % day + "   " + tx("CF_CLOCK") % [int(g.clock.block) / 4, (int(g.clock.block) % 4) * 15]
 	_threat.text = tx("CF_DAY%d" % day)
 	var lamp := _island_text(g)
-	_island.text = lamp[0]; _island.add_theme_color_override("font_color", lamp[1])
+	var lc: Color = lamp[1]
+	if GridTheme.look2: lc = {"#1e6b3a": Color("#6FD08C"), "#b02020": Color("#FF6B5B"), "#b07010": Color("#F0B050")}.get(lc.to_html(false), ink())
+	_island.text = lamp[0]; _island.add_theme_color_override("font_color", lc)
 	var tr: Dictionary = g.metrics.track
 	var lim := float(g.rules.get("maxEnsMWh", 0.0))
 	_stats.visible = int(g.tick) > int(g.levelStart)
@@ -97,7 +114,7 @@ func _rebuild_ticker(g: Dictionary) -> void:
 		var t := str(e.get("text", e.get("msg", ""))) if e is Dictionary else str(e)
 		if e is Dictionary and int(e.get("tick", 0)) <= int(g.levelStart): continue   # the newGame banner ("the grid is empty… place a bus") belongs to before the shift
 		if t != "": lines.append(t)
-		if lines.size() >= 5: break
+		if lines.size() >= (3 if app.vs_h() < 860.0 else 5): break   # 1280x800: three lines, so the card ends above the speed dock
 	_ticker.text = "\n".join(lines) if lines.size() > 0 else tx("CF_TICKER_EMPTY")
 
 func _layout() -> void:
@@ -161,7 +178,7 @@ func _rebuild_kit(g: Dictionary) -> void:
 	if sig == _kit_sig: return
 	_kit_sig = sig
 	for c in _kit.get_children(): _kit.remove_child(c); c.queue_free()
-	_kit.add_child(GridTheme.label(tx("CF_B_HEAD"), 12, Color(GridTheme.PAPER_INK, 0.7), "mono"))
+	_kit.add_child(GridTheme.label(tx("CF_B_HEAD"), 12, ink(0.7), "mono"))
 	for id in KIT.keys():
 		var b := Button.new(); b.name = "cf_" + id; b.custom_minimum_size = Vector2(W - 24.0, 30)
 		b.focus_mode = CbKit.focus_mode(); b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.clip_text = true

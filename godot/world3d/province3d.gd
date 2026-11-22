@@ -810,7 +810,7 @@ func _build_tower_line(l: Dictionary, wire_mat: Material, meshes: Dictionary) ->
 	var key := "tower|%d" % int(h)
 	if not meshes.has(key): meshes[key] = Props3D.tower(h, arm)
 	var tw: Array = meshes[key]
-	var tmat := StandardMaterial3D.new(); tmat.vertex_color_use_as_albedo = true; tmat.metallic = 0.55; tmat.roughness = 0.45
+	var tmat := ShaderMaterial.new(); tmat.shader = load("res://world3d/shaders/tower.gdshader")
 	var pts: Array = l.pts
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var sg := SurfaceTool.new(); sg.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -841,8 +841,10 @@ func _build_tower_line(l: Dictionary, wire_mat: Material, meshes: Dictionary) ->
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = tw[0]; mm.instance_count = xfs.size()
 	for k in xfs.size(): mm.set_instance_transform(k, xfs[k])
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = tmat; _root_dyn.add_child(mi)
-	var wi := MeshInstance3D.new(); wi.mesh = st.commit(); wi.material_override = wire_mat; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(wi)
-	var gi := MeshInstance3D.new(); gi.mesh = sg.commit(); gi.material_override = _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6)
+	var cmat := ShaderMaterial.new(); cmat.shader = load("res://world3d/shaders/tower.gdshader"); cmat.set_shader_parameter("inflate", 0.00035); cmat.set_shader_parameter("metal", 0.8); cmat.set_shader_parameter("rough", 0.3)
+	var wi := MeshInstance3D.new(); wi.mesh = st.commit(); wi.material_override = cmat; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(wi)
+	var gm := _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6); gm.set_shader_parameter("inflate", 0.0009)
+	var gi := MeshInstance3D.new(); gi.mesh = sg.commit(); gi.material_override = gm
 	gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(gi)
 	_wire_glow[str(l.id)] = gi
 	var rm := MultiMesh.new(); rm.transform_format = MultiMesh.TRANSFORM_3D; var rs := SphereMesh.new(); rs.radius = 0.5; rs.height = 1.0; rs.radial_segments = 6; rs.rings = 3
@@ -917,8 +919,11 @@ func _update_dynamic() -> void:
 		gi.visible = live and n > 0.3
 		if live:
 			var m: ShaderMaterial = gi.material_override
-			m.set_shader_parameter("tint", Color(l.color, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
-			m.set_shader_parameter("power", 0.35 + 0.3 * n)
+			var kv := float(l.get("kv", 11.0))   # voltage colour (400 kV violet, 220 kV teal, 132 kV green, below amber); the loading band colour takes over above 90 %
+			var vc := Color(0.62, 0.55, 1.0) if kv >= 300.0 else (Color(0.3, 0.85, 0.95) if kv >= 200.0 else (Color(0.45, 0.95, 0.55) if kv >= 66.0 else Color(1.0, 0.75, 0.4)))
+			if float(l.get("loading", 0.0)) > 0.9 or field is TerrainField and not field is GenField: vc = Color(l.color)
+			m.set_shader_parameter("tint", Color(vc, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
+			m.set_shader_parameter("power", (0.35 + 0.3 * n) * (0.6 if field is GenField else 1.0))
 	if not _cable.is_empty():
 		var l := _line_by_id(str(_cable.id))
 		var ok := not l.is_empty() and bool(l.in_service)

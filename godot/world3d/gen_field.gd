@@ -95,9 +95,11 @@ func height(x: float, z: float) -> float:
 	var nw := clampf(1.0 - (x / size_m.x) * 0.9 - (z / size_m.y) * 0.5, 0.0, 1.0)   # higher to the north-west
 	var hills := (n_gen.get_noise_2d(x, z) * 0.5 + 0.5)
 	var ridge := (n_ridge.get_noise_2d(x * 2.2, z * 2.2) * 0.5 + 0.5)
-	var h := 12.0 + hills * 110.0 * (0.4 + nw) + ridge * ridge * 520.0 * nw * nw
-	var shore := clampf((coast_x - x) / (12.0 * tm), 0.0, 1.0)
-	h *= shore
+	var u := x / size_m.x; var v := z / size_m.y
+	var band := smoothstep(0.32, 0.0, absf(v - 0.22 - 0.08 * sin(u * 7.0))) * smoothstep(0.85, 0.35, u)   # a range across the north
+	var h := 22.0 + hills * 70.0 * (0.5 + nw) + ridge * ridge * (560.0 * nw * nw + 340.0 * band)
+	var shore := clampf((coast_x - x) / (2.5 * tm), 0.0, 1.0)
+	h *= sqrt(shore)   # the land meets the sea in cliffs where it is high
 	var rd := _river_dist(x, z)
 	if rd < 900.0: h = lerpf(RIVER_LEVEL - 2.6, h, smoothstep(55.0, 900.0, rd))   # a valley down to the water
 	var flat := _flat_k(x, z)

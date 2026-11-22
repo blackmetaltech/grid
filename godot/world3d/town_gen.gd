@@ -52,9 +52,11 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 						var w := (8.0 + 5.0 * hh) if not core else (12.0 + 8.0 * hh)
 						var dd := 7.0 + 3.0 * WorldMath.hash2(q, k, 906)
 						var h := (5.0 + 3.0 * WorldMath.hash2(k, q, 907)) if not core else (8.5 + 6.0 * WorldMath.hash2(k, q, 908))
+						if count >= 26 and dn < 0.16 and hh > 0.55:   # the capital's skyline: a few office and flat towers round the square
+							w = 16.0 + 8.0 * hh; dd = 14.0 + 6.0 * WorldMath.hash2(k, q, 910); h = 20.0 + 26.0 * WorldMath.hash2(q, k, 911)
 						var ang := atan2(-along.y, along.x)
 						var idx := int(fposmod(atan2((p - c).y, (p - c).x) - rot, TAU) / TAU * count) % count
-						places.append([p.x, p.y, w, dd, h, ang + (WorldMath.hash2(q, k, 909) - 0.5) * 0.06, id, idx, core and hh > 0.4, dn])
+						places.append([p.x, p.y, w, dd, h, ang + (WorldMath.hash2(q, k, 909) - 0.5) * 0.06, id, idx, (core and hh > 0.4) or h > 19.0, dn])
 				var ls := -half + 15.0; var lq := 0
 				while ls < half - 10.0:
 					var side2 := 1.0 if lq % 2 == 0 else -1.0

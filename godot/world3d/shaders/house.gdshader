@@ -5,8 +5,8 @@ shader_type spatial;
 render_mode diffuse_burley;
 
 uniform vec3 roof_a : source_color = vec3(0.50, 0.17, 0.11);
-uniform vec3 roof_b : source_color = vec3(0.19, 0.20, 0.24);
-uniform vec3 lamp : source_color = vec3(1.0, 0.62, 0.26);
+uniform vec3 roof_b : source_color = vec3(0.30, 0.31, 0.36);
+uniform vec3 lamp : source_color = vec3(1.0, 0.70, 0.36);
 uniform float lamp_power = 2.2;
 uniform float night = 0.0;   // set by Province3D from the operator clock
 
@@ -29,7 +29,7 @@ void fragment() {
 		rc *= 0.75 + 0.5 * h21(vec2(ic.g * 91.0, 3.0));
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
 		float dark = (1.0 - step(0.001, ic.r)) * night;   // a dark town at night: roofs lose the lamplight they would catch
-		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.8;
+		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.62; SPECULAR = 0.55;   // roofs catch the moon instead of reading as holes
 		EMISSION = lamp * step(0.001, ic.r) * night * 0.05 * smoothstep(350.0, 1500.0, length(VERTEX));
 	} else {
 		vec3 base = COLOR.rgb;
@@ -44,7 +44,8 @@ void fragment() {
 		ALBEDO = mix(base, vec3(0.05, 0.06, 0.08), win * 0.85) * (1.0 - 0.45 * dark);
 		ROUGHNESS = mix(0.85, 0.15, win);
 		float flick = 0.85 + 0.15 * h21(cell * 3.1 + ic.g);
-		EMISSION = lamp * lit * lamp_power * flick * (0.15 + 0.85 * night);
-		EMISSION += lamp * step(0.001, ic.r) * night * 0.55 * smoothstep(350.0, 1500.0, length(VERTEX));   // a lit house reads as a warm dot from the whole province; a dark one is dark
+		float far = smoothstep(350.0, 1500.0, length(VERTEX));
+		EMISSION = lamp * lit * lamp_power * flick * (0.15 + 0.85 * night) * (1.0 + 2.2 * far);   // windows carry the town from afar, not a tinted wall
+		EMISSION += lamp * step(0.001, ic.r) * night * 0.16 * far;   // a lit house reads as a warm dot from the whole province; a dark one is dark
 	}
 }
