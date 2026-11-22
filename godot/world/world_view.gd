@@ -1493,7 +1493,7 @@ func _draw_labels() -> void:
 	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
 	if _l3() and look3d.field is GenField:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
 		var note := tr("WORLD_SCALE_NOTE"); var nw := font.get_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		var nr := Rect2(Vector2(size.x * 0.5 - nw * 0.5 - 10.0, 156.0), Vector2(nw + 20.0, 20.0))
+		var nr := Rect2(Vector2(16.0, 92.0), Vector2(nw + 20.0, 20.0))
 		_dr(nr, Color(0.03, 0.05, 0.08, 0.55)); _bt_flush(); GridText.ds(_ci, font, nr.position + Vector2(10, 15), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.78, 0.84, 0.9))
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	var site_seen := {}
@@ -1644,7 +1644,8 @@ func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, plac
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := at - Vector2(w * 0.5, 0.0)
-	if _l3():   # keep the chip whole inside the view: slide it in from the edges (the leader still points at the place)
+	if _l3():   # a place off screen gets no chip; one at the edge slides in whole (the leader still points at the place)
+		if at.x < -w * 0.4 or at.x > size.x + w * 0.4 or at.y < 0.0 or at.y > size.y: return
 		p.x = clampf(p.x, 18.0, size.x - w - 14.0); p.y = maxf(p.y, float(fs) + 8.0)
 	if _l3():   # LOOK2 instrument language: dark glass chip, hairline edge, a lit/dark tick, a leader down to the place
 		var r := Rect2(p + Vector2(-14, -fs - 4), Vector2(w + 24, fs + 13))

@@ -18,6 +18,7 @@ var _toggle: Button
 var _scroll: ScrollContainer
 var _open := true
 var _kit_sig := ""
+var _th: Label
 var _skin := ""   # "paper" | "glass": LOOK2 draws the card in the glass language
 
 ## Ink for this card: dark on paper, light on glass.
@@ -28,8 +29,10 @@ func _apply_skin() -> void:
 	if want == _skin: return
 	_skin = want
 	add_theme_stylebox_override("panel", GridTheme.glass_sb(0.74, 4, 10.0) if GridTheme.look2 else GridTheme.paper_sb(4, 10.0))
-	for l in [_day_lbl, _threat, _stats, _ticker]: (l as Label).add_theme_color_override("font_color", ink())
-	_day_lbl.add_theme_font_override("font", GridTheme.font(GridTheme.skin_font("title")))
+	for l in [_day_lbl, _threat, _stats, _ticker, _th]:   # labels carry LabelSettings: recolour those (a theme override does not reach them)
+		var ls: LabelSettings = (l as Label).label_settings.duplicate(); ls.font_color = ink(0.7 if l == _th else 1.0)
+		if l == _day_lbl: ls.font = GridTheme.font(GridTheme.skin_font("title"))
+		(l as Label).label_settings = ls
 	_toggle.add_theme_color_override("font_color", ink())
 	_kit_sig = ""
 
@@ -49,7 +52,7 @@ func _init() -> void:
 	_threat = _wrap("", 13); _threat.name = "cf_threat"; _box.add_child(_threat)
 	_island = GridTheme.label("", 15, GridTheme.PAPER_INK, "semi"); _island.name = "cf_island"; _box.add_child(_island)
 	_stats = _wrap("", 12); _stats.name = "cf_stats"; _box.add_child(_stats)
-	var th := GridTheme.label(tx("CF_TICKER"), 12, Color(GridTheme.PAPER_INK, 0.7), "mono"); _box.add_child(th)
+	_th = GridTheme.label(tx("CF_TICKER"), 12, Color(GridTheme.PAPER_INK, 0.7), "mono"); _box.add_child(_th)
 	_ticker = _wrap("", 12); _ticker.name = "cf_ticker"; _box.add_child(_ticker)
 	_kit = VBoxContainer.new(); _kit.add_theme_constant_override("separation", 3); _kit.name = "cf_kit"; _box.add_child(_kit)
 
@@ -75,7 +78,8 @@ func refresh() -> void:
 	var lamp := _island_text(g)
 	var lc: Color = lamp[1]
 	if GridTheme.look2: lc = {"#1e6b3a": Color("#6FD08C"), "#b02020": Color("#FF6B5B"), "#b07010": Color("#F0B050")}.get(lc.to_html(false), ink())
-	_island.text = lamp[0]; _island.add_theme_color_override("font_color", lc)
+	_island.text = lamp[0]
+	if _island.label_settings.font_color != lc: var ls2: LabelSettings = _island.label_settings.duplicate(); ls2.font_color = lc; _island.label_settings = ls2
 	var tr: Dictionary = g.metrics.track
 	var lim := float(g.rules.get("maxEnsMWh", 0.0))
 	_stats.visible = int(g.tick) > int(g.levelStart)
@@ -132,8 +136,12 @@ func _layout() -> void:
 		reset_size(); position = Vector2(maxf(4.0, vp.x - maxf(size.x, get_combined_minimum_size().x) - 8.0), top)   # by the card's real width: wide kit buttons had pushed it past the right edge
 		_day_lbl.visible = false   # the toggle row carries the day and the clock
 	else:
-		_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.custom_minimum_size = Vector2.ZERO; _scroll.visible = true; _day_lbl.visible = true
-		size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0)
+		var avail2 := vp.y - 74.0 - 300.0   # ends above the speed dock and the budget tag (1280x800 overlap)
+		var bh := _box.get_combined_minimum_size().y
+		if bh > avail2: _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.custom_minimum_size = Vector2(W - 24.0, avail2)
+		else: _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.custom_minimum_size = Vector2.ZERO
+		_scroll.visible = true; _day_lbl.visible = true
+		size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0); reset_size()
 		position = Vector2(vp.x - W - 14.0, 74.0)
 
 ## The build kit: the finale's recipe as one click per move (the tray still places any part by hand). Each button runs its actions through the bridge; the engine prices and refuses.

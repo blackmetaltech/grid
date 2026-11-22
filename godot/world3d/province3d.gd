@@ -843,7 +843,7 @@ func _build_tower_line(l: Dictionary, wire_mat: Material, meshes: Dictionary) ->
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = tmat; _root_dyn.add_child(mi)
 	var cmat := ShaderMaterial.new(); cmat.shader = load("res://world3d/shaders/tower.gdshader"); cmat.set_shader_parameter("inflate", 0.00035); cmat.set_shader_parameter("metal", 0.8); cmat.set_shader_parameter("rough", 0.3)
 	var wi := MeshInstance3D.new(); wi.mesh = st.commit(); wi.material_override = cmat; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(wi)
-	var gm := _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6); gm.set_shader_parameter("inflate", 0.0009)
+	var gm := _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6); gm.set_shader_parameter("inflate", 0.00045)
 	var gi := MeshInstance3D.new(); gi.mesh = sg.commit(); gi.material_override = gm
 	gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(gi)
 	_wire_glow[str(l.id)] = gi
@@ -923,7 +923,7 @@ func _update_dynamic() -> void:
 			var vc := Color(0.62, 0.55, 1.0) if kv >= 300.0 else (Color(0.3, 0.85, 0.95) if kv >= 200.0 else (Color(0.45, 0.95, 0.55) if kv >= 66.0 else Color(1.0, 0.75, 0.4)))
 			if float(l.get("loading", 0.0)) > 0.9 or field is TerrainField and not field is GenField: vc = Color(l.color)
 			m.set_shader_parameter("tint", Color(vc, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
-			m.set_shader_parameter("power", (0.35 + 0.3 * n) * (0.6 if field is GenField else 1.0))
+			m.set_shader_parameter("power", (0.35 + 0.3 * n) * (0.35 if field is GenField else 1.0))
 	if not _cable.is_empty():
 		var l := _line_by_id(str(_cable.id))
 		var ok := not l.is_empty() and bool(l.in_service)
