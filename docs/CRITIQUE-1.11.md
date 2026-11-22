@@ -15,6 +15,16 @@
 | 2. A fun-critic tester (Career year 1 in one district plus L20) | **Met.** A Sonnet fun critic (strategy-sim player) played Harbour City for six quarters with the year-1 review, two High Moor quarters, and L20 to three lamps from the guidance alone. Its top findings are carried, ranked, to 1.12 (below). |
 | 3. Carried: listening pass, idle and real-GPU fps, physical pad | **Owed**, all three. |
 
+## The coordinator's review of the live site (fixed after the tag, site only)
+| Note | Fix |
+|---|---|
+| "Free and open source" with no LICENSE | "Free. Source on GitHub." No other place claimed it (README, CHANGELOG and release notes checked). |
+| Windows claimed but never run | "Windows (untested)" in the pills; "Untested build" beside the Windows download. |
+| An 810 px column at 1920; unreadable step thumbnails | The column is 1400 px, the page scales at 2560 (×1.3) and 4K (×1.95); the step shots are 2×2 and open full size. |
+| The hero was a small dark map | The hero is the River Line work order over its map; the GIF in "See it run" is labelled as animated. |
+| The story missing | A story section: the five people, the hospital's first letter with both answers, and the ending sheet. It is generated from the story strings into the home page and the wiki, so it cannot drift from the build. |
+| Wiki facts | Hand-written lines re-checked against the engine: the P0 intro (a cascade after one breaker, not Saltmarsh), the villages feeder, customers per district, the 5-minute rule. |
+
 ## Owner-concerns audit (games-bible 05)
 | Group | Pass/Fail | Evidence |
 |---|---|---|
