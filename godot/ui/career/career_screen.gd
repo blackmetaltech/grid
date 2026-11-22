@@ -76,9 +76,9 @@ func build() -> void:
 	tool_row = _build_tools(); left.add_child(tool_row)
 	map = CareerMap.new(); map.compact = compact; map.size_flags_vertical = Control.SIZE_EXPAND_FILL; map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map.picked.connect(_on_pick); left.add_child(map)
-	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.95), Color(GridTheme.SODIUM_DIM, 0.4), 1, 8, 10.0, 5.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
+	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", CareerKit.sb(GridTheme.PAPER, Color(GridTheme.PAPER_INK, 0.35), 1, 4, 14.0, 8.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
 	info_box = VBoxContainer.new(); info_box.add_theme_constant_override("separation", 2); ip.add_child(info_box)
-	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", CareerKit.sb(Color(GridTheme.INK, 0.97), Color(GridTheme.SODIUM_DIM, 0.5), 1, 8, 8.0, 8.0))
+	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", CareerKit.sb(Color("#4A3524"), Color("#2C1E12"), 3, 10, 10.0, 10.0))   # 1.9: a clipboard of paper cards
 	drawer.custom_minimum_size.x = clampf(app.vw() * 0.34, 380.0, 420.0) if compact else clampf(app.vw() * 0.29, 480.0, 600.0)
 	body.add_child(drawer)
 	var dv := VBoxContainer.new(); dv.add_theme_constant_override("separation", 6); drawer.add_child(dv)
@@ -255,6 +255,11 @@ func _asset_line(a: Dictionary, label: String) -> String:
 func _build_info() -> void:
 	if info_box == null: return
 	_clear(info_box)
+	var was := CareerKit.paper; CareerKit.paper = true
+	_build_info_body()
+	CareerKit.paper = was
+
+func _build_info_body() -> void:
 	var sz := 14 if compact else 16
 	if msg != "":
 		var ml := CareerKit.lbl(msg, sz, GridTheme.GOOD if msg_good else GridTheme.BAD, "semi", true); ml.name = "Message"; ml.max_lines_visible = 2 if compact else 3; ml.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; info_box.add_child(ml)
@@ -312,10 +317,12 @@ func _build_tabs() -> void:
 func _build_drawer(to_top := false) -> void:
 	var keep := 0 if to_top else drawer_sc.scroll_vertical
 	_clear(drawer_body)
+	var was := CareerKit.paper; CareerKit.paper = true
 	match tab:
 		"run": _run_tab()
 		"req": _req_tab()
 		_: _board_tab()
+	CareerKit.paper = was
 	drawer_sc.set_deferred("scroll_vertical", keep)
 
 ## The target string a project kind takes for what is picked on the map ("" when the pick is the wrong sort of thing).
@@ -373,7 +380,8 @@ func _worst_card(sz: int) -> void:
 		if not entries.has(id):
 			_held_placeholder(v, "fix|" + id, id); continue
 		var e: Dictionary = entries[id]; var r: Dictionary = e.r
-		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); v.add_child(hb)
+		var row := VBoxContainer.new(); row.add_theme_constant_override("separation", 2); v.add_child(row)
+		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); row.add_child(hb)
 		var pick: Button; var extra: Label
 		if bool(e.plant):
 			pick = CareerKit.btn(T("CAR_RISK_ROW") % [id, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "RiskPick_" + id
@@ -383,9 +391,8 @@ func _worst_card(sz: int) -> void:
 			pick = CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "WorstPick_" + id
 			extra = CareerKit.lbl("%s  %s" % [T("CAR_WORST_GAIN") % CareerKit.num(float(r.dSaidi), 1), str(r.capexText)], sz - 2, GridTheme.GOOD, "mono")
 		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; hb.add_child(pick)
-		if compact: v.add_child(extra)   # the phone drawer is narrow: the gain or cost goes on a line of its own
-		else: hb.add_child(extra)
-		var fix := CareerKit.btn(T("CAR_START"), true, func(): _start_held("fix|" + id, hb, "replaceAssets", id), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
+		var fix := CareerKit.btn(T("CAR_START"), true, func(): _start_held("fix|" + id, row, "replaceAssets", id), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
+		row.add_child(extra)   # 1.9: the gain or cost on its own line under the row (beside it, the 16 px floor clipped the row's name)
 
 func _asset_of(id: String) -> Dictionary:
 	for f in d.feeders:
@@ -404,8 +411,13 @@ func guided() -> int:
 	return int(d.t)
 
 func _guide_card(sz: int, gq: int, hidden: int) -> void:
-	var v := CareerKit.card(drawer_body, GridTheme.SODIUM); v.get_parent().name = "GuideCard"
-	v.add_child(CareerKit.lbl(T("CAR_GUIDE_T") % (gq + 1), sz + 1, GridTheme.SODIUM, "semi", true))
+	# 1.9: the quarter's job is a pinned work order, the most readable thing on screen (title 26 px, body 20 px; the rest of the board is 16)
+	var pc := PanelContainer.new(); pc.name = "GuideCard"; pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var st := CareerKit.sb(GridTheme.PAPER, CareerKit.INK_AMBER, 3, 3, 18.0, 14.0); st.shadow_color = Color(0, 0, 0, 0.45); st.shadow_size = 6; st.shadow_offset = Vector2(2, 4)
+	pc.add_theme_stylebox_override("panel", st); drawer_body.add_child(pc)
+	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 8); pc.add_child(v)
+	var tape := ColorRect.new(); tape.color = Color("#E8D9A8", 0.85); tape.custom_minimum_size = Vector2(90, 14); tape.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; tape.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(tape)
+	v.add_child(CareerKit.lbl(T("CAR_GUIDE_T") % (gq + 1), 26 if not compact else 22, GridTheme.SODIUM, "title", true))
 	var body := ""
 	if gq == 0:
 		var w := worst_assets(1)
@@ -413,9 +425,9 @@ func _guide_card(sz: int, gq: int, hidden: int) -> void:
 		elif w.is_empty(): body = T("CAR_GUIDE_Q1_NONE")
 		else: body = T("CAR_GUIDE_Q1") % [str(w[0].id), str(w[0].capexText)]
 	else: body = T("CAR_GUIDE_Q%d" % (gq + 1))
-	var bl := CareerKit.lbl(body, sz, GridTheme.TEXT, "sans", true); bl.name = "GuideText"; v.add_child(bl)
-	if hidden > 0: v.add_child(CareerKit.lbl(T("CAR_GUIDE_MORE") % hidden, sz - 2, Color(GridTheme.TEXT, 0.55), "sans", true))
-	var all := CareerKit.btn(T("CAR_GUIDE_ALL"), false, func(): guide_all = true; _build_drawer(), sz - 1); all.name = "GuideAll"; all.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(all)
+	var bl := CareerKit.lbl(body, 20 if not compact else 18, GridTheme.TEXT, "sans", true); bl.name = "GuideText"; v.add_child(bl)
+	if hidden > 0: v.add_child(CareerKit.lbl(T("CAR_GUIDE_MORE") % hidden, 16, Color(GridTheme.TEXT, 0.55), "sans", true))
+	var all := CareerKit.btn(T("CAR_GUIDE_ALL"), false, func(): guide_all = true; _build_drawer(), 16); all.name = "GuideAll"; all.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(all)
 
 func _board_tab() -> void:
 	if int(d.t) != _held_t: _held.clear(); _held_t = int(d.t); _rows_prev = []

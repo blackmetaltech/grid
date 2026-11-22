@@ -9,7 +9,7 @@ const S := {
 	"CAR_JOBS_BRIEF": "Ten years, forty quarters, one network. Projects, storms, connections and the regulator's review every year.", "CAR_JOBS_SAVED": "Saved: year %d, quarter %d",
 	"CAR_ERR_LOAD": "The saved career could not be loaded.",
 	# top strip
-	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH_DEBT": "%s BORROWING", "CAR_CASH_OWED": "builds owe %s; then %s", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI this year / target, min", "CAR_SAIFI": "SAIFI this year / target", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
+	"CAR_YEAR_Q": "YEAR %d  QUARTER %d", "CAR_CASH_DEBT": "%s BORROWING", "CAR_CASH_OWED": "builds owe %s; then %s", "CAR_CASH": "CASH", "CAR_CASH_LIM": "credit limit %s", "CAR_SAIDI": "SAIDI min / target", "CAR_SAIFI": "SAIFI / target", "CAR_TARGET": "target %s", "CAR_EXPECTED": "expected %s", "CAR_SOFAR": "so far %s",
 	"CAR_HEALTH": "HEALTH", "CAR_HEALTH_VAL": "%s of 10 (start %s)", "CAR_CREWS": "CREWS", "CAR_CREWS_VAL": "%d of %d free", "CAR_MET": "YEARS MET", "CAR_MET_VAL": "%d", "CAR_SCORE": "SCORE", "CAR_PIP_REVIEW": "review, year %d",
 	"CAR_PIP_MET": "year %d: targets met", "CAR_PIP_MISSED": "year %d: targets missed", "CAR_PIP_Q": "year %d, quarter %d",
 	"CAR_END_Q": "End quarter", "CAR_END_Q_INC": "Answer the incidents", "CAR_LEAVE": "Save and leave", "CAR_COPY_CODE": "Copy code", "CAR_CODE_COPIED": "Career code copied.",

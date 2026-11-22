@@ -21,11 +21,15 @@ func set_vals(cap: String, y: float, tg: float, ex: float, decimals: int) -> voi
 func _draw() -> void:
 	var f := GridTheme.font("mono"); var fb := GridTheme.font("semi")
 	var fz := GridTheme.fs(13); var fz2 := GridTheme.fs(15 if not compact else 14)
-	draw_string(f, Vector2(0, fz), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.62))
+	GridText.ds(self, f, Vector2(0, fz), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.62))
 	var tx := "%s / %s" % [CareerKit.num(ytd, dec), CareerKit.num(target, dec)]
 	var col := GridTheme.GOOD if ytd < target * 0.8 else (GridTheme.WARN if ytd <= target else GridTheme.BAD)
 	var ts := fb.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2)
-	draw_string(fb, Vector2(size.x - ts.x, fz2), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2, col)
+	var cw := f.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x
+	var stacked := cw + 10.0 + ts.x > size.x   # 1.9: at the 16 px floor a narrow bar put the value over its caption: stack them
+	var want_h := (fz + fz2 + 22.0) if stacked else 40.0
+	if absf(custom_minimum_size.y - want_h) > 0.5: custom_minimum_size.y = want_h
+	GridText.ds(self, fb, Vector2(size.x - ts.x, fz + fz2 + 2.0 if stacked else fz2), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2, col)
 	var mx := maxf(maxf(target, expected), ytd) * 1.12
 	var by := size.y - 12.0; var bh := 7.0
 	draw_rect(Rect2(0, by, size.x, bh), Color(ink, 0.12))

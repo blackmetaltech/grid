@@ -7,8 +7,24 @@ static func T(key: String) -> String: return TranslationServer.translate(key)
 const INKBG := Color("#10162E")
 const CARD := Color(1, 1, 1, 0.055)
 
+## 1.9 "night shift" look: the drawer and the info panel are paper (cream sheets, ink text), not dark dashboard panels. While `paper` is on,
+## cards are paper, label colours map to inks of the same meaning and buttons are paper buttons. career_screen turns it on around the builds.
+static var paper := false
+const INK_GOOD := Color("#2F6B2A"); const INK_WARN := Color("#9A5A08"); const INK_BAD := Color("#A8321F"); const INK_AMBER := Color("#8A5208")
+
+static func ink(col: Color) -> Color:
+	if not paper: return col
+	var a := col.a
+	var base: Color
+	if col.is_equal_approx(Color(GridTheme.GOOD, a)) or col.r < 0.5 and col.g > 0.6 and col.b < 0.7: base = INK_GOOD
+	elif col.is_equal_approx(Color(GridTheme.BAD, a)) or col.r > 0.8 and col.g < 0.45: base = INK_BAD
+	elif col.is_equal_approx(Color(GridTheme.WARN, a)): base = INK_WARN
+	elif col.is_equal_approx(Color(GridTheme.SODIUM, a)) or col.r > 0.8 and col.g > 0.5 and col.b < 0.45: base = INK_AMBER
+	else: base = GridTheme.PAPER_INK
+	return Color(base, clampf(0.55 + a * 0.45, 0.0, 1.0))   # faint light text becomes a lighter ink, never invisible on cream
+
 static func lbl(text: String, size := 16, col: Color = GridTheme.TEXT, kind := "sans", wrap := false) -> Label:
-	var l := GridTheme.label(text, size, col, kind)
+	var l := GridTheme.label(text, size, ink(col), kind)
 	if wrap: l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
@@ -19,6 +35,8 @@ static func sb(bg: Color, edge: Color, bw := 1, r := 6, padx := 12.0, pady := 6.
 
 ## A button on the dark chrome: `primary` = sodium fill (the one action), otherwise an outlined ghost.
 static func btn(text: String, primary: bool, cb: Callable, size := 16) -> Button:
+	if paper:   # paper buttons on the paper drawer (PaperKit: sodium for the one action, ink outline otherwise)
+		var pb := PaperKit.btn(text, primary, cb, maxi(size, 16)); pb.custom_minimum_size.y = maxf(36.0, CbLayout.tap()); return pb
 	var b := Button.new(); b.text = text; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(size))
 	var fc: Color = GridTheme.NIGHT if primary else GridTheme.TEXT
@@ -47,7 +65,9 @@ static func chip(text: String, on: bool, cb: Callable, size := 15) -> Button:
 	return b
 
 static func card(parent: Control, edge := Color(0, 0, 0, 0)) -> VBoxContainer:
-	var pc := PanelContainer.new(); pc.add_theme_stylebox_override("panel", sb(CARD, edge if edge.a > 0.0 else Color(GridTheme.SODIUM_DIM, 0.35), 1, 8, 12.0, 8.0))
+	var pc := PanelContainer.new()
+	if paper: pc.add_theme_stylebox_override("panel", sb(GridTheme.PAPER, INK_AMBER if edge.a > 0.0 else Color(GridTheme.PAPER_INK, 0.3), 2 if edge.a > 0.0 else 1, 4, 14.0, 10.0))
+	else: pc.add_theme_stylebox_override("panel", sb(CARD, edge if edge.a > 0.0 else Color(GridTheme.SODIUM_DIM, 0.35), 1, 8, 12.0, 8.0))
 	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; parent.add_child(pc)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); pc.add_child(v)
 	return v
