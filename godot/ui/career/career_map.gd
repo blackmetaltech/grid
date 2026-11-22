@@ -53,6 +53,8 @@ func _layout(force := false) -> void:
 			sx += ex; _order.append(str(f.id)); i += 1
 		var px := sx / float(maxi(grp.size(), 1)) if not grp.is_empty() else size.x * 0.5
 		_prim[pid] = Vector2(px, top)
+	if _geo() == "city": _layout_city(feeders, mx, top, bot); return
+	if _geo() == "moor": _layout_moor(feeders, mx, top, bot); return
 	for f in feeders:
 		var fid := str(f.id)
 		var idx := _order.find(fid)
@@ -72,12 +74,91 @@ func _layout(force := false) -> void:
 			pts.append(base + perp * bend)
 		_pts[fid] = pts; _tip_of[fid] = pts[pts.size() - 1]
 
+## 1.12 Harbour City: a street grid running down to the waterfront. Each feeder is a cable route under the streets: down from the
+## primary, across along its own street, down again and a short jog toward its ring partner, all on the street lines.
+func _street() -> Vector2: return Vector2(46.0, 34.5) * _sc()
+func _snap(p: Vector2) -> Vector2:
+	var st := _street()
+	return Vector2(round(p.x / st.x) * st.x, round(p.y / st.y) * st.y)
+
+func _layout_city(feeders: Array, mx: float, top: float, bot: float) -> void:
+	var n := feeders.size(); var st := _street()
+	var pids: Array = _prim.keys()
+	for k in pids.size(): _prim[pids[k]] = _snap(Vector2(size.x * (0.27 if k == 0 else 0.73), top))
+	for f in feeders:
+		var fid := str(f.id); var idx := _order.find(fid)
+		var gi := _grp_idx(f, feeders); var gn := _grp_n(f, feeders)
+		var p0: Vector2 = _prim.get(str(f.primaryId), Vector2(size.x * 0.5, top))
+		var head := _snap(p0 + Vector2((float(gi) - float(gn - 1) * 0.5) * st.x, st.y * 2.0))
+		var ex := _snap(Vector2(mx + (float(idx) + 0.5) / float(maxi(n, 1)) * (size.x - 2.0 * mx), 0)).x
+		var ya := head.y + st.y * float(1 + gi)   # each feeder crosses on its own street, so no two routes share a block
+		var yb := _snap(Vector2(0, bot - st.y * (1.0 + float(idx % 2)))).y
+		var jog := st.x * (1.0 if idx % 2 == 0 else -1.0)
+		var pts := PackedVector2Array([head, Vector2(head.x, ya), Vector2(ex, ya), Vector2(ex, yb), Vector2(ex + jog * 0.5, yb)])
+		while pts.size() > (f.sections as Array).size() + 1: pts.remove_at(pts.size() - 1)
+		_pts[fid] = pts; _tip_of[fid] = pts[pts.size() - 1]
+
+## 1.12 High Moor: one primary (the market town's) sits by the villages; the other is far off at the top of the moor, and its feeders
+## run long trunks down their own valleys before they reach the scattered farms.
+func _layout_moor(feeders: Array, mx: float, top: float, bot: float) -> void:
+	var pids: Array = _prim.keys()
+	for k in pids.size(): _prim[pids[k]] = Vector2(size.x * 0.62, size.y * 0.30) if k == 0 else Vector2(size.x * 0.14, top)
+	for f in feeders:
+		var fid := str(f.id)
+		var gi := _grp_idx(f, feeders); var gn := _grp_n(f, feeders)
+		var far := pids.size() > 1 and str(f.primaryId) == str(pids[1])
+		var p0: Vector2 = _prim.get(str(f.primaryId), Vector2(size.x * 0.5, top))
+		var secs: Array = f.sections; var tot := 0.0
+		for sct in secs: tot += float(sct.km)
+		var pts := PackedVector2Array()
+		var u := (float(gi) + 0.5) / float(maxi(gn, 1))
+		if far:   # a long valley: down and across the moor, bending as the ground does
+			var a := p0 + Vector2(0, 28.0 * _sc()); var tip := Vector2(mx + u * size.x * 0.42, bot)
+			var ctrl := Vector2(size.x * (0.10 + 0.30 * u), size.y * 0.55)
+			pts.append(a)
+			var acc := 0.0
+			for k in secs.size():
+				acc += float(secs[k].km); var t := acc / maxf(tot, 0.01)
+				pts.append(a.lerp(ctrl, t).lerp(ctrl.lerp(tip, t), t))
+		else:   # radial from the market town, out to the farms around it
+			var ang := lerpf(0.15 * PI, 0.85 * PI, u)
+			var reach := Vector2(size.x * 0.34, (bot - p0.y) * 0.95)
+			pts.append(p0 + Vector2(0, 28.0 * _sc()))
+			var acc2 := 0.0
+			for k in secs.size():
+				acc2 += float(secs[k].km); var t2 := acc2 / maxf(tot, 0.01)
+				var wob := sin(t2 * 5.0 + float(gi)) * 10.0 * _sc()
+				pts.append(pts[0] + Vector2(cos(ang) * reach.x * t2 + wob, sin(ang) * reach.y * t2))
+		_pts[fid] = pts; _tip_of[fid] = pts[pts.size() - 1]
+
+## 1.12 A section as what it is on the ground: an overhead line is poles along the road with sagging spans between them; a cable
+## is a trench under the street (a dark reinstatement strip with the cable route dashed in its colour).
+func _span(a: Vector2, b: Vector2, col: Color, w: float, cable: bool) -> void:
+	if cable:
+		draw_line(a, b, Color("#11141B"), w + 6.0 * _sc(), true)
+		draw_dashed_line(a, b, col, maxf(2.5, w * 0.9), 8.0 * _sc(), true)
+		return
+	var len := a.distance_to(b); var n := maxi(1, int(len / (30.0 * _sc())))
+	var dir := (b - a) / float(n); var off := dir.normalized().orthogonal() * 7.0 * _sc()
+	if off.y > 0.0: off = -off   # the poles stand on the upper side of the road
+	var ww := maxf(1.8, w * 0.6)
+	for i in n:
+		var p0 := a + dir * float(i) + off; var p1 := a + dir * float(i + 1) + off
+		draw_polyline(PackedVector2Array([p0, (p0 + p1) * 0.5 + Vector2(0, 3.5 * _sc()), p1]), col, ww, true)
+	for i in n + 1:
+		var pp := a + dir * float(i) + off
+		draw_line(pp, pp + Vector2(0, 9.0 * _sc()), Color("#9A8262"), 2.0)
+		draw_line(pp + Vector2(-4.0, 0) * _sc(), pp + Vector2(4.0, 0) * _sc(), Color("#9A8262"), 1.5)
+
 func _conductor_w(c: String) -> float:
 	var w := 3.5
 	match c:
 		"Weasel": w = 2.5
 		"Rabbit": w = 3.5
 		"Dog": w = 5.0
+		"70 Al XLPE": w = 2.5
+		"95 Al XLPE": w = 3.5
+		"185 Al XLPE": w = 5.0
 		_: w = 4.0
 	return w * _sc()
 
@@ -90,6 +171,7 @@ const PAPER_LBL := Color("#EFE6CF"); const INK_LBL := Color("#2A2418")
 ## villages (a named village per feeder, houses clustered per section, windows dark while the section or the feeder is out). The
 ## story's places (the hospital, the villages, the charging hub, the turbine) stand on their feeders with a paper label.
 var _name_rects: Array = []
+var _late: Array = []   ## 1.12 labels drawn after the lines (village and place names were hidden under the routes)
 
 func _geo() -> String:
 	var c := str(d.get("charter", "standard"))
@@ -100,19 +182,38 @@ func _draw_ground() -> void:
 	var winter := int(d.get("quarter", 1)) == 1
 	if g == "city":
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#1C2230"))
-		var step := 46.0 * _sc()
+		var st := _street(); var step := st.x
 		var y := 0.0; var row := 0
-		while y < size.y * 0.86:   # blocks between streets, a few windows lit
-			var x := fmod(float(row) * 17.0, step); var col := 0
+		while y < size.y * 0.86:   # blocks between the streets the cable routes follow (streets on the grid lines), a few windows lit
+			var x := 0.0; var col := 0
 			while x < size.x:
-				var bw := step - 8.0; var bh := step * 0.62
-				draw_rect(Rect2(Vector2(x + 4.0, y + 4.0), Vector2(bw, bh)), Color("#262E40"))
+				var bw := step - 10.0; var bh := st.y - 10.0
+				draw_rect(Rect2(Vector2(x + 5.0, y + 5.0), Vector2(bw, bh)), Color("#262E40"))
 				for k in 3:
 					if WorldMath.hash2(row * 31 + col, k, 41) < 0.35: draw_rect(Rect2(Vector2(x + 8.0 + k * bw * 0.3, y + 10.0), Vector2(5, 5) * _sc()), Color(WIN_LIT, 0.55))
 				x += step; col += 1
-			y += step * 0.75; row += 1
+			y += st.y; row += 1
 		draw_rect(Rect2(Vector2(0, size.y * 0.88), Vector2(size.x, size.y * 0.12)), Color("#183A5A"))   # the harbour
 		for k in 6: draw_rect(Rect2(Vector2(size.x * (0.08 + k * 0.16), size.y * 0.86), Vector2(60, 10) * _sc()), Color("#4A4F5C"))   # quays
+		for k in 3:   # 1.12 dockside cranes on the quays: a tower, a jib out over the water, a hook
+			var cb := Vector2(size.x * (0.14 + k * 0.32), size.y * 0.87)
+			var col := Color("#C98A3A", 0.85)
+			draw_line(cb, cb + Vector2(0, -54) * _sc(), col, 3.0); draw_line(cb + Vector2(-14, -54) * _sc(), cb + Vector2(46, -54) * _sc(), col, 3.0)
+			draw_line(cb + Vector2(0, -66) * _sc(), cb + Vector2(46, -54) * _sc(), col, 1.5); draw_line(cb + Vector2(0, -66) * _sc(), cb + Vector2(-14, -54) * _sc(), col, 1.5)
+			draw_line(cb + Vector2(36, -54) * _sc(), cb + Vector2(36, -28) * _sc(), Color(col, 0.7), 1.0)
+		# 1.12 the high street with the tram: two rails along one street line, a tram on them; the spare ducts (if laid) beside them
+		var hy: float = roundf(size.y * 0.5 / st.y) * st.y
+		draw_line(Vector2(0, hy - 3.0), Vector2(size.x, hy - 3.0), Color("#8C94A6", 0.7), 1.5); draw_line(Vector2(0, hy + 3.0), Vector2(size.x, hy + 3.0), Color("#8C94A6", 0.7), 1.5)
+		var tx := size.x * 0.18
+		draw_rect(Rect2(Vector2(tx, hy - 8.0 * _sc()), Vector2(70, 16) * _sc()), Color("#D8B23A")); draw_rect(Rect2(Vector2(tx, hy - 8.0 * _sc()), Vector2(70, 16) * _sc()), Color("#3A3020"), false, 1.5)
+		for k in 5: draw_rect(Rect2(Vector2(tx + (6.0 + k * 12.5) * _sc(), hy - 5.0 * _sc()), Vector2(8, 6) * _sc()), WIN_LIT)
+		for pl in d.get("places", []):
+			if str(pl.kind) != "ducts": continue
+			draw_dashed_line(Vector2(0, hy + 9.0), Vector2(size.x, hy + 9.0), Color("#E07B39"), 2.5, 10.0)
+			var fz := GridTheme.fs(14); var fnt := GridTheme.font("semi"); var tw := fnt.get_string_size(str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, fz)).x
+			var lr := Rect2(Vector2(size.x * 0.62, hy + 14.0), Vector2(tw + 16.0, GridText.floor_size(self, fz) + 8.0))
+			draw_rect(lr, PAPER_LBL); draw_rect(lr, Color(INK_LBL, 0.5), false, 1.0)
+			GridText.ds(self, fnt, lr.position + Vector2(8.0, lr.size.y - 6.0), str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
 		return
 	if g == "moor":
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#22281F"))
@@ -144,8 +245,13 @@ func _draw_place(feeders: Array) -> void:
 	for k in 41:
 		var x := size.x * float(k) / 40.0
 		rv.append(Vector2(x, size.y * 0.42 + sin(float(k) * 0.35) * 26.0 * _sc() + float(k) * 0.9))
-	var rw := 30.0 if _geo() == "city" else (14.0 if _geo() == "moor" else 22.0)
-	draw_polyline(rv, RIVER, rw * _sc(), true); draw_polyline(rv, RIVER.lightened(0.2), rw * 0.35 * _sc(), true)
+	var rw := 14.0 if _geo() == "moor" else 22.0
+	if _geo() != "city":   # the city's water is the harbour along the bottom
+		draw_polyline(rv, RIVER, rw * _sc(), true); draw_polyline(rv, RIVER.lightened(0.2), rw * 0.35 * _sc(), true)
+	if _geo() == "moor":   # each long feeder runs down its own valley floor
+		for f in feeders:
+			var vp: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
+			if vp.size() > 1: draw_polyline(vp, Color("#2E3A28", 0.85), 46.0 * _sc(), true)
 	var names: Array = d.get("villageNames", [])
 	_name_rects.clear()
 	for fi in feeders.size():
@@ -153,8 +259,6 @@ func _draw_place(feeders: Array) -> void:
 		var pts: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
 		if pts.size() < 2: continue
 		draw_polyline(pts, ROAD, 16.0 * _sc(), true)
-		if str(f.get("kind", "")) == "cable":   # the cable trench under the street: a dashed reinstatement line down the road
-			for k2 in pts.size() - 1: draw_dashed_line(pts[k2], pts[k2 + 1], Color("#3A3F4C"), 3.0 * _sc(), 7.0 * _sc())
 		var secs: Array = f.sections
 		var out_feeder := hot.has(str(f.id))
 		var per := clampi(int(float(f.get("customers", 4000)) / 900.0 / maxf(1.0, float(secs.size()))), 2, 7)
@@ -169,17 +273,17 @@ func _draw_place(feeders: Array) -> void:
 				_house(hp, lit, h + k * 7 + fi * 31)
 			if str(f.get("kind", "")) == "cable":   # underground: a joint-bay cover at each section end, no pole
 				var jb := 5.0 * _sc(); draw_rect(Rect2(pts[k + 1] - Vector2(jb, jb), Vector2(jb, jb) * 2.0), Color("#5A6170")); draw_rect(Rect2(pts[k + 1] - Vector2(jb, jb), Vector2(jb, jb) * 2.0), Color("#2A2F3A"), false, 1.5)
-			else: draw_line(pts[k + 1], pts[k + 1] + Vector2(0, -11.0) * _sc(), Color("#8A7458"), 2.5)   # a pole at each section end
 		if fi < names.size() and not compact:   # the feeder's village, named beside its middle
 			# low on the feeder, where the feeders have spread apart, centred on the road (they ran into each other near the primaries)
 			var nf := GridTheme.font("semi"); var nfz := GridText.floor_size(self, GridTheme.fs(13))
 			var np := pts[pts.size() - 2].lerp(pts[pts.size() - 1], 0.35)
+			if _geo() == "city" and pts.size() > 3: np = pts[2].lerp(pts[3], 0.62)   # 1.12 on its own street, clear of the feeder labels at the waterfront
 			var ntw := nf.get_string_size(str(names[fi]), HORIZONTAL_ALIGNMENT_LEFT, -1, nfz).x
 			var nr := Rect2(np + Vector2(-ntw * 0.5 - 5.0, -nfz - 1.0), Vector2(ntw + 10.0, nfz + 7.0))
 			if _name_rects.any(func(r): return (r as Rect2).grow(3.0).intersects(nr)): continue   # narrow screens: a name that would touch its neighbour is left out
 			_name_rects.append(nr)
-			draw_rect(nr, Color(0.06, 0.08, 0.1, 0.72))
-			GridText.ds(self, nf, np + Vector2(-ntw * 0.5, 3.0), str(names[fi]), HORIZONTAL_ALIGNMENT_LEFT, -1, nfz, Color(PAPER_LBL, 0.92))
+			var nm_txt := str(names[fi]); var nm_at := np + Vector2(-ntw * 0.5, 3.0)
+			_late.append(func(): draw_rect(nr, Color(0.06, 0.08, 0.1, 0.78)); GridText.ds(self, nf, nm_at, nm_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, nfz, Color(PAPER_LBL, 0.92)))   # 1.12 labels go over the lines
 	for pl in d.get("places", []):
 		_place(pl)
 
@@ -187,9 +291,11 @@ func _place(pl: Dictionary) -> void:
 	var pts: PackedVector2Array = _pts.get(str(pl.feeder), PackedVector2Array())
 	if pts.size() < 3: return
 	var kind := str(pl.kind)
+	if kind == "ducts": return   # drawn along the high street with the ground
 	var at: Vector2 = pts[2] if kind == "hospital" else (pts[pts.size() - 1] if kind == "villages" else pts[3])
 	var lit := not hot.has(str(pl.feeder))
 	var p := at + Vector2(-58.0, -30.0) * _sc() if kind != "villages" else pts[pts.size() - 3] + Vector2(64.0, -10.0) * _sc()
+	p.x = clampf(p.x, 40.0 * _sc(), size.x - 40.0 * _sc()); p.y = clampf(p.y, 30.0 * _sc(), size.y - 60.0 * _sc())   # 1.12 the street layouts put a feeder at the edge: keep the building on the map
 	match kind:
 		"hospital":
 			draw_rect(Rect2(p - Vector2(22, 14) * _sc(), Vector2(44, 28) * _sc()), Color("#C9CCD6"))
@@ -205,8 +311,8 @@ func _place(pl: Dictionary) -> void:
 	var f := GridTheme.font("semi"); var tw := f.get_string_size(str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, fz)).x
 	var lr := Rect2(p + Vector2(-tw * 0.5 - 8.0, 18.0 * _sc()), Vector2(tw + 16.0, GridText.floor_size(self, fz) + 8.0))
 	lr.position.x = clampf(lr.position.x, 2.0, size.x - lr.size.x - 2.0)   # keep the label on the map
-	draw_rect(lr, PAPER_LBL); draw_rect(lr, Color(INK_LBL, 0.5), false, 1.0)
-	GridText.ds(self, f, lr.position + Vector2(8.0, lr.size.y - 6.0), str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
+	var pl_name := str(pl.name)
+	_late.append(func(): draw_rect(lr, PAPER_LBL); draw_rect(lr, Color(INK_LBL, 0.5), false, 1.0); GridText.ds(self, f, lr.position + Vector2(8.0, lr.size.y - 6.0), pl_name, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL))
 
 func _house(p: Vector2, lit: bool, seed_i: int) -> void:
 	var w := (16.0 + 5.0 * WorldMath.hash2(seed_i, 1, 31)) * _sc(); var h := w * 0.72
@@ -221,6 +327,7 @@ func _house(p: Vector2, lit: bool, seed_i: int) -> void:
 
 func _draw() -> void:
 	if d.is_empty() or _pts.is_empty(): draw_rect(Rect2(Vector2.ZERO, size), Color("#0F1A22")); return
+	_late.clear()
 	_draw_place(d.get("feeders", []))
 	var f_bold := GridTheme.font("semi"); var f_mono := GridTheme.font("mono")
 	var fs_l := GridTheme.fs(13 if compact else 15)
@@ -252,7 +359,7 @@ func _draw() -> void:
 			var same_feeder := str(sel.get("feeder", "")) == fid and str(sel.get("type", "")) == "section"
 			if selected: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.5), w + 9.0 * _sc(), true)
 			elif same_feeder: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.14), w + 6.0 * _sc(), true)
-			draw_line(pts[k], pts[k + 1], col, w, true)
+			_span(pts[k], pts[k + 1], col, w, str(f.get("kind", "")) == "cable")
 			var mid := (pts[k] + pts[k + 1]) * 0.5
 			if bool(sec.failed):   # a patch: the section is in service but wearing; replacing it is the proper fix (red when it is out of service)
 				var pc: Color = GridTheme.BAD if float(sec.outQ) > 0.0 else GridTheme.WARN
@@ -279,6 +386,8 @@ func _draw() -> void:
 		for bd in badges:
 			_badge(Vector2(bx + bw * 0.5, ly + 14.0 * _sc()), str(bd[0]), bd[1], f_bold)
 			bx += bw
+	for cb in _late: (cb as Callable).call()
+	_late.clear()
 	# primaries
 	for pid in _prim:
 		var c: Vector2 = _prim[pid]

@@ -108,6 +108,9 @@ func _build_strip() -> Control:
 	stat_box = HBoxContainer.new(); stat_box.add_theme_constant_override("separation", 12 if narrow else 28); v.add_child(stat_box)
 	stats["cash"] = _stat(T("CAR_CASH"), 150 if narrow else 220, true)
 	stats["owed"] = GridTheme.label("", 16, Color(ink, 0.62), "mono"); (stats.cash as Label).get_parent().add_child(stats.owed)
+	stats["standing"] = GridTheme.label("", 14, Color(ink, 0.62), "mono")
+	stats.standing.name = "Standing"; stats.standing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; stats.standing.custom_minimum_size.x = 140 if narrow else 210   # wraps inside the cash column (unwrapped it widened the strip past a phone)
+	(stats.cash as Label).get_parent().add_child(stats.standing)
 	bar_saidi = CareerBar.new(); bar_saidi.compact = compact; bar_saidi.name = "BarSaidi"; bar_saidi.ink = ink; bar_saidi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saidi)
 	bar_saifi = CareerBar.new(); bar_saifi.compact = compact; bar_saifi.name = "BarSaifi"; bar_saifi.ink = ink; bar_saifi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saifi)
 	stats["health"] = _stat(T("CAR_HEALTH"), 120 if narrow else 190)
@@ -214,6 +217,8 @@ func refresh() -> void:
 	(stats.cash as Label).tooltip_text = T("CAR_CASH_LIM") % str(d.creditText)
 	if bool(d.get("borrowing", false)): (stats.cash as Label).text = T("CAR_CASH_DEBT") % str(d.cashText)
 	(stats.owed as Label).text = T("CAR_CASH_OWED") % [str(d.get("owedText", "")), str(d.get("cashAfterText", ""))] if str(d.get("owedText", "")) != "" and float(d.get("committedQ", 0.0)) > 0.0 else ""
+	(stats.standing as Label).text = str(d.get("standingText", "")); (stats.standing as Label).visible = not compact   # a phone has no room for a third line: there it is the cash tooltip
+	if compact and str(d.get("standingText", "")) != "": (stats.cash as Label).tooltip_text += "\n" + str(d.standingText)
 	(stats.owed as Label).add_theme_color_override("font_color", Color(GridTheme.PAPER_INK, 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else CareerKit.INK_BAD)
 	bar_saidi.set_vals(T("CAR_SAIDI"), float(d.ytd.saidi), float(d.targets.saidi), float(d.expected.saidi), 1)
 	var al := str(d.get("alarmDo", "")); alarm_lbl.text = al; alarm_note.visible = al != ""; alarm_note.tooltip_text = str(d.get("alarmText", "")); alarm_lbl.tooltip_text = alarm_note.tooltip_text
@@ -310,6 +315,7 @@ func _build_info_body() -> void:
 
 func _feeder_text(f: Dictionary) -> String:
 	var s: String = T("CAR_FDR_INFO") % [str(f.id), str(primary_of(str(f.primaryId)).get("name", f.primaryId)), int(f.customers), int(f.peakKw), CareerKit.num(float(f.loadingPct), 0), CareerKit.num(float(f.minV), 2), CareerKit.num(float(f.saidi), 0), CareerKit.num(float(f.saifi), 2)]
+	if float(f.get("shedMin", 0)) > 0.5: s += " " + T("CAR_FDR_SHED") % CareerKit.num(float(f.shedMin), 0)   # 1.12 past the emergency rating: rota cuts at the peak
 	var has: Array = []
 	if bool(f.tie): has.append(T("CAR_B_tie"))
 	if bool(f.recloser): has.append(T("CAR_B_recloser"))
@@ -558,6 +564,7 @@ func _ready_card(sz: int) -> void:
 	v.add_child(CareerKit.lbl(T("CAR_READY_NOTE"), sz - 2, Color(GridTheme.TEXT, 0.55), "sans", true))
 
 func _veg_card() -> void:
+	if str(d.get("charter", "")) == "city": return   # 1.12 all cable: no trees to cut
 	var sz := 14 if compact else 15
 	var v := CareerKit.card(drawer_body); v.get_parent().name = "VegCard"
 	var lvl := int(d.vegLevel)
@@ -606,6 +613,7 @@ func _req_tab() -> void:
 		var rid := str(r.id)
 		var ab := CareerKit.btn(T("CAR_ACCEPT"), true, func(): act("careerAccept", [rid]), 15); ab.name = "Accept_" + rid; row.add_child(ab)
 		var fid := str(r.feederId)
-		var show := CareerKit.btn(str(r.feederId), false, func():
+		var db := CareerKit.btn(T("CAR_DECLINE"), false, func(): act("careerDecline", [rid]), 15); db.name = "Decline_" + rid; db.tooltip_text = T("CAR_DECLINE_TIP"); row.add_child(db)
+		var show := CareerKit.btn(T("CAR_SHOW_ON_MAP") % str(r.feederId), false, func():
 			var f2 := feeder_of(fid)
 			if not f2.is_empty() and not (f2.sections as Array).is_empty(): _on_pick({"type": "section", "id": str(f2.sections[0].id), "feeder": fid}), 14); show.name = "Show_" + rid; row.add_child(show)
