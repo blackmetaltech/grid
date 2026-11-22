@@ -10,7 +10,7 @@ import { moneyFactor } from './sim/ch7/data';
 import {
   applyAction, buildDistrict, encodeCareer, decodeCareer, replayCareer, careerScore, analyseFeeder, districtExpected, previewProject, quoteProject,
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
-  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, stormForecast, charterOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
+  PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, OWNERS, stormForecast, charterOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
 import { CAST, EPILOGUE, WHO_NAME, beatById, moodOf, storyParams, type Effect } from './career/story';
 
@@ -204,6 +204,21 @@ function stormAdvice(st: CareerState, m: (x: number) => string, ytdSaidi: number
   return { readyRunText, standDownText, stormNudgeText };
 }
 
+/** 1.13 fresh eyes (a year in Harbour City): the owners' dividend arrived unannounced. In the half-year before a review, the share they would take at today's
+ * cash (the same rule as regulator.ts, before this quarter's flows), so the player can commit the money first. */
+function ownersDue(st: CareerState): number {
+  if (st.t % 4 < 2) return 0;
+  return Math.max(0, st.cash - (OWNERS.reserveM + committedPerQuarter(st) * OWNERS.reserveQuarters)) * OWNERS.payout;
+}
+
+/** The review quarter's report names what left at the review (the owners' dividend, a price-control clawback), so the cash line adds up. */
+function ownersPaid(st: CareerState, k: { year: number; quarter: number }, m: (x: number) => string): string {
+  if (k.quarter !== 3) return '';
+  const fin = st.reviews.find((rv) => rv.year === k.year)?.verdicts.find((v) => v.axis === 'finance');
+  const div = fin?.params.dividendM ?? 0, claw = fin?.params.clawbackM ?? 0;
+  return [claw > 0.005 ? t('career.qrClawback', { clawback: m(claw) }) : '', div > 0.005 ? t('career.qrOwners', { dividend: m(div) }) : ''].filter(Boolean).join(' ');
+}
+
 /** 1.7 HUD alarm (fun-critic tester: "it needs a visible alarm on the HUD, not text inside a scrolling report"): when the year, projected over its
  * expected rest and averaged as the regulator will average it, ends over the SAIDI target. It says whether that would be a licence strike (the
  * same test as regulator.ts: the network's fair-weather SAIDI or SAIFI is over target) and how many strikes are already on the books. */
@@ -211,7 +226,7 @@ function stormAdvice(st: CareerState, m: (x: number) => string, ytdSaidi: number
 function alarmDo(st: CareerState, ytdSaidi: number, exp: { saidi: number; saifi: number }): string {
   if (strikeAlarm(st, ytdSaidi, exp) === '') return '';
   const qLeft = 4 - (st.t % 4);
-  return t(exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget ? 'career.alarm.doStrike' : 'career.alarm.doFine', { q: qLeft, strike: st.severeFineYears + 1, strikes: INCENTIVE.yearsToRevoke });
+  return t(exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget ? 'career.alarm.doStrike' : 'career.alarm.doFine', { q: qLeft, strike: st.severeFineYears + 1, strikes: INCENTIVE.yearsToRevoke, exp: Math.round(exp.saidi), target: Math.round(st.saidiTarget) });
 }
 function strikeAlarm(st: CareerState, ytdSaidi: number, exp: { saidi: number; saifi: number }): string {
   if (st.ending) return '';
@@ -244,7 +259,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         active: true, seed: c.seed,
         // substation plant at risk (transformers, switchboards): expected SAIDI does not count a failure, so the worst-assets list and the
         // quarter report name them with the chance of failing this year and what an emergency replacement would cost (Old Iron tester)
-        plantRisk: plantRisk(st).map((r) => ({ ...r, pFail: r1(r.pFail * 100), emergencyText: m(r.emergencyM), text: t('career.plantRisk', { id: r.id, pFail: r1(r.pFail * 100), emergency: m(r.emergencyM) }) })),
+        plantRisk: plantRisk(st).map((r) => ({ ...r, pFail: r1(r.pFail * 100), emergencyText: m(r.emergencyM), capexText: m(quoteProject(st, 'replaceAssets', r.id).capexM ?? 0), text: t('career.plantRisk', { id: r.id, pFail: r1(r.pFail * 100), emergency: m(r.emergencyM) }) })),
         scoreParts: scoreParts(st).map((p) => ({ key: p.key, points: Math.round(p.points), text: t(`career.scorePart.${p.key}`, { points: `${p.points > 0 ? '+' : ''}${Math.round(p.points)}`, years: st.yearsMet, missed: st.missed, delivered: st.delivered, per: SCORE.perMissed }) })),
         // the 3-year rule, ahead of the review: this year as it has gone so far plus the expected rest, averaged with the period's earlier years
         // (a tester was fined for a good year because of two bad ones before it, and only learned why at the review)
@@ -267,7 +282,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         netIncentiveText: m(st.netIncentiveM), yearsMet: st.yearsMet, severeFineYears: st.severeFineYears, delivered: st.delivered, missed: st.missed,
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
         // 1.12 the standing charges you set once and pay every quarter (a tester's standby crews ran on unseen for a year)
-        standingText: [st.vegLevel > 0 ? t('career.standingVeg', { veg: st.vegLevel, vegQ: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length) }) : '', (st.readiness ?? 0) > 0 ? t('career.standingReady', { ready: st.readiness ?? 0, readyQ: m(STORM.readyCostQ[st.readiness ?? 0]!) }) : ''].filter(Boolean).join(' · '),
+        standingText: [st.vegLevel > 0 ? t('career.standingVeg', { veg: st.vegLevel, vegQ: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length) }) : '', (st.readiness ?? 0) > 0 ? t('career.standingReady', { ready: st.readiness ?? 0, readyQ: m(STORM.readyCostQ[st.readiness ?? 0]!) }) : '', ownersDue(st) > 0.05 ? t('career.standingOwners', { div: m(ownersDue(st)) }) : ''].filter(Boolean).join(' · '),
         // what each tree-cutting level buys: the expected SAIDI after a year held at that level (the same tree growth rule as turn.ts), and its cost
         vegLevels: [0, 1, 2, 3].map((lv) => { const yr = { ...st, feeders: st.feeders.map((f) => ({ ...f, veg: vegAfterYear(f.veg, lv) })) }; const e = districtExpected(yr);
           return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: `${e.saidi - exp.saidi > 0 ? '+' : ''}${r1(e.saidi - exp.saidi)}`, costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
@@ -293,7 +308,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         ...storyView(st, m),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
           cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexPartsText: k.opexParts ? t('career.opexParts', { base: m(k.opexParts.base), repairs: m(k.opexParts.repairs), losses: m(k.opexParts.losses), dr: m(k.opexParts.dr), veg: m(k.opexParts.veg), voltage: m(k.opexParts.voltage) }) + (k.opexParts.ready ? ' ' + t('career.opexReady', { ready: m(k.opexParts.ready) }) : '') : '',
-          emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
+          emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', ownersText: ownersPaid(st, k, m), opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),
           lossesMWh: Math.round(k.lossesMWh), delivered: k.delivered, missed: k.missed, vViolations: k.vViolations, firmMarginPct: r1(k.firmMarginPct), maxLoadingPct: r1(k.maxLoadingPct), faults: k.faults })),
         reviews: st.reviews.map((rv, i) => ({ year: rv.year + 1, saidi: r1(rv.saidi), saifi: r2(rv.saifi), saidiTarget: r1(rv.saidiTarget), saifiTarget: r2(rv.saifiTarget), met: rv.met, incentiveText: m(rv.incentiveM), incentive: careerMoney(s, rv.incentiveM),
           avgHealth: r2(rv.avgHealth), cashText: m(rv.cash), rabText: m(rv.rab), overloaded: rv.overloaded ?? 0, firmShort: rv.firmShort ?? 0, saidiRolling: r1(rv.saidiRolling ?? rv.saidi), saifiRolling: r2(rv.saifiRolling ?? rv.saifi),

@@ -8,6 +8,13 @@ extends Control
 const KIND_TARGET := {"reconductor": "section", "harden": "feeder", "remoteSwitch": "section", "newFeeder": "feeder", "newTransformer": "primary", "tieSwitch": "feeder", "recloser": "feeder",
 	"vegetation": "feeder", "regulator": "feeder", "battery": "feeder", "demandResponse": "feeder", "replaceAssets": "asset"}
 
+## 1.13: text straight on the brown drawer (not on a paper card) in light ink; dark ink there was unreadable
+const DRAWER_INK := Color("#E8D9A8", 0.85)
+
+func _dlbl(text: String, size: int, kind := "sans") -> Label:   # bypasses CareerKit.ink, which turns every colour to paper ink
+	var l := GridTheme.label(text, size, DRAWER_INK, kind)
+	if kind == "sans": l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return l
 var app: CbApp
 var d: Dictionary = {}
 var board: Dictionary = {}
@@ -109,7 +116,7 @@ func _build_strip() -> Control:
 	stats["cash"] = _stat(T("CAR_CASH"), 150 if narrow else 220, true)
 	stats["owed"] = GridTheme.label("", 16, Color(ink, 0.62), "mono"); (stats.cash as Label).get_parent().add_child(stats.owed)
 	stats["standing"] = GridTheme.label("", 14, Color(ink, 0.62), "mono")
-	stats.standing.name = "Standing"; stats.standing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; stats.standing.custom_minimum_size.x = 140 if narrow else 210   # wraps inside the cash column (unwrapped it widened the strip past a phone)
+	stats.standing.name = "Standing"; stats.standing.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; stats.standing.custom_minimum_size.x = 140 if narrow else 300   # wraps inside the cash column (unwrapped it widened the strip past a phone)
 	(stats.cash as Label).get_parent().add_child(stats.standing)
 	bar_saidi = CareerBar.new(); bar_saidi.compact = compact; bar_saidi.name = "BarSaidi"; bar_saidi.ink = ink; bar_saidi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saidi)
 	bar_saifi = CareerBar.new(); bar_saifi.compact = compact; bar_saifi.name = "BarSaifi"; bar_saifi.ink = ink; bar_saifi.size_flags_horizontal = Control.SIZE_EXPAND_FILL; stat_box.add_child(bar_saifi)
@@ -406,7 +413,7 @@ func _worst_card(sz: int) -> void:
 		var pick: Button; var extra: Label
 		if bool(e.plant):
 			pick = CareerKit.btn(T("CAR_RISK_ROW") % [id, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "RiskPick_" + id
-			extra = CareerKit.lbl(T("CAR_RISK_COST") % str(r.emergencyText), sz - 2, GridTheme.BAD, "mono")
+			extra = CareerKit.lbl(T("CAR_RISK_COST") % [str(r.get("capexText", "")), str(r.emergencyText)], sz - 2, GridTheme.BAD, "mono")
 		else:
 			var a := _asset_of(id)
 			pick = CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "WorstPick_" + id
@@ -445,6 +452,7 @@ func _guide_card(sz: int, gq: int, hidden: int) -> void:
 		if not (d.projects as Array).is_empty(): body = T("CAR_GUIDE_Q1_DONE")
 		elif w.is_empty(): body = T("CAR_GUIDE_Q1_NONE")
 		else: body = T("CAR_GUIDE_Q1") % [str(w[0].id), str(w[0].capexText)]
+	elif gq == 2 and str(d.get("charter", "")) == "city": body = T("CAR_GUIDE_Q3_CABLE")   # 1.13: the tree card is hidden in an all-cable district
 	else: body = T("CAR_GUIDE_Q%d" % (gq + 1))
 	var bl := CareerKit.lbl(body, 20 if not compact else 18, GridTheme.TEXT, "sans", true); bl.name = "GuideText"; v.add_child(bl)
 	if hidden > 0: v.add_child(CareerKit.lbl(T("CAR_GUIDE_MORE") % hidden, 16, Color(GridTheme.TEXT, 0.55), "sans", true))
@@ -580,7 +588,7 @@ func _veg_card() -> void:
 
 func _run_tab() -> void:
 	var sz := 14 if compact else 15
-	drawer_body.add_child(CareerKit.lbl(T("CAR_CREWS_LEFT") % int(d.crewsFree), sz, Color(GridTheme.TEXT, 0.7), "mono"))
+	drawer_body.add_child(_dlbl(T("CAR_CREWS_LEFT") % int(d.crewsFree), sz, "mono"))
 	var n := 0
 	for p in d.projects:
 		if not (str(p.status) == "building" or str(p.status) == "active"): continue
@@ -592,12 +600,12 @@ func _run_tab() -> void:
 		v.add_child(CareerKit.lbl(T("CAR_RUN_STATE") % [int(p.left), int(p.leadQ), str(p.spentText), str(p.capexText)], sz - 1, Color(GridTheme.TEXT, 0.75), "sans", true))
 		var pid := str(p.id)
 		var cb := CareerKit.btn(T("CAR_CANCEL"), false, func(): act("careerCancel", [pid]), 14); cb.name = "Cancel_" + pid; cb.size_flags_horizontal = Control.SIZE_SHRINK_END; v.add_child(cb)
-	if n == 0: drawer_body.add_child(CareerKit.lbl(T("CAR_RUN_NONE"), sz, Color(GridTheme.TEXT, 0.6), "sans", true))
+	if n == 0: drawer_body.add_child(_dlbl(T("CAR_RUN_NONE"), sz))
 
 func _req_tab() -> void:
 	var sz := 14 if compact else 15
-	if (d.requests as Array).is_empty(): drawer_body.add_child(CareerKit.lbl(T("CAR_REQ_NONE"), sz, Color(GridTheme.TEXT, 0.6), "sans", true)); return
-	drawer_body.add_child(CareerKit.lbl(T("CAR_REQ_HINT"), sz - 1, Color(GridTheme.TEXT, 0.6), "sans", true))
+	if (d.requests as Array).is_empty(): drawer_body.add_child(_dlbl(T("CAR_REQ_NONE"), sz)); return
+	drawer_body.add_child(_dlbl(T("CAR_REQ_HINT"), sz - 1))
 	for r in d.requests:
 		var v := CareerKit.card(drawer_body, GridTheme.SODIUM if int(r.quartersLeft) <= 1 else Color(0, 0, 0, 0)); v.get_parent().name = "Req_" + str(r.id)
 		v.add_child(CareerKit.lbl(T("CAR_REQ_LINE") % [str(r.kindName), str(r.feederId)], sz + 3, GridTheme.TEXT, "semi", true))
@@ -608,8 +616,9 @@ func _req_tab() -> void:
 		var f := feeder_of(str(r.feederId))
 		if not f.is_empty(): v.add_child(CareerKit.lbl(T("CAR_REQ_LOAD") % [str(r.feederId), CareerKit.num(float(r.get("loadingWinterPct", f.loadingPct)), 0), CareerKit.num(float(r.get("loadingAfterPct", f.loadingPct)), 0)], sz - 1, CareerKit.load_col(float(r.get("loadingAfterPct", f.loadingPct))), "sans", true))
 		var due := T("CAR_REQ_LAST") if int(r.quartersLeft) <= 0 else T("CAR_REQ_DUE") % int(r.quartersLeft)
-		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); v.add_child(row)
-		var dl := CareerKit.lbl(due, sz - 1, GridTheme.WARN if int(r.quartersLeft) <= 1 else Color(GridTheme.TEXT, 0.7), "mono"); dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(dl)
+		# 1.13: the deadline on its own line, so Accept, Decline and the map button fit the card (the map button was clipped at 1920 px)
+		v.add_child(CareerKit.lbl(due, sz - 1, GridTheme.WARN if int(r.quartersLeft) <= 1 else Color(GridTheme.TEXT, 0.7), "mono"))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); row.alignment = BoxContainer.ALIGNMENT_END; v.add_child(row)
 		var rid := str(r.id)
 		var ab := CareerKit.btn(T("CAR_ACCEPT"), true, func(): act("careerAccept", [rid]), 15); ab.name = "Accept_" + rid; row.add_child(ab)
 		var fid := str(r.feederId)

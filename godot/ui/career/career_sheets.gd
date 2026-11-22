@@ -126,6 +126,7 @@ static func quarter(sc: CareerScreen, next: Callable) -> void:
 	body.add_child(PaperKit.rule())
 	body.add_child(_para(T("CAR_QR_MONEY") % [str(h.revenueText), str(h.capexText), str(h.opexText), str(h.incentiveText), str(h.cashText)], compact))
 	if str(h.get("opexPartsText", "")) != "": body.add_child(_para(str(h.opexPartsText), compact, Color(PaperKit.INK, 0.8)))   # what the running costs are made of
+	if str(h.get("ownersText", "")) != "": body.add_child(_para(str(h.ownersText), compact, Color(PaperKit.INK, 0.8)))   # 1.13: the dividend left at the review
 	if str(h.get("emergencyText", "")) != "": body.add_child(_para(str(h.emergencyText), compact, PaperKit.RED))   # why capex jumped after a plant failure
 	if str(sc.d.get("rollingText", "")) != "": body.add_child(_para(str(sc.d.rollingText), compact, Color(PaperKit.INK, 0.8) if bool(sc.d.get("rollingOk", true)) else PaperKit.AMBER))   # the 3-year rule, before the review
 	if str(sc.d.get("resetWarnText", "")) != "": body.add_child(_para(str(sc.d.resetWarnText), compact, PaperKit.AMBER))   # the period's last year: the reset is coming
