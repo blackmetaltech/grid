@@ -1,14 +1,24 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.14.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.15.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
 The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
 
-> **Alpha, 1.14.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. The ten-year Career runs in nine districts plus a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. The Windows build is made and smoke-tested on every release but not yet played on Windows; there is no macOS build yet.
+> **Alpha, 1.15.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The finale is now drawn in a new 3D look.** The other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
 
-![The finale: the province on the third evening](docs/readme/hero.png)
+![The finale in the new look: a town at street level at dusk](docs/readme/new115/street.jpg)
+
+### What's new in 1.15: the finale in 3D
+
+| Towers carry the lines at dusk | Lightning takes the island's only feeder, and the island goes dark |
+|---|---|
+| ![towers at dusk](docs/readme/new115/towers.jpg) | ![blackout](docs/readme/new115/blackout.gif) |
+| **The capital lights up street by street on the first solve** | **The incident report docks at the side, so you can still see the dark island** |
+| ![town lights up](docs/readme/new115/town-lights.gif) | ![incident](docs/readme/new115/incident.jpg) |
+
+The finale, *Keep the Lights On*, now draws the province in 3D: hills, a river, the coast and the island, towns with streets and lit windows, and lattice towers. The lights follow the engine. When load is shed or a bus goes dark, the houses go dark street by street. The map is drawn compressed so towns can be read (each 4 km square is drawn as 300 m), and the screen says so. The parts shelf no longer names the answer, and a $60M budget makes you choose. Textures are no longer grainy. On integrated graphics the game picks a low tier.
 
 ### What's new in 1.14
 
@@ -153,4 +163,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.14.md](docs/CRITIQUE-1.14.md) for the harsh version.
+See [docs/CRITIQUE-1.15.md](docs/CRITIQUE-1.15.md) for the harsh version.

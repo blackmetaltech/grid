@@ -21,7 +21,7 @@ export const CHAPTERS: { n: number; title: string; intro: string; shot?: [string
   { n: 6, title: 'Chapter 6 · Frequency and Renewables', intro: 'Fifty hertz, governors and droop, the duck curve at dusk and inertia.', shot: ['duck.jpg', 'L20 Sun Goes Down: the shift report after the ramp'] },
   { n: 7, title: 'Chapter 7 · Protection and Markets', intro: 'Fault level, inverse-time relays and their coordination, clearing time and the merit order.', shot: ['relays.jpg', 'L24 Coordination: four relay curves and their grading margins'] },
   { n: 8, title: 'Chapter 8 · Distribution', intro: 'A junior engineer\'s feeder work: voltage drop down 16 km, SAIFI and SAIDI, recloser-fuse coordination, N-1 at a primary and rooftop solar.', shot: ['tcc.jpg', 'L33 Fuse Saving: recloser and fuse curves on a time-current chart'] },
-  { n: 9, title: 'Finale · Keep the Lights On', intro: 'The whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday of full sun and no factories.', shot: ['report.jpg', 'The finale won: three lamps on the shift report'] },
+  { n: 9, title: 'Finale · Keep the Lights On', intro: 'The whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday of full sun and no factories.', shot: ['towers-3d.jpg', 'The finale in 3D: lattice towers carry the lines at dusk'] },
 ];
 
 const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
