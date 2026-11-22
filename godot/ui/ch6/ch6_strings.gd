@@ -15,7 +15,7 @@ const S := {
 	"C6_DROOP": "%s droop: %.1f %%", "C6_NET": "Net load = demand - sun (MW)", "C6_RAMP": "ramp %d MW/h",
 	"C6_RIDE_GLOSS": "Ride-through: the inverter stays connected through a fast frequency change instead of tripping.", "C6_BARS": "Cyan bars on the plants: that unit's output against its rating.",
 		"C6_SPIN_WHY": "Keep U17: it adds a 13th unit's headroom (about 500 MW), spread over all the units so each takes a small share of a trip.",
-	"C6_PEAKER_PRICE": "Gas peaker: %s per MW (a 105 MW unit costs %s)", "C6_COMMIT_GLOSS": "Place = buy the unit. Commit (tap it, press Start) = order it onto the grid; until then it stands idle.",
+	"C6_PEAKER_PRICE": "Gas peaker: %s per MW (a 105 MW unit costs %s)", "C6_COMMIT_GLOSS": "Placing a peaker buys it; it stands idle until you order it on with its button below (from 14:00).",
 	"C6_FORECAST": "dashed: forecast with no help; solid: what has happened",
 	"C6_TASK": "Task: set the droops so G1 takes 60 % of a 100 MW step (within 2 %). G1 is 500 MVA, G2 is 300 MVA.",
 	"C6_SHARE": "G1 share at these droops: %.0f %%  (S1/R1) / (S1/R1 + S2/R2)",
