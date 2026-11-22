@@ -182,7 +182,7 @@ static func part_ids(g: Dictionary, id: String) -> Array:
 		"line", "feeder":
 			var other: String = "B17" if id == "line" else "B16"
 			for br in g.branches:
-				var ends := [str(br.from), str(br.to)]
+				var ends: Array = [str(br.from), str(br.to)]
 				if ends.has("B18") and ends.has(other) and str(br.id) != "T20": out.append(str(br.id))   # T20 is the causeway the island starts with
 	return out
 
@@ -224,17 +224,17 @@ func _rebuild_kit(g: Dictionary) -> void:
 		var h := GridTheme.label(tx(str(area[0])), 14, ink(), "semi"); h.name = "cf_area_" + str(area[0]).to_lower(); _kit.add_child(h)
 		_kit.add_child(_wrap_ink(tx(str(area[0]) + "_WHY"), 12, 0.75))
 		for id in area[1]:
-			var b := Button.new(); b.name = "cf_" + id; b.custom_minimum_size = Vector2(W - 24.0, 30)
+			var b := Button.new(); b.name = "cf_" + str(id); b.custom_minimum_size = Vector2(W - 24.0, 30)
 			b.focus_mode = CbKit.focus_mode(); b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			var has: bool = id in have
-			var p := price(id) if not has else 0.0
-			var tag := tx("CF_P_FREE") if p <= 0.0 and not has else (CbRegion.money(p, true, 1) if not has else "")
-			var key := "CF_P_" + id.to_upper()
+			var p: float = price(str(id)) if not has else 0.0
+			var tag: String = tx("CF_P_FREE") if p <= 0.0 and not has else (CbRegion.money(p, true, 1) if not has else "")
+			var key: String = "CF_P_" + str(id).to_upper()
 			if has: b.text = "✓ " + tx(key) + "  ·  " + (tx("CF_P_SPUN") if id == "spin" else tx("CF_P_BACK"))
 			else: b.text = tx(key) + "  ·  " + tag
 			b.disabled = locked or (has and id == "spin")   # fuel burned is not returned
-			b.pressed.connect(_press.bind(id))
+			b.pressed.connect(_press.bind(str(id)))
 			_kit.add_child(b)
 
 func _wrap_ink(t: String, fs: int, a: float) -> Label:
