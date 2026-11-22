@@ -2,6 +2,43 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.8.0] - "Pad and progress" (tag v1.8.0; driven by docs/CRITIQUE-1.7.md; review in docs/CRITIQUE-1.8.md)
+### Fixed
+- **The finale's frame rate.** On the software-GL QA desk the finale ran at 3-8 fps in 1.7. Four causes, four fixes:
+  - **Draw calls.** The static and homes layers now gather their polygons, lines, circles and rects into one vertex-coloured mesh per run. L28 went from 22,398 to 2,111 draw calls a frame; the paused frame went from 156 to 56 ms (7 to 21 fps, load 19).
+  - **The tick blocked a frame.** The tick and mission-claim requests now run on a worker thread (`ui/grid_ticker.gd`; core 54ef457 adds a mutex to the bridge). The main thread applies one snapshot and one refresh per tick, where 1.7 did two. `tests/ticker_flow.gd` counts main-thread tick requests (none) and frames drawn while a tick is in flight, so it does not depend on wall-clock speed.
+  - **A rebuild on every tick.** A town's house count followed live demand once demand passed its peak, so the heatwave changed it on every tick, and every change rebuilt the whole map. It now follows the stable peak.
+  - **Repaints for light and loading.** The wires have their own layer, so a line's loading band repaints only the wires. A change of light tints the cached island, which repaints only after the night has moved 0.15. Span bands repaint at most once a second instead of rebuilding.
+- **L20 Sun Goes Down.**
+  - The brief is 45 words and gives the order: build before 14:00, then run.
+  - The coach starts with the build. A tester followed the old "press Run and watch" step, got an hour of flat night at 50 Hz and never built.
+  - The control-room card no longer says "tap it, press Start".
+
+### Added
+- **A full gamepad pass at 1280x800.** Every screen was reached with the pad alone; shots are in the CRITIQUE.
+  - **A number pad.** A on a focused number box opens an on-screen pad with digits, point, minus, delete and OK. The D-pad wraps inside it and B cancels. Before this, the chapter 2, 4, 5, 6 and 7 exam predictions could not be answered with a pad.
+  - **GRID's own button strip.** In a level it reads A select, B back, X run/pause, Y next tag, LB/RB parts, D-pad move, Start menu. Over menus it shows only D-pad, A and B. The shell's "LB/RB drawers" pointed at drawers GRID does not have.
+  - Tray tips say "D-pad and A" in pad mode, not "Click", and B puts a part down.
+  - Paper buttons (jobs, work order, reports) focus with an amber ring; the old ink ring was lost against a row's border.
+  - The Career map is walked with LB/RB (the primaries, then every feeder section), and focus stays on the same control after an action.
+- **A guided first year in the Career.**
+  - Quarter 1 shows one job: your weakest asset, already picked on the map, its Start row, then End quarter.
+  - The storm-readiness card opens in quarter 2, tree cutting in quarter 3 and every project in quarter 4.
+  - "Show every tool now" ends the guide.
+- **QA.**
+  - `CB_PADSEQ` scripts a pad tour inside one game window (debug builds only, no machine-wide virtual pad).
+  - `CB_FPS` logs the ticker state.
+
+### Changed
+- `scripts/release-local.sh` uploads to the public repo; the upload still happens only after the headless smoke run.
+- The release workflow publishes nothing when the tag already has a (locally smoke-tested) release.
+
+### Known gaps
+- Fps under load. At 4× the desk shows 6-9 fps at load 31-39 (another session's jobs) and 13-20 fps at load 17-22. Each 5 s still holds 0.3-0.7 s of UI refresh after ticks. An idle-machine number is still owed.
+- No human has played with a physical pad: the pass used scripted pad events in the game window.
+- The Career guide names the weakest feeder section, but the worst-assets card lists substation plant first, so its row is third.
+- A human listening pass on the music is still owed.
+
 ## [1.7.0] - "Sound and speed" (tag v1.7.0; driven by docs/CRITIQUE-1.6.md; review in docs/CRITIQUE-1.7.md)
 ### Added
 - **A music catalogue.** Four synthesised night-shift tracks, 156-195 s each, play in turn. 1.6 looped one 8-bar phrase of 27 s.

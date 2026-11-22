@@ -39,8 +39,8 @@ for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { me
 
 export const verifier = {
   game: 'grid',
-  rulesVersion: '1.7.0',
-  gameVersions: ['1.7.0'],   // 1.6 and 1.7 changed no scoring rule (text, sound, advice and UI only): same metric and epoch, so the board carries on; the 1.5.0 bundle keeps serving 1.5.0 clients
+  rulesVersion: '1.8.0',
+  gameVersions: ['1.8.0'],   // 1.6, 1.7 and 1.8 changed no scoring rule (text, sound, advice and UI only): same metric and epoch, so the board carries on; the 1.5.0 bundle keeps serving 1.5.0 clients
   regionRulesets: ['global'],
   levels: { global: levels },
   maxSolutionBytes: 65536,
