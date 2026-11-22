@@ -117,7 +117,7 @@ static func sheet(app: CbApp, name: String, w: float, h: float, dim := 0.8, pad 
 	(host as PaperHost).app = app; bleed(app, host)
 	var pn: PanelContainer = d.panel
 	pn.clip_contents = false
-	if glass: pn.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.8, 6, pad))
+	if glass: pn.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.9, 6, pad))
 	else:
 		pn.add_theme_stylebox_override("panel", GridTheme.paper_sb(4, pad))
 		var tape := Tape.new(); pn.add_child(tape)

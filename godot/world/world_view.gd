@@ -1487,11 +1487,18 @@ func _route_pulses(l: Dictionary) -> void:
 		var p := _poly_at(poly, cum, fposmod(ph + float(k) / float(n), 1.0))
 		_dc(p, 4.2, Color(col.r, col.g, col.b, 0.2)); _dc(p, 1.7, col.lerp(Color.WHITE, 0.4))
 
+var _cover := Rect2()   ## LOOK2: the docked glass report's rect in this view's coordinates; world labels under it are not drawn (they showed through the glass)
 func _draw_labels() -> void:
+	_cover = Rect2()
+	if _l3():
+		var rp = ShiftReport._d.get("panel")
+		if is_instance_valid(rp) and (rp as Control).is_visible_in_tree():
+			var inv := get_global_transform_with_canvas().affine_inverse() * (rp as Control).get_global_transform_with_canvas()
+			_cover = inv * Rect2(Vector2.ZERO, (rp as Control).size)
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
 	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
-	if _l3() and look3d.field is GenField:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
+	if _l3() and look3d.field is GenField and _cover.size.x <= 0.0:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
 		var note := tr("WORLD_SCALE_NOTE"); var nw := font.get_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		var nr := Rect2(Vector2(16.0, 92.0), Vector2(nw + 20.0, 20.0))
 		_dr(nr, Color(0.03, 0.05, 0.08, 0.55)); _bt_flush(); GridText.ds(_ci, font, nr.position + Vector2(10, 15), note, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.78, 0.84, 0.9))
@@ -1630,6 +1637,7 @@ func _yard_base(n: String) -> String:
 func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2], optional := false) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var r := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
+	if _cover.intersects(r): return
 	var free := false
 	for _i in 5:
 		free = true
@@ -1643,6 +1651,7 @@ func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, plac
 
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	if _cover.intersects(Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))): return
 	var p := at - Vector2(w * 0.5, 0.0)
 	if _l3():   # a place off screen gets no chip; one at the edge slides in whole (the leader still points at the place)
 		if at.x < -w * 0.4 or at.x > size.x + w * 0.4 or at.y < 0.0 or at.y > size.y: return

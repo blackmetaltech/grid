@@ -103,7 +103,7 @@ func game_build_chrome(r: Control) -> void:
 	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
-	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: GridText.floor_control.call_deferred(n))   # 1.9: 16 px floor
+	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: (func(): if is_instance_valid(n): GridText.floor_control(n)).call_deferred())   # a node freed before the deferred call ran raised "Cannot convert argument 1"   # 1.9: 16 px floor
 	if OS.has_environment("CB_TEXTAUDIT"):   # 1.9: the text-size audit (tests/text_flow.gd, loaded by path: tests/ is not exported)
 		get_tree().create_timer(1.0).timeout.connect(func():
 			var tf = load("res://tests/text_flow.gd")
@@ -188,15 +188,26 @@ func _skin_pin() -> void:
 	var t: Label = vbx.get_child(0); var sub: Label = vbx.get_child(1)
 	if kind == "":
 		if _pin_sb0 != null: pin.add_theme_stylebox_override("panel", _pin_sb0)
-		t.remove_theme_color_override("font_color"); sub.remove_theme_color_override("font_color"); pin.modulate = Color.WHITE; _pin_kind = ""; return
+		t.remove_theme_color_override("font_color"); sub.remove_theme_color_override("font_color"); pin.modulate = Color.WHITE; _pin_kind = ""
+		for l in [t, sub]:
+			if l.has_meta("ls0"): (l as Label).label_settings = l.get_meta("ls0"); l.remove_meta("ls0")
+		return
 	if _pin_sb0 == null: _pin_sb0 = pin.get_theme_stylebox("panel")
 	if _pin_kind != kind:
 		var sb := GridTheme.paper_sb(3, 12.0).duplicate() as StyleBoxFlat
 		sb.border_color = PaperKit.RED if kind == "lost" else GridTheme.SODIUM_DIM; sb.set_border_width_all(4 if kind == "lost" else 3)
 		if kind == "lost": sb.bg_color = Color("#F3D9CF")
-		pin.add_theme_stylebox_override("panel", sb); _pin_kind = kind
 		var ink: Color = PaperKit.RED if kind == "lost" else GridTheme.PAPER_INK
+		if GridTheme.look2:   # LOOK2: the pin stays glass (the paper pin's dark ink never reached the LabelSettings, so it read white on cream)
+			sb = GridTheme.glass_sb(0.86, 6, 10.0).duplicate() as StyleBoxFlat
+			sb.border_color = Color("#E0604A") if kind == "lost" else GridTheme.SODIUM; sb.set_border_width_all(2)
+			ink = Color("#FFB4A6") if kind == "lost" else Color("#F4EBD8")
+		pin.add_theme_stylebox_override("panel", sb); _pin_kind = kind
 		t.add_theme_color_override("font_color", ink); sub.add_theme_color_override("font_color", Color(ink, 0.85))
+		for l in [t, sub]:
+			if GridTheme.look2 and (l as Label).label_settings != null:
+				if not l.has_meta("ls0"): l.set_meta("ls0", (l as Label).label_settings)
+				var ls := (l as Label).label_settings.duplicate() as LabelSettings; ls.font_color = ink if l == t else Color(ink, 0.85); (l as Label).label_settings = ls
 	var tt: String = tr("PIN_INCIDENT") if kind == "lost" else tr("PIN_DONE") % lid
 	var ss: String = tr("PIN_INCIDENT_SUB") % lid if kind == "lost" else tr("PIN_DONE_SUB")
 	if t.text != tt: t.text = tt
@@ -225,6 +236,14 @@ func _process(dt: float) -> void:
 	_poll_tick()
 	super(dt)
 	if _bullet_until > 0 and Time.get_ticks_msec() > _bullet_until: _bullet_until = 0; cfg.tick_seconds = TICKS_NORMAL.duplicate()
+	if GridTheme.look2 and chrome != null and chrome.pin != null:   # LOOK2: the docked glass report covers the job card's corner; the card steps aside while it is open
+		var rp = ShiftReport._d.get("panel")
+		var open_rep := is_instance_valid(rp) and (rp as Control).is_visible_in_tree()
+		for c in [chrome.pin, chrome.radio]:   # the job card and the radio log (it ghosted through the glass)
+			if c == null: continue
+			if open_rep:
+				if c.visible: c.visible = false; c.set_meta("rep_hid", true)
+			elif c.has_meta("rep_hid"): c.visible = true; c.remove_meta("rep_hid")
 	if _pin_kind != "" and chrome != null and chrome.pin != null and started:
 		_skin_pin()   # GridChrome may have rewritten the labels
 		if _pin_kind == "lost": chrome.pin.modulate = Color.WHITE.darkened(0.06 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)))   # a slow breathing so the way back is noticed
