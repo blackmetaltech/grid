@@ -1562,7 +1562,7 @@ func _draw_line_overlay() -> void:
 		var live := bool(l.in_service) and int(l.dir) != 0
 		var col: Color = l.color if bool(l.in_service) else WorldMath.GREY
 		if kind == "cable" and bool(l.in_service): col = GridTheme.SODIUM
-		if not live and bool(l.in_service): col = col.darkened(0.35)
+		if not live and bool(l.in_service): col = WorldMath.GREY   # a dead line is grey, whatever its band
 		if not bool(l.in_service) or kind == "cable":
 			for k in range(pts.size() - 1): _dashed(pts[k], pts[k + 1], Color(col, 0.85 * far), 2.5, 7.0, 5.0)
 		else:
@@ -1637,7 +1637,7 @@ func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 		var r := Rect2(p + Vector2(-14, -fs - 4), Vector2(w + 24, fs + 13))
 		_dl(Vector2(at.x, r.end.y), Vector2(at.x, r.end.y + 26.0), Color(col, 0.55), 1.0, true)
 		_dr(r, Color(0.03, 0.05, 0.08, 0.66)); _dr(r, Color(0.72, 0.82, 0.92, 0.28), false, 1.0)
-		_dr(Rect2(r.position + Vector2(5, 5), Vector2(3, r.size.y - 10)), col)
+		_dr(Rect2(r.position + Vector2(5, 5), Vector2(3, r.size.y - 10)), GridTheme.BAD if col == WorldMath.GREY else col)   # a dark place gets a red tick
 		_bt_flush(); GridText.ds(_ci, font, p + Vector2(2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.9, 0.93, 0.96) if col != WorldMath.GREY else WorldMath.GREY)
 		return
 	_dr(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))

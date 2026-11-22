@@ -5,10 +5,14 @@ uniform vec4 tint : source_color = vec4(1.0, 0.8, 0.5, 1.0);
 uniform float power = 2.0;
 uniform float pulse = 0.0;      // > 0: travelling pulses along UV.x at this speed (flow)
 uniform float fade_v = 0.0;     // > 0: fade along UV.y (beams)
+uniform float radial = 0.0;     // > 0: soft disc, fading to the edge at this radius (light pools)
+varying vec3 lp;
+void vertex() { lp = VERTEX; }
 void fragment() {
 	float k = 1.0;
 	if (pulse != 0.0) k = 0.35 + 0.65 * pow(0.5 + 0.5 * sin((UV.x - TIME * pulse) * 6.2832), 6.0);
 	if (fade_v > 0.0) k *= pow(1.0 - UV.y, fade_v);
+	if (radial > 0.0) k *= pow(1.0 - smoothstep(0.0, radial, length(lp.xz)), 1.6);
 	ALBEDO = tint.rgb * power * k * COLOR.rgb;
 	ALPHA = tint.a * k;
 }

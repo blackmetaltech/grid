@@ -142,7 +142,11 @@ func game_title(r: Control) -> bool:
 		if lv != "": get_tree().create_timer(0.3).timeout.connect(func(): new_game(_mode_pref()); start_level(lv, true))
 	if OS.has_environment("CB_CAREER"): get_tree().create_timer(0.5).timeout.connect(func(): Career.qa(self, OS.get_environment("CB_CAREER")))   # desk QA: land on the Career (ui/career/career.gd)
 	return TitleScreen.build(self, r)
-func game_end_screen() -> bool: return ShiftReport.open(self)
+func game_end_screen() -> bool:
+	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible and not OS.has_environment("CB_SHOT"):   # LOOK2: let the player see the lights go out before the paper comes
+		get_tree().create_timer(3.5).timeout.connect(func(): ShiftReport.open(self))
+		return true
+	return ShiftReport.open(self)
 func game_menu() -> bool: return PauseMenu.toggle(self)
 
 ## A job starts (new game, level start, load): the work order slides in unless the job is already under way.

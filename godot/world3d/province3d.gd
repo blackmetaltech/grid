@@ -168,10 +168,10 @@ func _update_sky(mn: float) -> void:
 	if moon.visible and sun.visible: moon.shadow_enabled = false
 	elif quality == "high": moon.shadow_enabled = true
 	sky_mat.set_shader_parameter("moon_dir", mdir)
-	env.ambient_light_sky_contribution = lerpf(1.0, 0.45, n)
-	env.ambient_light_color = Color(0.13, 0.17, 0.30)
+	env.ambient_light_sky_contribution = lerpf(1.0, 0.45, n) * (1.0 - 0.55 * d)   # golden hour: cool shadows against the warm sun, not a maroon wash
+	env.ambient_light_color = Color(0.13, 0.17, 0.30).lerp(Color(0.30, 0.38, 0.55), d * (1.0 - n))
 	env.ambient_light_energy = lerpf(1.0, 1.1, n)
-	env.fog_light_color = (s.hor as Color).lerp(Color(0.04, 0.06, 0.11), n * 0.5)
+	env.fog_light_color = (s.hor as Color).lerp(Color(0.50, 0.58, 0.72), 0.55 * d * (1.0 - n)).lerp(Color(0.04, 0.06, 0.11), n * 0.5)   # haze stays cool at golden hour
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.55, n)
 	if env.volumetric_fog_enabled:
@@ -550,6 +550,11 @@ func _build_town_lamps(places: Array) -> void:
 			var o := OmniLight3D.new(); o.position = l + Vector3(0, 12, 0); o.omni_range = 140.0; o.light_color = Color(1.0, 0.7, 0.42)
 			o.light_energy = 2.0; o.omni_attenuation = 1.4; o.shadow_enabled = false; o.light_volumetric_fog_energy = 2.5
 			_root_infra.add_child(o); nodes.append(o)
+		var pool := MeshInstance3D.new(); var pd := CylinderMesh.new(); var rad := 40.0 + sqrt(float(lamps.size())) * 22.0
+		pd.top_radius = rad; pd.bottom_radius = rad; pd.height = 0.2; pd.radial_segments = 32; pool.mesh = pd
+		var pg := _glow_mat(Color(1.0, 0.6, 0.25, 0.22), 1.0); pg.set_shader_parameter("radial", rad); pool.material_override = pg
+		pool.position = c - Vector3(0, 6.0, 0); pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_root_infra.add_child(pool); nodes.append(pool)   # an amber haze over a lit town, readable from the whole province
 		_town_lamps[id] = nodes
 
 func _build_yard(s: Dictionary) -> void:
