@@ -25,7 +25,7 @@ const S := {
 	"CAR_PRIMARY_INFO": "%s: peak %s MVA, firm capacity %s MVA (the biggest unit out), firm margin %s %%.", "CAR_UNIT": "%s, %s MVA", "CAR_SWGEAR": "%s switchgear",
 	# drawer
 	# 1.8 the guided first year: one job per quarter, the other tools open as the year goes on
-	"CAR_GUIDE_T": "YEAR ONE · QUARTER %d OF 4: WHAT TO DO", "CAR_GUIDE_ALL": "Show every tool now", "CAR_GUIDE_MORE": "%d more tools open later this year (or show them all now).",
+	"CAR_STORY_LAPSE": "Say nothing and they decide for you at the end of the quarter.", "CAR_ED_RECAP": "Ten years, in the answers you gave", "CAR_ED_AFTER": "Afterwards", "CAR_INC_CALL": "A call while it happens", "CAR_GUIDE_T": "YEAR ONE · QUARTER %d OF 4: WHAT TO DO", "CAR_GUIDE_ALL": "Show every tool now", "CAR_GUIDE_MORE": "%d more tools open later this year (or show them all now).",
 	"CAR_GUIDE_Q1": "1  Your weakest asset is %s: it is picked on the map.\n2  Press Start on its row below (%s, one crew).\n3  Press End quarter at the top right. A quarter is three months; the regulator reviews you after quarter 4.",
 	"CAR_GUIDE_Q1_NONE": "1  Pick a feeder on the map.\n2  Start a project on it.\n3  Press End quarter at the top right.",
 	"CAR_GUIDE_Q1_DONE": "Started. Now press End quarter at the top right and see what the three months bring.",

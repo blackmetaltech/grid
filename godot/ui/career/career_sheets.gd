@@ -72,6 +72,11 @@ static func incidents(sc: CareerScreen) -> void:
 		for c in body.get_children():
 			body.remove_child(c)
 			if c != res: c.queue_free()
+		for b in sc.d.get("story", []):   # 1.9: a call while it happens, from someone with a stake in it
+			if str(b.on) != "incident": continue
+			body.add_child(PaperKit.lbl(T("CAR_INC_CALL"), 16, "mono", Color(PaperKit.INK, 0.7), true))
+			body.add_child(StoryCard.make(b, func(opt: String):
+				var r := sc.act("careerStory", [str(b.id), opt]); res.text = str(r.get("message", "")); res.add_theme_color_override("font_color", GREEN if bool(r.get("ok", false)) else PaperKit.RED); (fh[0] as Callable).call(), compact))
 		for inc in sc.d.incidents:
 			var iid := str(inc.id)
 			var card := PanelContainer.new(); card.name = "Inc_" + iid
@@ -196,6 +201,16 @@ static func ending(sc: CareerScreen) -> void:
 	var body := VBoxContainer.new(); body.add_theme_constant_override("separation", 8)
 	body.add_child(PaperKit.lbl(str(c.endingText), 34 if compact else 52, "title", GREEN if good else PaperKit.RED, true))
 	body.add_child(PaperKit.lbl(T("CAR_ED_SCORE") % roundi(float(c.score)), 28 if compact else 40, "semi", PaperKit.INK))
+	# 1.9: the run told as a story first: where each person ended up, then the ten years in the answers given; the numbers follow
+	var ep: Array = c.get("epilogue", [])
+	if not ep.is_empty():
+		var eh := PaperKit.lbl(T("CAR_ED_AFTER"), 20 if compact else 24, "title", PaperKit.INK, true); eh.name = "After"; body.add_child(eh)
+		for line in ep: body.add_child(_para(str(line), compact, Color(PaperKit.INK, 0.9)))
+	var rc: Array = c.get("recap", [])
+	if not rc.is_empty():
+		var rh := PaperKit.lbl(T("CAR_ED_RECAP"), 20 if compact else 24, "title", PaperKit.INK, true); rh.name = "Recap"; body.add_child(rh)
+		for line in rc: body.add_child(_para("· " + str(line), compact))
+	if not (ep.is_empty() and rc.is_empty()): body.add_child(PaperKit.rule())
 	var parts := VBoxContainer.new(); parts.name = "ScoreParts"; parts.add_theme_constant_override("separation", 0); body.add_child(parts)   # where the score came from (both 1.4 testers asked)
 	for sp in c.get("scoreParts", []):
 		if int(sp.points) != 0: parts.add_child(PaperKit.lbl(str(sp.text), 13 if compact else 15, "mono", PaperKit.RED if int(sp.points) < 0 else Color(PaperKit.INK, 0.75), true))

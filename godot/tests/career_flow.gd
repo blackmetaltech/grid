@@ -32,6 +32,8 @@ static func _modal_named(app: CbApp, nm: String) -> Control:
 	return n as Control if n != null and not n.is_queued_for_deletion() else null
 
 ## Answer whatever sheet is up (incident cards: tie and crew, then Done; reports: Continue), until the career screen is the topmost thing again. Returns the names of the sheets seen.
+static var story_calls := 0
+
 static func _drive(app: CbApp, seen: Array, max_steps := 12) -> void:
 	for i in max_steps:
 		await _frames(app, 3)
@@ -39,6 +41,11 @@ static func _drive(app: CbApp, seen: Array, max_steps := 12) -> void:
 		if m == null or m.name == "career": return
 		seen.append(str(m.name))
 		if m.name == "career_incidents":
+			for b in (app.b.q("career").get("story", []) as Array):   # 1.9: a call from someone: answer it, the card goes and the result is said
+				if str(b.on) != "incident": continue
+				var ok_b := _press(app, m, "Story_%s_a" % str(b.id)); await _frames(app, 2)
+				CbSmoke._check(ok_b and _node(m, "Story_" + str(b.id)) == null and (_node(m, "Result") as Label).text != "", "career flow: the call '%s' is answered on the incident sheet" % str(b.id))
+				story_calls += 1
 			for inc in (app.b.q("career").incidents as Array):
 				_press(app, m, "Tie_" + str(inc.id)); await _frames(app, 1)
 				var crewed_before := bool(inc.crewed)
@@ -47,7 +54,10 @@ static func _drive(app: CbApp, seen: Array, max_steps := 12) -> void:
 					var cb := _node(m, "Crew_" + str(inc.id)) as Button
 					CbSmoke._check(not crewed_before and cb != null and cb.disabled and cb.text == TranslationServer.translate("CAR_INC_CREWED") and _node(m, "Result") != null and (_node(m, "Result") as Label).text != "", "career flow: sending a crew turns the card's button into Crew sent and the engine's sentence shows")
 			_press(app, m, "Done")
-		elif m.name == "career_ending": return
+		elif m.name == "career_ending":
+			var rc: Array = app.b.q("career").get("recap", [])
+			CbSmoke._check(rc.is_empty() or (_node(m, "Recap") != null and _node(m, "After") != null), "career flow: the ending tells the run (recap %d lines)" % rc.size())
+			return
 		else: _press(app, m, "Continue")
 
 static func run(app: CbApp) -> void:
@@ -168,6 +178,20 @@ static func run(app: CbApp) -> void:
 		ck.call(Career.weekly_record(wk, 500) == 500 and Career.weekly_record(wk, 300) == 500 and Career.weekly_best(wk) == 500, "career flow: the weekly best keeps the higher score")
 		sc4.queue_free()
 	await _frames(app, 2)
+	# --- 1.9: a letter on the desk: seed 5 has the hospital's letter in year 1; it shows on the board, its answer is taken, the promise is pinned ---
+	var sc5 := Career.start(app, 5, "standard"); await _frames(app, 4)
+	if sc5 != null:
+		for i in 6:
+			if (app.b.q("career").get("story", []) as Array).any(func(b): return str(b.id) == "inesPromise"): break
+			app.b.act("careerEndQuarter", []); sc5.refresh(); sc5._build_drawer(); await _frames(app, 2)
+		sc5.refresh(); CareerScreen.guide_all = true; sc5._build_drawer(); await _frames(app, 3)
+		var card := _node(sc5.drawer, "Story_inesPromise")
+		ck.call(card != null and _node(card, "StoryBody") != null and (_node(card, "StoryBody") as Label).text.contains("F"), "career flow: the hospital's letter is on the desk with its two answers")
+		if card != null: _press(app, card, "Story_inesPromise_a")
+		await _frames(app, 3)
+		ck.call(_node(sc5.drawer, "Story_inesPromise") == null and _node(sc5.drawer, "Promise") != null, "career flow: answering it takes the letter away and pins the promise")
+		CareerScreen.guide_all = false
+		sc5.queue_free(); await _frames(app, 2)
 	Career.forget(); Career.path = path0
 	app.b.act("careerQuit", [])
 	print("CAREER-FLOW OK" if CbSmoke.fails == fails0 else "CAREER-FLOW FAILED %d" % (CbSmoke.fails - fails0))

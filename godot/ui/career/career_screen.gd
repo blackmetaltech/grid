@@ -440,11 +440,13 @@ func _board_tab() -> void:
 		var kinds := (board.get("kinds", []) as Array).size()
 		var hidden := (0 if gq >= 1 else 1) + (0 if gq >= 2 else 1) + (0 if gq >= 3 else kinds)
 		_guide_card(sz, gq, hidden)
+		_letters()
 		if gq >= 1: _ready_card(sz)
 		if gq >= 2: _veg_card()
 		_worst_card(sz)
 		if gq < 3: return
 	else:
+		_letters()
 		_ready_card(sz)
 		_veg_card()
 		_worst_card(sz)
@@ -467,6 +469,19 @@ func _board_tab() -> void:
 		cards.sort_custom(func(a, b): return int(a.rank) < int(b.rank))
 		_order = cards.map(func(c): return str(c.k.kind)); _order_key = okey
 	for c in cards: _kind_card(c, sz)
+
+## 1.9 letters on the desk: a plan beat from one of the district's people, two honest answers, what each costs. Unanswered, it lapses
+## at the end of the quarter (the asker decides alone). The open promise to the hospital stays pinned as a line under it.
+func _letters() -> void:
+	for p in d.get("promises", []):
+		var pl := CareerKit.lbl(str(p), 16, GridTheme.SODIUM, "semi", true); pl.name = "Promise"; drawer_body.add_child(pl)
+	for b in d.get("story", []):
+		if str(b.on) != "plan": continue
+		drawer_body.add_child(StoryCard.make(b, func(opt: String): _answer(str(b.id), opt), compact))
+
+func _answer(id: String, opt: String) -> void:
+	var r := act("careerStory", [id, opt])
+	if bool(r.get("ok", false)): _say(str(r.get("message", "")), true)
 
 ## Start from a card or row, keeping its place: the rebuilt board shows a same-height "Started" placeholder there.
 func _start_held(key: String, holder: Control, kind: String, target: String) -> void:
