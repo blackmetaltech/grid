@@ -89,7 +89,7 @@ ${ids.map(levelHtml).join('\n')}
 const HOSP = (): string => buildDistrict(5, 'standard').story?.hospital ?? 'F1';
 /** Home Counties names, as the game passes them to the story strings (career-game.ts storyNames). */
 const NAMES = (): Record<string, string> => ({ hospitalName: t('story.hospitalName'), villagesName: t('story.villagesName'), councillor: t('story.councillor'), councillorShort: t('story.councillorShort'), doctor: t('story.doctor'), doctorShort: t('story.doctorShort'), hubPlace: t('story.hubPlace') });
-const sx = (key: string, extra: Record<string, unknown> = {}): string => { const s = t(key, { ...NAMES(), hospital: HOSP(), feeder: HOSP(), due: 3, year: 1, ...extra } as Record<string, number>); if (s === key || /\{[a-zA-Z]+\}/.test(s)) throw new Error(`story text ${key} did not render: ${s}`); return s; };
+const sx = (key: string, extra: Record<string, unknown> = {}): string => { const s = t(key, { ...NAMES(), hospital: HOSP(), feeder: HOSP(), due: 3, year: 1, ...extra } as unknown as Record<string, number>); if (s === key || /\{[a-zA-Z]+\}/.test(s)) throw new Error(`story text ${key} did not render: ${s}`); return s; };
 const PEOPLE: [string, string][] = [['tobi', 'Runs the crews. Asks you to rest them, and remembers when you did not.'], ['vance', 'Finance. Wants the cash to last and the owners paid.'], ['okafor', 'The regulator. Judges your SAIDI and SAIFI, and your plans.'], ['ines', 'Keeps the hospital running on its feeder.'], ['tom', 'Speaks for the villages on the far feeder of the second primary.']];
 
 /** The story block: the five people, the hospital's letter with both answers and what each did, and the ending sheet. */
