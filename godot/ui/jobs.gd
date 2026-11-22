@@ -53,6 +53,11 @@ static func open(app: CbApp) -> void:
 	var rows := VBoxContainer.new(); rows.add_theme_constant_override("separation", 6); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sv.add_child(PaperKit.scroll_box(rows))
 	var first: Button = null; var ch_shown := ""
+	var fin := PaperKit.btn(T("JOBS_SEE_FINALE"), true, func():   # LOOK2 (Priya, DECISIONS 15): the finale in the new look is one click away, open in every mode
+		host.queue_free()
+		if app.started: app._autosave()
+		app.start_level("L28", true), 18)
+	fin.name = "SeeFinale"; fin.tooltip_text = T("JOBS_SEE_FINALE_TIP"); rows.add_child(fin)
 	var car := Career.jobs_row(app, host, compact); rows.add_child(car)   # the Career (DESIGN-1.1 Part C) sits above the chapters
 	for lv in list(app):
 		var id := str(lv.id)
@@ -86,6 +91,7 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 	var br := PaperKit.lbl(lock if lock != "" else str(lv.get("brief", "")), 15, "sans", Color(PaperKit.INK, 0.72), true); br.max_lines_visible = 1 if compact else 2; br.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; mid.add_child(br)
 	var earned := GridSettings.stars(id)
 	var lr := HBoxContainer.new(); lr.mouse_filter = Control.MOUSE_FILTER_IGNORE; lr.add_theme_constant_override("separation", 0); lr.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(lr)
+	if not WorldView.LOOK2_LEVELS.has(id): hb.add_child(classic_chip())   # this job still draws in the classic look
 	for i in 3:
 		var lamp := PaperKit.Lamp.new(34.0, i < earned); lamp.tooltip_text = (T("JOBS_STARS") % earned) if earned > 0 else T("JOBS_NO_STARS"); lr.add_child(lamp)
 	if lock != "":   # locked: the row greys out, a padlock replaces the lamps, and it cannot be started
@@ -93,6 +99,12 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 		var pl := Padlock.new(); pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(pl)
 		b.tooltip_text = lock
 	return b
+
+## A small "Classic" chip: this screen keeps the classic 2D look (only the finale and L30 are in the new look so far).
+static func classic_chip() -> Control:
+	var l := PaperKit.lbl(T("JOBS_CLASSIC"), 14, "mono", Color(PaperKit.INK, 0.6)); l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.tooltip_text = T("JOBS_CLASSIC_TIP"); l.mouse_filter = Control.MOUSE_FILTER_PASS; l.name = "Classic"
+	return l
 
 ## A small hand-drawn padlock (locked job).
 class Padlock extends Control:

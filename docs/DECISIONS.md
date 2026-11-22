@@ -132,3 +132,11 @@ Newest last. Each entry: what, why, where.
       `spin:<id>`: taking back any part refunded the spin's fuel too. Now `spin:<id>` stays paid while the unit stands (chf.test.ts).
     - Frozen targets regenerated in their own commit: global budget 70,000,000 -> 60,000,000, A 59,723,209 -> 54,735,709, B 53,781,955 ->
       54,072,857; `in` unchanged.
+15. **The first chapter in the new look is chapter 9, the finale (look2, 2026-11-23).** Priya (product) and Ingrid (lead) decided this. L28 was
+    already in 3D, and it has the payoff that sells the game: a province lighting up street by street. Chapter 1 would need a new small-scale
+    scene, one or two more sessions, for the smallest moment in the game. Strongest argument against: a new player's first ten minutes (L01)
+    are still 2D. To answer that:
+    - the jobs list opens with "See the finale in the new look", open in every mode, including Learner before the earlier jobs are passed;
+    - every job and the Career still in 2D carry a small "Classic" chip with a tooltip;
+    - the site and README say plainly that the finale is in the new look and the rest is classic.
+    L30 (chapter 2) also renders in 3D from the phase A slice.
