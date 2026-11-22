@@ -153,6 +153,8 @@ func _draw_place(feeders: Array) -> void:
 		var pts: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
 		if pts.size() < 2: continue
 		draw_polyline(pts, ROAD, 16.0 * _sc(), true)
+		if str(f.get("kind", "")) == "cable":   # the cable trench under the street: a dashed reinstatement line down the road
+			for k2 in pts.size() - 1: draw_dashed_line(pts[k2], pts[k2 + 1], Color("#3A3F4C"), 3.0 * _sc(), 7.0 * _sc())
 		var secs: Array = f.sections
 		var out_feeder := hot.has(str(f.id))
 		var per := clampi(int(float(f.get("customers", 4000)) / 900.0 / maxf(1.0, float(secs.size()))), 2, 7)
@@ -165,7 +167,9 @@ func _draw_place(feeders: Array) -> void:
 				var along := (float(h / 2) - float(per) * 0.25) * 15.0 * _sc()
 				var hp := mid + (b - a).normalized() * along + nrm * side * (22.0 + 6.0 * WorldMath.hash2(h, k + fi * 7, 23)) * _sc()
 				_house(hp, lit, h + k * 7 + fi * 31)
-			draw_line(pts[k + 1], pts[k + 1] + Vector2(0, -11.0) * _sc(), Color("#8A7458"), 2.5)   # a pole at each section end
+			if str(f.get("kind", "")) == "cable":   # underground: a joint-bay cover at each section end, no pole
+				var jb := 5.0 * _sc(); draw_rect(Rect2(pts[k + 1] - Vector2(jb, jb), Vector2(jb, jb) * 2.0), Color("#5A6170")); draw_rect(Rect2(pts[k + 1] - Vector2(jb, jb), Vector2(jb, jb) * 2.0), Color("#2A2F3A"), false, 1.5)
+			else: draw_line(pts[k + 1], pts[k + 1] + Vector2(0, -11.0) * _sc(), Color("#8A7458"), 2.5)   # a pole at each section end
 		if fi < names.size() and not compact:   # the feeder's village, named beside its middle
 			# low on the feeder, where the feeders have spread apart, centred on the road (they ran into each other near the primaries)
 			var nf := GridTheme.font("semi"); var nfz := GridText.floor_size(self, GridTheme.fs(13))

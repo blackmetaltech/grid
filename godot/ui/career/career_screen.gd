@@ -285,7 +285,7 @@ func _build_info_body() -> void:
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 10); info_box.add_child(hb)
 		var tv := VBoxContainer.new(); tv.add_theme_constant_override("separation", 1); tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hb.add_child(tv)
 		tv.add_child(CareerKit.lbl(T("CAR_SEC_TITLE") % str(sec.id), sz + 3, GridTheme.SODIUM, "semi"))
-		tv.add_child(CareerKit.lbl(T("CAR_SEC_INFO") % [CareerKit.num(float(sec.km), 1), str(sec.conductor), T("CAR_DEV_" + str(sec.device))] + "  " + _asset_line(sec, str(sec.assetId)), sz - 1, GridTheme.TEXT, "sans", true))
+		tv.add_child(CareerKit.lbl(T("CAR_SEC_INFO_CABLE" if str(f.get("kind", "")) == "cable" else "CAR_SEC_INFO") % [CareerKit.num(float(sec.km), 1), str(sec.conductor), T("CAR_DEV_" + str(sec.device))] + "  " + _asset_line(sec, str(sec.assetId)), sz - 1, GridTheme.TEXT, "sans", true))
 		if not compact: tv.add_child(CareerKit.lbl(_feeder_text(f), sz - 1, Color(GridTheme.TEXT, 0.8), "sans", true))
 		var ib := CareerKit.btn(T("CAR_INSPECT") % str(sec.assetId), false, func(): act("careerInspect", [str(sec.assetId)]), 14); ib.name = "Inspect"; ib.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(ib)
 	elif t == "primary":

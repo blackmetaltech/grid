@@ -272,7 +272,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           units: p.unitIds.map((u) => ({ id: u, ratingMva: st.assets.find((a) => a.id === u)!.ratingMVA, ...healthOf(u) })), switchgear: { id: p.switchgearId, ...healthOf(p.switchgearId) } })),
         feeders: st.feeders.map((f, i) => {
           const a = an[i]!;
-          return { id: f.id, primaryId: f.primaryId, customers: f.customers, peakKw: Math.round(a.peakKw), loadingPct: r1(a.loadingPct), minV: r2(a.minVPu), maxV: r2(a.maxVPu), vViolation: a.vViolation,
+          return { id: f.id, kind: f.kind ?? 'overhead', primaryId: f.primaryId, customers: f.customers, peakKw: Math.round(a.peakKw), loadingPct: r1(a.loadingPct), minV: r2(a.minVPu), maxV: r2(a.maxVPu), vViolation: a.vViolation,
             saidi: r1(a.rel.saidi), saifi: r2(a.rel.saifi), veg: r2(f.veg), tie: f.tie, recloser: f.recloser, hardened: !!f.hardened, regulator: f.regulator, batteryKw: f.batteryKw, drKw: Math.round(f.drKw), solarKw: f.solarKw,
             sections: f.sections.map((sec) => ({ id: sec.id, km: sec.lengthKm, conductor: sec.conductor, device: sec.device, assetId: sec.assetId, ...healthOf(sec.assetId) })) };
         }),
