@@ -1,14 +1,24 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.12.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.13.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
 The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
 
-> **Alpha, 1.12.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. The ten-year Career runs in nine districts plus a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. The Windows build is made and smoke-tested on every release but not yet played on Windows; there is no macOS build yet.
+> **Alpha, 1.13.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. The ten-year Career runs in nine districts plus a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. The Windows build is made and smoke-tested on every release but not yet played on Windows; there is no macOS build yet.
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
+
+### What's new in 1.13
+
+| Before a review the top bar shows what the owners will take, so you can commit it first | The review quarter's report names the dividend |
+|---|---|
+| ![owners on the top bar](docs/readme/new113/owners.png) | ![report with dividend](docs/readme/new113/report.png) |
+| **Harbour City's guide explains cable faults (there are no trees to cut)** | |
+| ![cable guide](docs/readme/new113/cable-guide.png) | |
+
+A first year in Harbour City, played as a newcomer would, turned up five things. The fixes: the dividend is announced before it is taken; the strike alarm gives the fair-weather SAIDI it measures; transformer rows show the replacement price beside the failure cost; the guide no longer points to a tree card the city does not have; request cards fit. The scripted planner now beats the late firefighter on every Storm Coast seed.
 
 ### What's new in 1.12
 
@@ -27,16 +37,6 @@ Money now has somewhere to go. The owners take most of the cash above a working 
 | ![site at 2560](docs/readme/new111/site-2560.png) | ![wiki chapter](docs/readme/new111/wiki-chapter.png) |
 
 GRID has a site at [grid.blackmetal.tech](https://grid.blackmetal.tech) with download buttons that resolve the latest release, and a [player wiki](https://grid.blackmetal.tech/wiki/) generated from the game's own text (`scripts/wiki.ts`; a test fails when it is stale).
-
-### What's new in 1.10
-
-| Home Counties: fields, named villages, the hospital on its feeder | Harbour City: all underground, rare faults that take a day |
-|---|---|
-| ![home counties](docs/readme/new110/home-counties.png) | ![harbour city](docs/readme/new110/harbour-city.png) |
-| **High Moor: long lines, snow in winter, reclosers pay** | |
-| ![high moor](docs/readme/new110/high-moor.png) | |
-
-The Career has two new districts that teach different things. Harbour City is underground cable: few faults, each hours long, so ties and remote switching matter and reclosers do nothing. High Moor is long overhead lines over open hills: winter storms and mostly transient faults. The map is now a place with named villages and the story's buildings on their feeders. The top of the screen is a paper wall planner, and the warning is a pinned note that says the one thing to do. The story follows you into each district, and your earlier answers come back.
 
 ## What you actually do
 
@@ -142,7 +142,7 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 ## Status
 
-1.12. **1528 engine tests in 71 files** and **25 Godot steps** (24 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
+1.13. **1528 engine tests in 71 files** and **25 Godot steps** (24 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
 
 - Played on desktop Linux only. The gamepad pass used scripted pad events in the game window at 1280×800, not a physical pad; there is no pass on a real phone; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
 - The Windows build is produced but not played on Windows; there is no macOS build on the releases.
@@ -151,4 +151,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.12.md](docs/CRITIQUE-1.12.md) for the harsh version.
+See [docs/CRITIQUE-1.13.md](docs/CRITIQUE-1.13.md) for the harsh version.

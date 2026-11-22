@@ -2,6 +2,21 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.13.0] - "Fresh eyes" (tag v1.13.0; driven by docs/CRITIQUE-1.12.md's gate; review in docs/CRITIQUE-1.13.md)
+### Changed
+- **The owners' dividend is announced before it is taken.** In the half-year before a review, the top bar shows what the owners would take at today's cash ("Owners ~$4,345,451 at review"). That leaves time to commit the money to work first. The review quarter's report now names the dividend (and any price-control clawback), so its cash line adds up.
+- **The strike alarm says what it measures.** It used to read "Off target" in a quarter with 0 minutes lost. It now gives the network's fair-weather SAIDI against the target: "Even in fair weather this network runs 329 min against a target of 288: strike 1 of 3 at the review."
+- **Plant rows show both prices.** The worst-assets rows for transformers give the cost to replace now beside the cost if it fails ("replace now $3,810,000; if it fails $5,080,000").
+- **Harbour City's third guided quarter** explains cable faults and what ties and remote switches do. It used to point to a tree-cutting card that the district does not have.
+- **Requests fit their card.** The deadline sits on its own line, so Accept, Decline and the map button no longer clip at 1920 px. The hint text on the drawer is in light ink; dark ink on the brown drawer was unreadable.
+### Engine and tests
+- **The scripted planner on Storm Coast** beats the late firefighter on all four test seeds, and is Chief Engineer on all four. Two changes did it:
+  - its use of the credit line tapers over years 7-8;
+  - in the last two years it starts only work that the cash in hand and the operating surplus still to come can pay for.
+
+  Across nine districts × four seeds it is now Chief in 14 of 36 runs (9 in 1.12). `tension.test.ts` asserts the Storm Coast result seed by seed.
+- Rules bundle 1.13.0 accepts game 1.13.0. Outcomes are the same as 1.12, so the boards keep epoch 5.
+
 ## [1.12.0] - "Tension" (tag v1.12.0; driven by docs/CRITIQUE-1.11.md's gate and the coordinator's review of the district shots; review in docs/CRITIQUE-1.12.md)
 ### Added
 - **Money has somewhere to go.**
