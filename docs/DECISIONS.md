@@ -147,3 +147,10 @@ Newest last. Each entry: what, why, where.
     - **Done: relief.** Hills and ridges are drawn about 1.7 times steeper. The scale note now says "hills drawn steeper". Lines and towers follow the ground.
     - **Done: smaller art items.** Roofs are mostly terracotta, with a sky fill so slopes facing away are not black. Stars come out only after dusk. The sea is rougher at night, so the moon path is soft instead of a white slab. Labels under the finale card and under the docked report are not drawn. The report hides the job card, the radio log and the parts tray.
     - **Cut: the jobs clipboard in glass.** The jobs list is shared by every chapter; it stays paper until the other chapters move.
+17. **Dagny's 1.15 fun findings go to the next layer (look2, 2026-11-23, Ingrid).** She scored the finale 6/10 (fun 6, clarity 6, tension 4.5, return-tomorrow 4). Her strongest point: the shelf has one real choice, the 2-hour or the 4-hour battery, so "buy the bigger one" wins three lamps without understanding usable energy. All of the fixes below change outcomes or need goldens regenerated, so they wait for the next layer:
+    - price the choice so the 4-hour battery and spinning U4 together break the budget;
+    - "What to try" gives the draw and the usable window, not the answer;
+    - one live call during the run;
+    - a three-line Ada note;
+    - seed the design comparison with the bot designs.
+    Not reproduced: the playtester's dead first click on the finished-job pin. That run was software-rendered at 1 to 3 fps; it is to be checked on a GPU next layer.
