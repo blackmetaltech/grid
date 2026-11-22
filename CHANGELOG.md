@@ -2,6 +2,38 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.12.0] - "Tension" (tag v1.12.0; driven by docs/CRITIQUE-1.11.md's gate and the coordinator's review of the district shots; review in docs/CRITIQUE-1.12.md)
+### Added
+- **Money has somewhere to go.**
+  - **Owners.** At each annual review the owners take 60 % of the cash above a reserve (a buffer plus a year of committed project instalments) as a dividend. The finance review says how much and why.
+  - **Price-control close (NARM-style).** Every five years, if the network's average health ended below where it started and the replacement money in the allowance was not all spent, the regulator takes back the unspent part plus 2.5 %.
+  - **Overload has a consequence.** Past its short-time emergency rating (125 % at the season's peak), a feeder cannot carry its load. The control room cuts customers in 3-hour rota blocks, for the hours a peaky load-duration curve stands above the rating, and those minutes count in SAIDI and SAIFI. The feeder card shows how many minutes a year.
+  - Proven with the scripted players (`src/career/tension.test.ts`) across Home Counties, Harbour City, Storm Coast, Lean Years and High Moor, four seeds each:
+    - the careful planner never fails, peaks under 10 in cash and ends under 5;
+    - the purely reactive player loses the licence. On High Moor's light load it can last ten years on one seed in four, but it scores under half the planner;
+    - the late firefighter is never Chief and scores under three quarters of the planner;
+    - the gold-plater fails.
+- **Each district has its own geography.**
+  - Harbour City is a street grid down to the waterfront, with cable routes along the streets, dockside cranes and a tram on the high street. The spare ducts appear under it if you laid them.
+  - High Moor has one primary in the market town by the villages and one far up the moor. Its feeders start with a long trunk (2.5× the first section) down their own valleys.
+  - Home Counties stays as it was.
+- **Lines are drawn as what they are.** Overhead sections are poles along the road with sagging spans. Cable sections are trenches under the street, with joint bays.
+- **Real 11 kV cable in Harbour City.** 70, 95, 185 and 300 mm² Al XLPE (IEC 60502-2 typical R, X and ampacity) replace the overhead conductor names, and reconductoring upsizes a cable to a bigger cable. Auto-reclose, storm hardening, tree clearance and the tree budget are refused on cable, each with the reason. A cable feeder carries no vegetation, so storms no longer scale with trees that are not there.
+- **Requests can be declined.** A declined request counts as missed at once, as a lapsed one does. The locator button reads "F3 on map".
+- **Standing charges on the top bar.** Tree level and storm standby, and what each costs a quarter.
+- **L20 and every grid level:**
+  - The part in hand follows the pointer, labelled.
+  - A click that misses keeps the part and names the glowing pegs it can go on (it used to cancel silently).
+  - The Run lever has its own green-edged panel under a rule, apart from the speed keys.
+  - A run of 20 hours or more says "Run the day" whatever hour it starts (L20 starts at 00:00).
+- **Scores.** Rules bundle 1.11.0 makes the shipped 1.11.0 build scorable. 1.12.0 rules carry epoch 5 with regenerated samples. `release-local.sh` refuses a build whose version is not accepted by a vendored rules bundle, and `scores-release.test.ts` checks the same in CI.
+### Changed
+- When this year's SAIDI bar is red but the three-year average is on target, the quarter report says why ("the earlier years carry you this time").
+- The wiki's Career page explains owners, the price-control close and overload, from the engine's constants.
+### Known gaps
+- Harbour City's starting network has the same number of feeders and ties as the others; only its layout, lengths and cable differ.
+- The perf budgets were re-run alone (load 16-37 during the layer).
+
 ## [1.11.0] - "Presence" (tag v1.11.0; driven by docs/CRITIQUE-1.10.md's gate; review in docs/CRITIQUE-1.11.md)
 ### Added
 - **A site at [grid.blackmetal.tech](https://grid.blackmetal.tech)**, deployed from `site/` by the pages workflow.
