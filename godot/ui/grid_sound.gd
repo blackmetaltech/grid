@@ -59,9 +59,11 @@ func on_changed(model: Dictionary) -> void:
 	if app == null or audio == null: return
 	if not app.started:   # title: no hum, no music
 		if _music: audio.stop_music(1.0); audio.set_hum_volume(-80.0); _music = false; _level = ""
+		if audio.has_method("set_outdoor"): audio.set_outdoor(0.0, 0.0)
 		return
 	var lvl := str(model.get("level", "")); var kind := str(model.get("kind", "none"))
 	audio.set_mode("ac" if kind == "grid" else "dc")
+	if audio.has_method("set_outdoor"): audio.set_outdoor(1.0 if GridTheme.look2 else 0.0, WorldMath.night(float(model.get("minute", 720.0))))   # LOOK2: wind, crickets at night
 	var fresh := lvl != _level or not _music
 	if kind == "grid":
 		var dq = app.b.q("dial")

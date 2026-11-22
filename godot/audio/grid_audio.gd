@@ -44,6 +44,8 @@ var cute := false
 var muted := false
 var headless := DisplayServer.get_name() == "headless" or OS.has_environment("CB_NOAUDIO")   # CB_NOAUDIO: perf A/B runs
 var _hum: HumSynth = HumSynth.new()
+var _out: OutdoorSynth = OutdoorSynth.new()   ## LOOK2 (1.16): wind, and crickets at night, over the 3D province
+var _out_pb: AudioStreamGeneratorPlayback
 var _hum_player: AudioStreamPlayer
 var _hum_pb: AudioStreamGeneratorPlayback
 var _voices: Array[AudioStreamPlayer] = []
@@ -148,7 +150,14 @@ func _ready() -> void:
 	if not headless:
 		_hum_player.play(); _hum_pb = _hum_player.get_stream_playback() as AudioStreamGeneratorPlayback
 	_hum.f = frequency; _hum.f_t = frequency; _hum.ac = mode == "ac"
+	var og := AudioStreamGenerator.new(); og.mix_rate = OutdoorSynth.RATE; og.buffer_length = 0.3
+	var op := AudioStreamPlayer.new(); op.stream = og; op.bus = "SFX"; op.volume_db = -10.0; add_child(op)
+	if not headless: op.play(); _out_pb = op.get_stream_playback() as AudioStreamGeneratorPlayback
 	apply_volumes()
+
+## LOOK2: the outdoor bed. level 0 (off, every classic screen) .. 1 (the 3D province); night 0..1 brings the crickets in and the wind down.
+func set_outdoor(level: float, night: float) -> void:
+	_out.level_t = clampf(level, 0.0, 1.0); _out.night_t = clampf(night, 0.0, 1.0)
 
 func _exit_tree() -> void:
 	if _thread != null and _thread.is_started(): _thread.wait_to_finish()
@@ -164,6 +173,12 @@ func _process(delta: float) -> void:
 			var s := _hum.fill(n); var v := PackedVector2Array(); v.resize(n)
 			for i in n: v[i] = Vector2(s[i], s[i])
 			_hum_pb.push_buffer(v)
+	if _out_pb != null:
+		var n2 := mini(_out_pb.get_frames_available(), 4096)
+		if n2 > 0:
+			var s2 := _out.fill(n2); var v2 := PackedVector2Array(); v2.resize(n2)
+			for i in n2: v2[i] = Vector2(s2[i], s2[i])
+			_out_pb.push_buffer(v2)
 	if _thread != null and _thread.is_started() and not _thread.is_alive():
 		_thread.wait_to_finish(); _thread = null
 		if _music_wanted: _build_music_players()
@@ -514,3 +529,40 @@ static func mix_music(stems: Dictionary, seconds: float, stress_v: float, cute_v
 	normalize(out, 0.8)
 	for i in n: out[i] *= minf(1.0, minf(float(i) / (MRATE * 0.5), float(n - i) / (MRATE * 1.0)))
 	return out
+
+
+## Outdoor bed for the 3D province (synthesised, deterministic): wind as low-passed noise with slow gusts, and at night sparse cricket chirps
+## (4.6 kHz pulses in groups of three). Silent when level is 0.
+class OutdoorSynth:
+	const RATE := 22050
+	var level := 0.0
+	var level_t := 0.0
+	var night := 0.0
+	var night_t := 0.0
+	var lp := 0.0
+	var lp2 := 0.0
+	var gust := 0.0
+	var t := 0.0
+	var chirp_at := 1.0
+	var chirp_n := 0
+	var ph := 0.0
+	var rng := RandomNumberGenerator.new()
+	func _init() -> void: rng.seed = 11
+	func fill(n: int) -> PackedFloat32Array:
+		var out := PackedFloat32Array(); out.resize(n)
+		var kl := 1.0 - exp(-1.0 / (0.8 * RATE))
+		for i in n:
+			level += (level_t - level) * kl; night += (night_t - night) * kl
+			t += 1.0 / RATE
+			if level < 0.0005: out[i] = 0.0; continue
+			var w := rng.randf_range(-1.0, 1.0)
+			lp += (w - lp) * 0.02; lp2 += (lp - lp2) * 0.05
+			gust = 0.55 + 0.45 * sin(t * 0.21) * sin(t * 0.077 + 1.3)
+			var s := lp2 * 2.2 * gust * (1.0 - 0.6 * night)
+			if night > 0.3:   # crickets: a group of three short chirps, then a pause
+				if t >= chirp_at:
+					var k := fmod(t - chirp_at, 0.09)
+					if k < 0.035: ph += 4600.0 / RATE; s += sin(TAU * ph) * 0.05 * (night - 0.3) * sin(PI * k / 0.035)
+					if t - chirp_at > 0.27: chirp_at = t + 0.6 + rng.randf() * 1.4
+			out[i] = s * level
+		return out

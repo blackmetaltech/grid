@@ -97,7 +97,7 @@ func refresh(b) -> void:
 func set_model(m: Dictionary) -> void:
 	model = m
 	if look3d != null:
-		var want: bool = LOOK2_LEVELS.has(str(m.level)) and str(m.kind) == "grid" and not title_mode and OS.get_environment("CB_LOOK") != "1"
+		var want: bool = (LOOK2_LEVELS.has(str(m.level)) or OS.get_environment("CB_LOOK2_TRY").split(",").has(str(m.level))) and str(m.kind) == "grid" and not title_mode and OS.get_environment("CB_LOOK") != "1"
 		look3d.visible = want
 		if want: look3d.set_model(m)
 		elif look3d.cam != null: look3d.cam.current = false

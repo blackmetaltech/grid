@@ -97,7 +97,8 @@ func height(x: float, z: float) -> float:
 	var ridge := (n_ridge.get_noise_2d(x * 2.2, z * 2.2) * 0.5 + 0.5)
 	var u := x / size_m.x; var v := z / size_m.y
 	var band := smoothstep(0.32, 0.0, absf(v - 0.22 - 0.08 * sin(u * 7.0))) * smoothstep(0.85, 0.35, u)   # a range across the north
-	var h := 22.0 + hills * 150.0 * (0.5 + nw) + ridge * ridge * (950.0 * nw * nw + 600.0 * band)   # drawn steeper than life (manager review 1.15; the scale note says so)
+	var big := clampf(size_m.x / 30000.0, 0.3, 1.0)   # a small map (a mill town) gets low hills, not a 900 m peak
+	var h := 22.0 + hills * 150.0 * (0.5 + nw) * big + ridge * ridge * (950.0 * nw * nw + 600.0 * band) * big * big   # drawn steeper than life (manager review 1.15; the scale note says so)
 	var shore := clampf((coast_x - x) / (2.5 * tm), 0.0, 1.0)
 	h *= sqrt(shore)   # the land meets the sea in cliffs where it is high
 	var rd := _river_dist(x, z)
