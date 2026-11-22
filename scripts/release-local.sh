@@ -25,6 +25,14 @@ done
 
 cd "$src"
 grep -q "\"version\": \"${ver#v}\"" package.json || { echo "package.json is not ${ver#v}" >&2; exit 1; }
+# a released build must be scorable: its version must be in src/scores.ts gameVersions, and that rules bundle must be vendored
+# in a sibling cobanana-scores checkout (when there is one) with the same bytes
+grep -E "gameVersions: \[[^]]*'${ver#v}'" src/scores.ts >/dev/null || { echo "src/scores.ts gameVersions does not accept ${ver#v}: bump rulesVersion/gameVersions" >&2; exit 1; }
+rv=$(grep -oE "rulesVersion: '[0-9.]+'" src/scores.ts | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+vend=$src/../cobanana-scores/src/verifiers/vendor/grid/$rv.mjs
+if [ -d "$src/../cobanana-scores" ] && ! grep -qE "[\"']${ver#v}[\"']" "$vend" 2>/dev/null; then
+  echo "rules $rv accepting ${ver#v} is not vendored in ../cobanana-scores (pnpm vendor:verifier ../grid/src/scores.ts)" >&2; exit 1
+fi
 log "sidecar"; ./node_modules/.bin/vite build -c vite.bridge.config.ts >/dev/null
 log "import"; timeout 900 godot --headless --path godot --import >/dev/null 2>&1 || true
 mkdir -p godot/build/linux godot/build/windows
