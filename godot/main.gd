@@ -104,6 +104,12 @@ func game_build_chrome(r: Control) -> void:
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
 	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: (func(): if is_instance_valid(n): GridText.floor_control(n)).call_deferred())   # a node freed before the deferred call ran raised "Cannot convert argument 1"   # 1.9: 16 px floor
+	if OS.get_environment("CB_SHOT_DIR") != "":   # QA hand play on a GPU window: save the viewport every CB_SHOT_EVERY seconds (default 5) as NNNN.png, no quit
+		var dir := OS.get_environment("CB_SHOT_DIR"); DirAccess.make_dir_recursive_absolute(dir)
+		var every := float(OS.get_environment("CB_SHOT_EVERY")) if OS.get_environment("CB_SHOT_EVERY") != "" else 5.0
+		var t := Timer.new(); t.wait_time = every; t.autostart = true; add_child(t)
+		var n := [0]
+		t.timeout.connect(func(): n[0] += 1; get_viewport().get_texture().get_image().save_png("%s/%04d.png" % [dir, n[0]]))
 	if OS.has_environment("CB_TEXTAUDIT"):   # 1.9: the text-size audit (tests/text_flow.gd, loaded by path: tests/ is not exported)
 		get_tree().create_timer(1.0).timeout.connect(func():
 			var tf = load("res://tests/text_flow.gd")
