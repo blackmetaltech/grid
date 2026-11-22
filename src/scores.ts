@@ -35,12 +35,12 @@ export function verifyWeekly(levelId: string, code: string, budget: () => void =
 }
 
 const levels: Record<string, { metrics: MetricSpec[]; epoch: string }> = {};
-for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { metrics: METRICS, epoch: '4' };   // 1.5 changed scoring (storm levers, target glide); 1.9 the story's answers move cash, crews and outages: a fresh board each time
+for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { metrics: METRICS, epoch: '5' };   // 1.5 changed scoring (storm levers, target glide); 1.9 the story's answers move cash, crews and outages: a fresh board each time
 
 export const verifier = {
   game: 'grid',
-  rulesVersion: '1.11.0',
-  gameVersions: ['1.11.0'],   // 1.11 same outcomes as 1.10 (epoch 4), its own bundle so the shipped 1.11.0 is scorable; 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
+  rulesVersion: '1.12.0',
+  gameVersions: ['1.12.0'],   // 1.12 owners' dividends, overload shedding, cable rules and the moor trunk change outcomes (epoch 5); 1.11 same outcomes as 1.10 (epoch 4), its own bundle so the shipped 1.11.0 is scorable; 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
   regionRulesets: ['global'],
   levels: { global: levels },
   maxSolutionBytes: 65536,
