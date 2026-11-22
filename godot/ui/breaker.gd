@@ -123,22 +123,22 @@ func _pt(c: Vector2, r: float, deg: float) -> Vector2: return c + Vector2(sin(de
 
 func _draw() -> void:
 	_layout_rects()
-	var on := running(); var w := size.x; var h := size.y
+	var on := running(); var w := size.x; var h := size.y; var l2 := GridTheme.look2
 	var breathe := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.004) if on else 0.0
-	if on:
+	if on and not l2:
 		for i in 5: draw_rect(_plate.grow(8.0 - i * 1.5), Color(GridTheme.SODIUM, (0.05 + 0.04 * breathe) * (i + 1) * 0.5), false, 3.0)
 	draw_style_box(GridTheme.ink_sb(0.96, 10, 0.0), _plate)
-	var edge := StyleBoxFlat.new(); edge.draw_center = false; edge.border_color = GridTheme.SODIUM if (on or has_focus()) else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35); edge.set_border_width_all(2 if has_focus() else 1); edge.set_corner_radius_all(10)
+	var edge := StyleBoxFlat.new(); edge.draw_center = false; edge.border_color = GridTheme.SODIUM if (on or has_focus()) else (Color(GridTheme.HAIR, 0.5) if l2 and _hover else (GridTheme.HAIR if l2 else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35))); edge.set_border_width_all(2 if has_focus() else 1); edge.set_corner_radius_all(4 if l2 else 10)
 	draw_style_box(edge, _plate)
 	var screws := [Vector2(18, 16), Vector2(w - 18, 16), Vector2(w - 18, h - 16)]
 	if not CbKit.pad_mode: screws.append(Vector2(18, h - 16))
-	for s in screws:   # screws
+	for s in ([] if l2 else screws):   # screws
 		draw_circle(s, 4.0, GridTheme.NIGHT); draw_line(s + Vector2(-2.5, 1.5), s + Vector2(2.5, -1.5), GridTheme.SODIUM_DIM, 1.2)
 	# 1.12 the run panel: its own green-edged field under a rule, so a click meant for Run does not land on a speed key (a tester's did)
 	var run_r := Rect2(Vector2(12.0, _speed_rect.end.y + 12.0), Vector2(w - 24.0, h - _speed_rect.end.y - 20.0))
-	draw_line(Vector2(16.0, _speed_rect.end.y + 6.0), Vector2(w - 16.0, _speed_rect.end.y + 6.0), Color(GridTheme.SODIUM_DIM, 0.5), 1.0)
-	var rsb := StyleBoxFlat.new(); rsb.set_corner_radius_all(8); rsb.bg_color = Color(GridTheme.GOOD, 0.10 if not on else 0.04)
-	rsb.border_color = Color(GridTheme.GOOD, 0.85 if not on else 0.35); rsb.set_border_width_all(2)
+	draw_line(Vector2(16.0, _speed_rect.end.y + 6.0), Vector2(w - 16.0, _speed_rect.end.y + 6.0), GridTheme.HAIR if l2 else Color(GridTheme.SODIUM_DIM, 0.5), 1.0)
+	var rsb := StyleBoxFlat.new(); rsb.set_corner_radius_all(4 if l2 else 8); rsb.bg_color = Color(GridTheme.GOOD, 0.10 if not on else 0.04)
+	rsb.border_color = Color(GridTheme.GOOD, 0.85 if not on else 0.35); rsb.set_border_width_all(1 if l2 else 2)
 	draw_style_box(rsb, run_r)
 	# knife switch: slot, pivot at the bottom, blade swings between OFF (leaning left) and ON (leaning right)
 	var pv := Vector2(w * 0.29, h - 56.0)
@@ -156,13 +156,13 @@ func _draw() -> void:
 	var mf := GridTheme.font("mono"); var msz := GridTheme.fs(18)
 	for k in 3:
 		var kr := _key_rect(k); var sel := k == rate - 1
-		var sb := StyleBoxFlat.new(); sb.set_corner_radius_all(8); sb.bg_color = Color(GridTheme.SODIUM, 0.22) if sel else Color(GridTheme.NIGHT, 0.55)
-		sb.border_color = GridTheme.SODIUM if sel else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35); sb.set_border_width_all(2 if sel else 1)
+		var sb := StyleBoxFlat.new(); sb.set_corner_radius_all(4 if l2 else 8); sb.bg_color = Color(GridTheme.SODIUM, 0.22) if sel else Color(GridTheme.NIGHT, 0.55)
+		sb.border_color = GridTheme.SODIUM if sel else (GridTheme.HAIR if l2 else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35)); sb.set_border_width_all(2 if sel and not l2 else 1)
 		draw_style_box(sb, kr)
 		var tl: String = RATES[k]; var kw := mf.get_string_size(tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz)
 		GridText.ds(self, mf, Vector2(kr.get_center().x - kw.x * 0.5, kr.get_center().y + msz * 0.35), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if sel else Color(GridTheme.TEXT, 0.75))
 	# label
-	var f := GridTheme.font("title"); var fsz := GridTheme.fs(22); var lt := label_text()
+	var f := GridTheme.font(GridTheme.skin_font("title")); var fsz := GridTheme.fs(22); var lt := label_text()
 	var lw := f.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var lx := (w - lw.x) * 0.5 + (12.0 if CbKit.pad_mode else 0.0)
 	GridText.ds(self, f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.GOOD.lightened(0.25))

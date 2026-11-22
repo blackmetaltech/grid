@@ -20,9 +20,12 @@ const FADE := [1.0, 0.66, 0.44, 0.3, 0.22, 0.18]
 func _init() -> void:
 	TrayStrings.load_strings()
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	add_theme_stylebox_override("panel", GridTheme.ink_sb(0.92, 8, 12.0))
+	restyle()
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.mouse_filter = Control.MOUSE_FILTER_IGNORE; add_child(_box)
 	visible = false
+
+## The panel's skin follows GridTheme.look2 (the chrome calls this when the flag flips).
+func restyle() -> void: add_theme_stylebox_override("panel", GridTheme.ink_sb(0.92, 8, 12.0))
 
 func clock_text() -> String:
 	if app != null and app.started and app.b != null:

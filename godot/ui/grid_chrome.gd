@@ -52,10 +52,10 @@ func build() -> void:
 	radio = RadioLog.new(); radio.app = app; add_child(radio)
 	breaker = Breaker.new(); breaker.app = app; add_child(breaker)
 	pin = PanelContainer.new(); pin.name = "Pin"; pin.mouse_filter = Control.MOUSE_FILTER_STOP; pin.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	pin.add_theme_stylebox_override("panel", GridTheme.paper_sb(3, 12.0))
 	var vb := VBoxContainer.new(); vb.add_theme_constant_override("separation", 0); vb.mouse_filter = Control.MOUSE_FILTER_IGNORE; pin.add_child(vb)
 	_pin_title = GridTheme.label("", 24, GridTheme.PAPER_INK, "title"); vb.add_child(_pin_title)
 	_pin_sub = GridTheme.label("", 14, Color(GridTheme.PAPER_INK, 0.8), "sans"); vb.add_child(_pin_sub)
+	_style_pin()
 	pin.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: pin_pressed.emit(); pin.accept_event())
 	add_child(pin)
 	_build_tools()
@@ -63,6 +63,25 @@ func build() -> void:
 	menu_btn.tooltip_text = TranslationServer.translate("MENU_TIP"); menu_btn.add_theme_font_size_override("font_size", GridTheme.fs(22))
 	menu_btn.pressed.connect(func(): app.open_menu()); add_child(menu_btn)
 	set_chrome_visible(false)
+
+## LOOK2 (glass HUD over the 3D landscape): on while the 3D view shows. Read-only on the world; when it flips, restyle what holds a style and redraw the rest.
+func _look2_wanted() -> bool:
+	var w = app.get("grid_world") if app != null else null
+	return w != null and w.look3d != null and w.look3d.visible
+
+func sync_look2() -> void:
+	var on := _look2_wanted()
+	if on == GridTheme.look2: return
+	GridTheme.look2 = on
+	_style_pin(); radio.restyle()
+	var redraw: Array = [breaker, tray, rtray, gtray, tags]
+	if instruments != null: redraw.append_array([instruments, instruments.clock, instruments.volt, instruments.dial, instruments.clear, instruments.vil, instruments.bat])
+	for n in redraw: if n != null: (n as Control).queue_redraw()
+
+func _style_pin() -> void:
+	pin.add_theme_stylebox_override("panel", GridTheme.chit_sb(3, 12.0))
+	_pin_title.label_settings = GridTheme.settings(20 if GridTheme.look2 else 24, GridTheme.chit_ink(), GridTheme.skin_font("title"))
+	_pin_sub.label_settings = GridTheme.settings(14, GridTheme.G_DIM if GridTheme.look2 else Color(GridTheme.PAPER_INK, 0.8), "sans")
 
 ## Kit tray + tags: wired to the bridge, the world and the radio. The relay node (added after the core pad) hears pad / Esc first.
 func _build_tools() -> void:
@@ -189,6 +208,7 @@ func _codex(id: String) -> void:
 ## Engine state changed: update everything.
 func refresh() -> void:
 	if app == null or not app.started or instruments == null: return
+	sync_look2()
 	var li = app.b.q("levelInfo"); var act: bool = li is Dictionary and li.get("active", false)
 	var id: String = str(li.id) if act else ""
 	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
@@ -298,6 +318,7 @@ func layout() -> void:
 
 var _pad_seen := false
 func _process(_dt: float) -> void:
+	if _on and radio != null: sync_look2()   # the 3D view can show or hide without an engine change
 	if app != null and CbKit.pad_mode and app.pad != null and app.pad.hint.visible and app.pad.hint.text.replace("\n", "   ") != _legend_now():   # title and dialogs too
 		app.pad.hint.text = _legend_now()
 		if _on and radio != null: layout()
