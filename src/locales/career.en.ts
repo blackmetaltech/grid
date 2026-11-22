@@ -43,7 +43,7 @@ export const EN_CAREER: Record<string, string> = {
   'career.standingReady': 'standby lv {ready} {readyQ}',
   'career.qrOwners': 'At the review the owners took {dividend} as a dividend; the cash above is after it.',
   'career.qrClawback': 'The regulator took back {clawback} at the price-control close.',
-  'career.standingOwners': 'Owners take ~{div} at the review',
+  'career.standingOwners': 'Owners ~{div} at review',
   'career.accept': 'Connected: {kindName} on {feeder}. The customer paid {charge}; peak loading of {feeder} is now {loadingPct} %.',
   'career.accept.overload': 'Connected: {kindName} on {feeder}, but the feeder now peaks at {loadingPct} % of its rating. It will fault more and run hot until you reinforce it.',
   'career.incidents': '{count} major incidents this quarter. Answer the cards, then end the quarter.',

@@ -408,19 +408,36 @@ func _worst_card(sz: int) -> void:
 		if not entries.has(id):
 			_held_placeholder(v, "fix|" + id, id); continue
 		var e: Dictionary = entries[id]; var r: Dictionary = e.r
-		var row := VBoxContainer.new(); row.add_theme_constant_override("separation", 2); v.add_child(row)
-		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 6); row.add_child(hb)
-		var pick: Button; var extra: Label
-		if bool(e.plant):
-			pick = CareerKit.btn(T("CAR_RISK_ROW") % [id, CareerKit.num(float(r.health), 1), CareerKit.num(float(r.pFail), 0)], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "RiskPick_" + id
-			extra = CareerKit.lbl(T("CAR_RISK_COST") % [str(r.get("capexText", "")), str(r.emergencyText)], sz - 2, GridTheme.BAD, "mono")
+		# 1.14 each asset is a card (coordinator: "the board is still a list of identical rows"): a picture of the thing, its health as a gauge, the gain in
+		# plain words, the price and Start. Tapping the card picks the asset on the map; picking it on the map outlines its card.
+		var plant := bool(e.plant)
+		var a := _asset_of(id)
+		var health := float(r.health) if plant else float(a.get("health", 0.0))
+		var chosen: bool = (str(sel.get("type", "")) == "section" and str(sel.get("id", "")) == id) or (str(sel.get("type", "")) == "primary" and (str(sel.get("asset", "")) == id or (not sel.has("asset") and id.begins_with(str(sel.get("id", "")) + "-"))))
+		var pc := PanelContainer.new(); pc.name = "AssetCard_" + id
+		var stb := CareerKit.sb(Color("#E6DCC2"), GridTheme.SODIUM if chosen else Color(CareerKit.INK_AMBER, 0.35), 3 if chosen else 1, 6, 8.0, 6.0)
+		pc.add_theme_stylebox_override("panel", stb); v.add_child(pc)
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); pc.add_child(row)
+		var icon := CareerAssetIcon.new(); icon.col = CareerKit.health_col(health)
+		icon.kind = ("tx" if id.contains("-T") else "switchgear") if plant else ("joint" if str(_feeder_kind(id)) == "cable" else "pole")
+		icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER; row.add_child(icon)
+		var mid := VBoxContainer.new(); mid.add_theme_constant_override("separation", 2); mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; row.add_child(mid)
+		var pick: Button
+		if plant:
+			pick = CareerKit.btn(T("CAR_ASSET_PLANT") % [id, T("CAR_KIND_TX") if id.contains("-T") else T("CAR_KIND_SG")], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "RiskPick_" + id
 		else:
-			var a := _asset_of(id)
-			pick = CareerKit.btn(T("CAR_WORST_ROW") % [id, CareerKit.num(float(a.get("health", 0.0)), 1), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "WorstPick_" + id
-			extra = CareerKit.lbl("%s  %s" % [T("CAR_WORST_GAIN") % CareerKit.num(float(r.dSaidi), 1), str(r.capexText)], sz - 2, GridTheme.GOOD, "mono")
-		pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; hb.add_child(pick)
-		var fix := CareerKit.btn(T("CAR_START"), true, func(): _start_held("fix|" + id, row, "replaceAssets", id), sz - 1); fix.name = "Fix_" + id; hb.add_child(fix)
-		row.add_child(extra)   # 1.9: the gain or cost on its own line under the row (beside it, the 16 px floor clipped the row's name)
+			pick = CareerKit.btn(T("CAR_ASSET_LINE") % [id, str(a.get("conductor", "")), T("CAR_WORST_PATCH") if bool(a.get("failed", false)) and float(a.get("outQ", 0.0)) <= 0.0 else ""], false, func(): _on_pick(_asset_pick(id)), sz - 1); pick.name = "WorstPick_" + id
+		pick.flat = true; pick.alignment = HORIZONTAL_ALIGNMENT_LEFT; pick.clip_text = true; pick.size_flags_horizontal = Control.SIZE_EXPAND_FILL; mid.add_child(pick)
+		var gauge := CareerHealthGauge.new(); gauge.health = health; mid.add_child(gauge)
+		var words := T("CAR_ASSET_RISK_WORDS") % [CareerKit.num(float(r.pFail), 0), str(r.emergencyText)] if plant else T("CAR_ASSET_GAIN_WORDS") % CareerKit.num(absf(float(r.dSaidi)), 1)
+		mid.add_child(CareerKit.lbl(words, sz - 2, GridTheme.BAD if plant else GridTheme.GOOD, "sans", true))
+		var right := VBoxContainer.new(); right.add_theme_constant_override("separation", 4); right.size_flags_vertical = Control.SIZE_SHRINK_CENTER; row.add_child(right)
+		right.add_child(CareerKit.lbl(str(r.get("capexText", "")), sz - 2, GridTheme.TEXT, "mono"))
+		var fix := CareerKit.btn(T("CAR_START"), true, func(): _start_held("fix|" + id, pc, "replaceAssets", id), sz - 1); fix.name = "Fix_" + id; right.add_child(fix)
+
+func _feeder_kind(section_id: String) -> String:
+	var fi := CareerKit.find_id(d.feeders, section_id.split(".")[0])
+	return str(d.feeders[fi].get("kind", "")) if fi >= 0 else ""
 
 func _asset_of(id: String) -> Dictionary:
 	for f in d.feeders:
