@@ -11,7 +11,7 @@
     "smoke": "vite build -c vite.bridge.config.ts && godot --headless --path godot --import >/dev/null 2>&1; CB_SMOKE=1 godot --headless --path godot",
     "build:verify": "node scripts/build-verify.mjs",
     "fuzz:nightly": "node scripts/fuzz-nightly.mjs",
-    "perf": "CB_PERF=1 vitest run src/perf.test.ts src/sim/loadflow/perf.test.ts",
+    "perf": "CB_PERF=1 vitest run src/perf.test.ts src/sim/loadflow/perf.test.ts src/sim/dynamics/frequency.test.ts",
     "test:godot-ui": "for t in phasor_truth dial_truth; do godot --headless --path godot --script res://tests/$t.gd 2>&1 | grep -E 'FAIL|OK'; done",
     "test:godot": "node scripts/test-godot.mjs",
     "wiki": "WIKI_WRITE=1 vitest run src/wiki.test.ts"

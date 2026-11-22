@@ -210,7 +210,8 @@ describe('frequency window: relay semantics', () => {
     const b = runFrequencyWindow(inp);
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
-  it('perf: 60 s window with ~40 states, median <= 60 ms (target 20 ms)', () => {
+  // a wall-clock budget: local only (DECISIONS 8; CI and the release set CB_WALLCLOCK_OFF=1, `pnpm perf` runs it)
+  it.skipIf(!!process.env.CB_WALLCLOCK_OFF)('perf: 60 s window with ~40 states, median <= 60 ms (target 20 ms)', () => {
     const inp = l19(12, 200, true);
     inp.gridCode = { ...inp.gridCode, deadbandHz: 0.01 };
     inp.window = { settleAfterS: 1000 }; // force the full 60 s

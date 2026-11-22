@@ -38,7 +38,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: ./node_modules/.bin/tsc --noEmit
       # wall-clock perf budgets run locally only (`pnpm perf`), not on the shared runner: decided by the manager 11-22 (factory DECISIONS 8), reversible
-      - run: ./node_modules/.bin/vitest run --exclude src/perf.test.ts --exclude src/sim/loadflow/perf.test.ts
+      - run: ./node_modules/.bin/vitest run --exclude src/perf.test.ts --exclude src/sim/loadflow/perf.test.ts   # wall-clock budgets are local only (DECISIONS 8): pnpm perf
+        env:
+          CB_WALLCLOCK_OFF: "1"
       - name: Build the engine sidecar
         run: ./node_modules/.bin/vite build -c vite.bridge.config.ts
       - name: Cache Godot

@@ -41,7 +41,9 @@ jobs:
         with: { node-version: 22 }
       - run: pnpm install --frozen-lockfile
       - run: ./node_modules/.bin/tsc --noEmit
-      - run: ./node_modules/.bin/vitest run
+      - run: ./node_modules/.bin/vitest run --exclude src/perf.test.ts --exclude src/sim/loadflow/perf.test.ts   # wall-clock budgets are local only (DECISIONS 8): pnpm perf
+        env:
+          CB_WALLCLOCK_OFF: "1"
 
   smoke:
     needs: test

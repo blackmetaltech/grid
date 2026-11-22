@@ -154,3 +154,4 @@ Newest last. Each entry: what, why, where.
     - a three-line Ada note;
     - seed the design comparison with the bot designs.
     Not reproduced: the playtester's dead first click on the finished-job pin. That run was software-rendered at 1 to 3 fps; it is to be checked on a GPU next layer.
+18. **DECISIONS 8 applied to the release workflow too (2026-11-23, Ingrid).** The v1.15.0 tag's release run failed on two wall-clock budgets: `src/perf.test.ts`, which release.yml still ran, and the 60 s frequency-window median inside `frequency.test.ts` (108 ms against 60 ms on the runner). Both now run only locally: release.yml excludes the perf files like ci.yml, and CI and the release set `CB_WALLCLOCK_OFF=1`, which skips the frequency median. `pnpm perf` runs all three. No assertion changed. The tag was moved to the fixed commit before anything was published.
