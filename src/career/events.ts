@@ -21,6 +21,9 @@ export function poisson(r: Rng, mean: number): number {
 }
 
 const HOURS_Q = 91 * 24;
+/** 1.10 Harbour City: cables run past their summer rating without soil-temperature monitoring (the cityHeat letter's b answer) fail 40 %
+ * more often in the third quarter: dry soil holds the heat in and joints cook. */
+export const hotMult = (s: CareerState, f: Feeder): number => (f.kind === 'cable' && s.t % 4 === 2 && !!s.story?.flags.includes('hotCables') ? 1.4 : 1);
 const SHED_PEAK_HOURS = 30;
 
 /** Roll the quarter's random events on a (mutable) cloned state; `an` is the analysis of every feeder at the start of the quarter. */
@@ -41,7 +44,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
     if (A.vViolation) out.vViolations++;
     out.lossesMWh += (A.lossKwPeak * 0.3 * HOURS_Q) / 1000;
     f.sections.forEach((_, si) => {
-      const n = poisson(r, (A.calmLambda[si]! * 91) / 365);
+      const n = poisson(r, (A.calmLambda[si]! * 91) / 365 * hotMult(s, f));
       out.faults += n; out.custInt += n * A.perFault[si]!.ci; out.custMin += n * A.perFault[si]!.cm;
       wearAttribute(fi, si, r, n);
     });
@@ -50,7 +53,7 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
   out.repairCostM += out.faults * 0.006;
   // 2. storms (district-wide), severity 0.5 + 2.5 u^2; faults on top of the calm rate for the storm days
   const rs = systemRng(s.seed, t, 0, 'storms');
-  const nStorms = poisson(rs, WEATHER.stormRate[season]! * charterOf(s).storm);
+  const nStorms = poisson(rs, WEATHER.stormRate[season]! * charterOf(s).storm * (charterOf(s).stormSeason?.[season] ?? 1));
   out.storms = nStorms;
   const rl = s.readiness ?? 0, rdCi = STORM.readyCiFactor[rl]!, rdCm = STORM.readyCmFactor[rl]!;   // 1.5: readiness bought before the quarter
   for (let j = 0; j < nStorms; j++) {
@@ -173,7 +176,7 @@ export const INCIDENT_TIE_SAVING = 0.35, INCIDENT_CREW_SAVING = 0.2;
 /** 1.5 storm forecast for the quarter about to be played: honest but noisy. It peeks at the quarter's own storm draw (the same rng the
  * quarter will use) and blurs it with a separate rng, so 'stormy' usually, not always, means storms. */
 export function stormForecast(s: CareerState): 'calm' | 'unsettled' | 'stormy' {
-  const n = poisson(systemRng(s.seed, s.t, 0, 'storms'), WEATHER.stormRate[s.t % 4]! * charterOf(s).storm), u = systemRng(s.seed, s.t, 0, 'forecast').next();
+  const n = poisson(systemRng(s.seed, s.t, 0, 'storms'), WEATHER.stormRate[s.t % 4]! * charterOf(s).storm * (charterOf(s).stormSeason?.[s.t % 4] ?? 1)), u = systemRng(s.seed, s.t, 0, 'forecast').next();
   if (n === 0) return u < 0.8 ? 'calm' : 'unsettled';
   if (n === 1) return u < 0.15 ? 'calm' : u < 0.75 ? 'unsettled' : 'stormy';
   return u < 0.1 ? 'unsettled' : 'stormy';

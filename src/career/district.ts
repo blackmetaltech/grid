@@ -3,7 +3,7 @@ import { newStory } from './story';
 import { dmath } from '@core/numerics';
 import { CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
 import { systemRng } from '../sim/rngs';
-import { CHARTERS, STORM, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
+import { WEEKLY_CHARTERS, CHARTERS, GROUND, STORM, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
 import { wearRate, avgHealth } from './ageing';
 import { hourlyLoad } from './growth';
 import type { Asset, CareerState, Feeder, Primary, Section } from './state';
@@ -20,8 +20,8 @@ export function meanCountedSeverity(): number {
   return 0.5 * us + (2.5 * us * us * us) / 3;
 }
 /** Expected storm fault uplift (fraction of the calm fault rate, per year) for a vegetation index. */
-export function stormUplift(veg: number, stormMult = 1): number {
-  const rate = WEATHER.stormRate.reduce((a, b) => a + b, 0) * stormMult;
+export function stormUplift(veg: number, stormMult = 1, season?: number[]): number {
+  const rate = WEATHER.stormRate.reduce((a, b, i) => a + b * (season?.[i] ?? 1), 0) * stormMult;
   return rate * WEATHER.stormMult * meanCountedSeverity() * (0.5 + veg) * (WEATHER.stormDays / 365);
 }
 
@@ -42,8 +42,9 @@ export function buildDistrict(seed: number, charter: CharterId = 'standard'): Ca
     mkAsset({ id: `${p.id}-SG`, cls: 'switchgear', primaryId: p.id }, DISTRICT.swgAges[pi]! + dmath.round(rng.range(-3, 3)) + ch.ageYears);
     primaries.push({ id: p.id, name: p.name, unitIds, switchgearId: `${p.id}-SG` });
     for (let k = 0; k < p.feeders; k++, fi++) {
-      const id = `F${fi + 1}`, pat = fi % DISTRICT.conductors.length, cust = p.customersPerFeeder + dmath.round(rng.range(-250, 250));
-      const sections: Section[] = DISTRICT.sectionLengthsKm.map((len, i) => {
+      const id = `F${fi + 1}`, pat = fi % DISTRICT.conductors.length, cust = dmath.round((p.customersPerFeeder + dmath.round(rng.range(-250, 250))) * (ch.custMult ?? 1));
+      const sections: Section[] = DISTRICT.sectionLengthsKm.map((l0, i) => {
+        const len = dmath.round(l0 * (ch.kmMult ?? 1) * 10) / 10;
         const aid = `${id}.${i + 1}`;
         mkAsset({ id: aid, cls: 'line', feederId: id, sectionIdx: i }, Math.max(8, DISTRICT.lineAgeMean + rng.normal(0, DISTRICT.lineAgeSd)) + ch.ageYears);
         return { id: aid, lengthKm: len, conductor: DISTRICT.conductors[pat]![i]!, share: DISTRICT.sectionShares[i]!, device: DISTRICT.devices[(fi + k) % DISTRICT.devices.length]![i]!, assetId: aid };
@@ -52,6 +53,7 @@ export function buildDistrict(seed: number, charter: CharterId = 'standard'): Ca
         id, primaryId: p.id, customers: cust, baseKw: cust * DISTRICT.admdKw * rng.range(0.93, 1.07),
         growthPct: dmath.round((GROWTH.baseMinPct + rng.next() * (GROWTH.baseMaxPct - GROWTH.baseMinPct)) * ch.growth * 10) / 10,
         evBias: rng.range(0.6, 1.4) * ch.ev, pvBias: rng.range(0.6, 1.4) * ch.pv, sections,
+        ...(ch.geo ? { kind: ch.geo === 'city' ? 'cable' as const : 'moor' as const } : {}),
         tie: DISTRICT.tiedFeeders.includes(fi), recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: Math.min(1, DISTRICT.vegStart + rng.range(-0.15, 0.15) + ch.vegAdd),
       });
     }
@@ -86,15 +88,23 @@ export interface FeederAnalysis {
 /** Calm annual fault rate per km of a section (random + vegetation + wear), x fuse-blown transient uplift, x overload. */
 export function calmLambdaPerKm(f: Feeder, secIdx: number, assets: Asset[], t: number, loadingPct: number): number {
   const a = assets.find((x) => x.id === f.sections[secIdx]!.assetId)!;
-  const base = FAULTS.randomPerKm + FAULTS.vegPerKm * (0.4 + 1.6 * f.veg) + wearRate(a, t) * WEIBULL.line.wearPerKm;
+  const base = calmBase(f) + wearRate(a, t) * WEIBULL.line.wearPerKm * (f.kind === 'cable' ? GROUND.cableWear : 1);
   const over = 1 + FAULTS.overloadSlope * Math.max(0, loadingPct / 100 - 1);
-  return base * (f.recloser ? 1 : 1 + FAULTS.transientFuseUplift) * over;
+  return base * (f.recloser ? 1 : 1 + transientUplift(f)) * over;
 }
+/** Random + vegetation faults per km, by ground: a cable has no trees; the open moor has half the tree faults. */
+export function calmBase(f: Feeder): number {
+  if (f.kind === 'cable') return GROUND.cableRandomPerKm;
+  return FAULTS.randomPerKm + FAULTS.vegPerKm * (0.4 + 1.6 * f.veg) * (f.kind === 'moor' ? GROUND.moorVegShare : 1);
+}
+/** The share of faults a recloser saves (transients that would blow a fuse): none on a cable, most on the exposed moor. */
+export const transientUplift = (f: Feeder): number => (f.kind === 'cable' ? 0 : f.kind === 'moor' ? GROUND.moorTransientUplift : FAULTS.transientFuseUplift);
+export const repairHOf = (f: Feeder): number => (f.kind === 'cable' ? GROUND.cableRepairH : FAULTS.repairH);
 
 export function toReliability(f: Feeder, assets: Asset[], t: number, peakKw: number, loadingPct: number, uplift: number): ReliabilitySection[] {
   return f.sections.map((sec, i) => ({
     id: sec.id, parent: i ? f.sections[i - 1]!.id : null, lengthKm: sec.lengthKm,
-    lambdaPerKm: calmLambdaPerKm(f, i, assets, t, loadingPct) * (1 + uplift), repairH: FAULTS.repairH,
+    lambdaPerKm: calmLambdaPerKm(f, i, assets, t, loadingPct) * (1 + uplift), repairH: repairHOf(f),
     customers: f.customers * sec.share, avgLoadKw: peakKw * sec.share * LOAD_FACTOR,
     device: sec.device,
     ...(f.tie && i === f.sections.length - 1 ? { tie: { closeH: TIMES.tieCloseH, capacityKw: TIMES.tieCapacityKw } } : {}),
@@ -130,7 +140,7 @@ export function analyseFeeder(s: CareerState, f: Feeder, solve = true): FeederAn
     const a = (hl.peakKw / (dmath.sqrt(3) * 11 * GROWTH.pf));
     loading = (a / conductorRow(f.sections[0]!.conductor).ampacityA) * 100;
   }
-  const uplift = stormUplift(f.veg, charterOf(s).storm) * (f.hardened ? STORM.hardenFactor : 1);
+  const uplift = stormUplift(f.veg, charterOf(s).storm, charterOf(s).stormSeason) * (f.hardened ? STORM.hardenFactor : 1);
   const secs = toReliability(f, s.assets, s.t, hl.peakKw, loading, uplift);
   const rel = reliability(secs, { manualH: TIMES.manualH, remoteH: TIMES.remoteH, fuseH: TIMES.fuseH });
   const perFault: SectionOutage[] = f.sections.map((sec) => {
@@ -160,7 +170,7 @@ export { SRC_PEAK, SRC_MIN, V_LOW, V_HIGH };
 /** Share of a section's calm fault rate that is wear (random + vegetation + wear), used to attribute realised faults to ageing. */
 export function wearShare(f: Feeder, secIdx: number, assets: Asset[], t: number): number {
   const a = assets.find((x) => x.id === f.sections[secIdx]!.assetId)!;
-  const w = wearRate(a, t) * WEIBULL.line.wearPerKm, b = FAULTS.randomPerKm + FAULTS.vegPerKm * (0.4 + 1.6 * f.veg);
+  const w = wearRate(a, t) * WEIBULL.line.wearPerKm * (f.kind === 'cable' ? GROUND.cableWear : 1), b = calmBase(f);
   return w / (w + b);
 }
 
@@ -168,7 +178,7 @@ export function wearShare(f: Feeder, secIdx: number, assets: Asset[], t: number)
  * charters, so the weekly is always a twist on Home Counties; the seed is a fixed scramble of the week (pure: the caller supplies the date). */
 export function weeklyDistrict(year: number, isoWeek: number): { seed: number; charter: CharterId; key: string } {
   const n = Math.max(0, Math.floor(year)) * 53 + Math.max(1, Math.min(53, Math.floor(isoWeek)));
-  const others = (Object.keys(CHARTERS) as CharterId[]).filter((c) => c !== 'standard');
+  const others = WEEKLY_CHARTERS;
   const seed = 100000 + ((n * 2654435761) >>> 0) % 900000;
   return { seed, charter: others[n % others.length]!, key: `${year}-W${String(isoWeek).padStart(2, '0')}` };
 }

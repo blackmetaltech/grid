@@ -4,6 +4,7 @@
 // beats read: a promise in writing comes due, a crew pushed through the night is short the next storm. Unanswered beats lapse at the
 // end of the quarter: the asker takes the silence as an answer (trust only, no mechanics), so batch replays and personas stay valid.
 // Deterministic: beats open from the state alone, no rng.
+import { charterOf } from './district';
 import { feederById, fail, ok, type ActionResult, type CareerState, type Feeder, type Incident } from './state';
 
 export type Who = 'tobi' | 'vance' | 'okafor' | 'ines' | 'tom';
@@ -47,6 +48,7 @@ export interface Story {
   open: OpenBeat[]; log: StoryLog[];
 }
 
+const geoOf = (s: CareerState): string => charterOf(s).geo ?? '';
 const has = (st: Story, f: string): boolean => st.flags.includes(f);
 const once = (st: Story, id: string): boolean => !st.seen.includes(id);
 const lastReview = (s: CareerState) => s.reviews[s.reviews.length - 1];
@@ -102,13 +104,13 @@ export const BEATS: Beat[] = [
   {
     id: 'vanceVeg', who: 'vance', on: 'plan',
     keys: { title: 'story.vanceVeg.title', body: 'story.vanceVeg.body', a: 'story.vanceVeg.a', b: 'story.vanceVeg.b', aRes: 'story.vanceVeg.aRes', bRes: 'story.vanceVeg.bRes', aRecap: 'story.vanceVeg.aRecap', bRecap: 'story.vanceVeg.bRecap', lapse: 'story.vanceVeg.lapse' },
-    when: (s, st) => s.t % 4 === 3 && s.t >= 7 && s.t <= 19 && s.vegLevel >= 1 && once(st, 'vanceVeg'),
+    when: (s, st) => s.t % 4 === 3 && s.t >= 7 && s.t <= 19 && s.vegLevel >= 1 && geoOf(s) !== 'city' && once(st, 'vanceVeg'),
     a: { veg: 0, trust: { vance: 1 }, flag: 'cutVeg' }, b: { trust: { vance: -1 } }, lapse: { trust: { vance: -1 } },
   },
   {
     id: 'tomVillages', who: 'tom', on: 'plan',
     keys: { title: 'story.tomVillages.title', body: 'story.tomVillages.body', a: 'story.tomVillages.a', b: 'story.tomVillages.b', aRes: 'story.tomVillages.aRes', bRes: 'story.tomVillages.bRes', aRecap: 'story.tomVillages.aRecap', bRecap: 'story.tomVillages.bRecap', lapse: 'story.tomVillages.lapse' },
-    when: (s, st) => s.t >= 10 && s.t <= 24 && once(st, 'tomVillages') && !feederById(s, st.villages)?.hardened,
+    when: (s, st) => s.t >= 10 && s.t <= 24 && geoOf(s) !== 'city' && once(st, 'tomVillages') && !feederById(s, st.villages)?.hardened,
     a: { cashM: -0.35, hardenVillages: true, trust: { tom: 2, vance: -1 } }, b: { cashM: -0.03, clearVillages: true, trust: { tom: -1 } }, lapse: { trust: { tom: -2 } },
   },
   {
@@ -158,6 +160,66 @@ export const BEATS: Beat[] = [
     keys: { title: 'story.vanceCrew.title', body: 'story.vanceCrew.body', a: 'story.vanceCrew.a', b: 'story.vanceCrew.b', aRes: 'story.vanceCrew.aRes', bRes: 'story.vanceCrew.bRes', aRecap: 'story.vanceCrew.aRecap', bRecap: 'story.vanceCrew.bRecap', lapse: 'story.vanceCrew.lapse' },
     when: (s, st) => s.t >= 24 && s.t <= 31 && s.crews >= 3 && once(st, 'vanceCrew'),
     a: { crews: -1, cashM: -0.03, trust: { vance: 2, tobi: -2 } }, b: { trust: { vance: -1, tobi: 1 } }, lapse: { trust: { vance: -1 } },
+  },
+  {
+    id: 'cutVegEcho', who: 'tobi', on: 'incident',
+    keys: { title: 'story.cutVegEcho.title', body: 'story.cutVegEcho.body', a: 'story.cutVegEcho.a', b: 'story.cutVegEcho.b', aRes: 'story.cutVegEcho.aRes', bRes: 'story.cutVegEcho.bRes', aRecap: 'story.cutVegEcho.aRecap', bRecap: 'story.cutVegEcho.bRecap', lapse: 'story.cutVegEcho.lapse' },
+    when: (s, st, inc) => !!inc && inc.kind === 'storm' && has(st, 'cutVeg') && once(st, 'cutVegEcho') && s.t >= firstT(st, 'vanceVeg') + 2 && geoOf(s) !== 'city',
+    a: { cashM: -0.06, cm: 0.9, veg: 2, trust: { tobi: 1 } }, b: { trust: { tobi: -1 } }, lapse: { trust: { tobi: -1 } },
+  },
+  {
+    id: 'evReturn', who: 'tom', on: 'plan',
+    keys: { title: 'story.evReturn.title', body: 'story.evReturn.body', a: 'story.evReturn.a', b: 'story.evReturn.b', aRes: 'story.evReturn.aRes', bRes: 'story.evReturn.bRes', aRecap: 'story.evReturn.aRecap', bRecap: 'story.evReturn.bRecap', lapse: 'story.evReturn.lapse' },
+    when: (s, st) => has(st, 'evWait') && once(st, 'evReturn') && s.t >= firstT(st, 'evRush') + 6,
+    a: { cashM: 0.1, load: { on: 'villages', kw: 900, customers: 0 }, trust: { tom: 1 } }, b: { trust: { tom: -2 } }, lapse: { trust: { tom: -1 } },
+  },
+  {
+    id: 'ownersReturn', who: 'vance', on: 'plan',
+    keys: { title: 'story.ownersReturn.title', body: 'story.ownersReturn.body', a: 'story.ownersReturn.a', b: 'story.ownersReturn.b', aRes: 'story.ownersReturn.aRes', bRes: 'story.ownersReturn.bRes', aRecap: 'story.ownersReturn.aRecap', bRecap: 'story.ownersReturn.bRecap', lapse: 'story.ownersReturn.lapse' },
+    when: (s, st) => has(st, 'reinvested') && once(st, 'ownersReturn') && s.t >= firstT(st, 'vanceDividend') + 8 && s.cash > 0.5,
+    a: { cashM: -0.25, trust: { vance: 2 } }, b: { trust: { vance: -2, okafor: 1 } }, lapse: { trust: { vance: -2 } },
+  },
+  {
+    id: 'auditResult', who: 'okafor', on: 'plan',
+    keys: { title: 'story.auditResult.title', body: 'story.auditResult.body', a: 'story.auditResult.a', b: 'story.auditResult.b', aRes: 'story.auditResult.aRes', bRes: 'story.auditResult.bRes', aRecap: 'story.auditResult.aRecap', bRecap: 'story.auditResult.bRecap', lapse: 'story.auditResult.lapse' },
+    when: (s, st) => has(st, 'auditPlan') && once(st, 'auditResult') && s.t >= firstT(st, 'okaforPlan') + 4 && s.t % 4 === 0,
+    a: { cashM: -0.01, trust: { okafor: 2 } }, b: { trust: { okafor: 0 } }, lapse: { trust: { okafor: -1 } },
+  },
+  {
+    id: 'inesHonest', who: 'ines', on: 'plan',
+    keys: { title: 'story.inesHonest.title', body: 'story.inesHonest.body', a: 'story.inesHonest.a', b: 'story.inesHonest.b', aRes: 'story.inesHonest.aRes', bRes: 'story.inesHonest.bRes', aRecap: 'story.inesHonest.aRecap', bRecap: 'story.inesHonest.bRecap', lapse: 'story.inesHonest.lapse' },
+    when: (s, st) => has(st, 'honestInes') && once(st, 'inesHonest') && s.t >= 10 && hospitalProtected(s, st),
+    a: { trust: { ines: 2, okafor: 1 } }, b: { trust: { ines: 1 } }, lapse: { trust: { ines: 1 } },
+  },
+  {
+    id: 'cityDucts', who: 'tom', on: 'plan',
+    keys: { title: 'story.cityDucts.title', body: 'story.cityDucts.body', a: 'story.cityDucts.a', b: 'story.cityDucts.b', aRes: 'story.cityDucts.aRes', bRes: 'story.cityDucts.bRes', aRecap: 'story.cityDucts.aRecap', bRecap: 'story.cityDucts.bRecap', lapse: 'story.cityDucts.lapse' },
+    when: (s, st) => geoOf(s) === 'city' && once(st, 'cityDucts') && s.t >= 5 && s.t <= 16,
+    a: { cashM: -0.15, trust: { tom: 2 }, flag: 'ducts' }, b: { trust: { tom: -2 } }, lapse: { trust: { tom: -1 } },
+  },
+  {
+    id: 'ductsPay', who: 'tobi', on: 'plan',
+    keys: { title: 'story.ductsPay.title', body: 'story.ductsPay.body', a: 'story.ductsPay.a', b: 'story.ductsPay.b', aRes: 'story.ductsPay.aRes', bRes: 'story.ductsPay.bRes', aRecap: 'story.ductsPay.aRecap', bRecap: 'story.ductsPay.bRecap', lapse: 'story.ductsPay.lapse' },
+    when: (s, st) => has(st, 'ducts') && once(st, 'ductsPay') && s.t >= firstT(st, 'cityDucts') + 8,
+    a: { cashM: 0.12, trust: { tobi: 1 } }, b: { cashM: 0.12, trust: { tom: 1 } }, lapse: { cashM: 0.12 },
+  },
+  {
+    id: 'cityHeat', who: 'vance', on: 'plan',
+    keys: { title: 'story.cityHeat.title', body: 'story.cityHeat.body', a: 'story.cityHeat.a', b: 'story.cityHeat.b', aRes: 'story.cityHeat.aRes', bRes: 'story.cityHeat.bRes', aRecap: 'story.cityHeat.aRecap', bRecap: 'story.cityHeat.bRecap', lapse: 'story.cityHeat.lapse' },
+    when: (s, st) => geoOf(s) === 'city' && once(st, 'cityHeat') && s.t % 4 === 2 && s.t >= 6,
+    a: { cashM: -0.05, trust: { vance: -1 } }, b: { flag: 'hotCables', trust: { vance: 1 } }, lapse: { flag: 'hotCables' },
+  },
+  {
+    id: 'moorSnow', who: 'tobi', on: 'incident',
+    keys: { title: 'story.moorSnow.title', body: 'story.moorSnow.body', a: 'story.moorSnow.a', b: 'story.moorSnow.b', aRes: 'story.moorSnow.aRes', bRes: 'story.moorSnow.bRes', aRecap: 'story.moorSnow.aRecap', bRecap: 'story.moorSnow.bRecap', lapse: 'story.moorSnow.lapse' },
+    when: (s, st, inc) => !!inc && inc.kind === 'storm' && geoOf(s) === 'moor' && s.t % 4 === 0 && once(st, 'moorSnow'),
+    a: { cashM: -0.05, cm: 0.75, trust: { tobi: 1 } }, b: { cm: 1.25 }, lapse: { cm: 1.25, trust: { tobi: -1 } },
+  },
+  {
+    id: 'moorTurbine', who: 'tom', on: 'plan',
+    keys: { title: 'story.moorTurbine.title', body: 'story.moorTurbine.body', a: 'story.moorTurbine.a', b: 'story.moorTurbine.b', aRes: 'story.moorTurbine.aRes', bRes: 'story.moorTurbine.bRes', aRecap: 'story.moorTurbine.aRecap', bRecap: 'story.moorTurbine.bRecap', lapse: 'story.moorTurbine.lapse' },
+    when: (s, st) => geoOf(s) === 'moor' && once(st, 'moorTurbine') && s.t >= 8 && s.t <= 24,
+    a: { cashM: 0.05, load: { on: 'villages', kw: -500, customers: 0 }, trust: { tom: 2 } }, b: { trust: { tom: -1 } }, lapse: { trust: { tom: -1 } },
   },
 ];
 const BY_ID = new Map(BEATS.map((b) => [b.id, b]));
@@ -244,7 +306,7 @@ export function lapseOpen(s: CareerState, kind: 'plan' | 'incident' | 'all'): vo
 
 export function storyParams(s: CareerState, o: { feeder?: string; t: number }): Record<string, string | number> {
   const st = s.story!;
-  return { hospital: st.hospital, villages: st.villages, feeder: o.feeder ?? st.hospital, year: Math.floor(o.t / 4) + 1, due: st.due !== undefined ? Math.floor(st.due / 4) + 1 : 0 };
+  return { geo: charterOf(s).geo ?? '', hospital: st.hospital, villages: st.villages, feeder: o.feeder ?? st.hospital, year: Math.floor(o.t / 4) + 1, due: st.due !== undefined ? Math.floor(st.due / 4) + 1 : 0 };
 }
 
 export type Mood = 'warm' | 'even' | 'cold';

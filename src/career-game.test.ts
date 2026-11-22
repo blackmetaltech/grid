@@ -87,7 +87,7 @@ describe('1.3 charters in the game', () => {
     c = q(e, 'career'); expect(c.weekly).toBe('2026-W47'); expect(c.charter).not.toBe('standard');
     expect(act(e, 'careerWeekly', 2026, 60).ok).toBe(false);
     const ch = q(e, 'careerCharters', 2026, 47);
-    expect(ch.charters).toHaveLength(7); expect(ch.weekly.key).toBe('2026-W47'); expect(ch.weekly.charter).toBe(c.charter);
+    expect(ch.charters).toHaveLength(9);   // 1.10: Harbour City and High Moor expect(ch.weekly.key).toBe('2026-W47'); expect(ch.weekly.charter).toBe(c.charter);
   });
 });
 

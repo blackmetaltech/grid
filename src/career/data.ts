@@ -23,6 +23,13 @@ export const FAULTS: Sourced & { randomPerKm: number; vegPerKm: number; transien
   randomPerKm: 0.03, vegPerKm: 0.025, transientFuseUplift: 0.3, repairH: 4, repairCostM: 0.006, overloadSlope: 8,
   source: 'DESIGN-1.1 B2 typical 0.1-0.2 faults/km/yr; ~70 % transient, a recloser avoids the fuse-blown share (Billinton and Allan style)', recall: true,
 };
+/** 1.10 ground-specific fault behaviour (illustrative). Underground cable: about a third of the overhead fault rate, no trees, no transients
+ * (a cable fault is permanent; a recloser only re-closes onto it), and a day to locate, excavate and joint. High Moor: open ground (half
+ * the tree faults) but mostly transient faults from wind, snow and birds on long exposed spans. */
+export const GROUND: Sourced & { cableRandomPerKm: number; cableWear: number; cableRepairH: number; moorVegShare: number; moorTransientUplift: number } = {
+  cableRandomPerKm: 0.012, cableWear: 0.5, cableRepairH: 16, moorVegShare: 0.5, moorTransientUplift: 0.9,
+  source: 'typical 11 kV cable fault rates 2-5 per 100 km yr against 10-20 overhead; cable repair 12-48 h; upland overhead networks see a higher transient share (Billinton and Allan style values)', recall: true,
+};
 export const TIMES = { manualH: 1, remoteH: 0.05, fuseH: 1, tieCloseH: 0.25, tieCapacityKw: 2500 };
 
 /** Storms per quarter (Q1 = winter), severity drawn 0.5-3, each storm lasts ~2 days; exceptional (excluded from the incentive) above 2.5. */
@@ -128,8 +135,13 @@ export const SCORE: Sourced & { perYearMet: number; perSaidiMin: number; perInce
 
 /** District charters (DESIGN-1.3): named modifiers that change which pressure dominates a career. Multipliers on numbers the engine already has;
  * targets still come from the district's own expected performance, so each charter is winnable. Illustrative values. */
-export type CharterId = 'standard' | 'storm' | 'boom' | 'iron' | 'sun' | 'lean' | 'forest';
-export interface CharterRow { storm: number; heat: number; conn: number; growth: number; ev: number; pv: number; ageYears: number; vegAdd: number; allowance: number; startCash: number; /** x the cost of a feeder out of voltage limits (complaints, compensation) */ vPenalty: number; /** x the whole allowed revenue (an efficiency challenge on top of the allowance) */ revenue: number }
+export type CharterId = 'standard' | 'storm' | 'boom' | 'iron' | 'sun' | 'lean' | 'forest' | 'city' | 'moor';
+export interface CharterRow {
+  /** 1.10 new districts: their own ground and kit. 'city' = underground cable (Harbour City), 'moor' = long overhead lines on high ground (High Moor) */
+  geo?: 'city' | 'moor';
+  /** x section lengths, x customers per feeder, x storms by season (Q1 winter first) */
+  kmMult?: number; custMult?: number; stormSeason?: number[];
+  storm: number; heat: number; conn: number; growth: number; ev: number; pv: number; ageYears: number; vegAdd: number; allowance: number; startCash: number; /** x the cost of a feeder out of voltage limits (complaints, compensation) */ vPenalty: number; /** x the whole allowed revenue (an efficiency challenge on top of the allowance) */ revenue: number }
 const NONE: CharterRow = { storm: 1, heat: 1, conn: 1, growth: 1, ev: 1, pv: 1, ageYears: 0, vegAdd: 0, allowance: 1, startCash: MONEY.startCash, vPenalty: 1, revenue: 1 };
 export const CHARTERS: Record<CharterId, CharterRow> = {
   standard: NONE,
@@ -139,7 +151,13 @@ export const CHARTERS: Record<CharterId, CharterRow> = {
   sun: { ...NONE, pv: 3, heat: 2.5, vPenalty: 6 },
   lean: { ...NONE, allowance: 0.95, startCash: 1, revenue: 0.96 },
   forest: { ...NONE, vegAdd: 0.25, storm: 1.25 },
+  // 1.10: districts with their own ground. Harbour City: dense, underground, few faults that take a day to joint; ties and remote switching
+  // are what restore it. High Moor: long lines over open hills, few customers, snow and ice in winter, mostly transient faults (reclosers).
+  city: { ...NONE, geo: 'city', kmMult: 0.55, custMult: 1.3, storm: 0.25, growth: 1.1, ev: 1.25, allowance: 1.05, startCash: MONEY.startCash + 2 },
+  moor: { ...NONE, geo: 'moor', kmMult: 1.9, custMult: 0.4, storm: 1.1, stormSeason: [2.2, 0.5, 0.4, 1.3], vegAdd: -0.2, allowance: 1.05 },
 };
+/** The charters the weekly district walks through (fixed: adding a district must not reshuffle past weeks' boards). */
+export const WEEKLY_CHARTERS: CharterId[] = ['storm', 'boom', 'iron', 'sun', 'lean', 'forest'];
 export const CHARTER_IDS = Object.keys(CHARTERS) as CharterId[];
 
 /** 1.5 storm levers (illustrative): readiness before a storm (pre-switching, standby crews, mutual aid) and hardening. */

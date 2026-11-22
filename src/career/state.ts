@@ -34,6 +34,8 @@ export interface Feeder {
   tie: boolean; recloser: boolean; regulator: boolean; batteryKw: number; drKw: number; solarKw: number;
   /** 1.5 storm hardening (covered conductor, wider clearance on the exposed spans): storm faults on this feeder x STORM.hardenFactor */
   hardened?: boolean;
+  /** 1.10 the ground the feeder runs over: underground cable (Harbour City) or long moorland spans (High Moor); absent = ordinary overhead */
+  kind?: 'cable' | 'moor';
   /** Vegetation overgrowth, 0..1. */
   veg: number;
 }

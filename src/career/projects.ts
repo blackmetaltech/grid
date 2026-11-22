@@ -169,7 +169,8 @@ export function completeProject(s: CareerState, p: Project): void {
       const half = Math.floor(heavy.customers / 2);
       const nf: Feeder = {
         id, primaryId: pid, customers: half, baseKw: heavy.baseKw / 2, growthPct: heavy.growthPct, evBias: heavy.evBias, pvBias: heavy.pvBias,
-        sections: DISTRICT.sectionLengthsKm.map((len, i) => ({ id: `${id}.${i + 1}`, lengthKm: len, conductor: ['Hyena', 'Dog', 'Dog', 'Rabbit'][i]!, share: DISTRICT.sectionShares[i]!, device: (['none', 'manual', 'manual', 'none'] as const)[i]!, assetId: `${id}.${i + 1}` })),
+        ...(heavy.kind ? { kind: heavy.kind } : {}),
+        sections: DISTRICT.sectionLengthsKm.map((_l, i) => ({ id: `${id}.${i + 1}`, lengthKm: heavy.sections[i]?.lengthKm ?? _l, conductor: ['Hyena', 'Dog', 'Dog', 'Rabbit'][i]!, share: DISTRICT.sectionShares[i]!, device: (['none', 'manual', 'manual', 'none'] as const)[i]!, assetId: `${id}.${i + 1}` })),
         tie: false, recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: 0.3,
       };
       heavy.customers -= half; heavy.baseKw /= 2;

@@ -32,11 +32,24 @@ export const careerMoney = (s: Pick<GridState, 'region'>, m: number): number => 
 const moneyText = (s: GridState, m: number): string => formatMoney(careerMoney(s, m), REGIONS.get(s.region), { decimals: 0 });
 
 /** Engine params: every numeric `xxxM` gets a money-formatted `xxx` twin; a `kind` gets its readable name as `kindName`. */
+/** 1.10 the story's people and places by district (Harbour City and High Moor have their own; the rest share Home Counties'). */
+const NAME_KEYS = ['hospitalName', 'villagesName', 'councillor', 'councillorShort', 'doctor', 'doctorShort', 'hubPlace'] as const;
+const NAME_TEXT: Record<string, Record<string, string>> = {
+  '': { hospitalName: 'story.hospitalName', villagesName: 'story.villagesName', councillor: 'story.councillor', councillorShort: 'story.councillorShort', doctor: 'story.doctor', doctorShort: 'story.doctorShort', hubPlace: 'story.hubPlace' },
+  city: { hospitalName: 'story.city.hospitalName', villagesName: 'story.city.villagesName', councillor: 'story.city.councillor', councillorShort: 'story.city.councillorShort', hubPlace: 'story.city.hubPlace' },
+  moor: { hospitalName: 'story.moor.hospitalName', villagesName: 'story.moor.villagesName', hubPlace: 'story.moor.hubPlace' },
+};
+function storyNames(geo: string): Record<string, string> {
+  const o: Record<string, string> = {};
+  for (const k of NAME_KEYS) o[k] = t(NAME_TEXT[geo]?.[k] ?? NAME_TEXT['']![k]!);
+  return o;
+}
 function withMoney(s: GridState, p: Record<string, number | string>): Params {
   const out: Params = { ...p };
   for (const [k, v] of Object.entries(p)) if (k.length > 1 && k.endsWith('M') && typeof v === 'number') out[k.slice(0, -1)] = moneyText(s, v);
   if (typeof p.cash === 'number') out.cashText = moneyText(s, p.cash);
   if (typeof p.rab === 'number') out.rabText = moneyText(s, p.rab);
+  if (typeof p.geo === 'string') Object.assign(out, storyNames(p.geo));
   if (typeof p.kind === 'string') out.kindName = t((PROJECT_KINDS as string[]).includes(p.kind) ? `career.kind.${p.kind}` : `career.conn.${p.kind}`);
   return out;
 }
@@ -123,22 +136,31 @@ function effectText(e: Effect, m: (x: number) => string, hosp = '', vill = '', v
 }
 function storyView(st: CareerState, m: (x: number) => string): Record<string, unknown> {
   const sy = st.story;
-  if (!sy) return { story: [], cast: [], recap: [], epilogue: [], promises: [] };
+  const geo = charterOf(st).geo ?? '';
+  const villageNames = t(geo === 'city' ? 'career.villages.city' : geo === 'moor' ? 'career.villages.moor' : 'career.villages.shire').split(', ');
+  if (!sy) return { story: [], cast: [], recap: [], epilogue: [], promises: [], places: [], villageNames };
   const vegQ = st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length;
-  const N = (p: Record<string, string | number>): Record<string, string | number> => ({ ...p, hospitalName: t('story.hospitalName'), villagesName: t('story.villagesName') });
+  const N = (p: Record<string, string | number>): Record<string, string | number> => ({ ...p, ...storyNames(String(p.geo ?? '')) });
+  const names = N(storyParams(st, { t: st.t }));
   const story = sy.open.map((o) => {
     const b = beatById(o.id)!, p = N(storyParams(st, o));
-    return { id: o.id, on: b.on, who: b.who, whoName: t(WHO_NAME[b.who]), inc: o.inc ?? '', title: t(b.keys.title, p), body: t(b.keys.body, p), a: t(b.keys.a, p), b: t(b.keys.b, p),
+    return { id: o.id, on: b.on, who: b.who, whoName: t(WHO_NAME[b.who], names), inc: o.inc ?? '', title: t(b.keys.title, p), body: t(b.keys.body, p), a: t(b.keys.a, p), b: t(b.keys.b, p),
       aFx: effectText(b.a, m, sy.hospital, sy.villages, vegQ), bFx: effectText(b.b, m, sy.hospital, sy.villages, vegQ), lapse: t(b.keys.lapse, p), mood: moodOf(sy.trust[b.who]) };
   });
-  const cast = CAST.map((w) => ({ who: w, name: t(WHO_NAME[w]), trust: sy.trust[w], mood: moodOf(sy.trust[w]) }));
+  const cast = CAST.map((w) => ({ who: w, name: t(WHO_NAME[w], names), trust: sy.trust[w], mood: moodOf(sy.trust[w]) }));
   const recap = st.ending ? sy.log.map((l) => {
     const b = beatById(l.id)!, p = N(storyParams(st, { t: l.t, ...(l.feeder ? { feeder: l.feeder } : {}) }));
     return t(l.opt === 'a' ? b.keys.aRecap : l.opt === 'b' ? b.keys.bRecap : b.keys.lapse, p);
   }) : [];
   const epilogue = st.ending ? CAST.filter((w) => w !== 'ines' || sy.seen.some((id) => id.startsWith('ines')) ).filter((w) => w !== 'tom' || sy.seen.includes('tomVillages') || sy.seen.includes('evRush')).map((w) => t(EPILOGUE[w][moodOf(sy.trust[w])], N(storyParams(st, { t: st.t })))) : [];
   const promises = sy.flags.includes('promisedInes') && !sy.seen.includes('inesKept') && !sy.seen.includes('inesBroken') ? [t('story.promise', N(storyParams(st, { t: st.t })))] : [];
-  return { story, cast, recap, epilogue, promises };
+  // where the story's places stand on the map: the hospital and the villages always, the hub, the new wing and the turbine once connected
+  const took = (id: string): boolean => sy.log.some((l) => l.id === id && l.opt === 'a');
+  const nm = storyNames(geo);
+  const places = [{ kind: 'hospital', feeder: sy.hospital, name: nm.hospitalName }, { kind: 'villages', feeder: sy.villages, name: nm.villagesName },
+    ...(took('evRush') || took('evReturn') ? [{ kind: 'hub', feeder: sy.villages, name: t('career.place.hub') }] : []),
+    ...(took('moorTurbine') ? [{ kind: 'turbine', feeder: sy.villages, name: t('career.place.turbine') }] : [])];
+  return { story, cast, recap, epilogue, promises, places, villageNames };
 }
 
 function plantRisk(st: CareerState): { id: string; cls: string; health: number; pFail: number; emergencyM: number; building: boolean }[] {
@@ -182,6 +204,12 @@ function stormAdvice(st: CareerState, m: (x: number) => string, ytdSaidi: number
 /** 1.7 HUD alarm (fun-critic tester: "it needs a visible alarm on the HUD, not text inside a scrolling report"): when the year, projected over its
  * expected rest and averaged as the regulator will average it, ends over the SAIDI target. It says whether that would be a licence strike (the
  * same test as regulator.ts: the network's fair-weather SAIDI or SAIFI is over target) and how many strikes are already on the books. */
+/** 1.10 the pinned note: the one thing to do about the alarm, in a line (the full sentence stays as its tooltip). */
+function alarmDo(st: CareerState, ytdSaidi: number, exp: { saidi: number; saifi: number }): string {
+  if (strikeAlarm(st, ytdSaidi, exp) === '') return '';
+  const qLeft = 4 - (st.t % 4);
+  return t(exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget ? 'career.alarm.doStrike' : 'career.alarm.doFine', { q: qLeft, strike: st.severeFineYears + 1, strikes: INCENTIVE.yearsToRevoke });
+}
 function strikeAlarm(st: CareerState, ytdSaidi: number, exp: { saidi: number; saifi: number }): string {
   if (st.ending) return '';
   const inP = Math.floor(st.t / 4) % INCENTIVE.periodYears, k = Math.min(INCENTIVE.rollingYears - 1, inP), past = k > 0 ? st.reviews.slice(-k).map((r) => r.saidi) : [];
@@ -222,7 +250,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         forecast: st.ending ? '' : stormForecast(st), forecastText: st.ending ? '' : t(`career.forecast.${stormForecast(st)}`),
         readiness: st.readiness ?? 0,
         ...stormAdvice(st, m, ytdSaidi, exp.saidi),
-        alarmText: strikeAlarm(st, ytdSaidi, exp), alarmStrike: !st.ending && (exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget) && strikeAlarm(st, ytdSaidi, exp) !== '',
+        alarmText: strikeAlarm(st, ytdSaidi, exp), alarmDo: alarmDo(st, ytdSaidi, exp), alarmStrike: !st.ending && (exp.saidi > st.saidiTarget || exp.saifi > st.saifiTarget) && strikeAlarm(st, ytdSaidi, exp) !== '',
         readyLevels: [0, 1, 2].map((lv) => ({ level: lv, costQText: m(STORM.readyCostQ[lv]!), text: t(`career.ready.${lv}`, { costQ: m(STORM.readyCostQ[lv]!), cm: Math.round((1 - STORM.readyCmFactor[lv]!) * 100), ci: Math.round((1 - STORM.readyCiFactor[lv]!) * 100) }) })),
         // plant out of service after a failure: when it is back (a tester read firm margin -100 % after the 'replacement' and took it for a bug)
         plantOut: st.assets.filter((a) => a.cls !== 'line' && a.failed && a.outQ > 0).map((a) => t('career.plantOut', { id: a.id, n: a.outQ })),
@@ -240,7 +268,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: `${e.saidi - exp.saidi > 0 ? '+' : ''}${r1(e.saidi - exp.saidi)}`, costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
         customers: N, health: r2(avgHealth(st)), startHealth: r2(st.startHealth),
         targets: { saidi: r1(st.saidiTarget), saifi: r2(st.saifiTarget) }, ytd: { saidi: r1(ytdSaidi), saifi: r2(ytdSaifi) }, expected: { saidi: r1(exp.saidi), saifi: r2(exp.saifi) },
-        primaries: st.primaries.map((p) => ({ id: p.id, name: t(p.name), peakMva: r1(primaryPeakMVA(st, p.id)), firmMva: r1(firmCapacityMVA(st, p.id)), firmMarginPct: r1(firmMarginPct(st, p.id)),
+        primaries: st.primaries.map((p) => ({ id: p.id, name: t(charterOf(st).geo ? `${p.name}.${charterOf(st).geo}` : p.name), peakMva: r1(primaryPeakMVA(st, p.id)), firmMva: r1(firmCapacityMVA(st, p.id)), firmMarginPct: r1(firmMarginPct(st, p.id)),
           units: p.unitIds.map((u) => ({ id: u, ratingMva: st.assets.find((a) => a.id === u)!.ratingMVA, ...healthOf(u) })), switchgear: { id: p.switchgearId, ...healthOf(p.switchgearId) } })),
         feeders: st.feeders.map((f, i) => {
           const a = an[i]!;
