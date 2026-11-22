@@ -107,9 +107,10 @@ jobs:
           mkdir -p $d && unzip -q templates.tpz -d /tmp/tpl && mv /tmp/tpl/templates/* $d/
       - name: Export
         run: |
-          mkdir -p godot/build/linux godot/build/windows godot/build/macos
+          mkdir -p godot/build/linux godot/build/windows
           godot --headless --path godot --import || true
-          for p in Linux Windows macOS; do godot --headless --path godot --export-release "$p" || exit 1; done
+          for p in Linux Windows; do   # macOS dropped (DECISIONS 19): the template archive has no universal binary for the preset, and no one has played a Mac build
+           godot --headless --path godot --export-release "$p" || exit 1; done
           ls -R godot/build
       - uses: actions/upload-artifact@v4
         with:
@@ -126,8 +127,6 @@ jobs:
         include:
           - { target: linux,       os: ubuntu-latest, node: linux-x64,     ext: tar.xz }
           - { target: windows,     os: ubuntu-latest, node: win-x64,       ext: zip }
-          - { target: macos-arm64, os: macos-latest,  node: darwin-arm64,  ext: tar.xz }
-          - { target: macos-x64,   os: macos-latest,  node: darwin-x64,    ext: tar.xz }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
@@ -183,7 +182,7 @@ jobs:
         run: |
           ver=${GITHUB_REF_NAME#v}
           awk -v v="$ver" '/^## \[/{p=index($0,"["v"]")>0; next} p' CHANGELOG.md > notes.md
-          printf '\n---\nDownload the archive for your OS, extract, and run. Node.js is bundled; nothing else to install.\n- **Windows**: unzip, run `GRID\\GRID.exe` (SmartScreen: More info, Run anyway; builds are unsigned).\n- **Linux (x86_64)**: `tar xf`, run `GRID/grid.sh`. Needs a Vulkan-capable GPU/driver.\n- **macOS** (arm64 = Apple Silicon, x64 = Intel): unzip, then `xattr -dr com.apple.quarantine GRID.app` and open (builds are unsigned).\n' > tail.md
+          printf '\n---\nDownload the archive for your OS, extract, and run. Node.js is bundled; nothing else to install.\n- **Windows**: unzip, run `GRID\\GRID.exe` (SmartScreen: More info, Run anyway; builds are unsigned).\n- **Linux (x86_64)**: `tar xf`, run `GRID/grid.sh`. Needs a Vulkan-capable GPU/driver.\n' > tail.md
           [ -s notes.md ] || { echo "no CHANGELOG entry for $ver"; exit 1; }
           cat tail.md >> notes.md
       - run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
