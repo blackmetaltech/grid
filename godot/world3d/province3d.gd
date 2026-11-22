@@ -777,7 +777,7 @@ func _process(dt: float) -> void:
 # Camera: orbit / pan / zoom, limits that never show an edge
 # --------------------------------------------------------------------------------------------------------------------
 func reset_camera() -> void:
-	_g_target = Vector3(map_size.x * 0.52, 0.0, map_size.y * 0.45)
+	_g_target = Vector3(map_size.x * 0.6, 0.0, map_size.y * 0.62)
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 	_g_yaw = deg_to_rad(38.0); _g_pitch = deg_to_rad(20.0); _g_dist = maxf(map_size.x, map_size.y) * 0.8
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
