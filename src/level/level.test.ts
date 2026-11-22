@@ -135,7 +135,8 @@ describe.each(REGION_IDS)('authored levels in region %s', (region) => {
       it('frozen targets are pinned to the regenerated bot population (drift <= 2 %), budget rule holds', () => {
         const pop = botPopulation(spec, region), f = spec.frozen![region]!;
         near(f.budget, pop.budget, 0.02); near(f.starA, pop.starA, 0.02); near(f.starB, pop.starB, 0.02);
-        expect(f.budget).toBeGreaterThanOrEqual(1.3 * pop.cheapestPass);   // DESIGN 9.4 item 6
+        expect(f.budget).toBeGreaterThanOrEqual((spec.budgetOverCheapest ?? 1.3) * pop.cheapestPass);   // DESIGN 9.4 item 6 (a finale may tighten it to force a choice, never under 1.1)
+        expect(spec.budgetOverCheapest ?? 1.3).toBeGreaterThanOrEqual(1.1);
         expect(pop.passing).toBeGreaterThan(0);
         // "everything maxed" is over budget, unless the dearest design is the reference itself
         const dearest = Math.max(...[...designs(spec)].map((d) => runDesign(spec, region, d.actions, { frozen: null }).capex));

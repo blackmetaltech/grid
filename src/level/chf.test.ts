@@ -1,4 +1,4 @@
-// L28 Keep the Lights On, engine side: the three-day gate (naive loses on Day 1 heat, lesson earns two stars, reference three), oracles F-1..F-3 (tools/oracles/chf_oracles.py), the island through the lightning
+// L28 Keep the Lights On, engine side: the three-day gate (naive loses on Day 1 heat, lesson earns two stars, reference three), the budget that forces a choice, oracles F-1..F-3 (tools/oracles/chf_oracles.py), the island through the lightning
 // (second feeder, a 4-hour battery that holds, a 2-hour battery that does not by 0.6 %), the frozen targets, the lesson and try hint in the player's numbers, determinism and speed.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -9,7 +9,7 @@ import { specOf } from './index';
 import { runDesign } from './run';
 import { botPopulation } from './population';
 import { designs } from './spec';
-import { islandBattery, secondCauseway, tapsEastgate, capsEastgate, FINALE, BUS, LINE_ID } from './levels/l28';
+import { islandBattery, secondCauseway, eastgateFeeder, tapsEastgate, capsEastgate, reactorsCapital, statcomEastgate, spinCcgt, gfm, FINALE, BUS, LINE_ID } from './levels/l28';
 import { solvedOf } from '../sim/solved';
 import type { GridState } from '../types';
 
@@ -42,7 +42,8 @@ describe('L28 three-day gate', () => {
   it('frozen targets match the regenerated bot population (global, drift <= 2 %) and the budget rule holds', () => {
     const pop = botPopulation(spec, 'global'), f = spec.frozen!.global!;
     near(pop.budget, f.budget, 0.02); near(pop.starA, f.starA, 0.02); near(pop.starB, f.starB, 0.02);
-    expect(f.budget).toBeGreaterThanOrEqual(1.3 * pop.cheapestPass);
+    expect(f.budget).toBeGreaterThanOrEqual(spec.budgetOverCheapest! * pop.cheapestPass);
+    expect(pop.passing).toBe(4);   // taps and capacitors, a 4-hour battery or a second causeway line, with or without the spun unit: nothing else fits
     const dearest = Math.max(...[...designs(spec)].map((d) => runDesign(spec, 'global', d.actions, { frozen: null }).capex));
     expect(f.budget).toBeLessThan(dearest);
   }, 300000);
@@ -50,6 +51,40 @@ describe('L28 three-day gate', () => {
     const pop = botPopulation(spec, 'in'), f = spec.frozen!.in!;
     near(pop.budget, f.budget, 0.02); near(pop.starA, f.starA, 0.02); near(pop.starB, f.starB, 0.02);
   }, 300000);
+});
+
+describe('the budget forces a choice (DECISIONS 14)', () => {
+  const won = (acts: Action[]): ReturnType<typeof runDesign> => runDesign(spec, 'global', acts, { frozen: null });
+  const priced = (acts: Action[]): ReturnType<typeof runDesign> => runDesign(spec, 'global', acts);
+  it('every plan that buys a second fix for a threat passes on the engine but breaks the budget', () => {
+    const base = [...tapsEastgate, ...capsEastgate, ...spinCcgt];
+    const safe: [string, Action[]][] = [
+      ['reactor for the holiday', [...base, ...reactorsCapital, ...islandBattery('bess-4h-50')]],
+      ['both island paths', [...base, ...secondCauseway, ...islandBattery('bess-4h-50')]],
+      ['STATCOM instead of the bank', [...tapsEastgate, ...statcomEastgate, ...spinCcgt, ...islandBattery('bess-4h-50')]],
+      ['one grid-forming pack on top', [...base, ...gfm(1), ...islandBattery('bess-4h-50')]],
+      ['the Eastgate feeder', [...base, ...eastgateFeeder]],
+      ['buy everything safe', [...base, ...reactorsCapital, ...secondCauseway, ...islandBattery('bess-4h-50')]],
+    ];
+    for (const [name, acts] of safe) {
+      expect(won(acts).status, name).toBe('won');
+      const o = priced(acts); expect(o.failKind, name).toBe('budget'); expect(o.capex, name).toBeGreaterThan(spec.frozen!.global!.budget);
+    }
+  });
+  it('a passing plan exists by hand at 90 % of the budget or less, and the cheap trap (a 2-hour battery) fits the budget but runs dry', () => {
+    const cheap = priced(spec.lesson); expect(cheap.status).toBe('won'); expect(cheap.capex).toBeLessThanOrEqual(0.9 * spec.frozen!.global!.budget);
+    const ref = priced(spec.reference); expect(ref.status).toBe('won'); expect(ref.stars).toBe(3);
+    const line = priced([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway]); expect(line.status).toBe('won'); expect(line.stars).toBe(1);   // the classic N-1 line fits but costs more than the battery sized for the night
+    const trap = priced([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')]);
+    expect(trap.capex).toBeLessThan(spec.frozen!.global!.budget); expect(trap.failKind).toBe('islandDark');
+  });
+  it('taking a part back refunds it, but never the fuel of a unit still spinning', () => {
+    const e = play([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-4h-50')]);
+    const before = e.state.budget.spent, batt = e.state.storage.find((b) => b.bus === BUS.saltmarsh)!, paid = e.state.purchases![batt.id]!, fuel = e.state.purchases!['spin:U4']!;
+    expect(fuel).toBeGreaterThan(0);
+    expect(e.step({ name: 'demolish', args: [batt.id] }).info.ok).toBe(true);
+    expect(e.state.budget.spent).toBeCloseTo(before - paid, 6); expect(e.state.purchases!['spin:U4']).toBe(fuel);
+  });
 });
 
 describe('the island through the lightning', () => {

@@ -187,7 +187,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       s.routes = s.routes.filter((r) => s.branches.some((b) => b.id === r.branchId));   // a demolished line takes its route record with it
       if (s.cables) s.cables = s.cables.filter((c) => s.branches.some((b) => b.id === c.branchId));
       if (s.purchases) {   // anything the player bought this level (line, route, cable, transformer, bank, battery, unit) and takes down again is refunded: re-picking a size costs the difference; pre-placed district gear refunds nothing
-        const live = new Set([...s.branches.map((b) => b.id), ...s.shunts.map((h) => h.id), ...s.storage.map((x) => x.id), ...s.units.map((u) => u.id)]);
+        const live = new Set([...s.branches.map((b) => b.id), ...s.shunts.map((h) => h.id), ...s.storage.map((x) => x.id), ...s.units.map((u) => u.id), ...s.units.map((u) => 'spin:' + u.id)]);   // a spun unit's fuel stays paid while the unit stands (L28: taking back a battery refunded the spin too)
         for (const k of Object.keys(s.purchases)) if (!live.has(k)) { s.budget.spent -= s.purchases[k]; delete s.purchases[k]; }
       }
       s.solution = null;

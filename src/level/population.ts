@@ -73,7 +73,7 @@ export function botPopulation(spec: GridLevelSpec, region: string): BotPopulatio
   }
   const costOf = (actions: GridLevelSpec['lesson']): number => runDesign(spec, region, actions, { frozen: null }).capex;
   const cheapest = Math.min(...all.filter((d) => d.status === 'won').map((d) => d.capex));
-  const budget = niceUp(Math.max(BUDGET_HEADROOM * Math.max(costOf(spec.lesson), costOf(spec.reference)), MIN_BUDGET_OVER_CHEAPEST * cheapest));
+  const budget = niceUp(Math.max(BUDGET_HEADROOM * Math.max(costOf(spec.lesson), costOf(spec.reference)), (spec.budgetOverCheapest ?? MIN_BUDGET_OVER_CHEAPEST) * cheapest));
   const pass = all.filter((d) => d.status === 'won' && d.capex <= budget + 1e-9);
   const starVal = (d: BotDesign): number => (spec.histogram === 'score' ? d.metric : d.capex);   // chapter 7's score levels: the stars measure the score, the budget stays the build cost
   const costs = pass.map(starVal).sort((a, b) => a - b);

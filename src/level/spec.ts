@@ -105,6 +105,9 @@ export interface GridLevelSpec {
   reference: Action[];
   /** A pack whose prices or physics reorder the designs plays its own lesson and reference (L28 in `in`: the battery is dearer than the second line). runDesign swaps them in when handed `lesson` / `reference` themselves. */
   byRegion?: Record<string, { lesson?: Action[]; reference?: Action[] }>;
+  /** DESIGN 9.4 item 6 floor on the budget, as a multiple of the cheapest passing design (default 1.3). A finale that must force a choice between
+   *  fixes may lower it, never under 1.1 (level.test.ts): the budget still admits the cheapest pass with 10 % headroom (L28, docs/DECISIONS.md 14). */
+  budgetOverCheapest?: number;
   /** Targets frozen per region id (null: none, e.g. the prologue). */
   frozen: Record<string, Frozen> | null;
   coach: CoachStep[];

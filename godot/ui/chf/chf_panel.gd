@@ -1,7 +1,8 @@
 class_name ChfPanel
 extends PanelContainer
 ## The finale's card (L28, top left under the instruments): which of the three days it is and what it threatens, the clock, Saltmarsh Island's lamp (lit / on its battery / dark), the day's numbers
-## and the event ticker (the engine's own log of trips, repairs and lightning), plus the one action the generic tray has no cell for: keeping the spare gas unit spinning. Display and input only.
+## and the event ticker (the engine's own log of trips, repairs and lightning), plus the parts shelf: every part the finale offers, by the threat it answers, at the engine's price,
+## with nothing marked as the answer (DECISIONS 14). Display and input only.
 const W := 340.0   # 1.9: the build kit at the 16 px floor (was 300)
 const LEVEL := "L28"
 var app: CbApp
@@ -144,62 +145,121 @@ func _layout() -> void:
 		size = Vector2(W, 0); custom_minimum_size = Vector2(W, 0); reset_size()
 		position = Vector2(vp.x - W - 14.0, 74.0)
 
-## The build kit: the finale's recipe as one click per move (the tray still places any part by hand). Each button runs its actions through the bridge; the engine prices and refuses.
-const KIT := {
+## The parts shelf (DECISIONS 14): the finale's parts grouped by the threat they answer, each with the engine's own price (`actionCost` on a copy of the state). Nothing on it says
+## which part is right: the budget cannot buy them all, so the player judges what each threat needs. Press a part to buy it, press it again to take it back (refunded by
+## the engine's demolish); the spun unit's fuel cannot be returned. "$new" in an action stands for the shunt the first action of that part just placed.
+const SHELF := [
+	["CF_A_VOLT", ["tap", "cap", "statcom", "reactor"]],
+	["CF_A_RESERVE", ["spin", "gfm"]],
+	["CF_A_ISLAND", ["line", "feeder", "batt2", "batt4"]],
+]
+const PARTS := {
 	"tap": [["setTapAuto", ["T34", 1.02, 0.015, 1]], ["setTapAuto", ["T35", 1.02, 0.015, 1]]],
-	"cap": [["placeShunt", ["B4", "cap-400-50", 4]], ["setShuntSteps", ["C1", 2]], ["setShuntAuto", ["C1", 0.975, 1.03, 1]]],
+	"cap": [["placeShunt", ["B4", "cap-400-50", 4]], ["setShuntSteps", ["$new", 2]], ["setShuntAuto", ["$new", 0.975, 1.03, 1]]],
+	"statcom": [["placeShunt", ["B4", "statcom-200", 1]], ["setShuntSteps", ["$new", 1]]],
+	"reactor": [["placeShunt", ["B1", "reactor-400-125", 4]], ["setShuntSteps", ["$new", 0]], ["setShuntAuto", ["$new", 0.99, 1.04, 1]]],
 	"spin": [["spinUnit", ["U4"]]],
+	"gfm": [["placeStorage", ["B10", "bess-gfm-50"]], ["placeStorage", ["B10", "bess-gfm-50"]], ["placeStorage", ["B10", "bess-gfm-50"]], ["placeStorage", ["B10", "bess-gfm-50"]]],
 	"line": [["stringLine", ["B17", "B18", "l132-panther", 1]]],
-	"batt": [["placeStorage", ["B18", "bess-4h-50"]]],
+	"feeder": [["stringLine", ["B16", "B18", "l132-panther", 1]]],
+	"batt2": [["placeStorage", ["B18", "bess-2h-50"]]],
+	"batt4": [["placeStorage", ["B18", "bess-4h-50"]]],
 }
-const KIT_KEYS := {"tap": "CF_B_TAP", "cap": "CF_B_CAP", "spin": "CF_B_SPIN", "line": "CF_B_LINE", "batt": "CF_B_BATT"}
+var _price := {}   # part -> engine price of buying it (per region: the packs price differently; before the run the prices do not move)
+var _price_key := ""
 
-func _kit_open(g: Dictionary) -> Array:
-	var open: Array = []
-	var tapped := 0
-	for br in g.branches:
-		if (str(br.id) == "T34" or str(br.id) == "T35") and br.tap != null and br.tap.auto != null and float(br.tap.auto.vSet) > 1.015: tapped += 1
-	if tapped < 2: open.append("tap")
-	if not _stands(g, "cap") and not _stands(g, "statcom"): open.append("cap")   # a STATCOM placed by hand covers the Eastgate voltage too
-	var u4 = null
-	for u in g.units: if str(u.id) == "U4": u4 = u
-	if u4 != null and (u4.commit.schedule as Array).size() == 0: open.append("spin")
-	if not _stands(g, "line") and not _stands(g, "batt"): open.append("line"); open.append("batt")
-	return open
+## The elements a part stands as (bought from the shelf or placed by hand in the tray): ids to demolish when it is taken back. Taps and the spun unit have no element.
+static func part_ids(g: Dictionary, id: String) -> Array:
+	var out: Array = []
+	match id:
+		"cap", "statcom", "reactor":
+			var cat: String = {"cap": "cap-400-50", "statcom": "statcom-200", "reactor": "reactor-400-125"}[id]
+			for h in g.shunts: if str(h.get("catalogId", "")) == cat: out.append(str(h.id))
+		"gfm", "batt2", "batt4":
+			var at: String = "B10" if id == "gfm" else "B18"
+			var sku: String = {"gfm": "bess-gfm-50", "batt2": "bess-2h-50", "batt4": "bess-4h-50"}[id]
+			for b in g.storage: if str(b.bus) == at and str(b.get("catalogId", "")) == sku: out.append(str(b.id))
+		"line", "feeder":
+			var other: String = "B17" if id == "line" else "B16"
+			for br in g.branches:
+				var ends := [str(br.from), str(br.to)]
+				if ends.has("B18") and ends.has(other) and str(br.id) != "T20": out.append(str(br.id))   # T20 is the causeway the island starts with
+	return out
 
-## Which move stands: "cap" / "statcom" (a shunt of that kind), "line" (a second feeder into Saltmarsh, B18) or "batt" (storage on B18). The other button then reads "not needed", not done.
-static func _stands(g: Dictionary, how: String) -> bool:
-	if how == "cap" or how == "statcom":
-		for h in g.shunts: if str(h.get("kind", "")) == how: return true
+## Does the part stand in the grid now?
+static func bought(g: Dictionary, id: String) -> bool:
+	if id == "tap":
+		var n := 0
+		for br in g.branches:
+			if (str(br.id) == "T34" or str(br.id) == "T35") and br.tap != null and br.tap.auto != null and float(br.tap.auto.vSet) > 1.015: n += 1
+		return n == 2
+	if id == "spin":
+		for u in g.units: if str(u.id) == "U4": return (u.commit.schedule as Array).size() > 0
 		return false
-	if how == "batt":
-		for s in g.storage: if str(s.bus) == "B18": return true
-		return false
-	var feeders := 0
-	for br in g.branches: if str(br.from) == "B18" or str(br.to) == "B18": feeders += 1
-	return feeders >= 2
+	return not part_ids(g, id).is_empty()
+
+## What buying the part costs, from the engine (its priced actions run on a copy of the state); the four grid-forming packs are four purchases.
+func price(id: String) -> float:
+	var key := str(app.b.g.get("region", "")) + "/" + str(app.b.g.get("level", ""))
+	if key != _price_key: _price.clear(); _price_key = key
+	if _price.has(id): return float(_price[id])
+	var c := 0.0
+	for a in PARTS[id]:
+		if str(a[0]) in ["placeShunt", "placeStorage", "stringLine", "spinUnit"]:
+			var r = app.b.q("actionCost", [str(a[0]), a[1]])
+			if r is Dictionary and bool(r.get("ok", false)): c += float(r.cost)
+	_price[id] = c
+	return c
 
 func _rebuild_kit(g: Dictionary) -> void:
-	var open := _kit_open(g)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
-	var sig := ",".join(open) + str(locked)
+	var have: Array = []
+	for area in SHELF: for id in area[1]: if bought(g, id): have.append(id)
+	var sig := ",".join(have) + str(locked) + str(g.budget.get("spent", 0.0))
 	if sig == _kit_sig: return
 	_kit_sig = sig
 	for c in _kit.get_children(): _kit.remove_child(c); c.queue_free()
-	_kit.add_child(GridTheme.label(tx("CF_B_HEAD"), 12, ink(0.7), "mono"))
-	for id in KIT.keys():
-		var b := Button.new(); b.name = "cf_" + id; b.custom_minimum_size = Vector2(W - 24.0, 30)
-		b.focus_mode = CbKit.focus_mode(); b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.clip_text = true
-		var key: String = KIT_KEYS[id]
-		var is_open: bool = id in open
-		var skipped: bool = not is_open and id in ["line", "batt", "cap"] and not _stands(g, id)   # covered by another move (the island's other option, a STATCOM for the capacitor), not built
-		b.text = tx(key) if is_open else (("– " + tx(key + "_SKIP")) if skipped else ("✓ " + tx(key)))
-		b.disabled = locked or not is_open
-		b.pressed.connect(func():
-			var ok := true
-			for a in KIT[id]: if ok: ok = _do(str(a[0]), a[1] as Array)
-		)
-		_kit.add_child(b)
+	_kit.add_child(_wrap_ink(tx("CF_SHELF_HEAD"), 12, 0.7))
+	for area in SHELF:
+		var h := GridTheme.label(tx(str(area[0])), 14, ink(), "semi"); h.name = "cf_area_" + str(area[0]).to_lower(); _kit.add_child(h)
+		_kit.add_child(_wrap_ink(tx(str(area[0]) + "_WHY"), 12, 0.75))
+		for id in area[1]:
+			var b := Button.new(); b.name = "cf_" + id; b.custom_minimum_size = Vector2(W - 24.0, 30)
+			b.focus_mode = CbKit.focus_mode(); b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			var has: bool = id in have
+			var p := price(id) if not has else 0.0
+			var tag := tx("CF_P_FREE") if p <= 0.0 and not has else (CbRegion.money(p, true, 1) if not has else "")
+			var key := "CF_P_" + id.to_upper()
+			if has: b.text = "✓ " + tx(key) + "  ·  " + (tx("CF_P_SPUN") if id == "spin" else tx("CF_P_BACK"))
+			else: b.text = tx(key) + "  ·  " + tag
+			b.disabled = locked or (has and id == "spin")   # fuel burned is not returned
+			b.pressed.connect(_press.bind(id))
+			_kit.add_child(b)
+
+func _wrap_ink(t: String, fs: int, a: float) -> Label:
+	var l := _wrap(t, fs); var ls: LabelSettings = l.label_settings.duplicate(); ls.font_color = ink(a); l.label_settings = ls; return l
+
+## Buy the part, or take it back if it stands. The engine prices, places and refunds; a refused step stops the rest.
+func _press(id: String) -> void:
+	var g := _g()
+	if bought(g, id):
+		if id == "tap":
+			for t in ["T34", "T35"]: _do("setTapAuto", [t, 1.0, 0.015, 1])
+		elif id != "spin":
+			for e in part_ids(g, id): _do("demolish", [e])
+		refresh(); return
+	var before: Array = []
+	for h in g.shunts: before.append(str(h.id))
+	var fresh := ""
+	for a in PARTS[id]:
+		var args: Array = (a[1] as Array).duplicate()
+		if args.size() > 0 and str(args[0]) == "$new":
+			if fresh == "":
+				for h in _g().shunts: if not before.has(str(h.id)): fresh = str(h.id)
+			args[0] = fresh
+		if not _do(str(a[0]), args): break
+	refresh()
 
 func _do(act: String, args: Array) -> bool:
 	var r: Dictionary = app.b.act(act, args)

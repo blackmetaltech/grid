@@ -1,6 +1,6 @@
 extends SceneTree
-## Finale flow (L28), headless with the real engine bridge: the day card shows only on L28 and reads Day 1 with the heatwave threat; the engine's parts reach the tray; the reference design runs
-## through the bridge, the island lamp reads "on its battery" after the lightning and the card never lies about a dark island; the game-end card builds.
+## Finale flow (L28), headless with the real engine bridge: the day card shows only on L28 and reads Day 1 with the heatwave threat; the engine's parts reach the tray; the parts shelf
+## names no answer and prices every part, buying every fix overspends, taking parts back refunds them, and a plan picked by hand runs through the bridge, the island lamp reads "on its battery" after the lightning and the card never lies about a dark island; the game-end card builds.
 
 func _initialize() -> void:
 	var T := Truth.new()
@@ -21,15 +21,32 @@ func _initialize() -> void:
 	T.check(names.has("placeStorage:3") and names.has("placeShunt:3") and names.has("stringLine:3"), "the engine offers the finale's parts to the tray (%s)" % str(names))
 	var kit: Array = []
 	for c in p._kit.get_children(): kit.append(str(c.name))
-	T.check(kit.has("cf_tap") and kit.has("cf_cap") and kit.has("cf_spin") and kit.has("cf_line") and kit.has("cf_batt"), "the build kit has its five buttons (%s)" % str(kit))
-	for id in ["tap", "cap", "spin", "batt"]:   # the recipe by clicks only: the lesson with a battery on the island
-		(p._kit.get_node("cf_" + id) as Button).pressed.emit()
-		p.refresh()
-	T.check(float(T.b.g.budget.spent) > 1.0e6 and float(T.b.g.budget.spent) <= 7.0e7, "the recipe is within the budget (%s)" % str(T.b.g.budget.spent))
-	T.check((p._kit.get_node("cf_line") as Button).disabled and (p._kit.get_node("cf_tap") as Button).text.begins_with("✓"), "done buttons are marked and the island's second choice is closed")
-	var lt := (p._kit.get_node("cf_line") as Button).text; var bt := (p._kit.get_node("cf_batt") as Button).text
-	T.check(lt.begins_with("–") and "not needed" in lt and not lt.begins_with("✓"), "the island option not built reads 'not needed', not done (%s)" % lt)
-	T.check(bt.begins_with("✓"), "the island option built is ticked (%s)" % bt)
+	var parts := ["cf_tap", "cf_cap", "cf_statcom", "cf_reactor", "cf_spin", "cf_gfm", "cf_line", "cf_feeder", "cf_batt2", "cf_batt4"]
+	var all_there := true
+	for n in parts: all_there = all_there and kit.has(n)
+	T.check(all_there, "the shelf offers ten parts under three threats (%s)" % str(kit))
+	# the shelf does not name the answer: every part is open, priced by the engine, and no row is ticked, skipped or marked "not needed" before the player buys
+	var honest := true; var priced := true
+	for n in parts:
+		var bt := (p._kit.get_node(n) as Button)
+		honest = honest and not bt.disabled and not bt.text.begins_with("✓") and not bt.text.begins_with("–") and not ("needed" in bt.text)
+		priced = priced and ("$" in bt.text or "no cost" in bt.text)
+	T.check(honest, "no part is pre-marked as right or not needed")
+	T.check(priced, "every part carries its price (%s)" % (p._kit.get_node("cf_batt4") as Button).text)
+	T.check("$50.8M" in (p._kit.get_node("cf_batt4") as Button).text and "$53.4M" in (p._kit.get_node("cf_line") as Button).text, "prices are the engine's (battery %s, line %s)" % [(p._kit.get_node("cf_batt4") as Button).text, (p._kit.get_node("cf_line") as Button).text])
+	# the safe "buy every fix" plan breaks the budget: a reactor and both island paths on top of the rest
+	for id in ["tap", "cap", "reactor", "spin", "line", "batt4"]:
+		(p._kit.get_node("cf_" + id) as Button).pressed.emit(); p.refresh()
+	var spent := float(T.b.g.budget.spent); var cap := float(T.b.g.budget.capexLimit)
+	T.check(spent > cap, "buying every fix overspends the budget (%s of %s)" % [str(spent), str(cap)])
+	# take back the reactor and the line by pressing them again: the engine refunds them, the spun unit's fuel stays paid
+	for id in ["reactor", "line"]:
+		(p._kit.get_node("cf_" + id) as Button).pressed.emit(); p.refresh()
+	var spent2 := float(T.b.g.budget.spent)
+	T.check(spent2 <= cap and spent2 > 5.3e7, "taken back, the plan fits (%s of %s)" % [str(spent2), str(cap)])
+	T.check(not ChfPanel.bought(T.b.g, "line") and not ChfPanel.bought(T.b.g, "reactor") and ChfPanel.bought(T.b.g, "spin"), "the line and the reactor are gone, U4 still spins")
+	T.check((p._kit.get_node("cf_spin") as Button).disabled and (p._kit.get_node("cf_batt4") as Button).text.begins_with("✓"), "bought parts are ticked; the spun unit cannot be taken back")
+	T.check(not (p._kit.get_node("cf_line") as Button).disabled, "the other island path stays open: buying both is the player's call, not the card's")
 	for i in 100: T.b.act("tick", [1])
 	p.refresh()
 	T.check(str(p._day_lbl.text).begins_with("DAY 2 of 3"), "Day 2 after a day of ticks (%s)" % p._day_lbl.text)
@@ -40,14 +57,14 @@ func _initialize() -> void:
 	var n := 0
 	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
 	p.refresh(); T.check(str(p._day_lbl.text) == "THREE DAYS DONE", "after the end the card says the three days are done (%s)" % p._day_lbl.text)
-	T.check(str(T.b.g.get("status", "")) == "won", "the clicked recipe wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
-	# a STATCOM placed by hand covers the Eastgate capacitor: the kit says so instead of ticking a capacitor never built; its map peg names it a STATCOM
+	T.check(str(T.b.g.get("status", "")) == "won", "the plan picked by hand (taps, capacitor, U4, the 4-hour battery) wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
+	# a STATCOM placed by hand in the tray shows on the shelf as bought, and pressing it takes it back with a refund; its map peg names it a STATCOM
 	T.level("L28"); p.refresh()
-	T.check(not (p._kit.get_node("cf_cap") as Button).disabled, "the capacitor button is open on a fresh L28")
+	T.check(not (p._kit.get_node("cf_statcom") as Button).disabled and float(T.b.g.budget.spent) == 0.0, "a fresh L28: the shelf is open and nothing is spent")
 	var r := T.b.act("placeShunt", ["B4", "statcom-200", 1]); T.check(bool(r.get("ok", false)), "a STATCOM placed at Eastgate 400 (%s)" % str(r.get("message", "")))
 	p.refresh()
-	var ct := (p._kit.get_node("cf_cap") as Button).text
-	T.check((p._kit.get_node("cf_cap") as Button).disabled and ct.begins_with("–") and "STATCOM" in ct, "the capacitor button reads 'STATCOM instead' (%s)" % ct)
+	var ct := (p._kit.get_node("cf_statcom") as Button).text
+	T.check(ct.begins_with("✓") and not (p._kit.get_node("cf_cap") as Button).text.begins_with("✓"), "the hand-placed STATCOM reads bought, the capacitor does not (%s)" % ct)
 	var tray := GridTray.new(); tray.b = T.b; root.add_child(tray)
 	var pegs: Array = tray.elements("shunt")
 	T.check(pegs.size() == 1 and "STATCOM" in str(pegs[0].label) and not ("bank" in str(pegs[0].label)), "the STATCOM's map peg names its kind (%s)" % (str(pegs[0].label) if not pegs.is_empty() else "none"))

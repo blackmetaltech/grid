@@ -111,3 +111,24 @@ Newest last. Each entry: what, why, where.
     - P0 runs on a small 5-bus version of the province (the 26-bus finale grid is M3): closing T5 re-routes the coal pocket through the weak
       corridor, T4 trips on its timer and the real cascade ends in the blackout; it is a scene (no stars, `won` = the blackout), and the core
       "random play wins" probe is expected to fire for it when given the whole site list.
+14. **L28 finale: a parts shelf that names no answer, and a budget that forces a choice (look2, 2026-11-23).** The fun critic scored the finale
+    5.5/10: the build kit listed the five moves of the reference as one-click buttons and the coach said which to press, so the game played
+    itself; and the US$70M budget let the player buy a reactor, a second fix and the spare unit on top of the answer.
+    - **Card:** the kit is now a shelf of ten parts under the three threats (voltage: taps, capacitor bank, STATCOM, Redhill reactor; reserve:
+      spin U4, four grid-forming packs; the island: second causeway line, Eastgate feeder, 2-hour and 4-hour batteries), each priced by the
+      engine (`actionCost`), none marked right, skipped or "not needed". A second press takes a part back (the engine's demolish refunds it);
+      the spun unit's fuel is not returned. The coach and the try hints describe the threat and the physics, not a button.
+    - **Budget:** `budgetOverCheapest` (spec, default 1.3 = DESIGN 9.4 item 6) is 1.1 on L28, so the global budget is US$60M (10 % over the
+      reference, US$53.7M). Of the 80 bot designs four pass within it: taps and capacitors, a 4-hour battery or a second causeway line, with or
+      without the spun unit. A reactor, a STATCOM, any grid-forming pack, the Eastgate feeder or both island paths each break it (chf.test.ts).
+      The cheapest passing plan is US$53.1M (taps, bank, 4-hour battery, no reserve: 131.0 MWh shed of 131.2 allowed). The 2-hour battery
+      (US$27.2M) fits and runs dry at night: the trap is honest physics (100 MWh nameplate, about 74 usable, 92 needed). level.test.ts pins the
+      floor at >= 1.1 for every level so it cannot be used to make a level impossible. The `in` pack keeps its numbers (its own lesson, the old one).
+    - **Lesson build** is now the cheapest pass (no reserve: two stars); the reference adds the spun unit (no shed: three stars); the second
+      line with the spun unit earns one star (it costs more than the battery sized for the night).
+    - **Star 3 for the bot population** now lists `ensPct <= 0`, the engine's own third-star rule (event.ts: `ensMWh === 0`). Without it the
+      population counted the lesson's shed pass as a three-star design and star B fell under the reference. Physics unchanged.
+    - **Refund bug fixed (src/actions.ts):** demolish refunded every purchase whose key was not a live element id, and a spun unit is kept as
+      `spin:<id>`: taking back any part refunded the spin's fuel too. Now `spin:<id>` stays paid while the unit stands (chf.test.ts).
+    - Frozen targets regenerated in their own commit: global budget 70,000,000 -> 60,000,000, A 59,723,209 -> 54,735,709, B 53,781,955 ->
+      54,072,857; `in` unchanged.
