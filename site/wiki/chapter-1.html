@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chapter 1 · The Island · GRID wiki</title>
+<meta name="description" content="Chapter 1 · The Island: A DC bench: Ohm's law, cable resistance and the price of distance, from a battery hut to a hamlet.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="../base.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body class="wiki">
+<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<main class="wrap">
+<p class="crumbs"><a href="./">Wiki</a> / Chapter 1 · The Island</p>
+<h1>Chapter 1 · The Island</h1>
+<p class="lede">A DC bench: Ohm's law, cable resistance and the price of distance, from a battery hut to a hamlet.</p>
+<figure class="shot"><img src="../assets/shots/bench.jpg" alt="L01 First Light: a battery hut and ten homes on the beach" width="1600" height="900" loading="lazy"><figcaption>L01 First Light: a battery hut and ten homes on the beach</figcaption></figure>
+<nav class="toc"><a href="#L01">First Light</a><a href="#L02">Two Hamlets</a><a href="#L03">The Price of Distance</a></nav>
+<article class="level card" id="L01">
+<h3><span class="wo">WO-01</span> First Light</h3>
+<p class="place">Saltmarsh Island · the beach strip, 18:00</p>
+<p class="brief">Light the ten-home hamlet from the battery hut. Every home must stay at 43.2 V or more from 18:00 to 23:00, inside the budget.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>TOBI</b> Ada says you start on the island, same as she did. Ten homes, one battery hut, no grid.</li><li><b>NIA</b> My exams start Monday. If the lights work tonight I can actually study after dark!</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Evening! Nia's hamlet has bulbs but no power yet. Pick the battery hut and set it down on a peg along the beach.<span class="why">The hut stores the day's solar energy at 48 V. Every metre between it and the homes is a metre of copper the current has to push through.</span></li><li>Now grab a reel of copper and lay it from the hut to the homes. The thin reels are cheap.<span class="why">Copper resists a little, R = ρ·2ℓ/A. The current through that resistance costs voltage, V = I·R, before the homes see any of it.</span></li><li>Pull the breaker and run the night. Lamps go on at dusk.<span class="why">Ten homes, 48 W each. I check the voltage at the homes every 15 minutes until 23:00.</span></li><li>Hmm, the bulbs look sad. Fatter copper, or a hut closer to the homes?<span class="why">Double the copper area and the resistance halves; halve the length and it halves again. Less R, less I·R lost on the way.</span></li></ol>
+<p class="tags"><span>ohms law</span><span>cable resistance</span><span>brownout</span></p>
+</article>
+<article class="level card" id="L02">
+<h3><span class="wo">WO-02</span> Two Hamlets</h3>
+<p class="place">Saltmarsh Island · across the lagoon, 18:00</p>
+<p class="brief">Add a second hamlet of 14 homes 250 m from the hut and keep both at 43.2 V or more. Two cables from the hut, or one trunk and a branch to each?</p>
+<h4>On the radio</h4><ul class="radio"><li><b>TOBI</b> Word got round. Fourteen more homes on the far side of the lagoon want what Nia's street has.</li><li><b>ADA</b> Two cables or one fat trunk? Both work. One of them is cheaper, and the copper will tell you which.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Choose how to reach both hamlets: two cables from the hut, or a junction box with one trunk.<span class="why">A trunk carries the sum of the currents of everything behind it (Kirchhoff current law).</span></li><li>Lay a cable on each run.<span class="why">The far hamlet is 250 m away: the thin cable that served the near one will drop too much voltage.</span></li><li>Press Run to watch the evening.<span class="why">Both hamlets switch on at dusk and the voltage at every home is checked.</span></li><li>A hamlet is dim. Check the trunk: it carries both hamlets, so thicken it first.<span class="why">Voltage drop is current times resistance: the trunk has the most current.</span></li></ol>
+<p class="tags"><span>kcl</span><span>series parallel</span><span>trunk current</span></p>
+</article>
+<article class="level card" id="L03">
+<h3><span class="wo">WO-03</span> The Price of Distance</h3>
+<p class="place">Saltmarsh Island · the school on the hill, 18:00</p>
+<p class="brief">Light the school's evening study hall and the health centre (5 kW) 1 km away, with line losses of 5 % or less. It is a long way up that hill.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>NIA</b> Exam week. The school opens its hall at night so we can study, if it has light.</li><li><b>VANCE</b> One kilometre of cable on the island budget. Don't waste half the power warming the hillside.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Lay a copper cable to the school, the thickest the catalogue sells.<span class="why">At 48 V the school needs over 100 A; no cable carries that without losing the voltage.</span></li><li>The hall needs 5 kW. Power is V × I, so at 48 V that is 104 A through 2 km of copper. What could you change so the same power needs less current?<span class="why">Look at the tray: the converter pair lifts the line to 380 V. Same power at eight times the voltage needs one eighth of the current, and since the heat is I²R the losses fall about 64 times.</span></li><li>Press Run.<span class="why">The school load is checked every 15 minutes.</span></li><li>Still too much heat in the line. Loss is I²R: you already cut I, now cut R with thicker copper.<span class="why">Line loss is current squared times resistance: thicker copper has less resistance.</span></li></ol>
+<p class="tags"><span>joule loss</span><span>high voltage transmission</span><span>converters</span></p>
+</article>
+<nav class="pager"><a href="chapter-0.html">← Prologue</a><a href="chapter-2.html">Chapter 2 · Alternating Current, the Mainland →</a></nav>
+</main>
+<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/ixaxaar/grid">Source</a></p></footer>
+</body>
+</html>

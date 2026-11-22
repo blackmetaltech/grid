@@ -1,0 +1,53 @@
+/* GRID wiki: work orders as paper cards on the night desk. */
+.wiki main{padding:28px var(--gut) 48px}
+.crumbs{font:500 13px var(--mono);color:var(--dim);margin:0 0 18px}
+.crumbs a{color:var(--dim)}
+.wiki h1{font-size:clamp(44px,7vw,76px);color:var(--sodium);margin:0 0 10px}
+.wiki h2{font-size:clamp(30px,4vw,40px);margin:40px 0 14px}
+.lede{font-size:19px;max-width:62ch;color:var(--text)}
+.shot{margin:22px 0 26px;max-width:900px}
+.shot img{border-radius:4px;border:1px solid var(--line);width:100%}
+.shot figcaption{font:500 13px var(--mono);color:var(--dim);margin-top:8px}
+.card .shot figcaption{color:var(--paper-dim)}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.toc a{font:500 14px var(--mono);color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:20px;padding:6px 12px}
+.toc a:hover{border-color:var(--sodium);color:var(--sodium)}
+.level{padding:22px clamp(16px,3vw,32px) 18px;margin:0 0 22px;max-width:900px}
+.level h3{font-size:clamp(28px,3.4vw,38px);margin:0 0 4px}
+.level .wo{font:500 14px var(--mono);letter-spacing:.06em;color:#8A3A1E;vertical-align:middle;margin-right:6px}
+.level h4{font:500 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--paper-dim);margin:16px 0 6px}
+.place{font:500 14px var(--mono);color:var(--paper-dim);margin:0 0 10px}
+.brief{font-weight:600;font-size:17px}
+.radio{list-style:none;margin:0;padding:0}
+.radio li{margin:0 0 6px;padding-left:4.6em;text-indent:-4.6em}
+.radio b{display:inline-block;width:4.3em;text-indent:0;font:500 13px var(--mono);color:#8A3A1E}
+.steps{margin:0;padding-left:1.4em}
+.steps li{margin:0 0 10px}
+.why{display:block;color:var(--paper-dim);font-size:15px}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+.tags span{font:500 12px var(--mono);background:var(--paper2);border-radius:3px;padding:3px 8px}
+.pager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:32px 0 0;max-width:900px}
+.pager a{font:800 20px var(--head);letter-spacing:.04em;text-decoration:none}
+.how{padding-left:1.3em;max-width:70ch}
+.how li{margin:0 0 10px}
+.chapters{list-style:none;padding:0;margin:0;max-width:900px}
+.chapters li{border-top:1px solid var(--line);padding:12px 0}
+.chapters a{font:800 24px var(--head);text-decoration:none;letter-spacing:.02em}
+.chapters span{display:block;color:var(--dim);font-size:15px}
+.terms{display:grid;grid-template-columns:max-content 1fr;gap:10px 20px;max-width:900px}
+.terms dt{font:800 22px var(--head);color:var(--sodium)}
+.terms dd{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:18px}
+.district{padding:18px 20px 6px}
+.district h3{font-size:30px;margin:0 0 6px}
+.district .shot{margin:12px 0 14px}
+.ledger{border-collapse:collapse;width:100%;max-width:900px;background:var(--paper);color:var(--paperink);border-radius:3px}
+.ledger th,.ledger td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid #d6c9a6}
+.ledger th{font:800 19px var(--head);letter-spacing:.02em;white-space:nowrap}
+@media (max-width:640px){
+  .terms{grid-template-columns:1fr}
+  .ledger th{white-space:normal}
+  .ledger tr{display:block;padding:8px 0}
+  .ledger th,.ledger td{display:block;border:0;padding:4px 14px}
+  .ledger tr{border-bottom:1px solid #d6c9a6}
+}

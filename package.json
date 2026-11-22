@@ -13,7 +13,8 @@
     "fuzz:nightly": "node scripts/fuzz-nightly.mjs",
     "perf": "CB_PERF=1 vitest run src/perf.test.ts",
     "test:godot-ui": "for t in phasor_truth dial_truth; do godot --headless --path godot --script res://tests/$t.gd 2>&1 | grep -E 'FAIL|OK'; done",
-    "test:godot": "node scripts/test-godot.mjs"
+    "test:godot": "node scripts/test-godot.mjs",
+    "wiki": "WIKI_WRITE=1 vitest run src/wiki.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

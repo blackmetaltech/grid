@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chapter 8 · Distribution · GRID wiki</title>
+<meta name="description" content="Chapter 8 · Distribution: A junior engineer's feeder work: voltage drop down 16 km, SAIFI and SAIDI, recloser-fuse coordination, N-1 at a primary and rooftop solar.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="../base.css">
+<link rel="stylesheet" href="wiki.css">
+</head>
+<body class="wiki">
+<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<main class="wrap">
+<p class="crumbs"><a href="./">Wiki</a> / Chapter 8 · Distribution</p>
+<h1>Chapter 8 · Distribution</h1>
+<p class="lede">A junior engineer's feeder work: voltage drop down 16 km, SAIFI and SAIDI, recloser-fuse coordination, N-1 at a primary and rooftop solar.</p>
+<figure class="shot"><img src="../assets/shots/tcc.jpg" alt="L33 Fuse Saving: recloser and fuse curves on a time-current chart" width="1600" height="900" loading="lazy"><figcaption>L33 Fuse Saving: recloser and fuse curves on a time-current chart</figcaption></figure>
+<nav class="toc"><a href="#L31">The Long Feeder</a><a href="#L32">Count the Outages</a><a href="#L33">Fuse Saving</a><a href="#L34">Firm Capacity</a><a href="#L35">Sun on the Roofs</a><a href="#L36">Exam Bridge: Feeder Numbers</a></nav>
+<article class="level card" id="L31">
+<h3><span class="wo">WO-31</span> The Long Feeder</h3>
+<p class="place">The Mainland · Brightwater, feeder 3, 20:00</p>
+<p class="brief">Brightwater has grown along one 16 km 11 kV feeder of old Weasel wire. At the evening peak the far homes see brown lights. Bring every customer inside 230 V +10 / -6 % at peak and at minimum load, at the least cost.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Every section drops the voltage by about (R P + X Q) / V, and the drops add up. By the last farm there is nothing left of the 11 kV you started with.</li><li><b>VANCE</b> Taps cost nothing and a regulator costs ninety thousand. Wire costs by the kilometre. Show me which of them you really need.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Look at the feeder: read the voltage of each customer at the peak and at minimum load against the band.<span class="why">The far end is the weakest point: its voltage is the substation voltage minus every drop on the way.</span></li><li>Cut the drop: place a regulator in mid-feeder, or put a larger conductor on the first sections.<span class="why">A regulator adds volts at one point; a conductor with less resistance removes the drop and the losses along the whole length.</span></li><li>Trim each distribution transformer's tap so that no one is under -6 % at the peak or over the ceiling at minimum load.<span class="why">A tap shifts one customer by the same amount at peak and at night, so it only fits the spread between them.</span></li><li>Run the day.<span class="why">The feeder is judged at the peak and again at 30 % load.</span></li></ol>
+<p class="tags"><span>voltage drop</span><span>rp xq</span><span>off load tap</span><span>regulator</span><span>feeder losses</span></p>
+</article>
+<article class="level card" id="L32">
+<h3><span class="wo">WO-32</span> Count the Outages</h3>
+<p class="place">The Mainland · Brightwater, control room, year view</p>
+<p class="brief">Feeder 3 faults about three times a year and each fault takes the whole feeder dark for the repair. The regulator wants SAIDI under 275 minutes and SAIFI under 1.7. Place up to three sectionalisers, fuse the spurs and decide on a tie to the next feeder, at the least cost.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> SAIFI counts how often, SAIDI how long, CAIDI how long each time. Faults on a 21 km line are not rare: they are a certainty. The only choice is how many people each one reaches.</li><li><b>TOBI</b> A remote switch opens in minutes and a manual one needs a crew in a van. The regulator does not count anything under five minutes.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Fuse every spur so a spur fault does not take the trunk down.<span class="why">A fuse isolates a faulted spur at once; customers on the trunk see only a flicker.</span></li><li>Place a sectionaliser on the long trunk: manual is cheap, remote restores within five minutes.<span class="why">A switch lets the crew isolate the faulted section and restore the rest before the repair is done.</span></li><li>Decide on the tie to the next feeder.<span class="why">A normally open tie feeds the customers beyond a fault from the other side while the crew repairs.</span></li><li>Run the year.<span class="why">The indices are expected values: failure rate times length times the customers that fault reaches.</span></li></ol>
+<p class="tags"><span>saifi</span><span>saidi</span><span>caidi</span><span>sectionaliser</span><span>fuse</span><span>tie switch</span></p>
+</article>
+<article class="level card" id="L33">
+<h3><span class="wo">WO-33</span> Fuse Saving</h3>
+<p class="place">The Mainland · Brightwater, feeder 3 protection</p>
+<p class="brief">A recloser heads feeder 3, and three spurs hang off it, each behind a fuse link. About 80 % of overhead faults are temporary. Set the recloser and size the fuses so a temporary fault is cleared before any fuse melts, and a permanent one is cleared by the spur's own fuse and nobody else's.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> A recloser trips fast, waits, and tries again. If the fault was a branch in the wire, it is gone and the lights come back. If not, the fuse downstream must be the one to give up.</li><li><b>VANCE</b> A fuse blown for a gust of wind is a crew on overtime. Make the recloser faster than the fuse for the first try and slower for the last.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Choose a fuse link for each spur: above 1.5 times its load, and small enough to melt at the spur's smallest fault.<span class="why">A fuse has a minimum melt curve and a total clearing curve, and the fault current changes along the spur.</span></li><li>Set the recloser: pickup above the feeder load, a fast time dial, a slow time dial and the number of fast shots.<span class="why">The fast curve must beat the fuse's minimum melt, the slow curve must lose to its total clearing.</span></li><li>Fault the feeder.<span class="why">Every spur is tried with a temporary fault and a permanent one across its whole current range.</span></li></ol>
+<p class="tags"><span>fuse saving</span><span>tcc</span><span>recloser</span><span>coordination</span><span>temporary faults</span></p>
+</article>
+<article class="level card" id="L34">
+<h3><span class="wo">WO-34</span> Firm Capacity</h3>
+<p class="place">The Mainland · Brightwater primary substation, 18:00, 40 C</p>
+<p class="brief">Brightwater's primary substation has two 20 MVA transformers and a 36.5 MVA hot-day peak. The yard has no room for a third bay; the units can be swapped for 24 MVA ones. Lose one at the peak and the other must carry the town. After the worst transformer trip, restore all load within 3 hours with no transformer past its 140 C hot-spot limit, at the least cost.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Firm capacity is what is left after the biggest unit trips. Two 20 MVA transformers are 40 MVA when both live and 20 MVA when it matters.</li><li><b>TOBI</b> The oil does not heat at once. A few hours of overload is allowed; ageing doubles with every 6 degrees of hot-spot. Spend the 4 hours well.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Read the firm capacity: the substation's capacity with the largest transformer out, against the peak.<span class="why">N-1 is judged at the peak, on the survivors alone.</span></li><li>Add relief: bigger units, a tie to the next substation and demand response. No one of them is enough on its own.<span class="why">Every MVA moved off the survivor cools it, and the hot-spot is what ages and trips a transformer.</span></li><li>Trip the transformer.<span class="why">The oil temperature follows the load with a time constant of hours: the thermometer tells you the outcome.</span></li></ol>
+<p class="tags"><span>firm capacity</span><span>n 1</span><span>hot spot</span><span>ageing rate</span><span>load transfer</span></p>
+</article>
+<article class="level card" id="L35">
+<h3><span class="wo">WO-35</span> Sun on the Roofs</h3>
+<p class="place">The Mainland · Brightwater, feeder 5, noon</p>
+<p class="brief">The council has 3 MW of rooftop solar waiting on feeder 5, and promised at least 1 MW. At noon the sun pushes power back up the feeder and the voltage rises; in the evening the feeder sags. Keep every customer inside 230 V +10 / -6 % at noon and at the evening peak.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> A feeder was built to deliver power down it, so the voltage falls along it. Put generation at the far end and the flow reverses: now the voltage rises toward the roofs.</li><li><b>NIA</b> Hosting capacity is how much solar the wire takes before somebody's voltage goes over the ceiling. We can raise it with a better tap changer, smarter inverters or more copper.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Set the PV connection limit: the council promised at least 1 MW.<span class="why">The connected PV is what pushes the noon voltage up.</span></li><li>Control the voltage: the tap changer set point with line-drop compensation, and volt-var on the inverters.<span class="why">The same wire must keep the evening peak above the floor and the noon export below the ceiling.</span></li><li>Run noon and the evening.<span class="why">Both snapshots are judged: noon with 30 % load and full sun, and the evening peak with none.</span></li></ol>
+<p class="tags"><span>reverse flow</span><span>voltage rise</span><span>hosting capacity</span><span>oltc ldc</span><span>volt var</span></p>
+</article>
+<article class="level card" id="L36">
+<h3><span class="wo">WO-36</span> Exam Bridge: Feeder Numbers</h3>
+<p class="place">The Mainland · The exam hall, 10:00</p>
+<p class="brief">A small 11 kV feeder is on the board with its wire, loads, failure rate and switches. Before the run, predict the far-end voltage drop in percent, SAIFI and SAIDI in minutes, and name the equation that governs the drop.</p>
+<h4>On the radio</h4><ul class="radio"><li><b>ADA</b> No design this time. You have the givens, a pencil and the formulas. Work out what the feeder will do before it does it.</li><li><b>VANCE</b> An engineer who cannot estimate a voltage drop on the back of an envelope is guessing with the customers' money.</li></ul>
+<h4>Steps</h4><ol class="steps"><li>Predict the far-end voltage drop in percent: for each section, (R P + X Q) / V^2, summed.<span class="why">Power through a section is everything downstream of it, so the first sections carry the most.</span></li><li>Predict SAIFI and SAIDI: a fault reaches every customer between the nearest protective devices; repair time or switching time sets the minutes.<span class="why">SAIFI = customers interrupted / customers served, SAIDI = customer-minutes / customers served.</span></li><li>Choose the equation that governs the voltage drop.<span class="why">A feeder's voltage drop depends on both the resistive and the reactive part of the load.</span></li><li>Run the feeder.<span class="why">The engine will answer with the numbers your predictions will be scored against.</span></li></ol>
+<p class="tags"><span>voltage drop</span><span>saifi</span><span>saidi</span><span>estimation</span></p>
+</article>
+<nav class="pager"><a href="chapter-7.html">← Chapter 7 · Protection and Markets</a><a href="chapter-9.html">Finale · Keep the Lights On →</a></nav>
+</main>
+<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/ixaxaar/grid">Source</a></p></footer>
+</body>
+</html>
