@@ -54,22 +54,26 @@ void fragment() {
 	float sum = w.r + w.g + w.b + w.a + mud + paved + 1e-4;
 	w /= sum; mud /= sum; paved /= sum;
 
-	// fields: plots ~150 x 95 m on a slightly rotated grid, each with its own crop; dark hedgerows at the edges
+	// fields: plots of uneven size on a slightly rotated grid (rows of plots shift against each other), each with its own crop; hedgerows at the edges
 	vec2 fp = mat2(vec2(0.966, 0.259), vec2(-0.259, 0.966)) * wpos.xz;
-	vec2 cell = floor(fp / vec2(150.0, 95.0));
-	vec2 fr = fract(fp / vec2(150.0, 95.0));
+	float row = floor(fp.y / 110.0);
+	float rw = 110.0;
+	float cw = 120.0 + 90.0 * h21(vec2(row, 7.0));
+	vec2 q = vec2(fp.x + h21(vec2(row, 3.0)) * 300.0, fp.y);
+	vec2 cell = vec2(floor(q.x / cw), row);
+	vec2 fr = vec2(fract(q.x / cw), fract(q.y / rw));
 	float crop = h21(cell);
 	vec3 g = tex2(grass_a, p, m);
 	vec3 plot = g;
-	if (crop < 0.30) plot = g * vec3(0.95, 1.08, 0.82);                     // pasture
-	else if (crop < 0.52) plot = mix(g, vec3(0.62, 0.58, 0.33), 0.55);       // hay / stubble
-	else if (crop < 0.70) plot = tex2(field_a, fp / 18.0, m) * vec3(1.05, 0.95, 0.85);   // ploughed, rows along the plot
-	else if (crop < 0.86) plot = g * vec3(0.78, 1.0, 0.62);                  // young crop
-	else plot = mix(g, vec3(0.70, 0.62, 0.30), 0.35);                        // ripening
-	float edge = min(min(fr.x, 1.0 - fr.x) * 150.0, min(fr.y, 1.0 - fr.y) * 95.0);
-	float hedge = 1.0 - smoothstep(1.5, 4.0, edge);
-	plot = mix(plot, vec3(0.10, 0.16, 0.07), hedge * 0.85);
-	vec3 grass = mix(g, plot, 0.85);
+	if (crop < 0.34) plot = g * vec3(0.96, 1.04, 0.88);                      // pasture
+	else if (crop < 0.52) plot = mix(g, vec3(0.55, 0.52, 0.32), 0.30);       // hay / stubble
+	else if (crop < 0.64) plot = mix(g, tex2(field_a, fp / 14.0, m) * vec3(1.0, 0.92, 0.82), 0.6);   // ploughed
+	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);                  // young crop
+	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);                        // ripening
+	float edge = min(min(fr.x, 1.0 - fr.x) * cw, min(fr.y, 1.0 - fr.y) * rw);
+	float hedge = 1.0 - smoothstep(1.0, 3.5, edge);
+	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.6);
+	vec3 grass = mix(g, plot, 0.75);
 
 	vec3 col = grass * w.r
 		+ tex2(forest_a, p * 1.3, m) * vec3(0.55, 0.62, 0.45) * w.g

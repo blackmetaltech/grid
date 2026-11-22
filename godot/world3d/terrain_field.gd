@@ -14,7 +14,8 @@ const K_MUD := 4
 const K_PAVED := 5
 const K_SEA := 6
 const K_RIVER := 7
-const KIND_CODE := {"field": K_GRASS, "forest": K_FOREST, "rock": K_ROCK, "sand": K_SAND, "swamp": K_MUD, "town": K_PAVED, "road": K_PAVED, "sea": K_SEA, "river": K_RIVER}
+const K_TOWN := 8           # town blocks: gardens and paving
+const KIND_CODE := {"field": K_GRASS, "forest": K_FOREST, "rock": K_ROCK, "sand": K_SAND, "swamp": K_MUD, "town": K_TOWN, "road": K_PAVED, "sea": K_SEA, "river": K_RIVER}
 const RIVER_LEVEL := 1.7      # water surface of the river, m (the engine's high-water level is 2 m)
 
 var W := 0                    # tiles
@@ -93,7 +94,7 @@ func height(x: float, z: float) -> float:
 		var k := kind_at_tile(int(x / tm), int(z / tm))
 		var amp := 0.7
 		if k == K_ROCK: amp = 2.2
-		elif k == K_SEA or k == K_RIVER or k == K_PAVED: amp = 0.25
+		elif k == K_SEA or k == K_RIVER or k == K_PAVED or k == K_TOWN: amp = 0.25
 		return h + n_detail.get_noise_2d(x, z) * amp
 	# outside the map: the coast carries on east and west with a wobble, the land rises into hills (west), forest country (north), farms (east)
 	var wob := n_coast.get_noise_2d(x, z) * minf(d / 600.0, 1.0) * 140.0
@@ -104,8 +105,8 @@ func height(x: float, z: float) -> float:
 	var f := smoothstep(0.0, 1800.0, d)
 	var hills := (n_hills.get_noise_2d(x, z) * 0.5 + 0.5)
 	var add := 0.0
-	if x < 0.0: add += (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 380.0 * smoothstep(0.0, 6000.0, -x) + (-x) * 0.012   # the western uplands
-	if z < 0.0: add += hills * 110.0 * smoothstep(0.0, 4000.0, -z)
+	if x < 0.0: add += (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 420.0 * smoothstep(0.0, 3500.0, -x) + (-x) * 0.015   # the western uplands
+	if z < 0.0: add += hills * 190.0 * smoothstep(0.0, 3000.0, -z) + (n_ridge.get_noise_2d(x, z) * 0.5 + 0.5) * 160.0 * smoothstep(3000.0, 9000.0, -z)
 	if x > size_m.x: add += hills * 45.0 * smoothstep(0.0, 3000.0, x - size_m.x)
 	var land := smoothstep(0.5, 6.0, e)   # keep beaches low: hills only behind the coast
 	return e + (add + hills * 12.0 * f) * land + n_detail.get_noise_2d(x, z) * 0.8
@@ -117,7 +118,7 @@ func river_surface(x: float, z: float) -> float:
 
 ## Splat weights at a point: [Color(grass, forest, rock, sand), Vector2(mud, paved)].
 func splat(x: float, z: float, h: float) -> Array:
-	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0])
+	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 	if inside(x, z):
 		# bilinear blend of the four nearest tiles' one-hot kinds: soft borders, not tile squares
 		var u := x / tm - 0.5; var v := z / tm - 0.5
@@ -125,7 +126,8 @@ func splat(x: float, z: float, h: float) -> Array:
 		for c in [[0, 0, (1 - fu) * (1 - fv)], [1, 0, fu * (1 - fv)], [0, 1, (1 - fu) * fv], [1, 1, fu * fv]]:
 			var kk := kind_at_tile(i + int(c[0]), j + int(c[1]))
 			if kk == K_SEA or kk == K_RIVER: kk = K_SAND if h > -1.5 else K_MUD
-			w[kk] += float(c[2])
+			if kk == K_TOWN: w[K_GRASS] += float(c[2]) * 0.55; w[K_PAVED] += float(c[2]) * 0.45
+			else: w[kk] += float(c[2])
 	else:
 		if h < 2.2: w[K_SAND] = 1.0
 		else:

@@ -24,6 +24,8 @@ func game_config() -> Dictionary:
 func game_build_world(parent: Node) -> Node:
 	GridSettings.load_all()
 	grid_world = WorldView.new(); grid_world.app = self; grid_world.cute = GridSettings.cute; parent.add_child(grid_world)
+	if DisplayServer.get_name() != "headless" and OS.get_environment("CB_LOOK") != "1" and not OS.has_environment("CB_SMOKE"):   # LOOK2: the 3D province under the 2D overlay (world3d/)
+		var p3 := Province3D.new(); p3.name = "Province3D"; p3.visible = false; add_child(p3); grid_world.look3d = p3
 	return grid_world
 
 ## The prologue's cascade in bullet time: every new trip slows the clock 4x for 3.5 s and flashes the world, so the player watches each line go.

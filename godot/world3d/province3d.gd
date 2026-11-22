@@ -101,8 +101,8 @@ func _make_env() -> void:
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_DEPTH
-	env.fog_depth_begin = 2500.0; env.fog_depth_end = 30000.0; env.fog_depth_curve = 1.6
-	env.fog_aerial_perspective = 0.85
+	env.fog_depth_begin = 5000.0; env.fog_depth_end = 42000.0; env.fog_depth_curve = 1.8
+	env.fog_aerial_perspective = 0.6
 	env.fog_sky_affect = 0.25
 	env.fog_density = 1.0
 	env.adjustment_enabled = true; env.adjustment_contrast = 1.06; env.adjustment_saturation = 1.04
@@ -111,7 +111,7 @@ func _make_env() -> void:
 	if quality == "high":
 		env.sdfgi_enabled = true; env.sdfgi_use_occlusion = true; env.sdfgi_cascades = 6; env.sdfgi_min_cell_size = 1.0
 		env.ssr_enabled = true; env.ssr_max_steps = 48
-		env.volumetric_fog_enabled = true; env.volumetric_fog_density = 0.00035; env.volumetric_fog_length = 2200.0
+		env.volumetric_fog_enabled = true; env.volumetric_fog_density = 0.00012; env.volumetric_fog_length = 2200.0
 		env.volumetric_fog_anisotropy = 0.6; env.volumetric_fog_ambient_inject = 0.35
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	sun = DirectionalLight3D.new(); sun.name = "Sun"; sun.shadow_enabled = quality != "low"
@@ -157,14 +157,14 @@ func _update_sky(mn: float) -> void:
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.2, lowk)
 	var mdir := Vector3(-0.35, 0.55, -0.75).normalized()   # a high moon in the north-east sky, constant through the job's evening
 	moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 0.32 * smoothstep(0.35, 0.85, n)
+	moon.light_energy = 0.55 * smoothstep(0.35, 0.85, n)
 	moon.visible = moon.light_energy > 0.01
 	if moon.visible and sun.visible: moon.shadow_enabled = false
 	elif quality == "high": moon.shadow_enabled = true
 	sky_mat.set_shader_parameter("moon_dir", mdir)
-	env.ambient_light_sky_contribution = lerpf(1.0, 0.55, n)
-	env.ambient_light_color = Color(0.09, 0.12, 0.22)
-	env.ambient_light_energy = lerpf(1.0, 0.75, n)
+	env.ambient_light_sky_contribution = lerpf(1.0, 0.45, n)
+	env.ambient_light_color = Color(0.13, 0.17, 0.30)
+	env.ambient_light_energy = lerpf(1.0, 1.1, n)
 	env.fog_light_color = (s.hor as Color).lerp(Color(0.04, 0.06, 0.11), n * 0.5)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.55, n)
@@ -366,7 +366,7 @@ func _town_areas() -> Array:
 	var seen := {}
 	for j in field.H:
 		for i in field.W:
-			if field.kind_at_tile(i, j) != TerrainField.K_PAVED or seen.has(Vector2i(i, j)): continue
+			if field.kind_at_tile(i, j) != TerrainField.K_TOWN or seen.has(Vector2i(i, j)): continue
 			# only real town tiles (roads share the paved code): flood fill over 't' tiles of the engine map
 			if str((model.terrain.kinds as PackedStringArray)[j * field.W + i]) != "town": continue
 			var q: Array = [Vector2i(i, j)]; seen[Vector2i(i, j)] = true; var tiles: Array = []
@@ -403,7 +403,8 @@ func _build_layout() -> void:
 		if tw.is_empty(): continue
 		var count := int(tw.count)
 		var k := 0
-		for t in tiles:   # four plots per 50 m tile along two streets, set back a little; jittered sizes and angles
+		for tt in tiles:   # four plots per 50 m tile along two streets, set back a little; jittered sizes and angles
+			var t: Vector2i = tt
 			for q in 4:
 				var lx := 0.27 + 0.46 * float(q % 2); var lz := 0.27 + 0.46 * float(q / 2)
 				var x := (t.x + lx) * tm + (_h(t.x, t.y, 500 + q) - 0.5) * 5.0
@@ -546,9 +547,9 @@ func _build_lighthouse(ic: Vector2) -> void:
 	lamp.material_override = _glow_mat(Color(1.0, 0.92, 0.7), 8.0); lamp.position = Vector3(0, 16.4, 0); n.add_child(lamp)
 	var beam := Node3D.new(); beam.position = Vector3(0, 16.4, 0); n.add_child(beam)
 	for sgn in [1.0, -1.0]:   # two beams: long thin cones, additive, fading outward
-		var c := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.6; cm.bottom_radius = 22.0; cm.height = 900.0; cm.radial_segments = 10; cm.cap_top = false; cm.cap_bottom = false
-		c.mesh = cm; var gm := _glow_mat(Color(1.0, 0.93, 0.7, 0.10), 1.0); gm.set_shader_parameter("fade_v", 1.6); c.material_override = gm
-		c.rotation = Vector3(0, 0, -PI * 0.5 * sgn); c.position = Vector3(450.0 * sgn, 0, 0); c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var c := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.6; cm.bottom_radius = 14.0; cm.height = 600.0; cm.radial_segments = 10; cm.cap_top = false; cm.cap_bottom = false
+		c.mesh = cm; var gm := _glow_mat(Color(1.0, 0.93, 0.7, 0.025), 1.0); gm.set_shader_parameter("fade_v", 3.0); c.material_override = gm
+		c.rotation = Vector3(0, 0, -PI * 0.5 * sgn); c.position = Vector3(300.0 * sgn, 0, 0); c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		beam.add_child(c)
 	var o := OmniLight3D.new(); o.omni_range = 60.0; o.light_color = Color(1, 0.9, 0.7); o.light_energy = 3.0; o.position = Vector3(0, 16.4, 0); n.add_child(o)
 	_lighthouse = {"node": n, "lamp": lamp, "beam": beam, "light": o}
@@ -657,12 +658,12 @@ func _build_sea_cable(l: Dictionary) -> void:
 		var ps := Vector3(m.x, maxf(ground(m.x, m.y), 0.0) + 1.2, m.y)
 		if k > 0:
 			Props3D._tube_seg(st, prev, p, 0.25, a.distance_to(m) - 1.0, a.distance_to(m))
-			Props3D._tube_seg(sc, prev_s, ps, 1.6, a.distance_to(m) * 0.25 - 1.0, a.distance_to(m) * 0.25)
+			Props3D._tube_seg(sc, prev_s, ps, 0.7, a.distance_to(m) * 0.25 - 1.0, a.distance_to(m) * 0.25)
 		prev = p; prev_s = ps
 	var bed := MeshInstance3D.new(); bed.mesh = st.commit()
 	var bm := StandardMaterial3D.new(); bm.albedo_color = Color(0.08, 0.08, 0.09); bm.roughness = 0.6; bed.material_override = bm
 	_root_dyn.add_child(bed)
-	var chart := MeshInstance3D.new(); chart.mesh = sc.commit(); chart.material_override = _glow_mat(Color(1.0, 0.7, 0.35, 1.0), 1.2, 0.8)
+	var chart := MeshInstance3D.new(); chart.mesh = sc.commit(); chart.material_override = _glow_mat(Color(1.0, 0.7, 0.35, 1.0), 0.8, 0.8)
 	chart.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(chart)
 	var cut := a.lerp(c, 0.4)
 	var mk := MeshInstance3D.new(); var tm2 := TorusMesh.new(); tm2.inner_radius = 9.0; tm2.outer_radius = 12.0; tm2.rings = 24; tm2.ring_segments = 6; mk.mesh = tm2
@@ -764,9 +765,9 @@ func _process(dt: float) -> void:
 # Camera: orbit / pan / zoom, limits that never show an edge
 # --------------------------------------------------------------------------------------------------------------------
 func reset_camera() -> void:
-	_g_target = Vector3(map_size.x * 0.55, 0.0, map_size.y * 0.52)
+	_g_target = Vector3(map_size.x * 0.52, 0.0, map_size.y * 0.45)
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-	_g_yaw = deg_to_rad(-18.0); _g_pitch = deg_to_rad(34.0); _g_dist = maxf(map_size.x, map_size.y) * 0.95
+	_g_yaw = deg_to_rad(38.0); _g_pitch = deg_to_rad(20.0); _g_dist = maxf(map_size.x, map_size.y) * 0.8
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 

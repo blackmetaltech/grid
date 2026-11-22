@@ -16,6 +16,11 @@ var blocked := false
 var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
+## LOOK2: the levels drawn by the 3D province (world3d/province3d.gd) when it is present; every other level keeps this 2D diorama.
+const LOOK2_LEVELS := ["L30"]
+var look3d = null              # Province3D or null (tests, CI, levels not yet rebuilt)
+var _drag_btn := 0
+func _l3() -> bool: return look3d != null and look3d.visible and look3d.field != null
 
 signal tapped(pos: Vector2)         ## a click / tap that did not drag (local coordinates)
 signal long_pressed(pos: Vector2)   ## a press held in place for LONG_S (touch: opens a tag)
@@ -90,6 +95,11 @@ func refresh(b) -> void:
 
 func set_model(m: Dictionary) -> void:
 	model = m
+	if look3d != null:
+		var want: bool = LOOK2_LEVELS.has(str(m.level)) and m.get("terrain") is Dictionary and not (m.terrain as Dictionary).is_empty() and not title_mode and OS.get_environment("CB_LOOK") != "1"
+		look3d.visible = want
+		if want: look3d.set_model(m)
+		elif look3d.cam != null: look3d.cam.current = false
 	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.get("ghosts", []), m.shunts.map(func(h): return [h.id, h.pos]), m.get("terrain", {}).get("id", ""), m.routes.map(func(r): return [r.id, r.supports.size()])])   # 1.8: span loading bands repaint (coalesced), they do not rebuild the map
 	_track_new_routes(m)
 	if sg != _sig:
@@ -463,9 +473,13 @@ func _tower_h(kv: float) -> float:
 # --------------------------------------------------------------------------------------------------------------------
 # Camera
 # --------------------------------------------------------------------------------------------------------------------
-func _iso(x: float, y: float, z: float = 0.0) -> Vector2: return Vector2((x - y) * TW * 0.5, (x + y) * TH * 0.5 - z)
+func _iso(x: float, y: float, z: float = 0.0) -> Vector2:
+	if _l3(): return look3d.project(Vector3(x * look3d.tm, z / PXM, y * look3d.tm))   # LOOK2: straight to the screen through the 3D camera
+	return Vector2((x - y) * TW * 0.5, (x + y) * TH * 0.5 - z)
 
-func _zat(p: Vector2) -> float: return float(_zgrid.get(Vector2i(p.floor()), 0.0))
+func _zat(p: Vector2) -> float:
+	if _l3(): return maxf(look3d.ground(p.x * look3d.tm, p.y * look3d.tm), 0.0) * PXM
+	return float(_zgrid.get(Vector2i(p.floor()), 0.0))
 
 func _view_rect() -> Rect2:
 	var l := 8.0; var t := 8.0; var r := size.x - cover - 8.0; var bt := size.y - 8.0
@@ -497,9 +511,12 @@ func _refit() -> void:
 	_fit_o = v.get_center() - (b.position + b.size * 0.5) * _fit_s
 	queue_redraw()
 
-func _scale() -> float: return _fit_s * _zoom
+func _scale() -> float:
+	if _l3(): return clampf(look3d.px_per_tile() / 35.8, 0.3, 6.0)
+	return _fit_s * _zoom
 ## World px -> screen px.
 func to_screen(p: Vector2) -> Vector2:
+	if _l3(): return p   # LOOK2: _iso already returned screen px
 	var c := _view_rect().get_center()
 	return c + _pan + ((p - _bounds_center()) * _scale())
 
@@ -526,6 +543,7 @@ func set_camera(spec: String) -> void:
 			"zoom": z = float(kv[1])
 			"tx": tx = float(kv[1])
 			"ty": ty = float(kv[1])
+	if _l3() and look3d.set_camera_spec(spec): queue_redraw(); return
 	_zoom = clampf(z, Z_MIN, Z_MAX); _pan = Vector2.ZERO
 	if not is_nan(tx) and not is_nan(ty):
 		var w := _iso(tx + 0.5, ty + 0.5, 0.0)
@@ -534,6 +552,11 @@ func set_camera(spec: String) -> void:
 
 func pad_move(left: Vector2, right: Vector2, _trigger: float, dt: float) -> void:
 	if blocked: return
+	if _l3():
+		if left.length() > 0.0: look3d.pan_px(-left * 520.0 * dt)
+		if absf(right.x) > 0.0: look3d.orbit_px(Vector2(right.x * 300.0 * dt, 0.0))
+		if absf(right.y) > 0.0: look3d.zoom_at(size * 0.5, pow(1.9, -right.y * dt))
+		return
 	if left.length() > 0.0: _pan -= left * 520.0 * dt; _clamp_pan()
 	if absf(right.y) > 0.0: _zoom_at(_view_rect().get_center() + _pan, pow(1.9, -right.y * dt))
 	queue_redraw()
@@ -541,6 +564,21 @@ func pad_move(left: Vector2, right: Vector2, _trigger: float, dt: float) -> void
 ## Keyboard camera (arrows pan, + / - zoom, 0 resets). Returns true when handled.
 func key(e: InputEventKey) -> bool:
 	if not e.pressed or blocked: return false
+	if _l3():
+		match e.keycode:
+			KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: look3d.zoom_at(size * 0.5, 1.25)
+			KEY_MINUS, KEY_KP_SUBTRACT: look3d.zoom_at(size * 0.5, 1.0 / 1.25)
+			KEY_0: look3d.reset_camera()
+			KEY_LEFT: look3d.pan_px(Vector2(80, 0))
+			KEY_RIGHT: look3d.pan_px(Vector2(-80, 0))
+			KEY_UP: look3d.pan_px(Vector2(0, 80))
+			KEY_DOWN: look3d.pan_px(Vector2(0, -80))
+			KEY_Q: look3d.orbit_px(Vector2(-40, 0))
+			KEY_E: look3d.orbit_px(Vector2(40, 0))
+			KEY_PAGEUP: look3d.orbit_px(Vector2(0, 30))
+			KEY_PAGEDOWN: look3d.orbit_px(Vector2(0, -30))
+			_: return false
+		return true
 	match e.keycode:
 		KEY_EQUAL, KEY_PLUS, KEY_KP_ADD: _zoom_at(_view_rect().get_center() + _pan, 1.2)
 		KEY_MINUS, KEY_KP_SUBTRACT: _zoom_at(_view_rect().get_center() + _pan, 1.0 / 1.2)
@@ -556,10 +594,13 @@ func _gui_input(e: InputEvent) -> void:
 	if blocked or (app != null and app.modal() != null): _press = false; return
 	if e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
+		if _l3() and mb.pressed and mb.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+			look3d.zoom_at(mb.position, 1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15); return
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed: _zoom_at(mb.position, 1.12 * mb.factor if mb.factor > 0.0 else 1.12)
 		elif mb.button_index == MOUSE_BUTTON_WHEEL_DOWN and mb.pressed: _zoom_at(mb.position, 1.0 / 1.12)
 		elif mb.button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE, MOUSE_BUTTON_RIGHT]:
 			_drag = mb.pressed and _touches.size() < 2
+			if mb.pressed: _drag_btn = mb.button_index
 			if mb.button_index == MOUSE_BUTTON_LEFT:
 				if mb.pressed: _press = true; _press_pos = mb.position; _press_moved = 0.0; _press_t = 0.0; _press_long = false
 				else:
@@ -573,10 +614,17 @@ func _gui_input(e: InputEvent) -> void:
 					_rpress = false
 	elif e is InputEventMouseMotion:
 		var mm := e as InputEventMouseMotion
-		if _drag: _pan += mm.relative; _clamp_pan(); queue_redraw()
+		if _drag and _l3():   # LOOK2: left drags the ground, right or middle orbits (Shift + left orbits too)
+			if _drag_btn == MOUSE_BUTTON_LEFT and not mm.shift_pressed: look3d.pan_px(mm.relative)
+			else: look3d.orbit_px(mm.relative)
+		elif _drag: _pan += mm.relative; _clamp_pan(); queue_redraw()
 		if _rpress: _rpress_moved += mm.relative.length()
 		if _press: _press_moved += mm.relative.length()
 		else: hovered.emit(mm.position)
+	elif e is InputEventMagnifyGesture and _l3():
+		look3d.zoom_at((e as InputEventMagnifyGesture).position, (e as InputEventMagnifyGesture).factor)
+	elif e is InputEventPanGesture and _l3():
+		look3d.pan_px(-(e as InputEventPanGesture).delta * 12.0)
 	elif e is InputEventMagnifyGesture:
 		_zoom_at((e as InputEventMagnifyGesture).position, (e as InputEventMagnifyGesture).factor)
 	elif e is InputEventPanGesture:
@@ -593,9 +641,14 @@ func _gui_input(e: InputEvent) -> void:
 		if _touches.size() == 2:
 			var ks := _touches.keys(); var a: Vector2 = _touches[ks[0]]; var c: Vector2 = _touches[ks[1]]
 			var d := a.distance_to(c)
+			if _l3():
+				if _pinch_d > 0.0 and d > 4.0: look3d.zoom_at((a + c) * 0.5, d / _pinch_d)
+				_pinch_d = d; look3d.orbit_px(sd.relative * 0.5); return
 			if _pinch_d > 0.0 and d > 4.0: _zoom_at((a + c) * 0.5, d / _pinch_d)
 			_pinch_d = d
 			_pan += sd.relative * 0.5; _clamp_pan(); queue_redraw()
+		elif _l3() and _touches.size() == 1:
+			look3d.pan_px(sd.relative)
 
 ## A tap: a built route's support or span under it (route_item_pressed, left only) and the map point (ground_pressed). Both fire when both apply.
 func _tap_extras(pos: Vector2, button: int) -> void:
@@ -809,6 +862,9 @@ func _make_layers() -> void:
 
 func _sync_layers() -> void:
 	if _static_layer == null: return
+	if _l3():
+		for l in [_static_layer, _wire_layer, _bld_layer, _dyn_layer]: l.position = Vector2.ZERO; l.scale = Vector2.ONE
+		return
 	var s := _scale(); var o := to_screen(Vector2.ZERO)
 	for l in [_static_layer, _wire_layer, _bld_layer, _dyn_layer]: l.position = o; l.scale = Vector2(s, s)
 
@@ -816,12 +872,14 @@ func repaint_static() -> void:
 	if _static_layer != null: _static_layer.queue_redraw(); _bld_layer.queue_redraw(); _wire_layer.queue_redraw()
 
 func _paint_wires() -> void:
+	if _l3(): return
 	if _tiles.is_empty() or size.x < 4.0: return
 	var t0 := Time.get_ticks_usec()
 	_bt_begin(); _draw_wires(); _bt_end()
 	perf.static_us += Time.get_ticks_usec() - t0
 
 func _paint_static() -> void:
+	if _l3(): return
 	if _tiles.is_empty() or size.x < 4.0: return
 	static_paints += 1; perf.static_n += 1
 	_painted_night = _night; _static_layer.modulate = Color.WHITE   # painted in this light: no tint
@@ -842,7 +900,7 @@ func _homes_split() -> bool:
 	return _n_bld > HOMES_SPLIT
 
 func _paint_homes() -> void:
-	if _tiles.is_empty() or size.x < 4.0 or not _homes_split(): return
+	if _l3() or _tiles.is_empty() or size.x < 4.0 or not _homes_split(): return
 	perf.homes_n += 1
 	var t0 := Time.get_ticks_usec()
 	_bt_begin()
@@ -854,6 +912,8 @@ func _paint_homes() -> void:
 func _paint_dynamic() -> void:
 	if _tiles.is_empty() or size.x < 4.0: return
 	var t0 := Time.get_ticks_usec()
+	if _l3():   # LOOK2: the 3D province draws the world; only the route survey's markers and ghost stay in 2D
+		_draw_ghost(); perf.dyn_us += Time.get_ticks_usec() - t0; return
 	var split := _homes_split()
 	for ob in _objs_d:
 		if split and ob.t == "bld" and not _town_flickers(int(ob.ti)): continue
@@ -1013,6 +1073,7 @@ func _paint_top() -> void:
 func _draw() -> void:
 	if size.x < 4.0: return
 	_nl = WorldMath.ground_light(_night)
+	if _l3(): return   # LOOK2: the 3D sky
 	_draw_sky(float(model.minute))
 
 func _draw_sky(mn: float) -> void:
@@ -1437,7 +1498,7 @@ func _draw_labels() -> void:
 			if t.has("loss") and float(t.v) > 0.0: txt = tr("WORLD_LOSS_FMT") % float(t.loss)
 			var glow := clampf(float(t.v) * float(t.v), 0.0, 1.0)
 			if t.has("loss"): glow = 1.0 if float(t.v) > 0.0 else 0.0   # the school's lamps run off the far converter at full voltage
-			if cute and t.has("mood"):
+			if cute and t.has("mood") and not _l3():
 				var r := 15.0 * (fs / 15.0) * clampf(_scale() * 1.4, 0.8, 1.6)
 				_bulb_mascot(sp + Vector2(0, -r - fs - 10.0), r, str(t.mood), glow)
 			_label(font, fs, sp, txt, WorldMath.SODIUM if float(t.v) > 0.0 else WorldMath.GREY)
@@ -1531,6 +1592,13 @@ func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, plac
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := at - Vector2(w * 0.5, 0.0)
+	if _l3():   # LOOK2 instrument language: dark glass chip, hairline edge, a lit/dark tick, a leader down to the place
+		var r := Rect2(p + Vector2(-14, -fs - 4), Vector2(w + 24, fs + 13))
+		_dl(Vector2(at.x, r.end.y), Vector2(at.x, r.end.y + 26.0), Color(col, 0.55), 1.0, true)
+		_dr(r, Color(0.03, 0.05, 0.08, 0.66)); _dr(r, Color(0.72, 0.82, 0.92, 0.28), false, 1.0)
+		_dr(Rect2(r.position + Vector2(5, 5), Vector2(3, r.size.y - 10)), col)
+		_bt_flush(); GridText.ds(_ci, font, p + Vector2(2, 0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(0.9, 0.93, 0.96) if col != WorldMath.GREY else WorldMath.GREY)
+		return
 	_dr(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))
 	_bt_flush(); GridText.ds(_ci, font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
@@ -1732,6 +1800,10 @@ func _tile_m() -> float:
 
 ## Metres on the map at a screen point (the ground under it, terrain heights included); Vector2(NAN, NAN) off the map.
 func map_metres_at(screen_p: Vector2) -> Vector2:
+	if _l3():
+		var g: Vector3 = look3d.ground_point(screen_p)
+		if is_nan(g.x) or g.x < 0.0 or g.z < 0.0 or g.x >= model.map.x * _tile_m() or g.z >= model.map.y * _tile_m(): return Vector2(NAN, NAN)
+		return Vector2(g.x, g.z)
 	if model.kind == "none" or _tiles.is_empty(): return Vector2(NAN, NAN)
 	var w := (screen_p - _view_rect().get_center() - _pan) / _scale() + _bounds_center()
 	var q := Vector2.ZERO; var z := 0.0
