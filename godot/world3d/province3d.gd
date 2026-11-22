@@ -36,6 +36,7 @@ var _cable: Dictionary = {}      # sea cable visuals
 var _battery: Dictionary = {}
 var _lighthouse: Dictionary = {}
 var _trawler: Node3D
+var _cable_ok := false
 var _unit_lights: Array = []
 var _water_mats: Array[ShaderMaterial] = []
 var _t := 0.0
@@ -568,7 +569,7 @@ func _build_lighthouse(ic: Vector2) -> void:
 	var lamp := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.8; sm.height = 1.6; lamp.mesh = sm
 	lamp.material_override = _glow_mat(Color(1.0, 0.92, 0.7), 8.0); lamp.position = Vector3(0, 16.4, 0); n.add_child(lamp)
 	var beam := Node3D.new(); beam.position = Vector3(0, 16.4, 0); n.add_child(beam)
-	for sgn in [1.0, -1.0]:   # two beams: long thin cones, additive, fading outward
+	for sgn in []:   # (beams removed after the art review: they read as a rendering error) two beams: long thin cones, additive, fading outward
 		var c := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.6; cm.bottom_radius = 14.0; cm.height = 600.0; cm.radial_segments = 10; cm.cap_top = false; cm.cap_bottom = false
 		c.mesh = cm; var gm := _glow_mat(Color(1.0, 0.93, 0.7, 0.025), 1.0); gm.set_shader_parameter("fade_v", 3.0); c.material_override = gm
 		c.rotation = Vector3(0, 0, -PI * 0.5 * sgn); c.position = Vector3(300.0 * sgn, 0, 0); c.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -743,6 +744,10 @@ func _update_dynamic() -> void:
 		cm.set_shader_parameter("pulse", 0.8 * float(l.get("dir", 0)) if ok else 0.0)
 		cm.set_shader_parameter("power", 1.2 if ok else 0.5)
 		(_cable.mark as Node3D).visible = not ok
+		if _cable_ok and not ok and not OS.has_environment("CB_CAM"):   # the cut: turn the camera to the island before the report opens
+			var ic: Vector2 = model.get("island_c", Vector2.ZERO)
+			_g_target = tile_to_world(ic + Vector2(0, -3)); _g_dist = 1400.0; _g_pitch = deg_to_rad(26.0); _clamp_goal()
+		_cable_ok = ok
 	if not _battery.is_empty():
 		for b in model.get("batteries", []):
 			if str(b.id) != _battery.id: continue
@@ -781,6 +786,7 @@ func _process(dt: float) -> void:
 	if not _lighthouse.is_empty() and (_lighthouse.beam as Node3D).visible: (_lighthouse.beam as Node3D).rotation.y = _t * 0.9
 	if not _cable.is_empty() and (_cable.mark as Node3D).visible: (_cable.mark as Node3D).scale = Vector3.ONE * (1.0 + 0.25 * sin(_t * 5.0))
 	if _trawler != null and _trawler.visible: _trawler.position.y = sin(_t * 1.4) * 0.3
+	if OS.has_environment("CB_DBGSCALE") and perf.frames == 200: _dbg_scale()
 	perf.frames += 1; var ms := dt * 1000.0; perf.ms += ms; perf.worst = maxf(perf.worst, ms)
 	if OS.has_environment("CB_FRAMETIME"):   # GPU and CPU render time of the viewport, measured by the RenderingServer (independent of vsync)
 		var vp := get_viewport().get_viewport_rid()
@@ -794,9 +800,9 @@ func _process(dt: float) -> void:
 # Camera: orbit / pan / zoom, limits that never show an edge
 # --------------------------------------------------------------------------------------------------------------------
 func reset_camera() -> void:
-	_g_target = Vector3(map_size.x * 0.6, 0.0, map_size.y * 0.62)
+	_g_target = Vector3(map_size.x * 0.72, 0.0, map_size.y * 0.66)
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-	_g_yaw = deg_to_rad(38.0); _g_pitch = deg_to_rad(20.0); _g_dist = maxf(map_size.x, map_size.y) * 0.8
+	_g_yaw = deg_to_rad(32.0); _g_pitch = deg_to_rad(29.0); _g_dist = maxf(map_size.x, map_size.y) * 0.62
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
@@ -860,9 +866,15 @@ func set_camera_spec(spec: String) -> bool:
 # --------------------------------------------------------------------------------------------------------------------
 # Projection for the 2D overlay (WorldView): screen <-> world. Screen = the canvas coordinates of the full-rect world control.
 # --------------------------------------------------------------------------------------------------------------------
-func _canvas_scale() -> float:
+func _dbg_scale() -> void:
 	var w := get_window()
-	return w.content_scale_factor if w != null and w.content_scale_factor > 0.0 else 1.0
+	print("LOOK2SCALE win=%s vis=%s csf=%s final=%s canvas=%s" % [w.size, get_viewport().get_visible_rect(), w.content_scale_factor, get_viewport().get_final_transform(), get_viewport().canvas_transform])
+
+var canvas_size := Vector2.ZERO   ## the overlay control's size in canvas units (WorldView sets it): screen px per canvas unit = viewport px / this
+
+func _canvas_scale() -> float:
+	if canvas_size.x < 1.0: return 1.0
+	return get_viewport().get_visible_rect().size.x / canvas_size.x
 
 func project(p: Vector3) -> Vector2:
 	if cam.is_position_behind(p): return Vector2(-99999, -99999)

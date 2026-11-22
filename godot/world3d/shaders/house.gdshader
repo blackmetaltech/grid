@@ -6,8 +6,8 @@ render_mode diffuse_burley;
 
 uniform vec3 roof_a : source_color = vec3(0.45, 0.20, 0.15);
 uniform vec3 roof_b : source_color = vec3(0.24, 0.24, 0.27);
-uniform vec3 lamp : source_color = vec3(1.0, 0.72, 0.38);
-uniform float lamp_power = 5.0;
+uniform vec3 lamp : source_color = vec3(1.0, 0.62, 0.26);
+uniform float lamp_power = 2.2;
 
 varying vec3 wp;
 varying vec3 wn;
@@ -27,7 +27,8 @@ void fragment() {
 		vec3 rc = ic.g < 0.45 ? roof_a : (ic.g < 0.8 ? roof_b : vec3(0.36, 0.30, 0.24));
 		rc *= 0.75 + 0.5 * h21(vec2(ic.g * 91.0, 3.0));
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
-		ALBEDO = rc * tiles; ROUGHNESS = 0.8;
+		float dark = (1.0 - step(0.001, ic.r)) * ic.b;   // a dark town at night: roofs lose the lamplight they would catch
+		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.8;
 	} else {
 		vec3 base = COLOR.rgb;
 		// along-wall coordinate in metres
@@ -36,8 +37,9 @@ void fragment() {
 		vec2 f = vec2(fract(u / 2.6), fract(hy / 2.9));
 		float win = step(0.28, f.x) * step(f.x, 0.72) * step(0.35, f.y) * step(f.y, 0.8);
 		win *= step(1.0, hy);   // no windows in the plinth
-		float lit = step(h21(cell + ic.g * 17.0), ic.r) * win;
-		ALBEDO = mix(base, vec3(0.05, 0.06, 0.08), win * 0.85);
+		float lit = step(h21(cell + ic.g * 17.0), ic.r) * win * step(0.18, h21(cell * 1.7 + ic.g * 5.0));   // some rooms dark by design
+		float dark = (1.0 - step(0.001, ic.r)) * ic.b;
+		ALBEDO = mix(base, vec3(0.05, 0.06, 0.08), win * 0.85) * (1.0 - 0.45 * dark);
 		ROUGHNESS = mix(0.85, 0.15, win);
 		float flick = 0.85 + 0.15 * h21(cell * 3.1 + ic.g);
 		EMISSION = lamp * lit * lamp_power * flick * (0.15 + 0.85 * ic.b);

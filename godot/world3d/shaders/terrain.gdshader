@@ -54,24 +54,25 @@ void fragment() {
 	float sum = w.r + w.g + w.b + w.a + mud + paved + 1e-4;
 	w /= sum; mud /= sum; paved /= sum;
 
-	// fields: plots of uneven size on a slightly rotated grid (rows of plots shift against each other), each with its own crop; hedgerows at the edges
-	vec2 fp = mat2(vec2(0.966, 0.259), vec2(-0.259, 0.966)) * wpos.xz;
-	float row = floor(fp.y / 110.0);
-	float rw = 110.0;
-	float cw = 120.0 + 90.0 * h21(vec2(row, 7.0));
-	vec2 q = vec2(fp.x + h21(vec2(row, 3.0)) * 300.0, fp.y);
-	vec2 cell = vec2(floor(q.x / cw), row);
-	vec2 fr = vec2(fract(q.x / cw), fract(q.y / rw));
-	float crop = h21(cell);
+	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
+	vec2 fq = wpos.xz / 170.0;
+	vec2 fi = floor(fq); vec2 ff = fract(fq);
+	float d1 = 8.0; float d2 = 8.0; vec2 cell = vec2(0.0);
+	for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+		vec2 o = vec2(float(x), float(y));
+		vec2 pt = o + vec2(h21(fi + o), h21(fi + o + 17.3)) * 0.85;
+		float dd = length(pt - ff);
+		if (dd < d1) { d2 = d1; d1 = dd; cell = fi + o; } else if (dd < d2) { d2 = dd; }
+	}
+	float crop = h21(cell * 1.31);
 	vec3 g = tex2(grass_a, p, m);
 	vec3 plot = g;
-	if (crop < 0.34) plot = g * vec3(0.96, 1.04, 0.88);                      // pasture
-	else if (crop < 0.52) plot = mix(g, vec3(0.55, 0.52, 0.32), 0.30);       // hay / stubble
-	else if (crop < 0.64) plot = mix(g, tex2(field_a, fp / 14.0, m) * vec3(1.0, 0.92, 0.82), 0.6);   // ploughed
-	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);                  // young crop
-	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);                        // ripening
-	float edge = min(min(fr.x, 1.0 - fr.x) * cw, min(fr.y, 1.0 - fr.y) * rw);
-	float hedge = 1.0 - smoothstep(1.0, 3.5, edge);
+	if (crop < 0.34) plot = g * vec3(0.96, 1.04, 0.88);
+	else if (crop < 0.52) plot = mix(g, vec3(0.55, 0.52, 0.32), 0.30);
+	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(g, tex2(field_a, rp / 14.0, m) * vec3(1.0, 0.92, 0.82), 0.6); }
+	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);
+	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);
+	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
 	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.6);
 	vec3 grass = mix(g, plot, 0.75);
 

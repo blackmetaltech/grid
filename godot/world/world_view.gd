@@ -661,6 +661,7 @@ func _tap_extras(pos: Vector2, button: int) -> void:
 func _process(dt: float) -> void:
 	if not is_visible_in_tree() or size.x < 4.0: return
 	_t += dt; _rot += dt
+	if look3d != null: look3d.canvas_size = size
 	if _static_pending and Time.get_ticks_msec() - _static_at >= 1000.0 / STATIC_HZ: _static_at = Time.get_ticks_msec(); _static_pending = false; repaint_static()
 	if _bld_pending and Time.get_ticks_msec() - _bld_at >= 1000.0 / STATIC_HZ:
 		_bld_at = Time.get_ticks_msec(); _bld_pending = false
@@ -1064,6 +1065,7 @@ func _paint_top() -> void:
 	var t0 := Time.get_ticks_usec()
 	if _flash > 0.0:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
+	if _l3(): _draw_line_overlay()
 	_draw_labels()
 	_draw_pegs()
 	_draw_hand()
@@ -1514,7 +1516,7 @@ func _draw_labels() -> void:
 			continue
 		var col := WorldMath.GREY if v <= 0.0 else (WorldMath.AMBER if (v < 0.95 or v > 1.05) else WorldMath.WHITE)
 		_label_free(font, fs, sp2, "%s  %s" % [str(t.name), txt2], col, placed)
-	var yards_quiet: bool = model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
+	var yards_quiet: bool = _l3() or model.get("terrain", {}) is Dictionary and not (model.get("terrain", {}) as Dictionary).is_empty() and _scale() < 1.2   # chapter 2 overview: the yards' pu labels crowd the market mascot; zoom in (or tap a yard) to read them
 	var unsolved := not bool(model.get("solved", true))
 	for s in model.subs:
 		if yards_quiet: break
@@ -1534,6 +1536,43 @@ func _draw_labels() -> void:
 			for q in taken:
 				if absf(lp.y - q.y) < fs * 1.8 and absf(lp.x - q.x) < 160.0: lp.y = q.y + fs * 2.0   # drop below the town's name
 			_label(font, fs, lp, tr("WORLD_LOAD_FMT") % int(round(float(l.loading) * 100.0)), l.color)
+
+## LOOK2 single-line overlay: every line as a thin screen-space stroke over the 3D conductors (an 11 kV span is sub-pixel at district
+## scale), in the engine's loading-band colour; grey dashes when out of service. Stronger as the camera rises. The cut gets a red ring.
+func _draw_line_overlay() -> void:
+	var far := clampf((float(look3d.dist) - 300.0) / 1800.0, 0.3, 1.0)
+	for l in model.lines:
+		var kind := str(l.kind)
+		if kind == "xfmr": continue
+		var pts := PackedVector2Array()
+		var r := _route_of(str(l.id))
+		if not r.is_empty():
+			for sp in r.supports: pts.append(_iso((sp.p as Vector2).x, (sp.p as Vector2).y, _zat(sp.p) + float(sp.attach_m) * PXM))
+		else:
+			var raw: Array = l.pts
+			for k in range(raw.size() - 1):
+				var a := _tc(raw[k]); var c := _tc(raw[k + 1])
+				for q in 12:
+					var w := a.lerp(c, q / 12.0)
+					pts.append(_iso(w.x, w.y, (PXM * 1.0) if kind == "cable" else _zat(w) + 9.0 * PXM))
+			if raw.size() >= 2: var e := _tc(raw[raw.size() - 1]); pts.append(_iso(e.x, e.y, (PXM * 1.0) if kind == "cable" else _zat(e) + 9.0 * PXM))
+		if pts.size() < 2: continue
+		var live := bool(l.in_service) and int(l.dir) != 0
+		var col: Color = l.color if bool(l.in_service) else WorldMath.GREY
+		if kind == "cable" and bool(l.in_service): col = GridTheme.SODIUM
+		if not live and bool(l.in_service): col = col.darkened(0.35)
+		if not bool(l.in_service) or kind == "cable":
+			for k in range(pts.size() - 1): _dashed(pts[k], pts[k + 1], Color(col, 0.85 * far), 2.5, 7.0, 5.0)
+		else:
+			_bt_flush(); _ci.draw_polyline(pts, Color(col, 0.16 * far), 7.0, true)
+			_ci.draw_polyline(pts, Color(col, 0.85 * far), 2.2, true)
+		if kind == "cable" and not bool(l.in_service) and model.has("cut_min"):
+			var raw2: Array = l.pts
+			var cp := _tc(raw2[0]).lerp(_tc(raw2[raw2.size() - 1]), 0.4)
+			var x := _iso(cp.x, cp.y, PXM)
+			var rr := 22.0 + 5.0 * sin(_t * 5.0)
+			_bt_flush(); _ci.draw_arc(x, rr, 0.0, TAU, 32, Color(GridTheme.BAD, 0.95), 3.0, true)
+			_ci.draw_arc(x, rr + 9.0, 0.0, TAU, 32, Color(GridTheme.BAD, 0.35), 2.0, true)
 
 ## A round bulb with a face. `glow` = (V/V0)^2 (brightness of the homes); the face is WorldMath.mood (band vs the level's limit).
 func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:

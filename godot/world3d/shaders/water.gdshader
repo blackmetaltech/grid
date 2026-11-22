@@ -34,7 +34,7 @@ void fragment() {
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
 	ALBEDO = col;
 	ALPHA = clamp(0.55 + 0.45 * k + fres * 0.3, 0.0, 1.0);
-	ROUGHNESS = 0.06;
+	ROUGHNESS = mix(0.06, 0.16, night);
 	METALLIC = 0.0;
-	SPECULAR = 0.55;
+	SPECULAR = mix(0.55, 0.3, night);
 }
