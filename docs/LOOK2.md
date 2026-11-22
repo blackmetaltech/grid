@@ -67,5 +67,26 @@ All CC0, listed in `docs/ASSETS.md`: six Poly Haven texture sets at 1k (grass, f
 - **Integrated GPU and Deck:** measured on the AMD iGPU (see below). Not run on a Deck or a phone.
 - **Scope:** most of the cost is the 3D sets for chapters 3-4 and 8, and converting every paper screen.
 
-## Frame times (measured, RenderingServer viewport GPU time, L30 at 19:15, default camera)
-See the board line and the phase A report: RTX 4090 high 1920x1080 and 2560x1440; AMD integrated Radeon at high, medium and low.
+## Frame times (measured 2026-11-22, L30 at 19:15, default camera, RenderingServer viewport GPU time, `CB_FRAMETIME=1`)
+| GPU | Tier | Resolution | GPU ms | Frame |
+|---|---|---|---|---|
+| RTX 4090 (PRIME offload; log names the card, `nvidia-smi` lists godot at 1.4 GB) | high | 1920x1080 | 6.1 | vsync 60 fps |
+| RTX 4090 | high | 2560x1440 | 8.1 | vsync 60 fps |
+| AMD Raphael iGPU (2 CU, Vulkan RADV) | high / medium / low | 1920x1080 | not usable: 1-2 fps | |
+| AMD Raphael iGPU, Compatibility renderer | low | 1920x1080 | 162 | about 6-7 fps |
+The integrated GPU result is a real gap. The low tier as built is not fit for a Deck-class device (a Deck has about four times this iGPU's shader power, still not enough at 6 fps). Phase B must profile it: likely the 67k-tree MultiMesh (25 % on low is still 17k), the far terrain and the per-pixel sky. The fallback until then: `CB_LOOK=1`, the 2D diorama.
+
+## Cost to bring the whole game to this look (agent hours, at today's pace)
+| Work | Hours |
+|---|---|
+| Chapter 2 levels on the same map (L04-L06, L29): route survey ghost in 3D, salt fog | 6 |
+| Generated province for L14-L27 and the L28 finale: render-only terrain around the bus layout, lattice towers 132-400 kV, coal/gas/nuclear/hydro/wind/solar plants with steam | 20 |
+| Close 3D sets for the benches (P0, L01-L03 island; L07-L13 mill, street, estate, hydro valley) | 18 |
+| Chapter 8 feeder town and countryside (L31-L36) | 10 |
+| Career: nine districts in 3D at night | 16 |
+| Every paper screen to glass (work order, reports, tags, operate panel, stage panels, Career board) | 14 |
+| Low tier made playable on an iGPU/Deck, threaded build with a loading cue, phone check | 10 |
+| Towns with streets that follow roads, 3-5 house types, harbour and yard kit, sound of weight (wind, sea, hum) | 12 |
+| Critique rounds and fixes, README and release per layer | 10 |
+| **Total** | **about 116 hours, 10-12 sessions** under the 5-hour usage limit |
+Asset gaps: none blocking. CC0 textures cover the ground. Lattice towers, plants, cooling towers, wind turbines and solar parks will be procedural. Audio for the landscape (wind, sea, transformer hum, crowd murmur in lit towns) is needed and not sourced.
