@@ -1,0 +1,71 @@
+# LOOK2: GRID's look, phase A (2026-11-22)
+
+**Status:** direction and one vertical slice, on branch `look2`. The owner reviews it before anything else is rebuilt.
+**Slice:** L30 "Bring the Island Home", rendered with Forward+ on the RTX 4090. The engine, the levels, the goldens and the tests are unchanged.
+
+## The fantasy
+You are the engineer who plans a province's power. You look down on it from a planner's height: real ground with hills, a river, a coast, forests, fields and towns, running out to a hazy horizon under a real sky. You can pan anywhere, orbit and zoom from the whole district down to one yard and one street. The payoff is light. You energise a line and a dark valley lights up, window by window, at dusk. A failure shows on the land too: the anchor cuts the cable and the island goes dark.
+
+## Why L30, not a chapter 5-7 level
+The brief asked for a mid-campaign level with towns, a river and several lines, and a line that trips so a district goes dark. I ran every grid level on the engine three ways (no action, the naive design, the lesson). In chapters 5-7 no level actually trips a line into a dark district: L16 "Loop Flow" is lost when a line *would* trip, and nothing goes dark. Drawing a trip the engine does not make would show the player something false. L30 is the end of chapter 2 (level 10 of 37). It has the engine's own terrain map (elevations, the river and its gorge, the ridge, the coast), three towns, eight branches, and a real event: at 21:00 an anchor cuts the sea cable, and without a big enough battery the island goes dark. Dagny or Mateo may argue for a later level; that is the trade.
+
+## References (what we take from each)
+- **Cities: Skylines II**: a free camera over a continuous region; at dusk the town lights come on block by block.
+- **Microsoft Flight Simulator**: haze and aerial perspective; the land never ends; the low sun shows the relief.
+- **Workers & Resources: Soviet Republic**: infrastructure at real scale; poles and lines have weight against the land.
+- **Townscaper / Islanders**: restraint. A few strong materials and colours, nothing cartoonish, nothing noisy.
+- **Control-room photography (grid operators' video walls)**: the HUD. Dark glass, thin type, one accent colour for live values.
+
+## Light and palette
+- One sun on the operator clock: east at 06:00, south at noon, west at 18:00. Golden hour 18:00-18:45, blue hour to 19:30, then moonlight.
+- The sky, the sun disc, the clouds, the stars and the moon are drawn by a sky shader whose colours follow the clock (`world3d/shaders/sky.gdshader`).
+- Ground in muted greens, straw and soil. Water is coloured by depth: dark sea, shallow turquoise along the coast, foam at the shore.
+- Light colours are kept for meaning. Sodium amber (#FFC56B) is a lit home or a lamp. Cyan is an energised line, coloured by its loading band (the engine's band). Red (#E5484D) is a fault. A dark town is grey.
+- Tier high: AgX tonemapping, glow on emissives, SSAO, SDFGI, SSR, light volumetric haze, 4-split shadows over 9 km, MSAA 4x + SMAA.
+
+## Camera
+- Left drag pans the ground. Right drag (or Shift + left) orbits. The wheel zooms toward the cursor, from about 9.5 km down to 60 m. Arrow keys pan, Q/E orbit, PgUp/PgDn tilt, +/- zoom, 0 resets. A pad pans with the left stick and orbits and zooms with the right. Touch: one finger pans, two pinch and turn.
+- Limits: the target stays within 1.2 km of the map and the pitch between 8 and 84 degrees. The camera never goes below the ground. Past the map the land runs on for 26 km, then fog. No edge is ever in view.
+
+## What the world shows (all from the engine, nothing invented)
+- **Terrain:** the engine's elevation is bilinear between tile centres, with under a metre of detail noise. The vertical scale is 1, so a span's clearance on screen is the one the engine judged. Six CC0 materials are splat-mapped from the engine's tile kinds. They are sampled at two scales and rotations, with a macro colour drift and a field patchwork with hedgerows, so no tile repeats visibly. The sea bed deepens with distance from the shore. The river sits 2.6 m below its high-water level.
+- **Beyond the map:** the coast carries on east and west, uplands rise to about 450 m in the west, wooded hills lie to the north and farmland to the east.
+- **Towns:** a house on every quarter of each town tile, plus the island's cottages and school hall. Each building's windows are lit at its energy, `WorldMath.building_energy` (V/Vnom squared, 0 when shed or dark), the same number the 2D diorama uses. Street lamps and warm light pools burn only while the town has voltage.
+- **Lines:** every support stands where the engine placed it, of its family (wood, concrete, tubular, lattice). The conductors hang with the engine's sag. At night an energised line glows in its loading-band colour, with pulses in the flow direction. The sea cable is drawn on the seabed and as a chart line on the surface. After the cut that line goes grey and a red ring pulses at the break.
+- **Island:** the battery's state of charge is a lit bar on its container. The lighthouse turns only while the island bus is live. The trawler steams over the cable at the cut minute.
+
+## UI language
+An engineer's instruments, calm and authoritative. Dark glass panels (about 72 % opaque) with a hairline edge and 4 px corners. IBM Plex Sans for words, Plex Mono for numbers, one sodium accent for live values. Map labels are glass chips with a status tick and a leader line down to the place. The paper work orders, the stamps and the cream dial faces go. The slice converts the map labels and the HUD instruments, tray, pin, budget and lever. The work order and the incident report are still paper (phase B).
+
+## Assets
+All CC0, listed in `docs/ASSETS.md`: six Poly Haven texture sets at 1k (grass, forest floor, rock, sand, mud, ploughed field), 6.5 MB in all. Everything else is procedural: trees, houses, poles and towers, yard equipment, the trawler, the lighthouse, the sky, the water and the noise. The two HDRIs fetched for the sky were not used (the sky follows the clock) and were removed.
+
+## Quality tiers (one game, not two)
+| Tier | When | What |
+|---|---|---|
+| high | Forward+ on a discrete GPU (auto) | everything above; terrain step 12.5 m; about 67k trees |
+| medium | Forward+ on an integrated GPU, or the Mobile renderer | no SDFGI, SSR or volumetric fog; step 20 m; 55 % of the trees; MSAA 2x |
+| low | Compatibility (Steam Deck fallback, phones, CI under Xvfb) | no SSAO; step 30 m; 25 % of the trees; no tree shadows |
+`CB_QUALITY=high|medium|low` overrides the choice. `CB_LOOK=1` forces the old 2D diorama. Headless runs and the smoke test never build the 3D scene, so every existing test runs as before.
+
+## Mapping the levels onto scenes
+| Levels | Today | LOOK2 scene |
+|---|---|---|
+| L04-L06, L29, L30 (chapter 2, the mainland map) | 2D tiles from the engine map | **this slice's scene as is**: add route-survey ghosting in 3D and salt fog (L29) |
+| P0, L01-L03 (island bench) | 2D island | the same terrain code on a small island height field; close camera |
+| L07-L13 (chapters 3-4 benches: mill, street, estate, hydro) | 2D close-ups and panels | close 3D sets (a mill yard, a street of houses, a pumped-hydro valley); the charts stay as glass overlays |
+| L14-L27 (chapters 5-7 grid levels) | bus graphs on generated tiles | a generated province around the engine's bus layout (render-only, seeded), lattice towers at 132/220/400 kV, plants with steam |
+| L28 finale | the province, 26 buses | the generated province at full size: three days, storms, the heatwave |
+| L31-L36 (chapter 8 distribution) | feeder diagrams | a feeder town and countryside at street scale |
+| Career (9 districts) | paper map at night | 3D districts from the same generator, seen at night |
+
+## Risks
+- **Night readability:** L30 runs from 18:00 to 23:00. Moonlight and ambient light are tuned so the land still reads, but critics may still find it too dark.
+- **Thin geometry:** at district scale, 11 kV poles and wires are sub-pixel. The glow overlay carries the line at a distance, and MSAA 4x keeps the shimmer down on high. On low, the wires will shimmer.
+- **Build time:** the terrain and trees build in GDScript in about 4 s on high. Fine for a level start, but it needs a loading cue or a threaded build.
+- **Overlay projection:** labels and pegs are projected from 3D each frame. Peg and tag picking are verified only on the slice.
+- **Integrated GPU and Deck:** measured on the AMD iGPU (see below). Not run on a Deck or a phone.
+- **Scope:** most of the cost is the 3D sets for chapters 3-4 and 8, and converting every paper screen.
+
+## Frame times (measured, RenderingServer viewport GPU time, L30 at 19:15, default camera)
+See the board line and the phase A report: RTX 4090 high 1920x1080 and 2560x1440; AMD integrated Radeon at high, medium and low.

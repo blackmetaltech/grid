@@ -54,6 +54,11 @@ const PITCH_MAX := deg_to_rad(84.0)
 const DIST_MIN := 60.0
 const DIST_MAX := 9500.0
 var perf := {"frames": 0, "ms": 0.0, "worst": 0.0}
+var _measuring := false
+var _ft_gpu := 0.0
+var _ft_cpu := 0.0
+var _ft_n := 0
+var _ft_at := 0.0
 
 static func pick_quality() -> String:
 	var q := OS.get_environment("CB_QUALITY")
@@ -355,7 +360,7 @@ func _build_rocks() -> void:
 				var x := (i + _h(i, j, 400 + k)) * tm; var z := (j + _h(i, j, 410 + k)) * tm
 				var s := 2.0 + 5.0 * _h(i, j, 420 + k)
 				xs.append(Transform3D(Basis(Vector3.UP, TAU * _h(i, j, 430 + k)).scaled(Vector3(s, s * 0.7, s * 1.2)), Vector3(x, ground(x, z) - 0.5, z)))
-				cs.append(Color(1, 1, 1) * (0.8 + 0.4 * _h(i, j, 440 + k)))
+				cs.append(Color(0.55, 0.53, 0.5) * (0.8 + 0.3 * _h(i, j, 440 + k)))
 	_mm_chunked(Props3D.boulder(), xs, cs, mat, 800.0, 5000.0, "Rocks")
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -606,7 +611,7 @@ func _build_lines() -> void:
 		acc = 0.0
 		for sp in r.spans:
 			var A: Array = sup_att[int(sp.a)]; var B: Array = sup_att[int(sp.b)]
-			Props3D.add_wire(stg, A[min(1, A.size() - 1)], B[min(1, B.size() - 1)], float(sp.sag_m), 0.35, acc)
+			Props3D.add_wire(stg, A[min(1, A.size() - 1)], B[min(1, B.size() - 1)], float(sp.sag_m), 0.14, acc)
 			acc += (A[0] as Vector3).distance_to(B[0])
 		var gi := MeshInstance3D.new(); gi.mesh = stg.commit(); gi.material_override = _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6)
 		gi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(gi)
@@ -712,7 +717,7 @@ func _update_dynamic() -> void:
 		if live:
 			var m: ShaderMaterial = gi.material_override
 			m.set_shader_parameter("tint", Color(l.color, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
-			m.set_shader_parameter("power", 0.5 + 0.4 * n)
+			m.set_shader_parameter("power", 0.35 + 0.3 * n)
 	if not _cable.is_empty():
 		var l := _line_by_id(str(_cable.id))
 		var ok := not l.is_empty() and bool(l.in_service)
@@ -760,6 +765,13 @@ func _process(dt: float) -> void:
 	if not _cable.is_empty() and (_cable.mark as Node3D).visible: (_cable.mark as Node3D).scale = Vector3.ONE * (1.0 + 0.25 * sin(_t * 5.0))
 	if _trawler != null and _trawler.visible: _trawler.position.y = sin(_t * 1.4) * 0.3
 	perf.frames += 1; var ms := dt * 1000.0; perf.ms += ms; perf.worst = maxf(perf.worst, ms)
+	if OS.has_environment("CB_FRAMETIME"):   # GPU and CPU render time of the viewport, measured by the RenderingServer (independent of vsync)
+		var vp := get_viewport().get_viewport_rid()
+		if not _measuring: RenderingServer.viewport_set_measure_render_time(vp, true); _measuring = true
+		_ft_gpu += RenderingServer.viewport_get_measured_render_time_gpu(vp); _ft_cpu += RenderingServer.viewport_get_measured_render_time_cpu(vp) + RenderingServer.get_frame_setup_time_cpu(); _ft_n += 1
+		if _t - _ft_at > 2.0 and _t > 6.0:
+			print("FRAMETIME res=%dx%d gpu_ms=%.2f cpu_render_ms=%.2f frame_ms=%.2f adapter=%s quality=%s" % [get_viewport().size.x, get_viewport().size.y, _ft_gpu / _ft_n, _ft_cpu / _ft_n, perf.ms / perf.frames, RenderingServer.get_video_adapter_name(), quality])
+			_ft_at = _t; _ft_gpu = 0.0; _ft_cpu = 0.0; _ft_n = 0; perf.frames = 0; perf.ms = 0.0
 
 # --------------------------------------------------------------------------------------------------------------------
 # Camera: orbit / pan / zoom, limits that never show an edge
