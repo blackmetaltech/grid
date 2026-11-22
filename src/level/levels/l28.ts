@@ -201,7 +201,7 @@ export const L28: GridLevelSpec = {
   // in the `in` pack the national tie supplies the reserve and the battery is 14 times dearer than the second line: the reference is the cheapest pass there (no spun unit, a second feeder); the lesson is the global one
   byRegion: { in: { lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway], reference: [...tapsEastgate, ...capsEastgate, ...secondCauseway] } },
   budgetOverCheapest: 1.1,   // DECISIONS 14: the finale's budget forces a choice (DESIGN 9.4's 1.3 x the cheapest pass left room for a reactor, a second fix and the spare unit together)
-  frozen: { global: { budget: 70000000, starA: 59723208.50865215, starB: 53781954.76834224 }, in: { budget: 550000000, starA: 447083478.5954592, starB: 413066581.0983571 } },
+  frozen: { global: { budget: 60000000, starA: 54735708.50865215, starB: 54072857.36354617 }, in: { budget: 550000000, starA: 447083478.5954592, starB: 413066581.0983571 } },
   coach: [
     { id: 'volt', textKey: 'coach.L28.volt', whyKey: 'coach.L28.volt.why', done: (s) => s.actionLog.some((a) => a.name === 'setTapAuto') && s.shunts.length > 0 },
     // reserve is a judgment, not a must (the lesson passes without it): the step closes on a reserve bought, or once the player has moved on to the island
