@@ -8,15 +8,18 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **Lights follow your power flow, street by street.** When the engine sheds load or a bus goes dark, the houses go dark in a wave from the town centre. They come back the same way. A 21 % under-frequency shed darkens a 21 % wedge of streets.
 - **The map says it is compressed.** Each 4 km grid square is drawn as 300 m so towns can be read. A note on screen says so, and every number is still the engine's.
 - **"See the finale in the new look"** opens L28 from the jobs list in every mode. Jobs and the Career still in the classic 2D look carry a small "Classic" chip.
-- **A low tier for integrated GPUs**, using the Compatibility renderer: about 30 fps at 1280x800 on an AMD Radeon iGPU.
+- **A low tier for integrated GPUs.** It is picked automatically. On an AMD Radeon iGPU at 1280x800 a frame takes 15 ms on the GPU (it took 118 ms on medium).
+- **Towns at night from far away.** Main streets glow and a warm core shows over each lit town. Both follow the engine: a shed or a blackout dims them too.
 ### Changed
 - **The finale makes you choose.** The build kit is now a shelf of priced parts under Voltage, Reserve and Saltmarsh Island, and it never names the answer. The budget drops from $70M to $60M, so you cannot buy every safe extra. A 2-hour battery fits the budget and runs dry on the second night.
 - **The incident report in the 3D look** is dark glass, docked in the left third of the screen, and does not dim the world. You can see the dark district while you read why.
-- **The finale card** is glass in the 3D look. It scrolls above the speed dock at 1280x800.
+- **The finale card** is glass in the 3D look. It is open while you plan and folds to a strip (day, time, headline, island) while the day runs. "Parts shelf and ticker" opens it again.
+- **Hills are drawn steeper** and the scale note says so. Roofs are mostly terracotta and no longer black on the shaded side. Stars come out after dusk.
 ### Fixed
 - **Grainy terrain.** 3D textures were imported without mipmaps. They now have mipmaps and VRAM compression. Detail fades with distance, and anti-aliasing is temporal. A test fails if a 3D texture loses its mipmaps.
 - **"Lowest voltage was 0.000 pu".** The finale's debrief counted a dark bus as a voltage reading and always labelled it Day 1. It now skips dark buses and names the day and time.
 - Taking a part back no longer refunds a spun unit's fuel.
+- The incident and shift reports no longer show map labels, the radio log or the parts tray through the glass. The finished-job pin is readable in the 3D look.
 ### Notes
 - Wall-clock performance budgets now run locally (`pnpm perf`), not in CI.
 
