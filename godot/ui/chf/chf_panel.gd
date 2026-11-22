@@ -119,7 +119,7 @@ func _rebuild_ticker(g: Dictionary) -> void:
 		var t := str(e.get("text", e.get("msg", ""))) if e is Dictionary else str(e)
 		if e is Dictionary and int(e.get("tick", 0)) <= int(g.levelStart): continue   # the newGame banner ("the grid is empty… place a bus") belongs to before the shift
 		if t != "": lines.append(t)
-		if lines.size() >= (3 if app.vs_h() < 860.0 else 5): break   # 1280x800: three lines, so the card ends above the speed dock
+		if lines.size() >= (3 if (app.is_inside_tree() and app.vs_h() < 860.0) else 5): break   # 1280x800: three lines, so the card ends above the speed dock
 	_ticker.text = "\n".join(lines) if lines.size() > 0 else tx("CF_TICKER_EMPTY")
 
 func _layout() -> void:
