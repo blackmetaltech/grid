@@ -481,8 +481,8 @@ func _build_layout() -> void:
 			if field.kind_at_tile(int((x0 + x1) * 0.5), j2) == TerrainField.K_SEA: zq = j2 * tm; break
 		if zq <= 0.0: continue
 		var qm := StandardMaterial3D.new(); qm.albedo_color = Color(0.55, 0.53, 0.5); qm.roughness = 0.95
-		var quay := MeshInstance3D.new(); var qb := BoxMesh.new(); qb.size = Vector3((x1 - x0 + 2.0) * tm, 4.0, 14.0); quay.mesh = qb; quay.material_override = qm
-		quay.position = Vector3((x0 + x1 + 1.0) * 0.5 * tm, 0.6, zq + 4.0); _root_infra.add_child(quay)
+		var quay := MeshInstance3D.new(); var qb := BoxMesh.new(); qb.size = Vector3((x1 - x0 + 0.6) * tm, 4.0, 12.0); quay.mesh = qb; quay.material_override = qm
+		quay.position = Vector3((x0 + x1 + 1.0) * 0.5 * tm, 0.6, zq - 2.0); _root_infra.add_child(quay)
 		for k2 in 2:
 			var pier := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(8, 3.0, 70); pier.mesh = pb; pier.material_override = qm
 			pier.position = Vector3((x0 + (x1 - x0) * (0.3 + 0.4 * k2)) * tm, 0.4, zq + 40.0); _root_infra.add_child(pier)
