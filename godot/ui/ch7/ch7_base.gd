@@ -120,7 +120,7 @@ func _card_text(r: Rect2, lines: Array, fsz: int, gap: float, top_pad: float) ->
 	var f := _mono(); var fs := GridTheme.fs(fsz); var y := r.position.y + top_pad - (scroll if _phone() else 0.0); var total := 0.0
 	for ln in lines:
 		var h: float = f.get_multiline_string_size(str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs).y
-		if y >= r.position.y + top_pad - 1.0 and y + h <= r.end.y - 6.0: draw_multiline_string(f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
+		if y >= r.position.y + top_pad - 1.0 and y + h <= r.end.y - 6.0: GridText.dm(self, f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
 		y += h + gap; total += h + gap
 	scroll_max = maxf(0.0, total - (r.size.y - top_pad - 8.0))
 	if _phone() and scroll_max > 0.0: _text(_mono(), 9, Vector2(r.end.x - 90.0, r.end.y - 8.0), "drag to scroll", Color(GridTheme.TEXT, 0.4))
@@ -181,6 +181,8 @@ func _draw_price_tag(pn: Rect2) -> void:
 	var txt := T("C4_SPENT") % [_money(spent), _money(budget)] if budget > 0.0 else _money(spent)
 	var mono := _mono(); var semi := _semi()
 	var w := 176.0; var h := 44.0
+	var fz16 := GridText.floor_size(self, 13)   # 1.9: the tag grows to its words at the 16 px floor (it clipped "build incl. starting kit")
+	w = maxf(w, maxf(semi.get_string_size(T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 34.0, mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 20.0)); h = maxf(h, fz16 * 2.0 + 16.0)
 	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _narrow() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
 	draw_set_transform(_scr(org + Vector2(w, h) * 0.5), deg_to_rad(-1.4), Vector2(_sc, _sc))   # phone: the panel is drawn scaled into the tray slot, so is its tag
 	var rect := Rect2(Vector2(-w * 0.5, -h * 0.5), Vector2(w, h))
@@ -188,6 +190,6 @@ func _draw_price_tag(pn: Rect2) -> void:
 	draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
 	var fsz := GridTheme.fs(13); var tw2 := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw2 > w - 16.0 and fsz > 9: fsz -= 1; tw2 = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	draw_string(semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
-	draw_string(mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	GridText.ds(self, semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
+	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
 	draw_set_transform(_p0 - panel.position * _sc, 0.0, Vector2(_sc, _sc))   # back to the panel's transform (identity on desktop): the chip rows drawn after the tag were left unscaled and ran past the slot on the phone

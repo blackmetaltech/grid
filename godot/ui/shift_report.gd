@@ -371,7 +371,7 @@ class Stamp extends Control:
 		var r := Rect2(-ts * 0.5 - Vector2(12, 6), ts + Vector2(24, 12))
 		draw_rect(r, Color(PaperKit.RED, 0.9), false, 4.0)
 		draw_rect(r.grow(-6), Color(PaperKit.RED, 0.55), false, 1.5)
-		draw_string(f, Vector2(-ts.x * 0.5, ts.y * 0.5 - 8.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color(PaperKit.RED, 0.9))
+		GridText.ds(self, f, Vector2(-ts.x * 0.5, ts.y * 0.5 - 8.0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, sz, Color(PaperKit.RED, 0.9))
 
 # ---- stamping -----------------------------------------------------------------------------------------------------------------------
 ## Each earned lamp is stamped in turn: the ring thumps down and the "stamp" sound plays. Headless / reduced motion: all stamped at once.

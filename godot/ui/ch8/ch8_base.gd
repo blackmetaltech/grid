@@ -60,7 +60,7 @@ func _card_lines(r: Rect2, lines: Array, fsz: int, gap: float, top_pad: float) -
 	var f := _mono(); var fs := GridTheme.fs(fsz); var y := r.position.y + top_pad
 	for ln in lines:
 		var h: float = f.get_multiline_string_size(str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs).y
-		if y + h <= r.end.y - 6.0: draw_multiline_string(f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
+		if y + h <= r.end.y - 6.0: GridText.dm(self, f, Vector2(r.position.x + 12.0, y + fs), str(ln[0]), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 24.0, fs, -1, ln[1])
 		y += h + gap
 
 func _inner() -> Rect2: return Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
@@ -110,7 +110,7 @@ func _chip8(r: Rect2, label: String, sub: String, on: bool, id: String, arg, ena
 
 ## A status line in the panel's lower-left corner (the bottom-right belongs to the price tag).
 func _status(ip: Rect2, text: String, col: Color, y := 124.0, w := 440.0) -> void:
-	draw_multiline_string(_mono(), ip.position + Vector2(0.0, y + 10.0), text, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(11), 3, col)
+	GridText.dm(self, _mono(), ip.position + Vector2(0.0, y + 10.0), text, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(11), 3, col)
 
 # ---- stage helpers -----------------------------------------------------------------------------------------------------------------
 func _card(r: Rect2) -> void: draw_style_box(GridTheme.ink_sb(INK_CARD, 10, 0.0), r)

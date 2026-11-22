@@ -45,5 +45,5 @@ func _draw() -> void:
 	if absf(diff) > 0.01 and (a.i as Vector2).length() > 3.0: draw_arc(c, rr, -av, -av - diff, 24, CbKit.AM, 2.0, true)
 	_head(c, c + (a.v as Vector2), CbKit.TX, 3.0)
 	_head(c, c + (a.i as Vector2), Color("#39E1FF"), 3.0)
-	draw_string(f, c + (a.v as Vector2) + PhasorMath.dir(PhasorMath.angle_of(a.v)) * 12.0 + Vector2(-4, 5), tr("PHASOR_V"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, CbKit.TX)
-	draw_string(f, c + (a.i as Vector2) + PhasorMath.dir(PhasorMath.angle_of(a.i)) * 12.0 + Vector2(-4, 5), tr("PHASOR_I"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("#39E1FF"))
+	GridText.ds(self, f, c + (a.v as Vector2) + PhasorMath.dir(PhasorMath.angle_of(a.v)) * 12.0 + Vector2(-4, 5), tr("PHASOR_V"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, CbKit.TX)
+	GridText.ds(self, f, c + (a.i as Vector2) + PhasorMath.dir(PhasorMath.angle_of(a.i)) * 12.0 + Vector2(-4, 5), tr("PHASOR_I"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("#39E1FF"))

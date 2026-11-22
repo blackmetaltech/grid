@@ -54,7 +54,7 @@ static func font(kind: String) -> Font:
 	return f
 
 ## Text size through the shell's own scaling rule (floor, content scale) so Settings > text size keeps working.
-static func fs(n: int) -> int: return CbKit.fs(n)
+static func fs(n: int) -> int: return maxi(16, CbKit.fs(n))   # 1.9: the 16 px floor (the shell allows 13)
 
 static var _ls := {}
 static func settings(size: int, col: Color, kind := "sans") -> LabelSettings:

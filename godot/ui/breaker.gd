@@ -151,16 +151,16 @@ func _draw() -> void:
 		sb.border_color = GridTheme.SODIUM if sel else Color(GridTheme.SODIUM_DIM, 0.55 if _hover else 0.35); sb.set_border_width_all(2 if sel else 1)
 		draw_style_box(sb, kr)
 		var tl: String = RATES[k]; var kw := mf.get_string_size(tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz)
-		draw_string(mf, Vector2(kr.get_center().x - kw.x * 0.5, kr.get_center().y + msz * 0.35), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if sel else Color(GridTheme.TEXT, 0.75))
+		GridText.ds(self, mf, Vector2(kr.get_center().x - kw.x * 0.5, kr.get_center().y + msz * 0.35), tl, HORIZONTAL_ALIGNMENT_LEFT, -1, msz, GridTheme.SODIUM if sel else Color(GridTheme.TEXT, 0.75))
 	# label
 	var f := GridTheme.font("semi"); var fsz := GridTheme.fs(17); var lt := label_text()
 	var lw := f.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 	var lx := (w - lw.x) * 0.5 + (12.0 if CbKit.pad_mode else 0.0)
-	draw_string(f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.TEXT)
+	GridText.ds(self, f, Vector2(lx, h - 12.0), lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if on else GridTheme.TEXT)
 	if CbKit.pad_mode: _pad_glyph(Vector2(lx - 17.0, h - 18.0), "X")
 
 ## A round controller button glyph ("X"): shown while the last input was a pad.
 func _pad_glyph(c: Vector2, t: String) -> void:
 	draw_circle(c, 10.0, Color("#2E5FD0")); draw_arc(c, 10.0, 0.0, TAU, 20, Color(1, 1, 1, 0.7), 1.4)
 	var f := GridTheme.font("semi"); var z := GridTheme.fs(13); var tw := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, z)
-	draw_string(f, c + Vector2(-tw.x * 0.5, z * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, z, Color.WHITE)
+	GridText.ds(self, f, c + Vector2(-tw.x * 0.5, z * 0.36), t, HORIZONTAL_ALIGNMENT_LEFT, -1, z, Color.WHITE)

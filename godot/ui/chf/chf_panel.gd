@@ -2,7 +2,7 @@ class_name ChfPanel
 extends PanelContainer
 ## The finale's card (L28, top left under the instruments): which of the three days it is and what it threatens, the clock, Saltmarsh Island's lamp (lit / on its battery / dark), the day's numbers
 ## and the event ticker (the engine's own log of trips, repairs and lightning), plus the one action the generic tray has no cell for: keeping the spare gas unit spinning. Display and input only.
-const W := 300.0
+const W := 340.0   # 1.9: the build kit at the 16 px floor (was 300)
 const LEVEL := "L28"
 var app: CbApp
 var _sig := ""

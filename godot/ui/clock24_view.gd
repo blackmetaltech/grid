@@ -70,7 +70,7 @@ func _draw() -> void:
 	for h in [0, 6, 12, 18]:
 		var s := "%02d" % h; var tw := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 		var p := _pt(c, r * 0.52, deg_of(h * 60.0))
-		draw_string(f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, Color(ink, 0.75))
+		GridText.ds(self, f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, Color(ink, 0.75))
 	var ha := deg_of(hand)
 	draw_line(c + Vector2(1.5, 1.5), _pt(c, r - 8.0, ha) + Vector2(1.5, 1.5), Color(0, 0, 0, 0.25), 3.0, true)
 	draw_line(c, _pt(c, r - 8.0, ha), Color("#B3261E"), 2.5, true)
@@ -78,4 +78,4 @@ func _draw() -> void:
 	var t := time_text(); var tsz := GridTheme.fs(17); var tw2 := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz)
 	var plate := Rect2(Vector2((w - tw2.x) * 0.5 - 8.0, d + 2.0), Vector2(tw2.x + 16.0, tsz + 8.0))
 	draw_rect(plate, GridTheme.NIGHT, true)
-	draw_string(f, plate.position + Vector2(8.0, tsz + 2.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz, GridTheme.SODIUM)
+	GridText.ds(self, f, plate.position + Vector2(8.0, tsz + 2.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz, GridTheme.SODIUM)

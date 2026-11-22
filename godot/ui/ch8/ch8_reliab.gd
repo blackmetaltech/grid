@@ -112,4 +112,4 @@ func _draw_stage() -> void:
 		var c: Array = cells[k]; var o := r3.position + Vector2(12.0 + iw * k, 14.0)
 		_text(_semi(), 11, o + Vector2(0, 8), str(c[0]), Color(GridTheme.TEXT, 0.75)); _text(_mono(), 26, o + Vector2(0, 42), str(c[1]), _good(bool(c[3])))
 		_text(_mono(), 10, o + Vector2(0, 60), str(c[2]), Color(GridTheme.TEXT, 0.65))
-		if not _phone(): draw_multiline_string(_mono(), o + Vector2(0, 78), str(c[4]), HORIZONTAL_ALIGNMENT_LEFT, iw - 14.0, GridTheme.fs(10), 4, Color(GridTheme.TEXT, 0.5))
+		if not _phone(): GridText.dm(self, _mono(), o + Vector2(0, 78), str(c[4]), HORIZONTAL_ALIGNMENT_LEFT, iw - 14.0, GridTheme.fs(10), 4, Color(GridTheme.TEXT, 0.5))

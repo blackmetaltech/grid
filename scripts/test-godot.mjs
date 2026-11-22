@@ -30,4 +30,13 @@ if (want.length === 0 || want.includes('paper_flow') || want.includes('career_fl
   console.log(`${ok ? 'PASS' : 'FAIL'} smoke+paper_flow+career_flow\n  ${out.split('\n').filter((l) => /SMOKE|FAIL|CAREER-FLOW|SCRIPT ERROR/.test(l)).join('\n  ')}`);
   if (!ok) bad++;
 }
+// 1.9 text audit: CB_TEXTAUDIT=1 walks every screen at 1920x1080 and 1280x800 (tests/text_flow.gd): no visible text under 16 px, no hand-drawn
+// string wider than its control, the pad strip inside the window and clear of every other piece of text
+if (want.length === 0 || want.includes('text_flow')) {
+  const r = sh('godot', ['--headless', '--path', 'godot'], { timeout: 900000, env: { ...process.env, CB_TEXTAUDIT: '1', CB_NOAUDIO: '1', CB_NOAUTOSAVE: '1' } });
+  const out = `${r.stdout}\n${r.stderr}`;
+  const ok = /^TEXT-FLOW OK/m.test(out) && !/SCRIPT ERROR/.test(out);
+  console.log(`${ok ? 'PASS' : 'FAIL'} text_flow\n  ${out.split('\n').filter((l) => /TEXT-FLOW|FAIL|SCRIPT ERROR/.test(l)).slice(0, 40).join('\n  ')}`);
+  if (!ok) bad++;
+}
 process.exit(bad ? 1 : 0);

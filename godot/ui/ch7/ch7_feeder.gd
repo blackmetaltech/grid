@@ -56,17 +56,17 @@ func _draw_stage() -> void:
 	for k in 4:
 		draw_rect(Rect2(Vector2(lx, ly + 18.0 * k - 8.0), Vector2(14, 6)), COLS[k]); _text(_mono(), 10, Vector2(lx + 20.0, ly + 18.0 * k), "R%d  I_s %s A" % [k + 1, str(q.is[k])], GridTheme.TEXT)
 	var by2: float = ly + 18.0 * 4 + 6.0
-	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); draw_multiline_string(_mono(), Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 36.0, GridTheme.fs(10), -1, Color(GridTheme.BAD, 0.85))
+	draw_line(Vector2(lx, by2 - 4.0), Vector2(lx + 14.0, by2 - 4.0), Color(GridTheme.BAD, 0.7), 1.5); GridText.dm(self, _mono(), Vector2(lx + 20.0, by2), T("C7_LIMIT_ALL"), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 36.0, GridTheme.fs(10), -1, Color(GridTheme.BAD, 0.85))
 	var tot = q.get("totalS")
 	if tot != null:
 		var okc := _good(bool(q.get("ok", false)))
 		_text(_mono(), 12, Vector2(lx, by2 + 56.0), T("C7_LEG_TOTALS") % WorkOrder.num(snappedf(float(tot), 0.001)), okc)
-		draw_multiline_string(_mono(), Vector2(lx, by2 + 76.0), T("C7_LEG_SPARE") % WorkOrder.num(snappedf(float(q.get("minMarginS", 0.0)), 0.001)), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 24.0, GridTheme.fs(12), -1, okc)
+		GridText.dm(self, _mono(), Vector2(lx, by2 + 76.0), T("C7_LEG_SPARE") % WorkOrder.num(snappedf(float(q.get("minMarginS", 0.0)), 0.001)), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 24.0, GridTheme.fs(12), -1, okc)
 	var lx2: float = float((plot.r as Rect2).position.x) + 12.0
 	var gy: float = float((plot.r as Rect2).end.y) - 96.0; var gw: float = float((plot.r as Rect2).size.x) - 24.0
 	for g in (["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"] if not _phone() else []):
 		var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10)).y
-		draw_multiline_string(_mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
+		GridText.dm(self, _mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
 	for f in q.faults:
 		var x := _pt(float(f.amps), 0.01).x; var pr: Rect2 = plot.r
 		draw_line(Vector2(x, pr.position.y), Vector2(x, pr.end.y), Color(GridTheme.TEXT, 0.35), 1.0)

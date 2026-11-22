@@ -1066,7 +1066,7 @@ func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, centre_w :=
 	while centre_w > 0.0 and tw > centre_w and s.length() > 2:   # still too wide at the smallest size: trim with an ellipsis rather than run into the next cell
 		s = s.left(s.length() - 2) + "…"; tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var x := at.x if centre_w < 0.0 else at.x + (centre_w - tw) * 0.5
-	draw_string(font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
+	GridText.ds(self, font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
 
 func _selected(it: Dictionary) -> bool:
 	match str(it.kind):
@@ -1156,7 +1156,7 @@ func _draw() -> void:
 		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + (72.0 if two else 76.0) + dy1), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 84.0 + dy2), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
-		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
+		if _scroll > 1.0: GridText.ds(self, semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
 		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # the more-parts tab with its count
 	_draw_price_tag()
 	_draw_cursor()
@@ -1196,8 +1196,8 @@ func _draw_price_tag() -> void:
 	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
 	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.PAPER_INK, 0.6), false, 1.0)
 	draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
-	draw_string(semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
-	draw_string(mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
+	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 ## The paper chip: one line, or wrapped (a refusal is a sentence) in a box at most 620 px wide; the dot says good / thin / bad.
@@ -1226,8 +1226,8 @@ func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 	if dw > 0.0:
 		draw_circle(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, dot); draw_arc(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, 0.0, TAU, 16, GridTheme.PAPER_INK, 1.3)
 	tx0 += dw
-	draw_multiline_string(f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
-	if note != "": draw_multiline_string(f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz) + f.get_height(fsz) * lines), note, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0, fsz, -1, Color("#9A5200"))
+	GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
+	if note != "": GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz) + f.get_height(fsz) * lines), note, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0, fsz, -1, Color("#9A5200"))
 
 # ---- icons ----------------------------------------------------------------------------------------------------------------------------
 func _icon_survey(c: Vector2) -> void:
@@ -1286,7 +1286,7 @@ func _icon_span(c: Vector2, m: int) -> void:
 	var mono := GridTheme.font("mono")
 	var s := tx("RT_SPAN_M") % str(m); var fsz := GridTheme.fs(15)
 	var tw := mono.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	draw_string(mono, Vector2(c.x - tw * 0.5, c.y + 1.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM)
+	GridText.ds(self, mono, Vector2(c.x - tw * 0.5, c.y + 1.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM)
 	var y := c.y + 12.0
 	for sx in [-1.0, 1.0]: draw_line(Vector2(c.x + sx * 21.0, y - 6.0), Vector2(c.x + sx * 21.0, y + 6.0), GridTheme.PAPER, 2.0)
 	draw_line(Vector2(c.x - 21.0, y), Vector2(c.x + 21.0, y), GridTheme.PAPER, 1.5)

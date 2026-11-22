@@ -37,8 +37,8 @@ func _initialize() -> void:
 	T.check(radio.size.y > 70.0, "the panel grew with its text (%.0f)" % radio.size.y)
 	# fading: the cap drops the oldest rows, never the newest
 	var n_before := radio._box.get_child_count()
-	radio.max_h = 150.0; radio._rebuild(); for i in 6: await process_frame
-	T.check(radio._box.get_child_count() < n_before and radio.size.y <= 152.0, "over the cap the oldest rows drop (%d -> %d rows, %.0f)" % [n_before, radio._box.get_child_count(), radio.size.y])
+	radio.max_h = 200.0; radio._rebuild(); for i in 6: await process_frame   # 1.9: rows are taller at the 16 px floor (the cap was 150)
+	T.check(radio._box.get_child_count() < n_before and radio.size.y <= 202.0, "over the cap the oldest rows drop (%d -> %d rows, %.0f)" % [n_before, radio._box.get_child_count(), radio.size.y])
 	T.check(radio.lines.back().text == long_txt and str(radio._box.get_child(radio._box.get_child_count() - 2).get_child(2).text) == long_txt, "the newest line is the one kept")
 	radio.max_h = 320.0; radio.visible_lines = 4; radio._rebuild()
 	# why / log

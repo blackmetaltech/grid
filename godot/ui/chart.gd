@@ -33,7 +33,7 @@ func _range() -> Vector2:
 func _draw() -> void:
 	var f := CbKit.font_regular(); var fs := CbKit.fs(13)
 	var left := 46.0; var top := 18.0; var w := size.x - left - 6.0; var h := size.y - top - 6.0
-	draw_string(f, Vector2(2, 12), title, HORIZONTAL_ALIGNMENT_LEFT, size.x - 4.0, fs, CbKit.DIM)
+	GridText.ds(self, f, Vector2(2, 12), title, HORIZONTAL_ALIGNMENT_LEFT, size.x - 4.0, fs, CbKit.DIM)
 	draw_rect(Rect2(left, top, w, h), Color(CbKit.DEEP, 0.6))
 	if ys.size() < 2: return
 	var rg := _range()
@@ -43,8 +43,8 @@ func _draw() -> void:
 	var pts := PackedVector2Array()
 	for i in ys.size(): pts.append(Vector2(px.call(i), py.call(clampf(float(ys[i]), rg.x, rg.y) if peg else float(ys[i]))))
 	draw_polyline(pts, col, 2.0, true)
-	draw_string(f, Vector2(2, top + 10.0), ("%." + str(dec) + "f") % rg.y, HORIZONTAL_ALIGNMENT_LEFT, left - 4.0, fs, CbKit.DIM)
-	draw_string(f, Vector2(2, top + h), ("%." + str(dec) + "f") % rg.x, HORIZONTAL_ALIGNMENT_LEFT, left - 4.0, fs, CbKit.DIM)
+	GridText.ds(self, f, Vector2(2, top + 10.0), ("%." + str(dec) + "f") % rg.y, HORIZONTAL_ALIGNMENT_LEFT, left - 4.0, fs, CbKit.DIM)
+	GridText.ds(self, f, Vector2(2, top + h), ("%." + str(dec) + "f") % rg.x, HORIZONTAL_ALIGNMENT_LEFT, left - 4.0, fs, CbKit.DIM)
 	for m in marks: draw_line(Vector2(px.call(int(m)), top), Vector2(px.call(int(m)), top + h), CbKit.RD, 2.0)
 	if cursor >= 0 and cursor < ys.size():
 		draw_line(Vector2(px.call(cursor), top), Vector2(px.call(cursor), top + h), CbKit.AM, 2.0)

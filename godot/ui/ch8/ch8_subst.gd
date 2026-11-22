@@ -30,7 +30,7 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 
 func _body(ip: Rect2) -> void:
 	var ok := not bool(q.overheat) and not bool(q.notRestored)
-	draw_multiline_string(_mono(), ip.position + Vector2(390.0, 22.0), T("C8_L34_OK") if ok else (T("C8_L34_HOT") if bool(q.overheat) else T("C8_L34_LATE")), HORIZONTAL_ALIGNMENT_LEFT, 240.0, GridTheme.fs(11), 5, _good(ok))
+	GridText.dm(self, _mono(), ip.position + Vector2(390.0, 22.0), T("C8_L34_OK") if ok else (T("C8_L34_HOT") if bool(q.overheat) else T("C8_L34_LATE")), HORIZONTAL_ALIGNMENT_LEFT, 240.0, GridTheme.fs(11), 5, _good(ok))
 
 func _draw_stage() -> void:
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
@@ -50,7 +50,7 @@ func _draw_stage() -> void:
 	_text(_mono(), 18, Vector2(th.position.x + 124.0, th.position.y + 90.0), T("C8_C") % WorkOrder.num(hot_peak), _good(hot_peak <= lim)); _text(_mono(), 10, Vector2(th.position.x + 124.0, th.position.y + 106.0), T("C8_HOT_AT") % str(q.hotPeakAt), Color(GridTheme.TEXT, 0.7))
 	var lol := float(q.lolDays); var lstar := float(q.lolStarDays)
 	_text(_mono(), 18, Vector2(th.position.x + 124.0, th.position.y + 170.0), T("C8_DAYS") % WorkOrder.num(lol), _good(lol <= lstar)); _text(_mono(), 10, Vector2(th.position.x + 124.0, th.position.y + 186.0), T("C8_LOL"), Color(GridTheme.TEXT, 0.7))
-	draw_multiline_string(_mono(), th.position + Vector2(124.0, 206.0), T("C8_LOL_LAMPS") % [WorkOrder.num(lstar * 2.0), WorkOrder.num(lstar)], HORIZONTAL_ALIGNMENT_LEFT, 112.0, GridTheme.fs(10), 5, Color(GridTheme.TEXT, 0.6))
+	GridText.dm(self, _mono(), th.position + Vector2(124.0, 206.0), T("C8_LOL_LAMPS") % [WorkOrder.num(lstar * 2.0), WorkOrder.num(lstar)], HORIZONTAL_ALIGNMENT_LEFT, 112.0, GridTheme.fs(10), 5, Color(GridTheme.TEXT, 0.6))
 	# right: the readings
 	var tw := minf(340.0, (w - 60.0) * 0.25); var tr := Rect2(Vector2(w - 30.0 - tw, top), Vector2(tw, bh))
 	var lines := []

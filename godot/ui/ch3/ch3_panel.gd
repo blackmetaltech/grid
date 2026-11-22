@@ -5,7 +5,7 @@ extends Control
 ## Display only: every number is the engine's (`phasor`, `harmonics`, `seriesInfo`, `levelInfo`).
 
 const M := 14.0
-const W := 300.0
+const W := 370.0   # 1.9: the 16 px floor (was 300)
 var app: CbApp
 var mode := ""                 ## "" | "pf" | "harm" | "series"
 var d: Dictionary = {}         ## the query result of the mode
@@ -75,7 +75,7 @@ func layout() -> void:
 	if mode == "pf": phasor.position = Vector2((W - 220.0) * 0.5, 30.0); phasor.size = Vector2(220, 200)
 
 func _txt(s: String, at: Vector2, px: int, col: Color, font := "mono", w := -1.0) -> void:
-	draw_string(GridTheme.font(font), at, s, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(px), col)
+	GridText.ds(self, GridTheme.font(font), at, s, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(px), col)
 
 func _ink(a := 1.0) -> Color: return Color(GridTheme.PAPER_INK, a)
 
@@ -120,7 +120,7 @@ func _draw_harm() -> void:
 		_txt("%d" % int(tick), Vector2(14, ty + 4.0), 10, _ink(0.6)); draw_line(Vector2(28, ty), Vector2(32, ty), _ink(0.5), 1.0)
 	var ly := base - (base - top) * thd_max / vmax
 	for dx in range(32, int(W) - 14, 10): draw_line(Vector2(dx, ly), Vector2(minf(dx + 5, W - 14), ly), GridTheme.BAD, 1.5)
-	draw_string(GridTheme.font("mono"), Vector2(14, 66), "╌ " + tx("C3_P_LIMIT") % ("%.0f" % thd_max), HORIZONTAL_ALIGNMENT_RIGHT, W - 28.0, GridTheme.fs(11), GridTheme.BAD)   # the key of the dashed line, inside the padding
+	GridText.ds(self, GridTheme.font("mono"), Vector2(14, 66), "╌ " + tx("C3_P_LIMIT") % ("%.0f" % thd_max), HORIZONTAL_ALIGNMENT_RIGHT, W - 28.0, GridTheme.fs(11), GridTheme.BAD)   # the key of the dashed line, inside the padding
 	var bw := (W - 46.0) / maxf(bars.size(), 1)
 	for i in bars.size():
 		var v := float(bars[i].vPct); var h := (base - top) * clampf(v / vmax, 0.0, 1.0)

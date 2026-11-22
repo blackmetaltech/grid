@@ -27,21 +27,21 @@ class PvChart extends Control:
 		draw_rect(r, Color(0, 0, 0, 0.06)); draw_rect(r, Color(0, 0, 0, 0.5), false, 1.0)
 		var pts: Array = data.get("points", [])
 		var f := ThemeDB.fallback_font
-		draw_string(f, Vector2(2, r.position.y + 10), "1.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7)); draw_string(f, Vector2(2, r.end.y), "0.4", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
-		draw_string(f, Vector2(r.position.x, r.end.y + 14), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
-		draw_string(f, Vector2(r.position.x + 4, r.position.y + 24), "V (pu)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55)); draw_string(f, Vector2(r.end.x - 52, r.end.y - 6), "P (MW)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55))
+		GridText.ds(self, f, Vector2(2, r.position.y + 10), "1.1", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7)); GridText.ds(self, f, Vector2(2, r.end.y), "0.4", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
+		GridText.ds(self, f, Vector2(r.position.x, r.end.y + 14), "0", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
+		GridText.ds(self, f, Vector2(r.position.x + 4, r.position.y + 24), "V (pu)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55)); GridText.ds(self, f, Vector2(r.end.x - 52, r.end.y - 6), "P (MW)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.55))
 		if pts.size() < 2:   # before the first Run: empty axes and a faint hint of where the nose will be
 			draw_polyline(PackedVector2Array([Vector2(r.position.x + 6, r.position.y + 16), Vector2(r.position.x + r.size.x * 0.55, r.position.y + r.size.y * 0.30), Vector2(r.position.x + r.size.x * 0.82, r.position.y + r.size.y * 0.55), Vector2(r.position.x + r.size.x * 0.90, r.position.y + r.size.y * 0.80)]), Color(0.1, 0.35, 0.65, 0.22), 2.0)
-			draw_string(f, Vector2(r.position.x + r.size.x * 0.66, r.position.y + r.size.y * 0.52), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.15, 0.1, 0.35)); return
+			GridText.ds(self, f, Vector2(r.position.x + r.size.x * 0.66, r.position.y + r.size.y * 0.52), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.8, 0.15, 0.1, 0.35)); return
 		var pmax := float(data.get("noseMW", 1.0)) * 1.15; pmax = maxf(pmax, float(data.get("loadMW", 1.0)) * 1.1)
 		var poly := PackedVector2Array()
 		for p in pts: poly.append(Vector2(r.position.x + r.size.x * float(p.pMW) / pmax, r.position.y + r.size.y * (1.0 - (float(p.v) - 0.4) / 0.7)))
 		draw_polyline(poly, Color(0.1, 0.35, 0.65), 2.0)
 		var nose := Vector2(r.position.x + r.size.x * float(data.noseMW) / pmax, r.position.y + r.size.y * (1.0 - (float(data.noseV) - 0.4) / 0.7))
-		draw_circle(nose, 5.0, Color(0.8, 0.15, 0.1)); draw_string(f, nose + Vector2(-26, -8), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.15, 0.1))
+		draw_circle(nose, 5.0, Color(0.8, 0.15, 0.1)); GridText.ds(self, f, nose + Vector2(-26, -8), "nose", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.15, 0.1))
 		var lx := r.position.x + r.size.x * float(data.loadMW) / pmax
 		draw_line(Vector2(lx, r.position.y), Vector2(lx, r.end.y), Color(0.15, 0.5, 0.2), 1.5)
-		draw_string(f, Vector2(r.end.x - 40, r.end.y + 14), "%d MW" % int(pmax), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
+		GridText.ds(self, f, Vector2(r.end.x - 40, r.end.y + 14), "%d MW" % int(pmax), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0, 0, 0, 0.7))
 
 func _init() -> void:
 	name = "Ch5Panel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP

@@ -249,13 +249,14 @@ class NetCurve extends Control:
 	var ramp_fmt := ""
 	var fc = null
 	var note := ""
-	const LM := 34.0
+	var LM := 34.0
 	func _x(i: float) -> float: return LM + (size.x - LM - 6.0) * i / 95.0
 	func _draw() -> void:
+		# 1.9: laid out from the floored text size (16 px on screen), so the caption, the axis numbers and the ramp label never sit on each other
 		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
+		var fz := GridText.floor_size(self, 11)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(ink, 0.08))
-		draw_string(f, Vector2(4, 12), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ink)
-		var top := 20.0; var bh := size.y - top - 14.0
+		GridText.ds(self, f, Vector2(4, fz), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, ink)
 		var fnet: Array = fc.net if fc is Dictionary else []
 		var e: Array = g.get("history", {}).get("entries", [])
 		var net: Array = []
@@ -264,16 +265,22 @@ class NetCurve extends Control:
 		for v in fnet: hi = maxf(hi, float(v))
 		for v in net: hi = maxf(hi, float(v))
 		hi = ceilf(hi / 1000.0) * 1000.0
+		LM = f.get_string_size("%d" % int(hi), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x + 8.0
+		var has_ramp: bool = fc is Dictionary and float(fc.ramp) > 1.0
+		var top := fz * (2.0 if has_ramp else 1.0) + 12.0 + fz * 0.6; var bh := size.y - top - fz - 6.0
+		var want_h := fz * 3.0 + 18.0 + 70.0
+		if custom_minimum_size.y < want_h - 0.5: custom_minimum_size.y = want_h
 		for k in 3:   # MW ticks: 0, half, full
 			var v := hi * float(k) / 2.0; var y := top + bh * (1.0 - v / hi)
 			draw_line(Vector2(LM - 3.0, y), Vector2(size.x - 4.0, y), Color(ink, 0.15), 1.0)
-			draw_string(f, Vector2(2, y + 4.0), "%d" % int(v), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(ink, 0.8))
+			GridText.ds(self, f, Vector2(2, y + fz * 0.35), "%d" % int(v), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.8))
 		for h in [0, 6, 12, 18, 24]:
-			draw_string(f, Vector2(_x(minf(float(h) * 4.0, 95.0)) - 6.0, size.y - 3.0), "%02d" % h, HORIZONTAL_ALIGNMENT_LEFT, -1, 9, Color(ink, 0.7))
-		if fc is Dictionary and float(fc.ramp) > 1.0:   # the dusk ramp: a shaded band around the steepest climb, labelled in MW per hour
+			var hs := "%02d" % h; var hw := f.get_string_size(hs, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x
+			GridText.ds(self, f, Vector2(clampf(_x(minf(float(h) * 4.0, 95.0)) - hw * 0.5, LM, size.x - hw - 2.0), size.y - 3.0), hs, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.7))
+		if has_ramp:   # the dusk ramp: a shaded band around the steepest climb, labelled in MW per hour on its own line under the caption
 			var at := float(fc.at); var x0 := _x(maxf(at - 6.0, 0.0)); var x1 := _x(minf(at + 2.0, 95.0))
 			draw_rect(Rect2(Vector2(x0, top), Vector2(x1 - x0, bh)), Color("#C0392B", 0.16))
-			draw_string(f, Vector2(maxf(LM, x0 - 70.0), top + 11.0), ramp_fmt % int(round(float(fc.ramp) * 60.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#C0392B"))
+			GridText.ds(self, f, Vector2(4, fz * 2.0 + 6.0), ramp_fmt % int(round(float(fc.ramp) * 60.0)), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color("#C0392B"))
 		if not fnet.is_empty():
 			var fp := PackedVector2Array()
 			for i in fnet.size(): fp.append(Vector2(_x(float(i)), top + bh * (1.0 - float(fnet[i]) / hi)))
@@ -290,12 +297,14 @@ class ShareBar extends Control:
 	var caption := ""
 	func _draw() -> void:
 		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
-		draw_string(f, Vector2(0, 11), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ink)
-		var r := Rect2(0.0, 18.0, size.x - 56.0, 14.0)
+		var fz := GridText.floor_size(self, 11)
+		if custom_minimum_size.y < fz * 2.0 + 26.0: custom_minimum_size.y = fz * 2.0 + 26.0
+		GridText.ds(self, f, Vector2(0, fz), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, ink)
+		var r := Rect2(0.0, fz + 6.0, size.x - 56.0, 14.0)
 		draw_rect(r, Color(ink, 0.12))
 		draw_rect(Rect2(r.position.x + r.size.x * 0.58, r.position.y, r.size.x * 0.04, r.size.y), Color("#3E8E5A", 0.45))   # the 58-62 % target band
 		var ok := absf(share - 60.0) <= 2.0
 		draw_rect(Rect2(r.position, Vector2(r.size.x * clampf(share / 100.0, 0.0, 1.0), r.size.y)), Color("#3E8E5A") if ok else Color("#C0392B"))
 		draw_line(Vector2(r.position.x + r.size.x * 0.6, r.position.y - 3.0), Vector2(r.position.x + r.size.x * 0.6, r.end.y + 3.0), ink, 2.0)
-		draw_string(f, Vector2(r.end.x + 6.0, r.position.y + 12.0), "%.0f %%" % share, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, ink)
-		draw_string(f, Vector2(r.position.x + r.size.x * 0.6 - 10.0, size.y - 1.0), "60", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(ink, 0.8))
+		GridText.ds(self, f, Vector2(r.end.x + 6.0, r.position.y + 12.0), "%.0f %%" % share, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, ink)
+		GridText.ds(self, f, Vector2(r.position.x + r.size.x * 0.6 - 10.0, size.y - 1.0), "60", HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.8))

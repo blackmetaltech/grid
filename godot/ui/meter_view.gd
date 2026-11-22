@@ -109,15 +109,15 @@ func _draw() -> void:
 		if is_major:
 			var s := str(int(round(v))); var tw := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 			var p := _pt(c, r + 8.0 + 8.0 + tw.x * 0.35, a)
-			draw_string(f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)
+			GridText.ds(self, f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)
 	# caption (top-left, tiny scale label), readout under the pivot
 	var cf := GridTheme.font("semi"); var csz := GridTheme.fs(11)
-	draw_string(cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank and blank_key == "METER_BLANK" else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
+	GridText.ds(self, cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank and blank_key == "METER_BLANK" else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
 	var rs := readout_text(); var rsz := GridTheme.fs(17)
 	var rw := f.get_string_size(rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz)
 	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 10.0), Vector2(rw.x + 16.0, rsz + 8.0))
 	draw_rect(plate, GridTheme.NIGHT, true)
-	draw_string(f, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, GridTheme.SODIUM)
+	GridText.ds(self, f, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, GridTheme.SODIUM)
 	if not is_nan(ghost):   # ghost needle: where the needle would rest if the player did this, drawn under the real one
 		var ga := angle_deg(ghost)
 		draw_line(_pt(c, r - 2.0, ga) , _pt(c, 6.0, ga), Color(GridTheme.SODIUM_DIM, 0.35), 6.0, true)

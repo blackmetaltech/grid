@@ -48,7 +48,7 @@ func _draw() -> void:
 			draw_arc(c, pr * 1.9 + 1.5, 0, TAU, 24, GridTheme.SODIUM, 3.0, true)
 			draw_circle(c, pr * 1.1, GridTheme.SODIUM)
 		if q % 4 == 0 and float(g.pitch) >= 11.0:
-			draw_string(f, Vector2(c.x - float(g.pitch) * 0.3, size.y - 3.0), "Y%d" % yr if float(g.pitch) >= 17.0 else str(yr), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(GridTheme.TEXT, 0.6))
+			GridText.ds(self, f, Vector2(c.x - float(g.pitch) * 0.3, size.y - 3.0), "Y%d" % yr if float(g.pitch) >= 17.0 else str(yr), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(GridTheme.TEXT, 0.6))
 
 func _get_tooltip(at: Vector2) -> String:
 	if d.is_empty(): return ""

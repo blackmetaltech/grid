@@ -193,7 +193,7 @@ class CueBox extends Control:
 		var f := GridTheme.font("mono"); var fs := GridTheme.fs(15); var txt := TranslationServer.translate("UI_MORE")
 		var ts := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var cx := sz.x * 0.5; var by := sz.y - 8.0
-		ov.draw_string(f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.85))
+		GridText.ds(ov, f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.85))
 		var ax := cx + ts.x * 0.5 + 6.0
 		ov.draw_colored_polygon(PackedVector2Array([Vector2(ax, by - 14.0), Vector2(ax + 14.0, by - 14.0), Vector2(ax + 7.0, by - 4.0)]), Color(INK, 0.85))
 
@@ -289,15 +289,15 @@ class PaperHist extends HistView:
 			draw_rect(Rect2(x0 + i * bw + 1.0, base - h, bw - 2.0, h), Color(GridTheme.COPPER, 0.8))
 			draw_rect(Rect2(x0 + i * bw + 1.0, base - h, bw - 2.0, h), Color(INK, 0.5), false, 1.0)
 		draw_line(Vector2(x0, base), Vector2(x0 + w, base), Color(INK, 0.8), 2.0)
-		draw_string(f, Vector2(x0, size.y - 5.0), CbKit.num(lo, 0), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.75))
-		draw_string(f, Vector2(x0 + w - 70.0, size.y - 5.0), CbKit.num(hi, 0), HORIZONTAL_ALIGNMENT_RIGHT, 70.0, fs, Color(INK, 0.75))
+		GridText.ds(self, f, Vector2(x0, size.y - 5.0), CbKit.num(lo, 0), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.75))
+		GridText.ds(self, f, Vector2(x0 + w - 70.0, size.y - 5.0), CbKit.num(hi, 0), HORIZONTAL_ALIGNMENT_RIGHT, 70.0, fs, Color(INK, 0.75))
 		if r.get("mine") != null:
 			var mx_ := _x2(float(r.mine), lo, hi, x0, w)
 			draw_line(Vector2(mx_, top), Vector2(mx_, base), PaperKit.RED, 3.0)
-			draw_string(f, Vector2(clampf(mx_ + 5.0, 0.0, size.x - 44.0), top + 10.0), tr("HIST_YOU"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, PaperKit.RED)
+			GridText.ds(self, f, Vector2(clampf(mx_ + 5.0, 0.0, size.x - 44.0), top + 10.0), tr("HIST_YOU"), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, PaperKit.RED)
 		if str(r.get("histogram", "")) == "capex":
 			for pair in [[r.get("starA"), "HIST_STAR_A"], [r.get("starB"), "HIST_STAR_B"]]:
 				if pair[0] == null or float(pair[0]) < lo or float(pair[0]) > hi: continue
 				var sx := _x2(float(pair[0]), lo, hi, x0, w)
 				draw_line(Vector2(sx, top + 14.0), Vector2(sx, base), PaperKit.BLUE, 2.0)
-				draw_string(f, Vector2(sx + 3.0, top + 24.0), tr(pair[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, PaperKit.BLUE)
+				GridText.ds(self, f, Vector2(sx + 3.0, top + 24.0), tr(pair[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, PaperKit.BLUE)

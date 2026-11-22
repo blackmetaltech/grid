@@ -28,8 +28,8 @@ const GAP := 6.0
 const GGAP := 12.0
 const WIDE := 900.0
 const TAG_W := 176.0
-const MIN_CELL := 66.0
-const CELL_W := 70.0
+const MIN_CELL := 86.0   # 1.9: captions at the 16 px floor (was 66)
+const CELL_W := 96.0
 
 const PART_ICONS := [["cap", "capacitor"], ["react", "reactor"], ["shr", "reactor"], ["dt-", "transformer"], ["tx", "transformer"], ["xf", "transformer"], ["tr-", "transformer"],
 	["ccgt", "gas"], ["ocgt", "gas"], ["gas", "gas"], ["coal", "coal"], ["diesel", "diesel"], ["hydro", "hydro"], ["microhydro", "hydro"], ["smallhydro", "hydro"], ["psp", "hydro"],
@@ -230,11 +230,12 @@ func page(d: int) -> void:
 	_scroll = clampf(_scroll + d * maxf(120.0, (_avail_right() - PAD) * 0.7), 0.0, _max_scroll); _layout_items(); queue_redraw()
 
 func _visible_item(i: int) -> bool:
+	if not items[i].has("rect"): return false   # not laid out yet
 	var r: Rect2 = items[i].rect
 	return r.position.x >= PAD - 2.0 and r.end.x <= _avail_right() + 2.0
 
 func _ensure_visible(i: int) -> void:
-	if i < 0 or i >= items.size() or _max_scroll <= 0.0: return
+	if i < 0 or i >= items.size() or _max_scroll <= 0.0 or not items[i].has("rect"): return
 	var r: Rect2 = items[i].rect
 	if r.position.x < PAD: _scroll = maxf(0.0, _scroll - (PAD - r.position.x))
 	elif r.end.x > _avail_right(): _scroll = minf(_max_scroll, _scroll + (r.end.x - _avail_right()))
@@ -428,8 +429,8 @@ static func draw_more_tab(c: CanvasItem, its: Array, right: float, pad: float, h
 	for it in its: if it.has("rect") and (it.rect as Rect2).end.x > right + 1.0: hidden += 1
 	var tab := Rect2(Vector2(right - 30.0, 8.0), Vector2(30.0 + pad - 2.0, h - 16.0))
 	c.draw_style_box(_tab_sb(), tab)
-	c.draw_string(GridTheme.font("semi"), Vector2(tab.position.x, h * 0.5 - 2.0), "›", HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(26), GridTheme.SODIUM)
-	if hidden > 0: c.draw_string(GridTheme.font("mono"), Vector2(tab.position.x, h * 0.5 + 20.0), "+%d" % hidden, HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(12), GridTheme.SODIUM)
+	GridText.ds(c, GridTheme.font("semi"), Vector2(tab.position.x, h * 0.5 - 2.0), "›", HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(26), GridTheme.SODIUM)
+	if hidden > 0: GridText.ds(c, GridTheme.font("mono"), Vector2(tab.position.x, h * 0.5 + 20.0), "+%d" % hidden, HORIZONTAL_ALIGNMENT_CENTER, tab.size.x, GridTheme.fs(12), GridTheme.SODIUM)
 
 ## True on the tab (it takes the click over the cell it overlaps).
 static func on_more_tab(p: Vector2, right: float, pad: float) -> bool: return p.x > right - 30.0 and p.x < right + pad + 10.0
@@ -900,7 +901,7 @@ func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, centre_w :=
 	while centre_w > 0.0 and tw > centre_w and s.length() > 2:
 		s = s.left(s.length() - 2) + "…"; tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	var x := at.x if centre_w < 0.0 else at.x + (centre_w - tw) * 0.5
-	draw_string(font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
+	GridText.ds(self, font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, col)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
@@ -924,18 +925,18 @@ func _draw() -> void:
 		var other_focus := engaged and focus >= 0 and focus != i
 		draw_style_box(_cell_sb(fill, (sel and not other_focus) or hv), r)
 		if fc: draw_style_box(GridTheme.focus_sb(), r)
-		var c := r.position + Vector2(r.size.x * 0.5, 30.0)
+		var c := r.position + Vector2(r.size.x * 0.5, 26.0)   # 1.9: icon, caption and sub line spaced for 16 px text (they touched at 30 / 62 / 76)
 		if str(it.kind) == "knob": _icon_knob(c, r, str(it.id))
 		else: _draw_icon(str(it.icon), c, sel)
 		var cap := caption(it); var tw := r.size.x - 4.0
 		var use_n := 13
 		while use_n > 8 and semi.get_string_size(str(cap[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_n)).x > tw: use_n -= 1
-		_text(semi, GridTheme.fs(use_n), Vector2(r.position.x + 2.0, r.position.y + 62.0), str(cap[0]), GridTheme.TEXT if (hv or sel or fc) else Color(GridTheme.TEXT, 0.92), tw)
+		_text(semi, GridTheme.fs(use_n), Vector2(r.position.x + 2.0, r.position.y + 58.0), str(cap[0]), GridTheme.TEXT if (hv or sel or fc) else Color(GridTheme.TEXT, 0.92), tw)
 		var use_s := 11
 		while use_s > 7 and mono.get_string_size(str(cap[1]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: use_s -= 1
-		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 76.0), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
+		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 78.0), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
-		if _scroll > 1.0: draw_string(semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
+		if _scroll > 1.0: GridText.ds(self, semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
 		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # a visible tab, not a bare glyph: how many parts wait to the right (L05's transformers were missed)
 	_draw_price_tag()
 	if chip_text != "" and not is_locked():
@@ -961,8 +962,8 @@ func _draw_price_tag() -> void:
 	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, GridTheme.INK)
 	draw_circle(Vector2(-w * 0.5 + 13.0, 13.0), 4.0, Color(GridTheme.PAPER_INK, 0.6), false, 1.0)
 	draw_arc(Vector2(-w * 0.5 + 13.0, 13.0), 8.0, PI * 0.9, PI * 2.4, 14, Color(GridTheme.SODIUM_DIM, 0.9), 1.6)
-	draw_string(semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
-	draw_string(mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	GridText.ds(self, semi, Vector2(-w * 0.5 + 26.0, 20.0), tx("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11), Color(GridTheme.PAPER_INK, 0.7))
+	GridText.ds(self, mono, Vector2(-tw * 0.5 + 4.0, 47.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
@@ -984,7 +985,7 @@ func _draw_chip(at: Vector2, s: String, dot: Color) -> void:
 	if dw > 0.0:
 		draw_circle(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, dot); draw_arc(Vector2(tx0 + 6.0, rect.position.y + 6.0 + f.get_height(fsz) * 0.5), 6.0, 0.0, TAU, 16, GridTheme.PAPER_INK, 1.3)
 	tx0 += dw
-	draw_multiline_string(f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
+	GridText.dm(self, f, Vector2(tx0, rect.position.y + 6.0 + f.get_ascent(fsz)), s, HORIZONTAL_ALIGNMENT_LEFT, tw + 2.0 if lines > 1 else -1.0, fsz, -1, GridTheme.PAPER_INK)
 
 # ---- icons ----------------------------------------------------------------------------------------------------------------------------
 func _draw_icon(icon: String, c: Vector2, on: bool) -> void:
@@ -1005,8 +1006,8 @@ func _icon_knob(c: Vector2, r: Rect2, id: String) -> void:
 	var mono := GridTheme.font("mono"); var s := knob_text(id); var fsz := GridTheme.fs(16)
 	var tw := mono.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw > r.size.x - 26.0 and fsz > 9: fsz -= 1; tw = mono.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	draw_string(mono, Vector2(c.x - tw * 0.5, c.y + 4.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM)
-	var y := c.y + 16.0
+	GridText.ds(self, mono, Vector2(c.x - tw * 0.5, c.y - 3.0), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM)
+	var y := c.y + 8.0   # 1.9: value and scale sit higher, clear of the caption at the 16 px floor
 	draw_colored_polygon(PackedVector2Array([Vector2(r.position.x + 9.0, y), Vector2(r.position.x + 17.0, y - 5.0), Vector2(r.position.x + 17.0, y + 5.0)]), Color(GridTheme.PAPER, 0.8))
 	draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 9.0, y), Vector2(r.end.x - 17.0, y - 5.0), Vector2(r.end.x - 17.0, y + 5.0)]), Color(GridTheme.PAPER, 0.8))
 	draw_line(Vector2(c.x - 14.0, y), Vector2(c.x + 14.0, y), Color(GridTheme.PAPER, 0.35), 1.5)

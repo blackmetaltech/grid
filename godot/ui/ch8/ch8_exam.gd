@@ -14,13 +14,16 @@ func _submit(key: String) -> void: _predict_submit(key, key, str(UNITS[key]))
 func _after_refresh() -> void:
 	for k in IDS: _sync_predict(k, k)
 
+## 1.9: the "why" rows are one line each and as wide as the panel allows (450 px with two wrapped lines ran out of their boxes at the 16 px floor)
+func _why_w(ip: Rect2) -> float: return clampf(ip.size.x - 260.0, 450.0, 820.0)
+
 func _build_panel(ip: Rect2) -> void:
 	for k in IDS.size():
 		var e: LineEdit = edits[IDS[k]]; e.position = ip.position + Vector2(214.0 * k, 20.0); e.size = Vector2(92, 30)
 		_cap(ip, 214.0 * k, 12, T("C8_QS_" + IDS[k]))
 	_cap(ip, 0, 66, T("C8_WHY_CAP"))
 	var ch: Array = q.why.choices
-	for k in ch.size(): _c(ip, 0, 72.0 + 36.0 * k, 450, 32, "", "why", str(ch[k].id), str(q.why.chosen) == str(ch[k].id))
+	for k in ch.size(): _c(ip, 0, 72.0 + 36.0 * k, _why_w(ip), 32, "", "why", str(ch[k].id), str(q.why.chosen) == str(ch[k].id))
 
 func _pressed(h: Dictionary, _p: Vector2) -> void:
 	if str(h.id) == "why": _act("answerWhy", [str(h.arg)])
@@ -28,13 +31,16 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 func _body(ip: Rect2) -> void:
 	for k in IDS.size():
 		var e: LineEdit = edits[IDS[k]]; _text(_mono(), 11, e.position + Vector2(98.0, 20.0), T("C8_U_" + IDS[k]), Color(GridTheme.TEXT, 0.7))
-	if _revealed(): _text(_semi(), 11, ip.position + Vector2(470.0, 92.0), T("C8_WHY_RIGHT") if bool(q.get("whyOk", false)) else T("C8_WHY_WRONG"), _good(bool(q.get("whyOk", false))))
+	if _revealed(): _text(_semi(), 11, ip.position + Vector2(_why_w(ip) + 20.0, 92.0), T("C8_WHY_RIGHT") if bool(q.get("whyOk", false)) else T("C8_WHY_WRONG"), _good(bool(q.get("whyOk", false))))
 
 func _over(ip: Rect2) -> void:
 	var ch: Array = q.why.choices
 	for k in ch.size():
-		var r := Rect2(ip.position + Vector2(0, 72.0 + 36.0 * k), Vector2(450, 32)); var on := str(q.why.chosen) == str(ch[k].id)
-		draw_multiline_string(_semi(), r.position + Vector2(10.0, 13.0), str(ch[k].text), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 20.0, GridTheme.fs(10), 2, GridTheme.SODIUM if on else Color(GridTheme.TEXT, 0.85))
+		var r := Rect2(ip.position + Vector2(0, 72.0 + 36.0 * k), Vector2(_why_w(ip), 32)); var on := str(q.why.chosen) == str(ch[k].id)
+		var fz := GridText.floor_size(self, GridTheme.fs(10))
+		var txt := str(ch[k].text); var f := _semi()
+		while txt.length() > 4 and f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x > r.size.x - 20.0: txt = txt.left(txt.length() - 2).strip_edges() + "…"
+		GridText.ds(self, f, r.position + Vector2(10.0, r.size.y * 0.5 + fz * 0.35), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, GridTheme.SODIUM if on else Color(GridTheme.TEXT, 0.85))
 
 func _draw_stage() -> void:
 	var sb := _sbox(380.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y

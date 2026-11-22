@@ -35,7 +35,7 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 			if _act("setConductor", ["N1", str(h.arg)]): _act("setConductor", ["N2", str(h.arg)])
 
 func _body(ip: Rect2) -> void:
-	draw_multiline_string(_mono(), ip.position + Vector2(420.0, 70.0), T("C8_HOST_LINE") % [WorkOrder.num(float(q.design.pvLimitKw)), WorkOrder.num(float(q.hostingKw))], HORIZONTAL_ALIGNMENT_LEFT, 210.0, GridTheme.fs(11), 4, _good(float(q.design.pvLimitKw) <= float(q.hostingKw) + 0.5))
+	GridText.dm(self, _mono(), ip.position + Vector2(420.0, 70.0), T("C8_HOST_LINE") % [WorkOrder.num(float(q.design.pvLimitKw)), WorkOrder.num(float(q.hostingKw))], HORIZONTAL_ALIGNMENT_LEFT, 210.0, GridTheme.fs(11), 4, _good(float(q.design.pvLimitKw) <= float(q.hostingKw) + 0.5))
 
 func _draw_stage() -> void:
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y

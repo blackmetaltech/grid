@@ -99,7 +99,7 @@ func _draw_stage() -> void:
 			_card_text(Rect2(sr.position + Vector2(0, bh * 0.5 + 6.0), Vector2(sr.size.x, bh * 0.5 - 6.0)), [[T("C7_G26_LAMBDA"), Color(GridTheme.TEXT, 0.75)], [T("C7_G26_CORR"), Color(GridTheme.TEXT, 0.75)]], 11, 6.0, 8.0)
 			(edits["lambda20"] as LineEdit).position = _scr(_home) if _phone() else _home   # phone: the panel is drawn scaled into the slot
 		else:
-			draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
-			draw_multiline_string(_mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
+			GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
+			GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
 			_text(_semi(), 11, sr.position + Vector2(14, bh * 0.5 + 138.0), T("C7_PREDICT_LAM"), GridTheme.SODIUM)
 			(edits["lambda20"] as LineEdit).position = sr.position + Vector2(14, bh * 0.5 + 146.0)

@@ -98,6 +98,13 @@ func game_build_chrome(r: Control) -> void:
 	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
+	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: GridText.floor_control.call_deferred(n))   # 1.9: 16 px floor
+	if OS.has_environment("CB_TEXTAUDIT"):   # 1.9: the text-size audit (tests/text_flow.gd, loaded by path: tests/ is not exported)
+		get_tree().create_timer(1.0).timeout.connect(func():
+			var tf = load("res://tests/text_flow.gd")
+			if tf == null: get_tree().quit(2); return
+			await tf.run(self)
+			get_tree().quit(0 if tf.fails == 0 else 1))
 	if QaPad.want(): var qp := QaPad.new(); qp.name = "QaPad"; add_child(qp)   # 1.8 QA: a scripted pad tour in this window (qa_pad.gd)
 	if OS.is_debug_build() and not OS.has_environment("CB_SMOKE"):   # perf log for device runs: "CB_FPS fps=.. min=.." every 5 s (logcat / stdout)
 		var tm := Timer.new(); tm.wait_time = 5.0; tm.autostart = true; add_child(tm)
