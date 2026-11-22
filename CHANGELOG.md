@@ -2,6 +2,52 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.10.0] - "New districts" (tag v1.10.0; driven by docs/CRITIQUE-1.9.md and the coordinator's 1.9 shot review; review in docs/CRITIQUE-1.10.md)
+### Added
+- **Two new districts with their own ground, kit and lesson.**
+  - **Harbour City.** Dense streets, all underground cable.
+    - Faults are about a third as frequent as overhead, but each takes 16 hours to locate and joint. SAIFI is low and the minutes per interruption are high.
+    - There are no trees, and storms barely touch it.
+    - A recloser saves nothing on a cable (a cable fault is permanent); a tie or remote switching saves a lot.
+    - The substations start near their firm capacity.
+    - Its own places: Harbour General, Dockside, Old Town, Customs Quay.
+  - **High Moor.** Long overhead lines (1.9× the section lengths) over open hills to 40 % of the customers.
+    - Storms come with the winter (snow and ice: 2.2× in quarter 1).
+    - Most faults are transient, so a recloser saves a much bigger share than at home.
+    - Its own places: Moorside Cottage Hospital, Hawksworth, Black Tor.
+  - Both are winnable by the reference planner (tested). A react-only firefighter loses in Harbour City every time, which is the lesson.
+  - The weekly district keeps its old rotation, so past boards are unchanged.
+- **The story reaches the districts.**
+  - People and places carry the district's names (Cllr Amara Osei of Dockside in Harbour City).
+  - New letters and calls:
+    - Harbour City: lay spare ducts under the high street while the tram works have it open (and the dig they save later); soil-temperature sensors before a dry summer (without them, the cables fail 40 % more in quarter 3).
+    - High Moor: a snowcat to reach a snowbound feeder; a farm's wind turbine on the villages feeder.
+  - Answers from earlier letters now come back:
+    - the trees you stopped cutting bring a feeder down;
+    - the charging hub you made wait returns;
+    - the owners ask for the incentive you kept;
+    - Ms Okafor audits your improvement plan;
+    - the hospital remembers your honest answer.
+  - 27 beats in all.
+
+### Changed
+- **The Career map is a place.**
+  - Ground by district: patchwork fields, city blocks and a harbour, or moor with contours, stone walls and snow in winter.
+  - A named village on every feeder, with houses clustered along each section. Windows go dark while the section or the feeder is out.
+  - The hospital, the villages, the charging hub and the turbine stand on their feeders with paper labels, so a letter about F1 points at something on the map.
+- **The top of the Career is a paper wall planner.**
+  - Ten year columns of four quarter boxes: spent quarters crossed through, the current one circled in red, reviews ticked or crossed.
+  - Cash as a ledger line in large type.
+  - The targets in plain words: "Minutes off per customer (SAIDI)" and "Power cuts per customer (SAIFI)".
+- **The red warning line is a pinned note** that says the one thing to do: "Off target, strike 1 of 3 at the review. Start a fix on the worst feeder this quarter (4 left this year)." The full explanation is its tooltip.
+- `text_flow` audits the Career in all three looks (Home Counties, Harbour City, High Moor) at both sizes.
+- Scores: rules 1.10.0, weekly board epoch 4.
+
+### Known gaps
+- Still owed: a human listening pass, real-GPU frame rates, a physical pad.
+- See CRITIQUE-1.10 for the fun-critic status.
+- In Harbour City the section info still says "wire" for what is cable.
+
 ## [1.9.0] - "Storylines" (tag v1.9.0; driven by docs/CRITIQUE-1.8.md and the coordinator's 1.8 shot review; review in docs/CRITIQUE-1.9.md)
 ### Fixed
 - **Text under 16 px.** The coordinator measured 9-10 px text in the Career, the finale's log and checklist, and the L20 coach and tray.

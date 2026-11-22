@@ -10,6 +10,16 @@ The front end is a **Godot 4.7** game: an isometric diorama of the island and th
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
 
+### What's new in 1.10
+
+| Home Counties: fields, named villages, the hospital on its feeder | Harbour City: all underground, rare faults that take a day |
+|---|---|
+| ![home counties](docs/readme/new110/home-counties.png) | ![harbour city](docs/readme/new110/harbour-city.png) |
+| **High Moor: long lines, snow in winter, reclosers pay** | |
+| ![high moor](docs/readme/new110/high-moor.png) | |
+
+The Career has two new districts that teach different things. Harbour City is underground cable: few faults, each hours long, so ties and remote switching matter and reclosers do nothing. High Moor is long overhead lines over open hills: winter storms and mostly transient faults. The map is now a place with named villages and the story's buildings on their feeders. The top of the screen is a paper wall planner, and the warning is a pinned note that says the one thing to do. The story follows you into each district, and your earlier answers come back.
+
 ### What's new in 1.9
 
 | A letter on the desk: the hospital asks for a promise | A call in a storm: push the crews or rest them |
