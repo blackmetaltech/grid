@@ -1,6 +1,6 @@
 // GRID site: resolve the download buttons from the latest GitHub release, mark the visitor's OS, and a screenshot lightbox.
 (() => {
-  const REPO = "ixaxaar/grid";
+  const REPO = "blackmetaltech/grid";
   const ua = navigator.userAgent;
   const os = /Windows/i.test(ua) ? "windows" : /Linux|X11/i.test(ua) && !/Android/i.test(ua) ? "linux" : "";
   const $ = (id) => document.getElementById(id);

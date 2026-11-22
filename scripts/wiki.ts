@@ -51,7 +51,7 @@ function page(title: string, desc: string, body: string, crumbs: string): string
 <p class="crumbs">${crumbs}</p>
 ${body}
 </main>
-<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/ixaxaar/grid">Source</a></p></footer>
+<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
 </body>
 </html>
 `;

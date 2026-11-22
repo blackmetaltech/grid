@@ -1,6 +1,6 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.14.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.14.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
@@ -89,7 +89,7 @@ Money now has somewhere to go. The owners take most of the cash above a working 
 
 ## Download
 
-From [Releases](https://github.com/ixaxaar/grid/releases). Each release is built and smoke-tested on Linux before upload, with a `SHA256SUMS.txt`. Node.js is bundled; nothing else to install.
+From [Releases](https://github.com/blackmetaltech/grid/releases). Each release is built and smoke-tested on Linux before upload, with a `SHA256SUMS.txt`. Node.js is bundled; nothing else to install.
 
 | OS | File | Run |
 |---|---|---|
