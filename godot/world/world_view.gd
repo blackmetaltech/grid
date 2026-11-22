@@ -485,7 +485,11 @@ func _bounds() -> Rect2:
 	var tall := 0.0; var side := 0.0   # plants stand tall (cooling towers, stacks and their smoke) and wide at the map's corners: keep them on screen
 	if model.kind == "grid" and not _has_terrain():
 		for u in model.units: if str(u.kind) in ["coal", "gas", "nuclear", "biomass", "diesel"]: tall = 150.0; side = 40.0
-	return Rect2(x0 - side, -60.0 - _zmax - tall, x1 - x0 + 2.0 * side, (W + H) * TH * 0.5 + 60.0 + _zmax + SLAB + 20.0 + tall)
+	# 1.9: headroom for stacks and smoke is a share of the map, not a fixed 150 + 60 px: on a small map (L20) the fixed headroom left the
+	# island a small diorama in an empty screen. Stacks may reach up behind the clock and the dial.
+	var hgt := (W + H) * TH * 0.5
+	tall = minf(tall, hgt * 0.12)
+	return Rect2(x0 - side, -16.0 - _zmax - tall, x1 - x0 + 2.0 * side, hgt + 16.0 + _zmax + SLAB + 8.0 + tall)
 
 func _refit() -> void:
 	var v := _view_rect(); var b := _bounds()
@@ -1486,7 +1490,7 @@ func _bulb_mascot(c: Vector2, r: float, md: String, glow: float) -> void:
 		"asleep":
 			_bt_flush(); _ci.draw_arc(ey + Vector2(-ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6); _bt_flush(); _ci.draw_arc(ey + Vector2(ex, 0), r * 0.13, 0.2, PI - 0.2, 8, ink, 1.6)
 			var font := CbKit.font_regular(); var zf := int(r * 0.7)
-			_bt_flush(); _ci.draw_string(font, c + Vector2(r * 0.8, -r * 0.6 - fposmod(_t * 6.0, 6.0)), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, zf, Color(1, 1, 1, 0.7))
+			_bt_flush(); GridText.ds(_ci, font, c + Vector2(r * 0.8, -r * 0.6 - fposmod(_t * 6.0, 6.0)), "z", HORIZONTAL_ALIGNMENT_LEFT, -1, zf, Color(1, 1, 1, 0.7))
 		_:
 			var blink := fposmod(_t + float(int(c.x) % 7) * 0.3, 3.6) < 0.12
 			for sx in [-1.0, 1.0]:
@@ -1527,7 +1531,7 @@ func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var p := at - Vector2(w * 0.5, 0.0)
 	_dr(Rect2(p + Vector2(-5, -fs - 1), Vector2(w + 10, fs + 8)), Color(0.04, 0.06, 0.14, 0.72))
-	_bt_flush(); _ci.draw_string(font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+	_bt_flush(); GridText.ds(_ci, font, p, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
 
 # --------------------------------------------------------------------------------------------------------------------
 # Read-only helpers for the kit tray and the tags (godot/ui/kit_tray.gd, tag_view.gd): screen positions, picking, site pegs
@@ -1666,7 +1670,7 @@ func _draw_pegs() -> void:
 			var tw := font.get_string_size(lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 			var at := p + Vector2(-tw * 0.5, 22.0 * sc + fsz + dy)
 			_dr(Rect2(at + Vector2(-5, -fsz - 1), Vector2(tw + 10, fsz + 8)), Color(GridTheme.INK, 0.9))
-			_bt_flush(); _ci.draw_string(font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
+			_bt_flush(); GridText.ds(_ci, font, at, lb, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.SODIUM if hi else GridTheme.TEXT)
 
 
 func _peg_box(i: int, sc: float, font: Font, fsz: int) -> Rect2:
@@ -1778,7 +1782,7 @@ func _bad_marker(r: Dictionary, sp: Dictionary) -> void:
 	_dc(at, 9.0 + 3.0 * pulse, Color(RouteDraw.RED.r, RouteDraw.RED.g, RouteDraw.RED.b, (0.18 + 0.2 * pulse) * _ga))
 	_dc(at, 6.0, Color(RouteDraw.RED.r, RouteDraw.RED.g, RouteDraw.RED.b, _ga))
 	var font := CbKit.font_regular()
-	_bt_flush(); _ci.draw_string(font, at + Vector2(-2.2, 4.2), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, _ga))
+	_bt_flush(); GridText.ds(_ci, font, at + Vector2(-2.2, 4.2), "!", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1, 1, 1, _ga))
 
 func _draw_route_markers() -> void:
 	var sc := _scale()

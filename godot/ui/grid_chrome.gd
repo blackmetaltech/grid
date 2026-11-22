@@ -298,9 +298,10 @@ func layout() -> void:
 
 var _pad_seen := false
 func _process(_dt: float) -> void:
-	if app != null and CbKit.pad_mode and app.pad != null and app.pad.hint.visible and app.pad.hint.text != _legend_now():   # title and dialogs too
+	if app != null and CbKit.pad_mode and app.pad != null and app.pad.hint.visible and app.pad.hint.text.replace("\n", "   ") != _legend_now():   # title and dialogs too
 		app.pad.hint.text = _legend_now()
 		if _on and radio != null: layout()
+	if app != null and app.pad != null and app.pad.hint.visible: _place_hint.call_deferred()
 	if not _on or radio == null or app == null: return
 	var ph: bool = CbKit.pad_mode and app.pad != null and app.pad.hint.visible
 	if ph != _pad_seen: _pad_seen = ph; layout()
@@ -322,6 +323,29 @@ func _fade_hud_over_pan() -> void:
 		if n != null: n.modulate.a = move_toward(n.modulate.a, a, 0.15)
 
 ## The pad legend strip follows the route tray's mode: surveying with a pad has its own buttons (the shell's default comes back after).
+## 1.9: the strip wraps to the radio's width and sits on the bottom edge under it (the shell places it as one long line, which at the 16 px
+## floor ran into chapter 4's status line). Runs after the shell's own placement each frame.
+func hint_rect() -> Rect2:
+	var hint = app.pad.hint if app != null and app.pad != null else null
+	return Rect2(hint.position, hint.size) if hint != null and hint.visible else Rect2()
+
+func _place_hint() -> void:
+	var hint: Label = app.pad.hint
+	if not hint.visible: return
+	var w := radio.width if _on and radio != null and app.started and radio.width > 100.0 else minf(560.0, app.vw() - 28.0)
+	hint.autowrap_mode = TextServer.AUTOWRAP_OFF; hint.custom_minimum_size = Vector2.ZERO
+	var one := hint.text.replace("\n", "   ")
+	var f := hint.get_theme_font("font"); var fsz := hint.get_theme_font_size("font_size")
+	if hint.label_settings != null: f = hint.label_settings.font if hint.label_settings.font != null else f; fsz = hint.label_settings.font_size
+	var t := one
+	if f != null and f.get_string_size(one, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x > w:   # two lines, split at the separator nearest the middle
+		var parts := one.split("   ", false); var half := int(ceil(parts.size() / 2.0))
+		t = "   ".join(parts.slice(0, half)) + "\n" + "   ".join(parts.slice(half))
+	if hint.text != t: hint.text = t
+	hint.size = hint.get_minimum_size()
+	var x := radio.position.x if _on and radio != null and app.started else 14.0
+	hint.position = Vector2(x, app.vs_h() - M - hint.size.y)
+
 ## 1.8: the strip names GRID's own buttons in a level (the shell's "LB/RB drawers" pointed at drawers GRID does not have) and only the
 ## menu buttons over a dialog or the title.
 var _rt_mode := ""
