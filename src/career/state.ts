@@ -1,3 +1,4 @@
+import type { Story } from './story';
 import type { CharterId } from './data';
 // Career state: plain JSON data only (hashable, serialisable). All randomness is derived from (seed, quarter, stream) so a career is a seed + action list.
 import { hashOf } from '@core/kit';
@@ -45,6 +46,8 @@ export interface Request { id: string; kind: string; feederId: string; kw: numbe
 export interface Incident {
   id: string; q: number; kind: 'storm' | 'txFailure' | 'switchgearFailure'; feederId: string | null; primaryId: string | null; severity: number;
   faults: number; custInt: number; custMin: number; exceptional: boolean; tied: boolean; crewed: boolean; hasTie: boolean;
+  /** 1.9 story: multiplier on the customer-minutes from the answer to the call that came with this incident */
+  storyCm?: number;
 }
 export interface Verdict { axis: 'regulator' | 'finance' | 'crew'; who: string; key: string; grade: 'good' | 'ok' | 'poor'; params: Record<string, number> }
 export interface Review {
@@ -93,6 +96,8 @@ export interface CareerState {
   ending: Ending | null;
   /** The quarter being played while phase is 'incident' (events already rolled, incidents await a response). */
   pending: QuarterOutcome | null;
+  /** 1.9 the people of the district: open letters and calls, trust, flags, what was answered */
+  story?: Story;
 }
 
 export interface ActionResult { ok: boolean; state: CareerState; messageKey: string; params: Record<string, number | string> }

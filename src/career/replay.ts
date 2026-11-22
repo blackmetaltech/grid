@@ -5,10 +5,11 @@ import { acceptConnection, dispatchCrew, switchTie } from './events';
 import { cancelProject, inspect, setReadiness, setVegetationBudget, startProject } from './projects';
 import { stateHash, fail, type ActionResult, type CareerState, type ProjectKind, PROJECT_KINDS } from './state';
 import { endQuarter } from './turn';
+import { chooseStory } from './story';
 
 export type CareerAction =
   | { a: 'start'; kind: ProjectKind; target: string } | { a: 'cancel'; id: string } | { a: 'inspect'; asset: string } | { a: 'veg'; level: number } | { a: 'ready'; level: number }
-  | { a: 'accept'; id: string } | { a: 'tie'; id: string } | { a: 'crew'; id: string } | { a: 'end'; interactive?: boolean };
+  | { a: 'accept'; id: string } | { a: 'tie'; id: string } | { a: 'crew'; id: string } | { a: 'end'; interactive?: boolean } | { a: 'story'; id: string; opt: string };
 
 export function applyAction(s: CareerState, act: CareerAction): ActionResult {
   switch (act.a) {
@@ -21,6 +22,7 @@ export function applyAction(s: CareerState, act: CareerAction): ActionResult {
     case 'tie': return switchTie(s, act.id);
     case 'crew': return dispatchCrew(s, act.id);
     case 'end': return endQuarter(s, !!act.interactive);
+    case 'story': return chooseStory(s, act.id, act.opt);
     default: return fail(s, 'career.err.action');
   }
 }
@@ -44,6 +46,7 @@ const tok = (a: CareerAction): string => {
     case 'tie': return `t:${a.id}`;
     case 'crew': return `d:${a.id}`;
     case 'end': return a.interactive ? 'E' : 'e';
+    case 'story': return `y:${a.id}:${a.opt}`;
   }
 };
 /** Career code: `C1/<seed>/<actions>` (Home Counties) or, from 1.3, `C2/<seed>/<charter>/<actions>`; action tokens separated by ;. */
@@ -68,6 +71,7 @@ export function decodeCareer(code: string): { seed: number; actions: CareerActio
     else if (k === 'a' && a) actions.push({ a: 'accept', id: a });
     else if (k === 't' && a) actions.push({ a: 'tie', id: a });
     else if (k === 'd' && a) actions.push({ a: 'crew', id: a });
+    else if (k === 'y' && a && b) actions.push({ a: 'story', id: a, opt: b });
     else return null;
   }
   return { seed: Number(m[1]), actions, charter };

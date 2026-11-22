@@ -12,6 +12,7 @@ import {
   crewsFree, firmMarginPct, primaryPeakMVA, firmCapacityMVA, shownHealth, avgHealth, committedPerQuarter, allowedRevenue,
   PROJECT_KINDS, PROJECTS, ENDINGS, MONEY, INCENTIVE, periodReset, chiefShortfalls, CHARTER_IDS, weeklyDistrict, isoWeekOf, vegStep, scoreParts, SCORE, STORM, stormForecast, charterOf, type CharterId, WEIBULL, effectiveAge, failureProb, trueHealth, type CareerAction, type CareerState, type ProjectKind,
 } from './career';
+import { CAST, EPILOGUE, WHO_NAME, beatById, moodOf, storyParams, type Effect } from './career/story';
 
 /** US$ per GBP used to bring the career's GBP-scale model money onto the packs' US$ basis (2024 average, rounded; illustrative). */
 export const USD_PER_GBP = 1.27;
@@ -96,6 +97,7 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
     careerAccept: (s, id: unknown) => act(s, { a: 'accept', id: str(id) }),
     careerTie: (s, id: unknown) => act(s, { a: 'tie', id: str(id) }),
     careerCrew: (s, id: unknown) => act(s, { a: 'crew', id: str(id) }),
+    careerStory: (s, id: unknown, opt: unknown) => act(s, { a: 'story', id: str(id), opt: str(opt) }),
     /** End the quarter. interactive (default true): stop at the incident cards when the quarter has major events; calling it again settles the quarter. */
     careerEndQuarter: (s, interactive: unknown) => act(s, { a: 'end', interactive: interactive !== false }),
   };
@@ -103,6 +105,42 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
 
 /** Replacing a transformer or switchboard does not move the expected SAIDI (plant failures are events, not the feeder FMEA), so its card gives the chance it fails in the next year, old against new, and what a failure costs. */
 /** Transformers and switchboards whose chance of failing within a year is at least 5 %, worst first, with the cost of an emergency replacement. */
+/** 1.9 the story on screen: open letters (plan) and calls (incident) with both answers and what each costs, the cast and their mood, and
+ * at the ending the recap of the ten years: every answer in a line, and where each person ends up. */
+function effectText(e: Effect, m: (x: number) => string, hosp = '', vill = '', vegQ = 0): string {
+  const parts: string[] = [];
+  if (e.cashM && e.cashM < 0) parts.push(t('story.fx.cash', { cash: m(-e.cashM) }));
+  if (e.cashM && e.cashM > 0) parts.push(t('story.fx.income', { cash: m(e.cashM) }));
+  if (e.load) parts.push(t('story.fx.load', { kw: e.load.kw, feeder: e.load.on === 'hospital' ? hosp : vill }));
+  if (e.cm && e.cm < 1) parts.push(t('story.fx.cmLess', { pct: Math.round((1 - e.cm) * 100) }));
+  if (e.cm && e.cm > 1) parts.push(t('story.fx.cmMore', { pct: Math.round((e.cm - 1) * 100) }));
+  if (e.crews && e.crews > 0) parts.push(t('story.fx.crews', { n: e.crews }));
+  if (e.crews && e.crews < 0) parts.push(t('story.fx.crewsLess'));
+  if (e.veg === 0) parts.push(t('story.fx.vegOff', { cash: m(vegQ) }));
+  if (e.hardenVillages) parts.push(t('story.fx.harden', { feeder: vill }));
+  if (e.clearVillages) parts.push(t('story.fx.clear', { feeder: vill }));
+  return parts.join(', ');
+}
+function storyView(st: CareerState, m: (x: number) => string): Record<string, unknown> {
+  const sy = st.story;
+  if (!sy) return { story: [], cast: [], recap: [], epilogue: [], promises: [] };
+  const vegQ = st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length;
+  const N = (p: Record<string, string | number>): Record<string, string | number> => ({ ...p, hospitalName: t('story.hospitalName'), villagesName: t('story.villagesName') });
+  const story = sy.open.map((o) => {
+    const b = beatById(o.id)!, p = N(storyParams(st, o));
+    return { id: o.id, on: b.on, who: b.who, whoName: t(WHO_NAME[b.who]), inc: o.inc ?? '', title: t(b.keys.title, p), body: t(b.keys.body, p), a: t(b.keys.a, p), b: t(b.keys.b, p),
+      aFx: effectText(b.a, m, sy.hospital, sy.villages, vegQ), bFx: effectText(b.b, m, sy.hospital, sy.villages, vegQ), lapse: t(b.keys.lapse, p), mood: moodOf(sy.trust[b.who]) };
+  });
+  const cast = CAST.map((w) => ({ who: w, name: t(WHO_NAME[w]), trust: sy.trust[w], mood: moodOf(sy.trust[w]) }));
+  const recap = st.ending ? sy.log.map((l) => {
+    const b = beatById(l.id)!, p = N(storyParams(st, { t: l.t, ...(l.feeder ? { feeder: l.feeder } : {}) }));
+    return t(l.opt === 'a' ? b.keys.aRecap : l.opt === 'b' ? b.keys.bRecap : b.keys.lapse, p);
+  }) : [];
+  const epilogue = st.ending ? CAST.filter((w) => w !== 'ines' || sy.seen.some((id) => id.startsWith('ines')) ).filter((w) => w !== 'tom' || sy.seen.includes('tomVillages') || sy.seen.includes('evRush')).map((w) => t(EPILOGUE[w][moodOf(sy.trust[w])], N(storyParams(st, { t: st.t })))) : [];
+  const promises = sy.flags.includes('promisedInes') && !sy.seen.includes('inesKept') && !sy.seen.includes('inesBroken') ? [t('story.promise', N(storyParams(st, { t: st.t })))] : [];
+  return { story, cast, recap, epilogue, promises };
+}
+
 function plantRisk(st: CareerState): { id: string; cls: string; health: number; pFail: number; emergencyM: number; building: boolean }[] {
   return st.assets.filter((a) => a.cls !== 'line' && !a.failed).map((a) => {
     const w = WEIBULL[a.cls], pFail = failureProb(effectiveAge(a, st.t), 1, w.beta, w.eta);
@@ -219,6 +257,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
           return { id: r.id, kind: r.kind, kindName: t(`career.conn.${r.kind}`), feederId: r.feederId, kw: r.kw, customers: r.customers, solarKw: r.solarKw, critical: r.critical, chargeText: m(r.chargeM), deadlineQ: r.deadlineQ, quartersLeft: r.deadlineQ - st.t, loadingAfterPct: r1(after), loadingWinterPct: r1(before) };
         }),
         incidents: st.incidents.map((x) => ({ ...x, kindName: t(`career.incident.${x.kind}`), custMin: Math.round(x.custMin), saidiMin: r1(N ? x.custMin / N : 0) })),
+        ...storyView(st, m),
         history: st.history.map((k) => ({ t: k.t, year: k.year + 1, quarter: k.quarter + 1, saidiReal: r1(k.saidiReal), saidiExp: r1(k.saidiExp), saifiReal: r2(k.saifiReal), saifiExp: r2(k.saifiExp), saidiYtd: r1(k.saidiYtd), saifiYtd: r2(k.saifiYtd),
           cash: careerMoney(s, k.cash), cashText: m(k.cash), capexText: m(k.capexM), opexPartsText: k.opexParts ? t('career.opexParts', { base: m(k.opexParts.base), repairs: m(k.opexParts.repairs), losses: m(k.opexParts.losses), dr: m(k.opexParts.dr), veg: m(k.opexParts.veg), voltage: m(k.opexParts.voltage) }) + (k.opexParts.ready ? ' ' + t('career.opexReady', { ready: m(k.opexParts.ready) }) : '') : '',
           emergencyText: (k.emergencyM ?? 0) > 0 ? t('career.emergency', { emergency: m(k.emergencyM ?? 0), mult: MONEY.emergencyMult }) : '', opexText: m(k.opexM), revenueText: m(k.revenueM), incentiveText: m(k.incentiveM), avgHealth: r2(k.avgHealth), worstHealth: r2(k.worstHealth),

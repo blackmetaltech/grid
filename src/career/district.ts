@@ -1,3 +1,4 @@
+import { newStory } from './story';
 // The district: building it, and turning a feeder into the sim/distrib models (reliability sections, radial load flow).
 import { dmath } from '@core/numerics';
 import { CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
@@ -61,6 +62,7 @@ export function buildDistrict(seed: number, charter: CharterId = 'standard'): Ca
     saidiTarget: 0, saifiTarget: 0, ytdCustMin: 0, ytdCustInt: 0, ytdExceptionalMin: 0, ytdIncentiveCapex: 0,
     yearsMet: 0, severeFineYears: 0, delivered: 0, missed: 0, netIncentiveM: 0, startHealth: 0, history: [], reviews: [], log: [], ending: null, pending: null,
   };
+  s.story = newStory(feeders);   // 1.9
   s.startHealth = avgHealth(s);
   s.opexAllowance = MONEY.opexAllowancePerCust * ch.allowance * totalCustomers(s);
   s.ar = allowedRevenue(s.rab, s.opexAllowance) * ch.revenue;

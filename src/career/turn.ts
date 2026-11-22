@@ -8,6 +8,7 @@ import { allowedShare, completeProject, overrun, renewAsset } from './projects';
 import { annualReview, endingOf } from './regulator';
 import { quarterFactor } from './growth';
 import { INCIDENT_CREW_SAVING, INCIDENT_TIE_SAVING } from './events';
+import { crewEdge, lapseOpen, openIncidentBeat, openPlanBeat } from './story';
 import { clone, fail, ok, totalCustomers, type ActionResult, type CareerState, type QuarterOutcome } from './state';
 
 /** Play the quarter. interactive = true pauses when incidents occurred (phase 'incident'; answer with switchTie / dispatchCrew, then call endQuarter again). */
@@ -22,7 +23,7 @@ export function endQuarter(state: CareerState, interactive = false): ActionResul
     s.pending = out;
     // pause only for incidents there is something to decide on: one that interrupted nobody (a transformer lost with its twin carrying the load) is just reported
     const live = s.incidents.filter((x) => x.custInt > 0).length;
-    if (interactive && live) { s.phase = 'incident'; return ok(s, 'career.incidents', { count: live }); }
+    if (interactive && live) { s.phase = 'incident'; openIncidentBeat(s); return ok(s, 'career.incidents', { count: live }); }
   }
   return settle(s);
 }
@@ -55,11 +56,12 @@ function roll(s: CareerState): QuarterOutcome {
 }
 
 function settle(s: CareerState): ActionResult {
-  const out = s.pending!, N = totalCustomers(s);
+  lapseOpen(s, 'all');   // 1.9: letters and calls left unanswered lapse
+  const out = s.pending!, N = totalCustomers(s), edge = crewEdge(s);
   // incident responses
   let incMin = 0, incInt = 0, exMin = 0;
   for (const i of s.incidents) {
-    const cm = i.custMin * (1 - (i.tied ? INCIDENT_TIE_SAVING : 0)) * (1 - (i.crewed ? INCIDENT_CREW_SAVING : 0));
+    const cm = i.custMin * (1 - (i.tied ? INCIDENT_TIE_SAVING : 0)) * (1 - (i.crewed ? INCIDENT_CREW_SAVING : 0)) * (i.storyCm ?? 1) * (i.kind === 'storm' ? edge : 1);
     if (i.exceptional) exMin += cm; else { incMin += cm; incInt += i.custInt; }
   }
   const custMin = out.custMin + incMin, custInt = out.custInt + incInt;
@@ -104,5 +106,6 @@ function settle(s: CareerState): ActionResult {
   s.incidents = []; s.pending = null;
   s.ending = endingOf(s, reviewed);
   s.phase = s.ending ? 'over' : 'plan';
+  openPlanBeat(s);
   return ok(s, s.ending ? `career.ending.${s.ending}` : 'career.quarter.done', { t: s.t, cash: s.cash });
 }
