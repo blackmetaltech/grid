@@ -23,7 +23,7 @@
   const box = $("lightbox");
   if (box && box.showModal) {
     const img = box.querySelector("img");
-    document.querySelectorAll("#gallery a").forEach((a) => a.addEventListener("click", (e) => {
+    document.querySelectorAll("#gallery a, a.zoom").forEach((a) => a.addEventListener("click", (e) => {
       e.preventDefault(); img.src = a.href; img.alt = a.querySelector("img").alt; box.showModal();
     }));
     box.addEventListener("click", () => box.close());

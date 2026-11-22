@@ -5,10 +5,11 @@ import { t } from '../src/i18n';
 import { LEVEL_SPECS } from '../src/level';
 import { LEVELS } from '../src/levels';
 import { CHARTER_IDS } from '../src/career/data';
+import { buildDistrict } from '../src/career/district';
 
 /** Chapter number → title (the job board's headings) and a real screenshot from docs/readme. */
 export const CHAPTERS: { n: number; title: string; intro: string; shot?: [string, string] }[] = [
-  { n: 0, title: 'Prologue', intro: 'The night the lights went out on Saltmarsh Island, and the first work order.', shot: ['workorder.jpg', 'A work order: the place, the radio, the goal and the three lamps'] },
+  { n: 0, title: 'Prologue', intro: 'Night shift: close one breaker and watch a cascading failure put the lights out. Then the first work order.', shot: ['workorder.jpg', 'A work order: the place, the radio, the goal and the three lamps'] },
   { n: 1, title: 'Chapter 1 · The Island', intro: 'A DC bench: Ohm\'s law, cable resistance and the price of distance, from a battery hut to a hamlet.', shot: ['bench.jpg', 'L01 First Light: a battery hut and ten homes on the beach'] },
   { n: 2, title: 'Chapter 2 · Alternating Current, the Mainland', intro: 'A surveyed line over a river and a ridge: sag and clearance, pole spans, transformers at each end, salt on the insulators and a sea cable home.', shot: ['river.jpg', 'L05 The River Line: survey a route, then string it'] },
   { n: 3, title: 'Chapter 3 · Phasors and Power Factor', intro: 'A mill full of motors: reactive power, capacitor banks and the harmonics they can ring with.', shot: ['harmonics.jpg', 'L08 Resonance at the Fifth: the harmonic spectrum beside the map'] },
@@ -84,6 +85,25 @@ ${ids.map(levelHtml).join('\n')}
   return page(ch.title, `${ch.title}: ${ch.intro}`, body, `<a href="./">Wiki</a> / ${esc(ch.title)}`);
 }
 
+/** The hospital's feeder in the README's example career (Home Counties, seed 5). */
+const HOSP = (): string => buildDistrict(5, 'standard').story?.hospital ?? 'F1';
+/** Home Counties names, as the game passes them to the story strings (career-game.ts storyNames). */
+const NAMES = (): Record<string, string> => ({ hospitalName: t('story.hospitalName'), villagesName: t('story.villagesName'), councillor: t('story.councillor'), councillorShort: t('story.councillorShort'), doctor: t('story.doctor'), doctorShort: t('story.doctorShort'), hubPlace: t('story.hubPlace') });
+const sx = (key: string, extra: Record<string, unknown> = {}): string => { const s = t(key, { ...NAMES(), hospital: HOSP(), feeder: HOSP(), due: 3, year: 1, ...extra } as Record<string, number>); if (s === key || /\{[a-zA-Z]+\}/.test(s)) throw new Error(`story text ${key} did not render: ${s}`); return s; };
+const PEOPLE: [string, string][] = [['tobi', 'Runs the crews. Asks you to rest them, and remembers when you did not.'], ['vance', 'Finance. Wants the cash to last and the owners paid.'], ['okafor', 'The regulator. Judges your SAIDI and SAIFI, and your plans.'], ['ines', 'Keeps the hospital running on its feeder.'], ['tom', 'Speaks for the villages on the far feeder of the second primary.']];
+
+/** The story block: the five people, the hospital's letter with both answers and what each did, and the ending sheet. */
+export function storyHtml(prefix: string): string {
+  const people = PEOPLE.map(([k, note]) => `<li><b>${esc(sx(`story.who.${k}`))}</b><span>${esc(note)}</span></li>`).join('');
+  return `<div class="story-grid">
+<div class="letter card"><p class="letter-title">${esc(sx('story.inesPromise.title'))}</p><p>${esc(sx('story.inesPromise.body'))}</p>
+<ul class="answers"><li><b>${esc(sx('story.inesPromise.a'))}</b><span>${esc(sx('story.inesPromise.aRes'))}</span></li><li><b>${esc(sx('story.inesPromise.b'))}</b><span>${esc(sx('story.inesPromise.bRes'))}</span></li></ul>
+<p class="fine-ink">Each answer shows its cost before you press it. A promise in writing comes due two years later, and the people remember the answers.</p></div>
+<div><ul class="people">${people}</ul>
+<figure class="shot"><img src="${prefix}assets/shots/ending-recap.jpg" alt="The ending sheet: ten years told back, year by year, with each answer you gave" width="900" height="900" loading="lazy"><figcaption>The ending sheet tells your ten years back to you.</figcaption></figure></div>
+</div>`;
+}
+
 const KINDS = ['reconductor', 'newFeeder', 'newTransformer', 'tieSwitch', 'remoteSwitch', 'recloser', 'vegetation', 'harden', 'replaceAssets', 'regulator', 'battery', 'demandResponse'];
 const ENDINGS = ['chiefEngineer', 'steady', 'bailedOut', 'licenceRevoked'];
 const DISTRICT_SHOT: Record<string, [string, string]> = {
@@ -108,7 +128,7 @@ function careerPage(): string {
 <dt>SAIFI</dt><dd>Power cuts per customer in a year: every customer interruption longer than five minutes (IEEE 1366), divided by the customers.</dd>
 <dt>Targets</dt><dd>The regulator pays or fines on the rolling three-year average against target. Every five years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets even in fair weather, three years running.</dd>
 </dl>
-<h2>Districts</h2>
+<h2>The people</h2>\n${storyHtml('../')}\n<h2>Districts</h2>
 <p>A career starts in one district. Each pushes a different pressure, and its targets come from its own expected performance, so every one can be won, though not with the same plan. Each ISO week also has one district and seed, the same for everyone.</p>
 <div class="grid2">${districts}</div>
 <h2>Projects</h2>
@@ -140,9 +160,15 @@ function indexPage(): string {
   return page('GRID wiki', 'Player guide to GRID: every work order, its steps and why, and the Career mode.', body, 'Wiki');
 }
 
-/** Every wiki page, path relative to site/. */
-export function buildWiki(): Record<string, string> {
+/** The home page with its generated story block (between the <!--story--> markers) refreshed. */
+export function homePage(src: string): string {
+  return src.replace(/<!--story-->[\s\S]*?<!--\/story-->/, `<!--story-->\n${storyHtml('')}\n<!--/story-->`);
+}
+
+/** Every wiki page, path relative to site/; with the home page's source, index.html too. */
+export function buildWiki(home?: string): Record<string, string> {
   const out: Record<string, string> = { 'wiki/index.html': indexPage(), 'wiki/career.html': careerPage() };
+  if (home !== undefined) out['index.html'] = homePage(home);
   for (const c of CHAPTERS) out[`wiki/chapter-${c.n}.html`] = chapterPage(c.n);
   return out;
 }

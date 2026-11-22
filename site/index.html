@@ -21,7 +21,7 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
-<link rel="preload" href="assets/shots/hero.jpg" as="image" fetchpriority="high">
+<link rel="preload" href="assets/shots/workorder.jpg" as="image" fetchpriority="high">
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="home.css">
 </head>
@@ -32,6 +32,7 @@
   <nav aria-label="Primary">
     <a href="#shift" class="hide-s">How it plays</a>
     <a href="#campaign" class="hide-s">Campaign</a>
+    <a href="#story" class="hide-s">Story</a>
     <a href="#career" class="hide-s">Career</a>
     <a href="wiki/">Wiki</a>
     <a href="#download" class="btn mini go">Download</a>
@@ -43,7 +44,7 @@
   <div class="lamps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux · Windows</span></p>
+      <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux</span><span>Windows (untested)</span></p>
       <h1>GRID</h1>
       <p class="tagline">Keep the lights on with real physics.</p>
       <p class="lede">Build a province's power grid one job at a time, then press Run and watch the day happen to it. Demand climbs at dusk, the sun goes down on the solar farms, a storm takes out a line. The rules are the textbook equations: a full AC load flow every 15 minutes, real conductors, real relay curves.</p>
@@ -51,11 +52,11 @@
         <a class="btn go" id="dl-main" href="https://github.com/ixaxaar/grid/releases/latest">Download <small id="dl-main-sub">latest release</small></a>
         <a class="btn" href="wiki/">Player wiki</a>
       </div>
-      <p class="fine" id="dl-note">Free and open source on <a href="https://github.com/ixaxaar/grid">GitHub</a>.</p>
+      <p class="fine" id="dl-note">Free. Source on <a href="https://github.com/ixaxaar/grid">GitHub</a>.</p>
     </div>
     <figure class="hero-shot">
-      <img src="assets/shots/hero.jpg" alt="The finale: the whole province at dusk, every bus labelled with its voltage in per unit" width="1600" height="900">
-      <figcaption>The finale, on the third evening. Every label is a live bus voltage.</figcaption>
+      <a href="assets/shots/workorder.jpg" class="zoom"><img src="assets/shots/workorder.jpg" alt="Work order 05, The River Line: the place, three people on the radio, the goal, the pass conditions and the three lamps, over the map" width="1600" height="900"></a>
+      <figcaption>Every job starts with a work order: who is on the radio, the goal, the numbers to pass.</figcaption>
     </figure>
   </div>
 </section>
@@ -66,22 +67,22 @@
     <h2>One shift, start to finish</h2>
     <ol class="steps">
       <li class="step">
-        <img src="assets/shots/workorder.jpg" alt="Work order 05, The River Line: the radio, the goal, the pass conditions and three lamps" width="1600" height="900" loading="lazy">
-        <h3><b>1</b> Read the work order</h3>
-        <p>The place, three people on the radio, the goal in plain words, the pass conditions with their numbers and the three lamps you can earn.</p>
+        <a href="assets/shots/bench.jpg" class="zoom"><img src="assets/shots/bench.jpg" alt="L01 First Light: a battery hut on the beach, ten homes, the radio log and the parts tray" width="1600" height="900" loading="lazy"></a>
+        <h3><b>1</b> Take the job</h3>
+        <p>A place, three people on the radio, the goal in plain words, the pass conditions with their numbers and the three lamps you can earn.</p>
       </li>
       <li class="step">
-        <img src="assets/shots/river.jpg" alt="Surveying a line route over a river and a ridge, with the parts tray at the bottom" width="1600" height="900" loading="lazy">
+        <a href="assets/shots/river.jpg" class="zoom"><img src="assets/shots/river.jpg" alt="Surveying a line route over a river and a ridge, with the parts tray at the bottom" width="1600" height="900" loading="lazy"></a>
         <h3><b>2</b> Build</h3>
         <p>Cables by cross-section, pole families and named conductors on a surveyed route, transformers, capacitor banks, gas units, pumped hydro, batteries. Every part has a price.</p>
       </li>
       <li class="step">
-        <img src="assets/shots/nose.jpg" alt="The map at noon with dials for the clock and frequency, and the P-V nose curve" width="1600" height="900" loading="lazy">
+        <a href="assets/shots/nose.jpg" class="zoom"><img src="assets/shots/nose.jpg" alt="The map at noon with dials for the clock and frequency, and the P-V nose curve" width="1600" height="900" loading="lazy"></a>
         <h3><b>3</b> Run the day</h3>
         <p>A lever runs the 24-hour clock at 1×, 2× or 4×. Voltages, line loadings and the frequency move on the dials and on the map.</p>
       </li>
       <li class="step">
-        <img src="assets/shots/report.jpg" alt="The shift report: three lamps earned, cost, losses and what happened, in the player's own numbers" width="1600" height="900" loading="lazy">
+        <a href="assets/shots/report.jpg" class="zoom"><img src="assets/shots/report.jpg" alt="The shift report: three lamps earned, cost, losses and what happened, in the player's own numbers" width="1600" height="900" loading="lazy"></a>
         <h3><b>4</b> Read the shift report</h3>
         <p>What happened, in your own numbers, and what to try next. Fail, and the incident report names the bus and the minute.</p>
       </li>
@@ -92,8 +93,8 @@
 <section class="band dark" id="run">
   <div class="wrap run-grid">
     <figure class="gif">
-      <img src="assets/shots/finale-run.gif" alt="A recording of the finale running at 4×: a night, a day and a night pass over the province while the voltages change and a storm trips a line" width="880" height="495" loading="lazy">
-      <figcaption>Recorded in the game: the finale at 4×, about forty hours in ten seconds.</figcaption>
+      <img src="assets/shots/finale-run.gif" decoding="async" alt="A recording of the finale running at 4×: a night, a day and a night pass over the province while the voltages change and a storm trips a line" width="880" height="495" loading="lazy">
+      <figcaption>An animated capture from the game: the finale at 4×, about forty hours looping in ten seconds.</figcaption>
     </figure>
     <div>
       <p class="kicker">See it run</p>
@@ -128,6 +129,23 @@
       <figure><a href="assets/shots/duck.jpg"><img src="assets/shots/duck.jpg" alt="Chapter 6: the shift report after the dusk ramp" width="1600" height="900" loading="lazy"></a><figcaption><b>The sun goes down</b> · chapter 6</figcaption></figure>
       <figure><a href="assets/shots/fault.jpg"><img src="assets/shots/fault.jpg" alt="Chapter 7: an incident report naming the breaker and the fault current" width="1600" height="713" loading="lazy"></a><figcaption><b>An incident report</b> · chapter 7</figcaption></figure>
     </div>
+  </div>
+</section>
+
+<section class="band" id="story">
+  <div class="wrap">
+    <p class="kicker">The story</p>
+    <h2>Five people, ten years, and they remember</h2>
+    <p class="intro">Between the projects, letters land on the desk and calls come in during storms. Every one has two honest answers. Here is the first letter from the hospital, word for word from the game:</p>
+<!--story-->
+<div class="story-grid">
+<div class="letter card"><p class="letter-title">A letter from the hospital</p><p>Dr Ines Kovač, estates manager at St Brigid's Hospital: &quot;Our generators carry the theatres for six hours. Feeder F1 has no tie and no remote switch, so a fault there is a long one. Will you commit, in writing, to a tie or a remote switch on F1 within two years?&quot;</p>
+<ul class="answers"><li><b>Put it in writing</b><span>You signed. A tie or a remote switch on F1 by year 3. She pinned the letter above her desk.</span></li><li><b>Decline, and tell her honestly where it ranks</b><span>You told her the truth: other feeders come first on the numbers. She thanked you for not pretending, and copied her board.</span></li></ul>
+<p class="fine-ink">Each answer shows its cost before you press it. A promise in writing comes due two years later, and the people remember the answers.</p></div>
+<div><ul class="people"><li><b>Tobi, crew chief</b><span>Runs the crews. Asks you to rest them, and remembers when you did not.</span></li><li><b>Vance, finance</b><span>Finance. Wants the cash to last and the owners paid.</span></li><li><b>Ms Okafor, regulator</b><span>The regulator. Judges your SAIDI and SAIFI, and your plans.</span></li><li><b>Dr Ines Kovač, estates, St Brigid's Hospital</b><span>Keeps the hospital running on its feeder.</span></li><li><b>Cllr Tom Pryce, Ashby and Coldwater</b><span>Speaks for the villages on the far feeder of the second primary.</span></li></ul>
+<figure class="shot"><img src="assets/shots/ending-recap.jpg" alt="The ending sheet: ten years told back, year by year, with each answer you gave" width="900" height="900" loading="lazy"><figcaption>The ending sheet tells your ten years back to you.</figcaption></figure></div>
+</div>
+<!--/story-->
   </div>
 </section>
 
@@ -178,7 +196,7 @@
     <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. It has been played on desktop Linux; the Windows build is made and smoke-tested on every release but not yet played on Windows. Node.js is bundled; nothing else to install.</p>
     <div class="dl-row">
       <a class="dl" id="dl-linux" href="https://github.com/ixaxaar/grid/releases/latest"><b>Linux</b><span>x86_64 · zip</span><em>unzip, then run <code>GRID/grid.sh</code> (needs a Vulkan-capable driver)</em></a>
-      <a class="dl" id="dl-windows" href="https://github.com/ixaxaar/grid/releases/latest"><b>Windows</b><span>x64 · zip</span><em>unzip, then run <code>GRID\GRID.exe</code> (unsigned: More info → Run anyway)</em></a>
+      <a class="dl" id="dl-windows" href="https://github.com/ixaxaar/grid/releases/latest"><b>Windows</b><span>x64 · zip</span><em><b class="untested">Untested build:</b> made and smoke-run on Linux for every release, never yet run on Windows. Unzip, then run <code>GRID\GRID.exe</code> (unsigned: More info → Run anyway).</em></a>
     </div>
     <p class="fine"><span id="dl-ver">Latest release</span> · <a id="dl-sums" href="https://github.com/ixaxaar/grid/releases/latest">SHA256SUMS.txt</a> · <a href="https://github.com/ixaxaar/grid/releases">All releases</a> · <a href="https://github.com/ixaxaar/grid/blob/master/CHANGELOG.md">Changelog</a> · No macOS build yet.</p>
   </div>
