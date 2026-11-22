@@ -85,6 +85,9 @@ func game_camera(spec: String) -> void:
 		else: cam.append(part)
 	game_on_changed()
 	if grid_world != null: grid_world.set_camera(",".join(cam))
+	var later := OS.get_environment("CB_CAM_LATER")   # QA captures: a second spec after CB_CAM_LATER_AT seconds (a tick that lights a town on camera)
+	if later != "" and spec != later:
+		get_tree().create_timer(float(OS.get_environment("CB_CAM_LATER_AT")) if OS.get_environment("CB_CAM_LATER_AT") != "" else 4.0).timeout.connect(func(): game_camera(later))
 
 func game_unhandled_key(e: InputEventKey) -> bool:
 	if chrome != null and chrome.key(e): return true

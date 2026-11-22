@@ -40,6 +40,7 @@ func _init(T: Dictionary, map: Vector2, ic: Vector2) -> void:
 	n_hills.frequency = 1.0 / 2600.0; n_hills.fractal_octaves = 5
 	n_ridge.frequency = 1.0 / 3400.0; n_ridge.fractal_octaves = 5; n_ridge.fractal_type = FastNoiseLite.FRACTAL_RIDGED
 	n_coast.frequency = 1.0 / 900.0; n_coast.fractal_octaves = 3
+	if (T.kinds as PackedStringArray).is_empty(): return   # GenField: analytic ground, no tile grid from the engine
 	var kinds: PackedStringArray = T.kinds; var elev: PackedFloat32Array = T.elev
 	base.resize(W * H2); kind.resize(W * H2)
 	for j in H2:

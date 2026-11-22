@@ -17,8 +17,19 @@ static func animate() -> bool:
 	return DisplayServer.get_name() != "headless" and not CbSettings.reduced_motion and not OS.has_environment("CB_SMOKE")
 
 # ---- labels and buttons --------------------------------------------------------------------------------------------------------------
+static var glass := false   ## LOOK2: the incident report in the glass language (ShiftReport sets it while it builds the sheet)
+
+## Paper inks as light inks on dark glass (alpha kept).
+static func ink(col: Color) -> Color:
+	if not glass: return col
+	var a := col.a
+	if Color(col, 1.0).is_equal_approx(RED): return Color(1.0, 0.52, 0.45, a)
+	if Color(col, 1.0).is_equal_approx(BLUE): return Color(0.62, 0.78, 1.0, a)
+	if Color(col, 1.0).is_equal_approx(INK): return Color(GridTheme.G_TEXT, a)
+	return col
+
 static func lbl(text: String, size := 17, kind := "sans", col: Color = INK, wrap := false) -> Label:
-	var l := GridTheme.label(text, size, col, kind)
+	var l := GridTheme.label(text, size, ink(col), GridTheme.skin_font(kind) if glass else kind)
 	if wrap: l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
@@ -36,16 +47,17 @@ static func _focus_sb() -> StyleBoxFlat:
 static func btn(text: String, primary: bool, cb: Callable, size := 20) -> Button:
 	var b := Button.new(); b.text = text; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(size))
-	var fc: Color = GridTheme.NIGHT if primary else INK
+	var fc: Color = GridTheme.NIGHT if primary else ink(INK)
 	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, fc)
 	if primary:
 		b.add_theme_stylebox_override("normal", _btn_sb(GridTheme.SODIUM, Color("#8A5F1E")))
 		b.add_theme_stylebox_override("hover", _btn_sb(GridTheme.SODIUM.lightened(0.18), Color("#8A5F1E")))
 		b.add_theme_stylebox_override("pressed", _btn_sb(GridTheme.SODIUM.darkened(0.1), Color("#8A5F1E")))
 	else:
-		b.add_theme_stylebox_override("normal", _btn_sb(Color(INK, 0.0), Color(INK, 0.7)))
-		b.add_theme_stylebox_override("hover", _btn_sb(Color(INK, 0.1), INK))
-		b.add_theme_stylebox_override("pressed", _btn_sb(Color(INK, 0.18), INK))
+		var ik := ink(INK)
+		b.add_theme_stylebox_override("normal", _btn_sb(Color(ik, 0.0), Color(ik, 0.7)))
+		b.add_theme_stylebox_override("hover", _btn_sb(Color(ik, 0.1), ik))
+		b.add_theme_stylebox_override("pressed", _btn_sb(Color(ik, 0.18), ik))
 	b.add_theme_stylebox_override("focus", _focus_sb())
 	b.add_theme_stylebox_override("disabled", _btn_sb(Color(INK, 0.04), Color(INK, 0.35)))
 	b.add_theme_color_override("font_disabled_color", Color(INK, 0.6))
@@ -105,8 +117,10 @@ static func sheet(app: CbApp, name: String, w: float, h: float, dim := 0.8, pad 
 	(host as PaperHost).app = app; bleed(app, host)
 	var pn: PanelContainer = d.panel
 	pn.clip_contents = false
-	pn.add_theme_stylebox_override("panel", GridTheme.paper_sb(4, pad))
-	var tape := Tape.new(); pn.add_child(tape)
+	if glass: pn.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.8, 6, pad))
+	else:
+		pn.add_theme_stylebox_override("panel", GridTheme.paper_sb(4, pad))
+		var tape := Tape.new(); pn.add_child(tape)
 	(d.vb as VBoxContainer).add_theme_constant_override("separation", 10)
 	return d
 
@@ -205,11 +219,15 @@ class ChipCheck extends Control:
 		draw_polyline(PackedVector2Array([c + Vector2(-7, 0), c + Vector2(-2, 6), c + Vector2(8, -7)]), GridTheme.NIGHT, 3.4, true)
 
 class DashedRule extends Control:
-	func _init() -> void: custom_minimum_size = Vector2(0, 8); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var col := Color(INK, 0.45)
+	func _init() -> void:
+		custom_minimum_size = Vector2(0, 8); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if PaperKit.glass: col = GridTheme.HAIR
 	func _draw() -> void:
+		if PaperKit.glass or col == GridTheme.HAIR: draw_line(Vector2(0, 4), Vector2(size.x, 4), col, 1.0); return
 		var x := 0.0
 		while x < size.x:
-			draw_line(Vector2(x, 4), Vector2(minf(x + 7.0, size.x), 4), Color(INK, 0.45), 2.0); x += 12.0
+			draw_line(Vector2(x, 4), Vector2(minf(x + 7.0, size.x), 4), col, 2.0); x += 12.0
 
 ## A pencil-drawn empty check box (a pass condition not yet met).
 class Check extends Control:

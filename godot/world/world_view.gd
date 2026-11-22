@@ -17,7 +17,7 @@ var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 ## LOOK2: the levels drawn by the 3D province (world3d/province3d.gd) when it is present; every other level keeps this 2D diorama.
-const LOOK2_LEVELS := ["L30"]
+const LOOK2_LEVELS := ["L30", "L28"]   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
 var look3d = null              # Province3D or null (tests, CI, levels not yet rebuilt)
 var _drag_btn := 0
 var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
@@ -97,7 +97,7 @@ func refresh(b) -> void:
 func set_model(m: Dictionary) -> void:
 	model = m
 	if look3d != null:
-		var want: bool = LOOK2_LEVELS.has(str(m.level)) and m.get("terrain") is Dictionary and not (m.terrain as Dictionary).is_empty() and not title_mode and OS.get_environment("CB_LOOK") != "1"
+		var want: bool = LOOK2_LEVELS.has(str(m.level)) and str(m.kind) == "grid" and not title_mode and OS.get_environment("CB_LOOK") != "1"
 		look3d.visible = want
 		if want: look3d.set_model(m)
 		elif look3d.cam != null: look3d.cam.current = false
@@ -1543,6 +1543,9 @@ func _draw_labels() -> void:
 ## scale), in the engine's loading-band colour; grey dashes when out of service. Stronger as the camera rises. The cut gets a red ring.
 func _draw_line_overlay() -> void:
 	var far := clampf((float(look3d.dist) - 300.0) / 1800.0, 0.3, 1.0)
+	var gen: bool = look3d.field is GenField
+	var zl := 30.0 if gen else 9.0   # the generated province's lines hang on lattice towers
+	if gen: far = clampf((float(look3d.dist) - 2500.0) / 9000.0, 0.08, 1.0)   # close in, the towers and conductors carry the line; the overlay fades
 	for l in model.lines:
 		var kind := str(l.kind)
 		if kind == "xfmr": continue
@@ -1556,8 +1559,8 @@ func _draw_line_overlay() -> void:
 				var a := _tc(raw[k]); var c := _tc(raw[k + 1])
 				for q in 12:
 					var w := a.lerp(c, q / 12.0)
-					pts.append(_iso(w.x, w.y, (PXM * 1.0) if kind == "cable" else _zat(w) + 9.0 * PXM))
-			if raw.size() >= 2: var e := _tc(raw[raw.size() - 1]); pts.append(_iso(e.x, e.y, (PXM * 1.0) if kind == "cable" else _zat(e) + 9.0 * PXM))
+					pts.append(_iso(w.x, w.y, (PXM * 1.0) if kind == "cable" else _zat(w) + zl * PXM))
+			if raw.size() >= 2: var e := _tc(raw[raw.size() - 1]); pts.append(_iso(e.x, e.y, (PXM * 1.0) if kind == "cable" else _zat(e) + zl * PXM))
 		if pts.size() < 2: continue
 		var live := bool(l.in_service) and int(l.dir) != 0
 		var col: Color = l.color if bool(l.in_service) else WorldMath.GREY

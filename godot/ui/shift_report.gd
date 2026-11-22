@@ -26,11 +26,13 @@ static func open(app: CbApp) -> bool:
 	var lid := str(e.level_id)
 	var stars := int(app.b.g.get("stars", 0)) if won else 0
 	if won and lid != "": GridSettings.record_stars(lid, stars); GridSettings.record_pass(lid)
+	PaperKit.glass = GridTheme.look2   # LOOK2: glass, docked in a third of the width, no dim: the dark district stays in view
 	var compact := PaperKit.compact(app) or app.vs_h() < 860.0   # Deck 1280x800 / 768p laptops: the compact sheet fits without the "more" cue over ADA's note
 	var short: bool = app.vs_h() < 920.0 or _force_short
 	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
 	var w: float = dock.w
-	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.34, 16.0 if compact else 30.0)
+	if PaperKit.glass: w = clampf(app.vw() / 3.0, 360.0, w); dock.left = 16.0
+	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.0 if PaperKit.glass else 0.34, (14.0 if compact else 22.0) if PaperKit.glass else (16.0 if compact else 30.0))
 	_d = d
 	app.sfx("page")
 	var host: Control = d.host; var pn: PanelContainer = d.panel
@@ -56,6 +58,7 @@ static func open(app: CbApp) -> bool:
 		var again := PaperKit.btn(T("REP_P0_AGAIN"), false, func(): app.start_level("P0", true), 20); again.name = "Retry"; prow.add_child(again)
 		var go := PaperKit.btn(T("REP_P0_GO"), true, func(): app.start_level("L01", true), 20); go.name = "Next"; prow.add_child(go)
 		go.call_deferred("grab_focus")
+		PaperKit.glass = false
 		return true
 	if won: lamps = _won(app, col, e, li if has_li else {}, stars, short, compact)
 	else: _lost(app, col, e, li if has_li else {}, compact)
@@ -79,6 +82,8 @@ static func open(app: CbApp) -> bool:
 		var line: String = app.scores_submit_level(lid)
 		if line != "": vb.add_child(PaperKit.lbl(line, 14, "sans", Color(PaperKit.INK, 0.6), true))
 	_fit_v(app, d, left, w)
+	if PaperKit.glass: pn.set_meta("rep_glass", true)
+	PaperKit.glass = false
 	PaperKit.slide_in(d, 60.0)
 	(host as PaperHost).primary = primary
 	app.focus_dialog()
@@ -93,6 +98,7 @@ static func _dock(app: CbApp, w0: float) -> Dictionary: return dock_for(app.vw()
 
 ## Re-run the docking once the world has settled (the island moves a little when the model and camera refit after the last tick).
 static func _redock(app: CbApp, d: Dictionary, w0: float) -> void:
+	if is_instance_valid(d.get("panel")) and (d.panel as Control).has_meta("rep_glass"): return   # LOOK2: stays docked at the left third
 	if not is_instance_valid(d.host) or _d != d: return
 	var dk := _dock(app, w0); var pn: Control = d.panel
 	pn.offset_left = float(dk.left); pn.offset_right = float(dk.left) + float(dk.w)
@@ -265,7 +271,7 @@ static func _copy_code(app: CbApp, btn: Button) -> void:
 static func _head(col: VBoxContainer, title: String, sub: String, ink: Color, compact := false) -> void:
 	var head := HBoxContainer.new(); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	hv.add_child(PaperKit.lbl(title.to_upper(), 38 if compact else 60, "title", ink, true))
+	hv.add_child(PaperKit.lbl(title.to_upper(), (26 if compact else 34) if PaperKit.glass else (38 if compact else 60), "title", ink, true))
 	hv.add_child(PaperKit.lbl(sub, 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
 
 static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, stars: int, _short := false, compact := false) -> Array:
@@ -326,13 +332,14 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 ## ADA's handwritten-ish note: a sticky slip, slightly crooked, in pen blue.
 static func _note(text: String, ink: Color, title := "", compact := false) -> Control:
 	var pc := PanelContainer.new()
-	var sb := StyleBoxFlat.new(); sb.bg_color = Color("#FBF1B6"); sb.set_corner_radius_all(3); sb.border_color = Color(PaperKit.INK, 0.2); sb.set_border_width_all(1)
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color(1, 1, 1, 0.06) if PaperKit.glass else Color("#FBF1B6"); sb.set_corner_radius_all(3); sb.border_color = GridTheme.HAIR if PaperKit.glass else Color(PaperKit.INK, 0.2); sb.set_border_width_all(1)
 	sb.content_margin_left = 14 if compact else 18; sb.content_margin_right = 14 if compact else 18; sb.content_margin_top = 8 if compact else 12; sb.content_margin_bottom = 10 if compact else 14; sb.shadow_color = Color(0, 0, 0, 0.18); sb.shadow_size = 4; sb.shadow_offset = Vector2(1, 2)
 	pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2); pc.add_child(v)
 	v.add_child(PaperKit.lbl(title if title != "" else T("REP_ADA") + " ›", 14, "mono", Color(ink, 0.8)))
 	v.add_child(PaperKit.lbl(text, 15 if compact else 18, "semi", ink, true))
-	pc.rotation = deg_to_rad(-0.8)
+	pc.rotation = 0.0 if PaperKit.glass else deg_to_rad(-0.8)
+	if PaperKit.glass: sb.shadow_size = 0
 	pc.name = "Note"
 	return pc
 
@@ -341,11 +348,11 @@ static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary,
 	var lid := str(e.level_id)
 	var head := HBoxContainer.new(); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 0); head.add_child(hv)
-	hv.add_child(PaperKit.lbl(T("REP_LOST").to_upper(), 38 if compact else 60, "title", PaperKit.RED, true))
+	hv.add_child(PaperKit.lbl(T("REP_LOST").to_upper(), (26 if compact else 34) if PaperKit.glass else (38 if compact else 60), "title", PaperKit.RED, true))
 	hv.add_child(PaperKit.lbl(T("REP_SUB") % [lid.trim_prefix("L"), str(e.title)] if lid != "" else str(e.title), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
 	var bud = app.b.g.get("budget", {})
 	var over_budget: bool = bud is Dictionary and float(bud.get("capexLimit", 0.0)) > 0.0 and float(bud.get("spent", 0.0)) > float(bud.get("capexLimit", 0.0)) + 1e-6
-	if not compact: head.add_child(Stamp.new(T("REP_STAMP_COST" if over_budget else "REP_STAMP_LOST")))   # an over-budget line may well light the market: the stamp must not say it did not
+	if not compact and not PaperKit.glass: head.add_child(Stamp.new(T("REP_STAMP_COST" if over_budget else "REP_STAMP_LOST")))   # an over-budget line may well light the market: the stamp must not say it did not
 	col.add_child(PaperKit.rule())
 	col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
 	col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))

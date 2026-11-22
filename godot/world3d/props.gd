@@ -134,6 +134,57 @@ static func support(family: String, pole_m: float, attach_m: float) -> Array:
 	st.generate_normals()
 	return [st.commit(), att]
 
+## A double-circuit lattice tower `h` metres tall with three crossarms a side (half-spans `arm` m at the middle level) and an earth-wire peak.
+## Returns [mesh, attachment offsets: 6 phase points (left top..bottom, right top..bottom), then the earth-wire peak, red light point].
+static func tower(h: float, arm: float) -> Array:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var steel := Color(0.6, 0.62, 0.65)
+	var w0 := h * 0.17; var wm := h * 0.055; var waist := h * 0.6
+	var legs := [Vector3(-1, 0, -1), Vector3(1, 0, -1), Vector3(1, 0, 1), Vector3(-1, 0, 1)]
+	var lr := maxf(0.09, h * 0.0028)
+	for l in legs:
+		_cyl(st, l * w0 * 0.5, l * wm * 0.5 + Vector3(0, waist, 0), lr, lr * 0.8, 4, steel)
+		_cyl(st, l * wm * 0.5 + Vector3(0, waist, 0), l * wm * 0.35 + Vector3(0, h, 0), lr * 0.8, lr * 0.6, 4, steel)
+	var n := int(h / 3.2)
+	for k in n:   # X bracing on the four faces
+		var y0 := h * k / n; var y1 := h * (k + 1) / n
+		var f0 := lerpf(w0, wm, minf(1.0, y0 / waist)) * 0.5 if y0 < waist else lerpf(wm, wm * 0.7, (y0 - waist) / (h - waist)) * 0.5
+		var f1 := lerpf(w0, wm, minf(1.0, y1 / waist)) * 0.5 if y1 < waist else lerpf(wm, wm * 0.7, (y1 - waist) / (h - waist)) * 0.5
+		for q in 4:
+			var la: Vector3 = legs[q]; var lb: Vector3 = legs[(q + 1) % 4]
+			_cyl(st, la * f0 + Vector3(0, y0, 0), lb * f1 + Vector3(0, y1, 0), lr * 0.4, lr * 0.4, 3, steel)
+			_cyl(st, lb * f0 + Vector3(0, y0, 0), la * f1 + Vector3(0, y1, 0), lr * 0.4, lr * 0.4, 3, steel)
+	var att: Array = []
+	var levels := [[0.93, arm * 0.8], [0.79, arm], [0.65, arm * 0.88]]
+	for side in [-1.0, 1.0]:
+		for lv in levels:
+			var y: float = h * lv[0]; var a: float = lv[1]
+			var root := Vector3(0, y, side * wm * 0.4)
+			var tip := Vector3(0, y, side * a)
+			_cyl(st, root + Vector3(-wm * 0.3, 0, 0), tip, lr * 0.7, lr * 0.5, 3, steel)
+			_cyl(st, root + Vector3(wm * 0.3, 0, 0), tip, lr * 0.7, lr * 0.5, 3, steel)
+			_cyl(st, root + Vector3(0, h * 0.05, 0), tip, lr * 0.5, lr * 0.4, 3, steel)
+			var ins := h * 0.075   # the insulator string
+			_cyl(st, tip, tip - Vector3(0, ins, 0), 0.16, 0.16, 6, Color(0.82, 0.84, 0.86))
+			att.append(tip - Vector3(0, ins, 0))
+	_cyl(st, Vector3(0, h, 0), Vector3(0, h + h * 0.07, 0), lr * 0.6, lr * 0.3, 4, steel)
+	att.append(Vector3(0, h + h * 0.07, 0))
+	att.append(Vector3(0, h + h * 0.07 + 0.6, 0))
+	st.generate_normals()
+	return [st.commit(), att]
+
+## A substation bay set: a circuit breaker (tank on legs with three bushings), current transformers and a disconnector post.
+static func breaker() -> ArrayMesh:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var g := Color(0.62, 0.64, 0.66); var por := Color(0.72, 0.42, 0.3)
+	_box(st, Vector3(0, 2.6, 0), Vector3(2.2, 0.8, 1.3), g)
+	for l in [Vector3(-0.8, 0, -0.5), Vector3(0.8, 0, -0.5), Vector3(-0.8, 0, 0.5), Vector3(0.8, 0, 0.5)]: _cyl(st, l, l + Vector3(0, 2.2, 0), 0.06, 0.06, 4, g)
+	for z in [-0.9, 0.0, 0.9]:
+		_cyl(st, Vector3(-0.6, 3.0, z * 0.5), Vector3(-0.6, 5.0, z * 0.5), 0.14, 0.1, 6, por)
+		_cyl(st, Vector3(0.6, 3.0, z * 0.5), Vector3(0.6, 5.0, z * 0.5), 0.14, 0.1, 6, por)
+	st.generate_normals()
+	return st.commit()
+
 ## A distribution transformer on a plinth (about 2 x 1.6 x 2.2 m) with cooling fins.
 static func transformer() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
