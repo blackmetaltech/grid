@@ -40,7 +40,7 @@ for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { me
 export const verifier = {
   game: 'grid',
   rulesVersion: '1.10.0',
-  gameVersions: ['1.10.0'],   // 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
+  gameVersions: ['1.10.0', '1.11.0'],   // 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
   regionRulesets: ['global'],
   levels: { global: levels },
   maxSolutionBytes: 65536,

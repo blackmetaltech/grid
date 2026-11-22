@@ -1,14 +1,22 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.8.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/ixaxaar/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.11.md)** · **[Issues](https://github.com/ixaxaar/grid/issues)**
 
 **Build a province's power grid, one job at a time, and watch it run the day.** You start by sizing one cable from a battery hut to a ten-home hamlet. Then you string a 11 kV line across a river, tame a mill's harmonics, balance three phases, hold a 400 kV ring's voltage, ride a dusk ramp with peakers and pumped hydro, set relay curves and dispatch a merit order. Then you press **Run**: demand climbs at dusk, the sun sets on the solar parks, a storm opens a line, a big unit trips. Voltages sag, the frequency dips, breakers open and towns go dark window by window. The windows are lit by your power flow, so every mistake shows up on the map.
 
 The front end is a **Godot 4.7** game: an isometric diorama of the island and the province, paper work orders and shift reports, analogue dials and a radio log. Every rule runs in a **deterministic TypeScript engine** that Godot drives through a headless Node sidecar: a Newton-Raphson AC load flow, a modified-nodal bench solver, the swing equation with governors, harmonics, IEC relay curves and line thermal limits. A design code reproduces a build exactly, because the same inputs always give the same day.
 
-> **1.8 "Pad and progress".** The whole campaign, now eight chapters, is playable and has been played to a win at every chapter. A ten-year Career mode runs a distribution district, in seven district charters and a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. Builds for Windows and macOS come from the release workflow but have not been played on those systems. Rough edges and known gaps are listed in the [changelog](CHANGELOG.md) and the [critique](docs/CRITIQUE-1.8.md).
+> **Alpha, 1.11.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. The ten-year Career runs in nine districts plus a weekly district that is the same for everyone. It runs on desktop Linux, with mouse, controller or touch, in a desktop or a phone layout. The Windows build is made and smoke-tested on every release but not yet played on Windows; there is no macOS build yet.
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
+
+### What's new in 1.11
+
+| The site: the hero at 2560 px, content-height, a real shot | The player wiki: every work order, its radio and its steps |
+|---|---|
+| ![site at 2560](docs/readme/new111/site-2560.png) | ![wiki chapter](docs/readme/new111/wiki-chapter.png) |
+
+GRID has a site at [grid.blackmetal.tech](https://grid.blackmetal.tech) with download buttons that resolve the latest release, and a [player wiki](https://grid.blackmetal.tech/wiki/) generated from the game's own text (`scripts/wiki.ts`; a test fails when it is stale).
 
 ### What's new in 1.10
 
@@ -30,26 +38,6 @@ The Career has two new districts that teach different things. Harbour City is un
 
 The Career now has people in it: Tobi the crew chief, Vance from finance, Ms Okafor the regulator, the hospital's estates manager and the villages' councillor. Their seventeen letters and calls each have two honest answers, and each answer shows what it costs before you press it. A promise in writing comes due two years later. The Career screen itself is paper cards and a district drawn at night ([before](docs/readme/new18/career-guide.png), [after](docs/readme/new19/career-after.png)). A test walks every screen at 1920×1080 and 1280×800 and fails on any text under 16 px.
 
-### What's new in 1.8
-
-| The Career's first quarter is one job | A pad can answer the exams |
-|---|---|
-| ![career guide](docs/readme/new18/career-guide.png) | ![number pad](docs/readme/new18/pad-numpad.png) |
-| **L20 says build first, then run** | **The finale at 4×, on Day 2** |
-| ![L20 order](docs/readme/new18/l20-order.png) | ![finale at 4x](docs/readme/new18/finale-4x.png) |
-
-On the finale map, no frame waits on the engine any more, and draw calls fell from about 22,000 to about 2,100 a frame. Every screen was reached with a gamepad alone at 1280×800; a physical pad has not been tried yet.
-
-### What's new in 1.7
-
-| The Career warns on the main screen | The quarter report names the idle cash and what it would buy |
-|---|---|
-| ![strike alarm](docs/readme/new17/career-alarm.png) | ![quarter report](docs/readme/new17/quarter-nudge.png) |
-| **A protection fault, in your own numbers (L23)** | **The event log names what it lost** |
-| ![fault report](docs/readme/fault.png) | ![event log](docs/readme/new17/log-names.png) |
-
-Four music tracks of 2-3 minutes each and six new sound cues (trips, blackouts, money, the speed keys). Every cue and track is rendered and measured in [docs/audio/ANALYSIS.md](docs/audio/ANALYSIS.md).
-
 ## What you actually do
 
 | | |
@@ -65,11 +53,17 @@ Four music tracks of 2-3 minutes each and six new sound cues (trips, blackouts, 
 
 **Career: The Utility.** Ten years, one quarter at a time, as the district engineer for about 40,000 customers on two primary substations and nine feeders. You pick projects from a board: reconductoring, new feeders and transformers, ties, remote switches, reclosers, tree clearance, replacing worn assets, batteries and demand response. Each card shows what it does to expected SAIDI, loading and firm margin. Assets age along Weibull curves, load grows, storms and failures are drawn from the quarter's odds, and connection requests arrive with deadlines. Each year the regulator, the finance director and the crew chief review you. A simplified performance incentive pays or fines on the rolling three-year SAIDI and SAIFI against target, and every five years the targets reset to what your network should achieve. The licence goes only for a network that cannot meet its targets, three years running, never for one bad storm season. It ends as Chief Engineer (which also needs every feeder within its cyclic rating and every substation firm), Steady, Bailed out or Licence revoked. Storms come with a forecast each quarter: book standby crews or mutual aid before they hit, or harden the exposed feeders for good. Any debt at the end also rules out Chief, and a reset never tightens a target by more than 25 % at once. A career is a seed plus your actions, so its code is also the save.
 
-**Charters and the weekly district.** A Career can start in one of seven districts, each pushing a different pressure: Home Counties (balanced), Storm Coast (storms), Boomtown (connections and growth), Old Iron (ageing assets), Solar Valley (rooftop PV and voltage), Lean Years (a tight allowance) and Forest Line (trees). Targets come from each district's own expected performance, so every one can be won, but not with the same plan. Each ISO week also has one seed and one charter, the same for everyone. The game keeps your best score for the week. With a [cobanana-scores](../cobanana-scores) server (`CB_SCORES_URL`), a finished weekly career goes to that week's board: the server replays the career code to check the score. GRID ships no server address; nothing is sent without one, and nothing is sent before the first-run notice is accepted.
+**Charters and the weekly district.** A Career can start in one of nine districts, each pushing a different pressure: Home Counties (balanced), Storm Coast (storms), Boomtown (connections and growth), Old Iron (ageing assets), Solar Valley (rooftop PV and voltage), Lean Years (a tight allowance), Forest Line (trees), Harbour City (underground cable: rare, day-long faults, where ties and remote switching pay and reclosers do not) and High Moor (long overhead lines, winter storms, mostly passing faults, where reclosers pay). Targets come from each district's own expected performance, so every one can be won, but not with the same plan. Each ISO week also has one seed and one of the first seven charters, the same for everyone. The game keeps your best score for the week. With a [cobanana-scores](../cobanana-scores) server (`CB_SCORES_URL`), a finished weekly career goes to that week's board: the server replays the career code to check the score. GRID ships no server address; nothing is sent without one, and nothing is sent before the first-run notice is accepted.
 
 **Modes.** **Learner** explains as it goes. **Engineer** uses per-unit values and stricter limits. A **Cute** toggle in the pause menu adds faces and doodles; the drawings still follow the physics. Two region packs ship with the engine: `global` (US$, IEC voltages, the default) and `in` (₹, the Indian grid code). Both are run by the test suite.
 
 **Honest by design.** The rules are textbook equations, not tuned curves. The grid levels solve a full AC load flow every 15-minute block. A trip runs a 10 ms RK4 frequency window with governors, batteries and under-frequency load shedding. Relays use IEC inverse-time curves, and conductors carry their real names and resistances. The engine is checked against **71 core oracle cases** and a set per chapter, all computed independently in Python (`tools/oracles/`). Each level has a "naive" build that must fail and a reference build that must pass, both in the test suite. Some things are simplified. Time runs in 15-minute blocks, with second-scale dynamics only in the window after an event. Transients are not electromagnetic. Places and companies are fictional. Prices are typical figures, not quotes.
+
+## See it in action
+
+![The finale running at 4x: a night, a day and a night pass over the province while voltages move and a storm trips a line](site/assets/shots/finale-run.gif)
+
+*Recorded in the game: the finale at 4×, about forty hours in ten seconds.*
 
 ## Screenshots
 
@@ -121,6 +115,7 @@ godot --path godot                       # play
 | regenerate goldens (deliberate rule change only) | `GOLDEN_UPDATE=1 pnpm test` |
 | Godot flow and truth tests, then the UI smoke | `node scripts/test-godot.mjs` |
 | no literal strings in GDScript | `node scripts/lint-strings.mjs` |
+| regenerate the player wiki (site/wiki) | `pnpm wiki` |
 | desktop play-test harness (Xvfb) | `core/qa/desk.sh` (see `core/qa/README.md`) |
 
 ## Architecture
@@ -147,7 +142,7 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 ## Status
 
-1.8. **1505 engine tests in 66 files** and **24 Godot steps** (23 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
+1.11. **1521 engine tests in 69 files** and **25 Godot steps** (24 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
 
 - Played on desktop Linux only. The gamepad pass used scripted pad events in the game window at 1280×800, not a physical pad; there is no pass on a real phone; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
 - The Windows build is produced but not played on Windows; there is no macOS build on the releases.
@@ -156,4 +151,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.8.md](docs/CRITIQUE-1.8.md) for the harsh version.
+See [docs/CRITIQUE-1.11.md](docs/CRITIQUE-1.11.md) for the harsh version.
