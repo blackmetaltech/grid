@@ -31,7 +31,7 @@ WORLD_VOLTS_FMT,%.1f V
 WORLD_LOSS_FMT,loss %.1f %%
 WORLD_LOAD_FMT,%d%%
 WORLD_DARK,dark
-WORLD_SCALE_NOTE,"Distances drawn compressed: 1 grid square = 4 km in the engine, 300 m on screen"
+WORLD_SCALE_NOTE,"Map compressed: 1 square = 4 km, drawn as 300 m"
 JOBS_SEE_FINALE,See the finale in the new look
 JOBS_SEE_FINALE_TIP,"The province in 3D: towns light up street by street, and a storm tests your grid. Open in every mode."
 JOBS_CLASSIC,Classic
