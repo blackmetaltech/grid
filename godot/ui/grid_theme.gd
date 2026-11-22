@@ -70,12 +70,43 @@ static func label(text: String, size := 16, col: Color = TEXT, kind := "sans") -
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
+# --- LOOK2: the engineer's instrument language (dark glass, hairline edges, thin luminous ticks). Set each refresh by GridChrome while the 3D view shows.
+const GLASS := Color(0.03, 0.05, 0.08, 0.72)
+const HAIR := Color(0.72, 0.82, 0.92, 0.28)
+const G_TEXT := Color(0.90, 0.93, 0.96)
+const G_DIM := Color(0.60, 0.66, 0.72)
+const G_TICK := Color(0.82, 0.90, 0.97, 0.85)
+static var look2 := false
+
+## Dark glass panel: 1 px hairline, radius 4, no shadow.
+static func glass_sb(alpha := 0.72, r := 4, pad := 12.0) -> StyleBoxFlat:
+	return _sb(Color(GLASS, alpha), HAIR, r, 1, pad)
+
+## A tray cell in glass: fill as the caller chose it, hairline edge, sodium when lit.
+static func glass_cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(4)
+	s.border_color = SODIUM if lit else HAIR; s.set_border_width_all(1)
+	return s
+
+## The glass look of paper chits (pin, budget tag): same call sites, only glass when look2 is on.
+static func chit_sb(r := 4, pad := 16.0) -> StyleBoxFlat:
+	return glass_sb(0.72, 4, pad) if look2 else paper_sb(r, pad)
+
+## Ink colour for dial scales and chit text: dark on paper, light on glass.
+static func face_ink() -> Color: return G_TICK if look2 else PAPER_INK
+static func chit_bg() -> Color: return Color(0.05, 0.08, 0.12, 0.9) if look2 else PAPER
+static func chit_tilt() -> float: return 0.0 if look2 else -1.6
+static func chit_ink() -> Color: return G_TEXT if look2 else PAPER_INK
+## Font kind for small labels in the skin: no Big Shoulders in LOOK2.
+static func skin_font(kind: String) -> String: return ("sans" if kind == "title" or kind == "semi" else kind) if look2 else kind
+
 static func _sb(bg: Color, edge: Color, r: int, bw: int, pad: float) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new(); s.bg_color = bg; s.border_color = edge; s.set_border_width_all(bw); s.set_corner_radius_all(r)
 	s.content_margin_left = pad; s.content_margin_right = pad; s.content_margin_top = pad * 0.7; s.content_margin_bottom = pad * 0.7
 	return s
 
 static func ink_sb(alpha := 0.94, r := 8, pad := 12.0) -> StyleBoxFlat:
+	if look2: return glass_sb(0.72 if alpha < 0.97 else 0.9, 4, pad)
 	return _sb(Color(INK, alpha), Color(SODIUM_DIM, 0.35), r, 1, pad)
 
 static func paper_sb(r := 4, pad := 16.0) -> StyleBoxFlat:
@@ -84,6 +115,7 @@ static func paper_sb(r := 4, pad := 16.0) -> StyleBoxFlat:
 	return s
 
 static func meter_face_sb(r := 10) -> StyleBoxFlat:
+	if look2: return glass_sb(0.72, 4, 0.0)
 	return _sb(METER_FACE, Color(NIGHT, 0.9), r, 4, 0.0)
 
 ## Sodium focus: a 3 px ring, the one accent the interface owns.

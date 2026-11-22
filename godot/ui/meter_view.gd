@@ -86,45 +86,47 @@ func _arc(c: Vector2, r: float, a0: float, a1: float, col: Color, w: float) -> v
 func _draw() -> void:
 	var w := size.x; var h := size.y
 	# warm backlight: sodium halo, brighter while the needle moves or the night runs
+	var l2 := GridTheme.look2
 	var g := 0.10 + 0.35 * _glow + (0.08 if live else 0.0)
-	for i in 4: draw_rect(Rect2(Vector2(-3.0 + i, -3.0 + i), size + Vector2(6.0 - 2.0 * i, 6.0 - 2.0 * i)), Color(GridTheme.SODIUM, g * 0.25), false, 3.0)
+	for i in (0 if l2 else 4): draw_rect(Rect2(Vector2(-3.0 + i, -3.0 + i), size + Vector2(6.0 - 2.0 * i, 6.0 - 2.0 * i)), Color(GridTheme.SODIUM, g * 0.25), false, 3.0)
 	var face := Rect2(Vector2.ZERO, size)
 	draw_style_box(GridTheme.meter_face_sb(10), face)
-	draw_rect(face.grow(-5.0), Color(GridTheme.SODIUM, 0.05 + 0.1 * g), true)
+	if not l2: draw_rect(face.grow(-5.0), Color(GridTheme.SODIUM, 0.05 + 0.1 * g), true)
 	var c := Vector2(w * 0.5, h * 0.72)
 	var r := minf(w * 0.5 * 0.80 / sin(deg_to_rad(SWEEP * 0.5)) * 0.62, h * 0.50)
 	var a0 := -SWEEP * 0.5; var a1 := SWEEP * 0.5
 	# zones sit just inside the ticks
 	for z in zones:
 		var za := angle_deg(float(z[0])); var zb := angle_deg(float(z[1]))
-		if zb > za: _arc(c, r - 5.0, za, zb, Color(z[2] as Color, 0.95), 8.0)
-	_arc(c, r, a0, a1, GridTheme.PAPER_INK, 1.5)
-	var ink := GridTheme.PAPER_INK
+		if zb > za: _arc(c, r - 5.0, za, zb, Color(z[2] as Color, 0.95), 4.0 if l2 else 8.0)
+	var ink := GridTheme.face_ink()
+	_arc(c, r, a0, a1, ink, 1.0 if l2 else 1.5)
 	var f := GridTheme.font("mono"); var fsz := GridTheme.fs(11)
 	var nmin := int(round((vmax - vmin) / minor))
 	for i in nmin + 1:
 		var v := vmin + i * minor; var a := angle_deg(v)
 		var is_major := absf(fmod(v - vmin + 1e-6, major)) < 1e-4 or absf(fmod(v - vmin + 1e-6, major) - major) < 1e-4
-		draw_line(_pt(c, r, a), _pt(c, r + (8.0 if is_major else 4.0), a), ink, 2.0 if is_major else 1.0, true)
+		draw_line(_pt(c, r, a), _pt(c, r + (8.0 if is_major else 4.0), a), ink, (1.5 if is_major else 1.0) if l2 else (2.0 if is_major else 1.0), true)
 		if is_major:
 			var s := str(int(round(v))); var tw := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 			var p := _pt(c, r + 8.0 + 8.0 + tw.x * 0.35, a)
 			GridText.ds(self, f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)
 	# caption (top-left, tiny scale label), readout under the pivot
-	var cf := GridTheme.font("semi"); var csz := GridTheme.fs(11)
-	GridText.ds(self, cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank and blank_key == "METER_BLANK" else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, Color(ink, 0.8))
+	var cf := GridTheme.font(GridTheme.skin_font("semi")); var csz := GridTheme.fs(11)
+	GridText.ds(self, cf, Vector2(10.0, 4.0 + csz), TranslationServer.translate("METER_OFF") if blank and blank_key == "METER_BLANK" else caption, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, GridTheme.G_DIM if l2 else Color(ink, 0.8))
 	var rs := readout_text(); var rsz := GridTheme.fs(17)
 	var rw := f.get_string_size(rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz)
 	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 10.0), Vector2(rw.x + 16.0, rsz + 8.0))
-	draw_rect(plate, GridTheme.NIGHT, true)
+	if not l2: draw_rect(plate, GridTheme.NIGHT, true)
 	GridText.ds(self, f, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, GridTheme.SODIUM)
 	if not is_nan(ghost):   # ghost needle: where the needle would rest if the player did this, drawn under the real one
 		var ga := angle_deg(ghost)
 		draw_line(_pt(c, r - 2.0, ga) , _pt(c, 6.0, ga), Color(GridTheme.SODIUM_DIM, 0.35), 6.0, true)
-		draw_line(_pt(c, r - 2.0, ga), _pt(c, 6.0, ga), Color("#2A2418", 0.85), 1.6, true)
+		draw_line(_pt(c, r - 2.0, ga), _pt(c, 6.0, ga), Color(GridTheme.G_TEXT, 0.85) if l2 else Color("#2A2418", 0.85), 1.6, true)
 		draw_circle(_pt(c, r - 2.0, ga), 3.2, GridTheme.SODIUM)
 	# needle with a short shadow and a counterweight tail
 	var na := needle_deg()
-	draw_line(c + Vector2(2, 2), _pt(c, r - 2.0, na) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)
-	draw_line(_pt(c, -9.0, na), _pt(c, r - 2.0, na), Color("#B3261E"), 2.5, true)
-	draw_circle(c, 5.5, GridTheme.NIGHT); draw_circle(c, 2.0, GridTheme.SODIUM_DIM)
+	if not l2: draw_line(c + Vector2(2, 2), _pt(c, r - 2.0, na) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)
+	draw_line(_pt(c, -9.0, na), _pt(c, r - 2.0, na), GridTheme.SODIUM if l2 else Color("#B3261E"), 1.8 if l2 else 2.5, true)
+	if l2: draw_circle(c, 4.0, GridTheme.GLASS); draw_arc(c, 4.0, 0.0, TAU, 16, GridTheme.SODIUM, 1.0, true)
+	else: draw_circle(c, 5.5, GridTheme.NIGHT); draw_circle(c, 2.0, GridTheme.SODIUM_DIM)

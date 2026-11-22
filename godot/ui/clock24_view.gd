@@ -49,33 +49,39 @@ func _arc(c: Vector2, r: float, a0: float, a1: float, col: Color, w: float) -> v
 func _draw() -> void:
 	var w := size.x; var plate_h := float(GridTheme.fs(17)) + 10.0
 	var d := minf(w, size.y - plate_h + 6.0); var c := Vector2(w * 0.5, d * 0.5); var r := d * 0.5 - 3.0
+	var l2 := GridTheme.look2
 	var glow := 0.10 + (0.08 if running else 0.0)
-	for i in 4: draw_arc(c, r + 3.0 - i * 0.7, 0.0, TAU, 48, Color(GridTheme.SODIUM, glow * 0.3), 2.0)
-	draw_circle(c, r, GridTheme.NIGHT); draw_circle(c, r - 4.0, GridTheme.METER_FACE)
-	draw_circle(c, r - 4.0, Color(GridTheme.SODIUM, 0.06))
-	var ink := GridTheme.PAPER_INK; var ra := r - 12.0
+	if l2:
+		draw_circle(c, r, GridTheme.GLASS); draw_arc(c, r, 0.0, TAU, 64, GridTheme.HAIR, 1.0, true)
+	else:
+		for i in 4: draw_arc(c, r + 3.0 - i * 0.7, 0.0, TAU, 48, Color(GridTheme.SODIUM, glow * 0.3), 2.0)
+		draw_circle(c, r, GridTheme.NIGHT); draw_circle(c, r - 4.0, GridTheme.METER_FACE)
+		draw_circle(c, r - 4.0, Color(GridTheme.SODIUM, 0.06))
+	var ink := GridTheme.face_ink(); var ra := r - 12.0
+	var aw := 4.0 if l2 else 7.0
 	if win_start >= 0.0:
 		var a0 := deg_of(win_start)
 		if win_len >= DAY_MIN - 0.5:
-			_arc(c, ra, a0, a0 + 359.0, Color(GridTheme.SODIUM_DIM, 0.55), 7.0)
-			_arc(c, ra, a0, a0 + 359.0 * elapsed / win_len, GridTheme.SODIUM, 7.0)
+			_arc(c, ra, a0, a0 + 359.0, Color(GridTheme.SODIUM_DIM, 0.55), aw)
+			_arc(c, ra, a0, a0 + 359.0 * elapsed / win_len, GridTheme.SODIUM, aw)
 		else:
 			var a1 := a0 + win_len / DAY_MIN * 360.0
-			_arc(c, ra, a0, a1, Color(GridTheme.SODIUM_DIM, 0.55), 7.0)
-			if elapsed > 0.0: _arc(c, ra, a0, a0 + win_len / DAY_MIN * 360.0 * elapsed / win_len, GridTheme.SODIUM, 7.0)
+			_arc(c, ra, a0, a1, Color(GridTheme.SODIUM_DIM, 0.55), aw)
+			if elapsed > 0.0: _arc(c, ra, a0, a0 + win_len / DAY_MIN * 360.0 * elapsed / win_len, GridTheme.SODIUM, aw)
 	for h in 24:
 		var a := deg_of(h * 60.0); var big := h % 6 == 0
-		draw_line(_pt(c, r - 9.0 - (3.0 if big else 0.0) + 2.0, a), _pt(c, r - 5.0, a), ink, 2.0 if big else 1.0, true)
+		draw_line(_pt(c, r - 9.0 - (3.0 if big else 0.0) + 2.0, a), _pt(c, r - 5.0, a), ink, (1.5 if big else 1.0) if l2 else (2.0 if big else 1.0), true)
 	var f := GridTheme.font("mono"); var fsz := GridTheme.fs(11)
 	for h in [0, 6, 12, 18]:
 		var s := "%02d" % h; var tw := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 		var p := _pt(c, r * 0.52, deg_of(h * 60.0))
 		GridText.ds(self, f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, Color(ink, 0.75))
 	var ha := deg_of(hand)
-	draw_line(c + Vector2(1.5, 1.5), _pt(c, r - 8.0, ha) + Vector2(1.5, 1.5), Color(0, 0, 0, 0.25), 3.0, true)
-	draw_line(c, _pt(c, r - 8.0, ha), Color("#B3261E"), 2.5, true)
-	draw_circle(c, 4.5, GridTheme.NIGHT)
+	if not l2: draw_line(c + Vector2(1.5, 1.5), _pt(c, r - 8.0, ha) + Vector2(1.5, 1.5), Color(0, 0, 0, 0.25), 3.0, true)
+	draw_line(c, _pt(c, r - 8.0, ha), GridTheme.SODIUM if l2 else Color("#B3261E"), 1.8 if l2 else 2.5, true)
+	if l2: draw_circle(c, 3.5, GridTheme.GLASS); draw_arc(c, 3.5, 0.0, TAU, 16, GridTheme.SODIUM, 1.0, true)
+	else: draw_circle(c, 4.5, GridTheme.NIGHT)
 	var t := time_text(); var tsz := GridTheme.fs(17); var tw2 := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz)
 	var plate := Rect2(Vector2((w - tw2.x) * 0.5 - 8.0, d + 2.0), Vector2(tw2.x + 16.0, tsz + 8.0))
-	draw_rect(plate, GridTheme.NIGHT, true)
+	if not l2: draw_rect(plate, GridTheme.NIGHT, true)
 	GridText.ds(self, f, plate.position + Vector2(8.0, tsz + 2.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, tsz, GridTheme.SODIUM)
