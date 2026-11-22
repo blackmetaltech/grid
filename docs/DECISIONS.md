@@ -140,3 +140,10 @@ Newest last. Each entry: what, why, where.
     - every job and the Career still in 2D carry a small "Classic" chip with a tooltip;
     - the site and README say plainly that the finale is in the new look and the rest is classic.
     L30 (chapter 2) also renders in 3D from the phase A slice.
+16. **The 1.15 manager and art review: what changed and what is cut (look2, 2026-11-23, Ingrid).** The art director scored the round 3 look 6/10. The manager asked for five things.
+    - **Done: the finale card folds.** On the new look it is open while you plan, a slim strip while the day runs (day, time, headline, island state), and "Parts shelf and ticker" opens it again. The player's choice sticks. The phone keeps its own fold.
+    - **Cut: moving the parts shelf into the bottom tray.** The tray is shared with chapter 2's route tray; moving the shelf is a tray redesign, not a fix. Folding the card gives the land back during the run. Written here for the next layer.
+    - **Partly done: towns from play height.** Far streets now glow by town at night (arteries bright, side streets faint), widened so they stay a line instead of sub-pixel noise, and a warm core disc fades in with distance. Both follow the engine's lit share per town, so a shed or a blackout dims them too. Not done: landmark silhouettes and a house LOD swap. By day a far town is still a pale texture.
+    - **Done: relief.** Hills and ridges are drawn about 1.7 times steeper. The scale note now says "hills drawn steeper". Lines and towers follow the ground.
+    - **Done: smaller art items.** Roofs are mostly terracotta, with a sky fill so slopes facing away are not black. Stars come out only after dusk. The sea is rougher at night, so the moon path is soft instead of a white slab. Labels under the finale card and under the docked report are not drawn. The report hides the job card, the radio log and the parts tray.
+    - **Cut: the jobs clipboard in glass.** The jobs list is shared by every chapter; it stays paper until the other chapters move.
