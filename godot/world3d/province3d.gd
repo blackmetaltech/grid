@@ -43,6 +43,9 @@ var _t := 0.0
 var _hmat: ShaderMaterial
 var _town_inst := {}             # town id -> [[multimesh index, instance, energy index, distance from centre 0..1]]
 var _town_lampmm := {}           # town id -> [MultiMesh, PackedFloat32Array distances, Array[Transform3D]]
+var _street_mat: ShaderMaterial   # streets glow at night by town, widened far away (street.gdshader)
+var _core_mat: ShaderMaterial     # the town cores (town_core.gdshader)
+var _town_lit := PackedFloat32Array()   # per town index: the lit share shown, eased toward the engine's over one wave
 var _wave := {}                  # town id -> {t0, sig}: when the town's energies last changed (the wave runs out from the centre)
 var _warn: Array = []            # red warning lights on the yard gantries: blink at night
 var _warn_l: Array = []          # red warning lights on the tower tops
@@ -447,8 +450,14 @@ func _build_layout() -> void:
 	if gen:
 		places = tg.places
 		var sm := MeshInstance3D.new(); sm.name = "Streets"; sm.mesh = TownGen.street_mesh(tg.streets, ground)
-		var am := StandardMaterial3D.new(); am.albedo_color = Color(0.17, 0.17, 0.18); am.roughness = 0.92; sm.material_override = am
+		_street_mat = ShaderMaterial.new(); _street_mat.shader = load("res://world3d/shaders/street.gdshader"); sm.material_override = _street_mat
 		sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(sm)
+		var radii: Array = []
+		for ti in tg.centres.size(): radii.append(float((field as GenField).towns[ti].r))
+		var cm := MeshInstance3D.new(); cm.name = "TownCores"; cm.mesh = TownGen.core_mesh(tg.centres, radii, ground)   # the warm lit core seen from play height
+		_core_mat = ShaderMaterial.new(); _core_mat.shader = load("res://world3d/shaders/town_core.gdshader"); cm.material_override = _core_mat
+		cm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(cm)
+		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
 		for k in places.size(): if _h(k, 1, 615) > 0.8: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
 		for cc in tg.centres: _build_hall(cc[0], cc[2])
 	for ai in areas.size():
@@ -964,6 +973,24 @@ func _update_dynamic() -> void:
 
 ## Lights follow the engine's energies building by building: a house switches when the wave front (WAVE_S seconds from the centre to the
 ## edge) passes it, so a town lights up outward from its substation and goes dark the same way. Lamps follow the same front.
+## The street glow and the town core follow each town's lit share (mean window energy of its streets, 0 when the bus is dead), eased over
+## one wave so a far town brightens and dims with the wave its houses show.
+func _ease_town_glow(dt: float) -> void:
+	if _street_mat == null or _town_lit.is_empty(): return
+	var n := WorldMath.night(float(model.get("minute", 720.0)))
+	for ti in mini(model.towns.size(), 64):
+		var tw: Dictionary = model.towns[ti]
+		var target := 0.0
+		if float(tw.get("v", 0.0)) > 0.0:
+			var en: Array = Array(tw.get("energies", []))
+			if en.is_empty(): target = 1.0
+			else:
+				for e in en: target += clampf(float(e), 0.0, 1.0)
+				target /= float(en.size())
+		_town_lit[ti] = move_toward(_town_lit[ti], target, dt / WAVE_S)
+	_street_mat.set_shader_parameter("town_lit", _town_lit); _street_mat.set_shader_parameter("night", n)
+	_core_mat.set_shader_parameter("town_lit", _town_lit); _core_mat.set_shader_parameter("night", n)
+
 func _run_waves() -> void:
 	if _wave.is_empty(): return
 	var by_id := {}
@@ -1009,6 +1036,7 @@ func _process(dt: float) -> void:
 	target = target.lerp(_g_target, k); yaw = lerp_angle(yaw, _g_yaw, k); pitch = lerpf(pitch, _g_pitch, k); dist = lerpf(dist, _g_dist, k)
 	_apply_camera()
 	_run_waves()
+	_ease_town_glow(dt)
 	if not (_warn.is_empty() and _warn_l.is_empty()):
 		var nn := WorldMath.night(float(model.get("minute", 720.0)))
 		var on := nn > 0.3 and fmod(_t, 1.6) < 0.8

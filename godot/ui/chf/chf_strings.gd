@@ -8,6 +8,7 @@ const S := {
 	"GT_PART_statcom-200": "STATCOM", "GT_SUB_statcom-200": "200 MVAr", "GT_PART_bess-2h-50": "Battery 2h", "GT_SUB_bess-2h-50": "50 MW", "GT_PART_bess-4h-50": "Battery 4h", "GT_SUB_bess-4h-50": "50 MW", "GT_PART_bess-gfm-50": "GFM", "GT_SUB_bess-gfm-50": "50 MW",
 	"CF_WO_ISLAND": "%s never goes dark, not even on the night of Day 2", "CF_WO_BAND": "Every bus stays within %s to %s pu (out of band for more than %d minutes loses)",
 	"CF_WO_ENS": "Energy not served at most 0.1 %% of the energy the province uses (%d of %d MWh)", "CF_WO_BLACKOUT": "No total blackout",
+	"CF_MORE": "▸ Parts shelf and ticker", "CF_LESS": "▾ Fold the card",
 	"CF_SHELF_HEAD": "Parts shelf. The budget will not buy every fix: press a part to buy it, press it again to take it back.",
 	"CF_A_VOLT": "Voltage", "CF_A_VOLT_WHY": "Day 1's heat sags Eastgate and the 132 kV tail behind it; Day 3's empty holiday lifts the whole ring.",
 	"CF_A_RESERVE": "Reserve", "CF_A_RESERVE_WHY": "Day 2 trips a 660 MW unit and Day 3's sunset falls on a thin fleet. Energy not served may be at most 0.1 %.",

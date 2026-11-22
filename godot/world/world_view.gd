@@ -1067,6 +1067,7 @@ func _paint_top() -> void:
 	var t0 := Time.get_ticks_usec()
 	if _flash > 0.0:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
+	if OS.has_environment("CB_CLEAN"): return   # QA captures for the README and site: the world only, no labels
 	if _l3() and sld_on: _draw_line_overlay()
 	_draw_labels()
 	_draw_pegs()
@@ -1487,6 +1488,7 @@ func _route_pulses(l: Dictionary) -> void:
 		var p := _poly_at(poly, cum, fposmod(ph + float(k) / float(n), 1.0))
 		_dc(p, 4.2, Color(col.r, col.g, col.b, 0.2)); _dc(p, 1.7, col.lerp(Color.WHITE, 0.4))
 
+var _cover2 := Rect2()
 var _cover := Rect2()   ## LOOK2: the docked glass report's rect in this view's coordinates; world labels under it are not drawn (they showed through the glass)
 func _draw_labels() -> void:
 	_cover = Rect2()
@@ -1495,6 +1497,11 @@ func _draw_labels() -> void:
 		if is_instance_valid(rp) and (rp as Control).is_visible_in_tree():
 			var inv := get_global_transform_with_canvas().affine_inverse() * (rp as Control).get_global_transform_with_canvas()
 			_cover = inv * Rect2(Vector2.ZERO, (rp as Control).size)
+		_cover2 = Rect2()
+		var ch = app.get("chrome") if app != null else null
+		if ch != null and is_instance_valid(ch) and ch.chf != null and is_instance_valid(ch.chf) and (ch.chf as Control).is_visible_in_tree():   # the finale card: labels under it showed through
+			var cc := ch.chf as Control
+			_cover2 = (get_global_transform_with_canvas().affine_inverse() * cc.get_global_transform_with_canvas()) * Rect2(Vector2.ZERO, cc.size)
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
 	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
@@ -1637,7 +1644,7 @@ func _yard_base(n: String) -> String:
 func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, placed: Array[Rect2], optional := false) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var r := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
-	if _cover.intersects(r): return
+	if _cover.intersects(r) or _cover2.intersects(r): return
 	var free := false
 	for _i in 5:
 		free = true
@@ -1651,7 +1658,8 @@ func _label_free(font: Font, fs: int, at: Vector2, txt: String, col: Color, plac
 
 func _label(font: Font, fs: int, at: Vector2, txt: String, col: Color) -> void:
 	var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	if _cover.intersects(Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))): return
+	var lr := Rect2(at - Vector2(w * 0.5 + 5.0, fs + 1.0), Vector2(w + 10.0, fs + 8.0))
+	if _cover.intersects(lr) or _cover2.intersects(lr): return
 	var p := at - Vector2(w * 0.5, 0.0)
 	if _l3():   # a place off screen gets no chip; one at the edge slides in whole (the leader still points at the place)
 		if at.x < -w * 0.4 or at.x > size.x + w * 0.4 or at.y < 0.0 or at.y > size.y: return

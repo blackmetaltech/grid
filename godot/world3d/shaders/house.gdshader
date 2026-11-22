@@ -25,12 +25,12 @@ void vertex() {
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
 	if (roof > 0.5) {
-		vec3 rc = ic.g < 0.45 ? roof_a : (ic.g < 0.8 ? roof_b : vec3(0.36, 0.30, 0.24));
+		vec3 rc = ic.g < 0.6 ? roof_a : (ic.g < 0.85 ? roof_b : vec3(0.42, 0.34, 0.26));   // mostly terracotta: slate and brown read as holes from above
 		rc *= 0.75 + 0.5 * h21(vec2(ic.g * 91.0, 3.0));
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
 		float dark = (1.0 - step(0.001, ic.r)) * night;   // a dark town at night: roofs lose the lamplight they would catch
 		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.62; SPECULAR = 0.55;   // roofs catch the moon instead of reading as holes
-		EMISSION = lamp * step(0.001, ic.r) * night * 0.05 * smoothstep(350.0, 1500.0, length(VERTEX));
+		EMISSION = lamp * step(0.001, ic.r) * night * 0.05 * smoothstep(350.0, 1500.0, length(VERTEX)) + rc * 0.07 * (1.0 - 0.6 * dark);   // sky fill: a slope facing away from the moon is dim, not black
 	} else {
 		vec3 base = COLOR.rgb;
 		// along-wall coordinate in metres

@@ -28,7 +28,7 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 				if half < block * 0.6: continue
 				var main := k == 0
 				var a := c + across * off - along * half; var b := c + across * off + along * half
-				streets.append([a, b, 11.0 if main else 7.0])
+				streets.append([a, b, 11.0 if main else 7.0, ti])
 				# houses on both sides, every 12-15 m, set back from the kerb; lamps every 34 m
 				var s := -half + 8.0
 				var q := 0
@@ -66,6 +66,18 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 	return {"places": places, "streets": streets, "lamps": lamps, "centres": centres}
 
 ## Road surfaces: a ribbon a little above the ground, sampled every 20 m so it follows the land.
+## A warm disc per town (the lit core seen from far away): a fan, COLOR.a = town index, UV.x = 0 at the centre and 1 at the rim.
+static func core_mesh(centres: Array, radii: Array, ground: Callable) -> ArrayMesh:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); st.set_normal(Vector3.UP)
+	for k in centres.size():
+		var c: Vector2 = centres[k][0]; var r: float = radii[k] * 1.1; var ti: int = k
+		var y: float = float(ground.call(c.x, c.y)) + 3.0
+		for s in 24:
+			var a0 := TAU * s / 24.0; var a1 := TAU * (s + 1) / 24.0
+			for pt: Array in [[c, 0.0], [c + Vector2(cos(a0), sin(a0)) * r, 1.0], [c + Vector2(cos(a1), sin(a1)) * r, 1.0]]:
+				st.set_color(Color(0, 0, 0, float(ti) / 63.0)); st.set_uv(Vector2(pt[1], 0)); st.add_vertex(Vector3(pt[0].x, y, pt[0].y))
+	return st.commit()
+
 static func street_mesh(streets: Array, ground: Callable) -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st.set_normal(Vector3.UP)
@@ -77,6 +89,8 @@ static func street_mesh(streets: Array, ground: Callable) -> ArrayMesh:
 			var p0 := a.lerp(b, float(k) / n); var p1 := a.lerp(b, float(k + 1) / n)
 			var v := [Vector3(p0.x + o.x, 0, p0.y + o.y), Vector3(p1.x + o.x, 0, p1.y + o.y), Vector3(p1.x - o.x, 0, p1.y - o.y), Vector3(p0.x - o.x, 0, p0.y - o.y)]
 			for vi in 4: v[vi].y = ground.call(v[vi].x, v[vi].z) + 0.18
-			for idx in [0, 1, 2, 0, 2, 3]:
-				st.set_uv(Vector2(0.0 if idx < 2 or idx == 3 else 1.0, 0.0)); st.add_vertex(v[idx])
+			var lat := o.normalized(); var ti := int(sd[3]) if sd.size() > 3 else 0
+			for idx in [0, 1, 2, 0, 2, 3]:   # COLOR: lateral direction (rg), side (b), town index (a): the street shader widens far streets and lights them by town
+				st.set_color(Color(lat.x * 0.5 + 0.5, lat.y * 0.5 + 0.5, 1.0 if idx < 2 else 0.0, float(ti) / 63.0))
+				st.set_uv(Vector2(0.0 if idx < 2 or idx == 3 else 1.0, 1.0 if w > 9.0 else 0.0)); st.add_vertex(v[idx])   # UV.y: a main street
 	return st.commit()

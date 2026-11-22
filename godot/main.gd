@@ -146,6 +146,7 @@ func game_title(r: Control) -> bool:
 	if OS.has_environment("CB_CAREER"): get_tree().create_timer(0.5).timeout.connect(func(): Career.qa(self, OS.get_environment("CB_CAREER")))   # desk QA: land on the Career (ui/career/career.gd)
 	return TitleScreen.build(self, r)
 func game_end_screen() -> bool:
+	if OS.has_environment("CB_CLEAN"): return true   # QA captures: no report over the world
 	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible and not OS.has_environment("CB_SHOT"):   # LOOK2: let the player see the lights go out before the paper comes
 		get_tree().create_timer(3.5).timeout.connect(func(): ShiftReport.open(self))
 		return true
@@ -236,10 +237,11 @@ func _process(dt: float) -> void:
 	_poll_tick()
 	super(dt)
 	if _bullet_until > 0 and Time.get_ticks_msec() > _bullet_until: _bullet_until = 0; cfg.tick_seconds = TICKS_NORMAL.duplicate()
+	if OS.has_environment("CB_CLEAN") and chrome != null and chrome.visible: chrome.visible = false   # QA captures: the world only
 	if GridTheme.look2 and chrome != null and chrome.pin != null:   # LOOK2: the docked glass report covers the job card's corner; the card steps aside while it is open
 		var rp = ShiftReport._d.get("panel")
 		var open_rep := is_instance_valid(rp) and (rp as Control).is_visible_in_tree()
-		for c in [chrome.pin, chrome.radio]:   # the job card and the radio log (it ghosted through the glass)
+		for c in [chrome.pin, chrome.radio, chrome.rtray]:   # the job card, the radio log (it ghosted through the glass) and the parts tray (the report cut through it)
 			if c == null: continue
 			if open_rep:
 				if c.visible: c.visible = false; c.set_meta("rep_hid", true)

@@ -18,6 +18,7 @@ var _kit: VBoxContainer
 var _toggle: Button
 var _scroll: ScrollContainer
 var _open := true
+var _user := -1   ## LOOK2 desktop: -1 = automatic (open while planning, a slim strip while the day runs), 0/1 = the player's choice
 var _kit_sig := ""
 var _th: Label
 var _skin := ""   # "paper" | "glass": LOOK2 draws the card in the glass language
@@ -43,7 +44,7 @@ func _init() -> void:
 	var root := VBoxContainer.new(); root.add_theme_constant_override("separation", 2); add_child(root)
 	_toggle = Button.new(); _toggle.name = "cf_toggle"; _toggle.flat = true; _toggle.focus_mode = CbKit.focus_mode(); _toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT; _toggle.visible = false
 	_toggle.add_theme_font_size_override("font_size", GridTheme.fs(16)); _toggle.add_theme_color_override("font_color", GridTheme.PAPER_INK)
-	_toggle.pressed.connect(func(): _open = not _open; refresh())
+	_toggle.pressed.connect(func(): _open = not _open; _user = 1 if _open else 0; refresh())
 	root.add_child(_toggle)
 	_scroll = ScrollContainer.new(); _scroll.name = "cf_scroll"; _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(_scroll)
@@ -137,6 +138,15 @@ func _layout() -> void:
 		reset_size(); position = Vector2(maxf(4.0, vp.x - maxf(size.x, get_combined_minimum_size().x) - 8.0), top)   # by the card's real width: wide kit buttons had pushed it past the right edge
 		_day_lbl.visible = false   # the toggle row carries the day and the clock
 	else:
+		var strip: bool = GridTheme.look2   # LOOK2 (manager review 1.15): the land is the star. While the day runs the card is a slim strip (day, time, headline, island) that opens on demand
+		var running: bool = app != null and app.b != null and int(_g().tick) > int(_g().levelStart) and str(_g().get("status", "playing")) == "playing"
+		var full: bool = not strip or (_user == 1 or (_user == -1 and not running))
+		_open = full
+		_toggle.visible = strip
+		if strip:
+			_toggle.text = tx("CF_LESS") if full else tx("CF_MORE")
+			if _toggle.get_index() != _toggle.get_parent().get_child_count() - 1: _toggle.get_parent().move_child(_toggle, -1)
+		for c in [_stats, _th, _ticker, _kit]: (c as Control).visible = full and (c != _stats or int(_g().tick) > int(_g().levelStart))
 		var avail2 := vp.y - 74.0 - 300.0   # ends above the speed dock and the budget tag (1280x800 overlap)
 		var bh := _box.get_combined_minimum_size().y
 		if bh > avail2: _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.custom_minimum_size = Vector2(W - 24.0, avail2)

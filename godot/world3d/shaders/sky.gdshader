@@ -34,7 +34,7 @@ void sky() {
 		vec3 q = floor(d * 380.0);
 		float s = h31(q);
 		float star = step(0.9975, s) * (0.4 + 0.6 * h31(q + 1.7));
-		col += vec3(0.85, 0.9, 1.0) * star * night * smoothstep(0.0, 0.25, up) * 1.6;
+		col += vec3(0.85, 0.9, 1.0) * star * smoothstep(0.55, 0.95, night) * smoothstep(0.0, 0.25, up) * 1.6;   // stars only after civil dusk (they read as dust in a pink sky)
 		float mc = dot(d, normalize(moon_dir));
 		col += vec3(0.9, 0.93, 1.0) * (smoothstep(0.9993, 0.9996, mc) * 1.4 + pow(max(mc, 0.0), 80.0) * 0.08) * night;
 	}

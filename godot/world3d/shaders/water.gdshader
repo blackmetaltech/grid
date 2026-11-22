@@ -34,7 +34,7 @@ void fragment() {
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
 	ALBEDO = col;
 	ALPHA = clamp(0.55 + 0.45 * k + fres * 0.3, 0.0, 1.0);
-	ROUGHNESS = mix(0.06, 0.16, night);
+	ROUGHNESS = mix(0.06, 0.42, night);   // a rougher sea at night: the moon path was a hard white slab (art review 1.15)
 	METALLIC = 0.0;
-	SPECULAR = mix(0.55, 0.3, night);
+	SPECULAR = mix(0.55, 0.18, night);
 }
