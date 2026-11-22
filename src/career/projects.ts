@@ -1,5 +1,5 @@
 // Projects (the C1 board) and the planning actions. Pure functions: each returns {ok, state, messageKey, params}; `state` is a new object.
-import { CONDUCTORS } from '../sim/distrib';
+import { CABLES_11KV, CONDUCTORS } from '../sim/distrib';
 import { systemRng, fnv } from '../sim/rngs';
 import { DISTRICT, MONEY, PROJECT_DETAIL, PROJECTS, STORM } from './data';
 import { analyseFeeder, conductorRow, districtExpected } from './district';
@@ -10,7 +10,8 @@ import { clone, fail, ok, assetById, feederById, primaryById, type ActionResult,
 const clamp = (x: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, x));
 
 export const nextConductor = (id: string): string | null => {
-  const order = CONDUCTORS.map((c) => c.id), i = order.indexOf(id);
+  const fam = CABLES_11KV.some((c) => c.id === id) ? CABLES_11KV : CONDUCTORS;   // a cable is upsized to a bigger cable, a line to a bigger line
+  const order = fam.map((c) => c.id), i = order.indexOf(id);
   return i >= 0 && i < order.length - 1 ? order[i + 1]! : null;
 };
 export function sectionOf(s: CareerState, id: string): { f: Feeder; sec: Section; idx: number } | null {
@@ -60,9 +61,9 @@ export function quoteProject(s: CareerState, kind: ProjectKind, target: string):
       if (sc.idx === 0) return q(false, 'career.err.headSection', none);
       return sc.sec.device === 'remote' ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.remoteSwitch!);
     }
-    case 'recloser': return !fd ? q(false, 'career.err.target', none) : fd.recloser ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.recloser!);
-    case 'harden': return !fd ? q(false, 'career.err.target', none) : fd.hardened ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.harden!);
-    case 'vegetation': return !fd ? q(false, 'career.err.target', none) : fd.veg < 0.25 ? q(false, 'career.err.notNeeded', none) : q(true, 'career.quote', PROJECTS.vegetation!);
+    case 'recloser': return !fd ? q(false, 'career.err.target', none) : fd.kind === 'cable' ? q(false, 'career.err.cableReclose', none) : fd.recloser ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.recloser!);
+    case 'harden': return !fd ? q(false, 'career.err.target', none) : fd.kind === 'cable' ? q(false, 'career.err.cableSpans', none) : fd.hardened ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.harden!);
+    case 'vegetation': return !fd ? q(false, 'career.err.target', none) : fd.kind === 'cable' ? q(false, 'career.err.cableSpans', none) : fd.veg < 0.25 ? q(false, 'career.err.notNeeded', none) : q(true, 'career.quote', PROJECTS.vegetation!);
     case 'regulator': return !fd ? q(false, 'career.err.target', none) : fd.regulator ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.regulator!);
     case 'battery': return !fd ? q(false, 'career.err.target', none) : q(true, 'career.quote', PROJECTS.battery!);
     case 'demandResponse': return !fd ? q(false, 'career.err.target', none) : fd.drKw > 0 ? q(false, 'career.err.already', none) : q(true, 'career.quote', PROJECTS.demandResponse!);
@@ -122,6 +123,7 @@ export function setVegetationBudget(state: CareerState, level: number): ActionRe
   if (state.phase === 'over') return fail(state, 'career.err.phase');
   const l = Math.round(level);
   if (l < 0 || l > 3) return fail(state, 'career.err.range', { level });
+  if (l > 0 && state.feeders.every((f) => f.kind === 'cable')) return fail(state, 'career.err.cableSpans');   // 1.12 an all-cable district has no trees to cut
   const s: CareerState = { ...state, vegLevel: l };
   return ok(s, 'career.veg.set', { level: l, costPerQuarterM: l * MONEY.vegPerLevelFeederQ * s.feeders.length });
 }
@@ -170,8 +172,8 @@ export function completeProject(s: CareerState, p: Project): void {
       const nf: Feeder = {
         id, primaryId: pid, customers: half, baseKw: heavy.baseKw / 2, growthPct: heavy.growthPct, evBias: heavy.evBias, pvBias: heavy.pvBias,
         ...(heavy.kind ? { kind: heavy.kind } : {}),
-        sections: DISTRICT.sectionLengthsKm.map((_l, i) => ({ id: `${id}.${i + 1}`, lengthKm: heavy.sections[i]?.lengthKm ?? _l, conductor: ['Hyena', 'Dog', 'Dog', 'Rabbit'][i]!, share: DISTRICT.sectionShares[i]!, device: (['none', 'manual', 'manual', 'none'] as const)[i]!, assetId: `${id}.${i + 1}` })),
-        tie: false, recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: 0.3,
+        sections: DISTRICT.sectionLengthsKm.map((_l, i) => ({ id: `${id}.${i + 1}`, lengthKm: heavy.sections[i]?.lengthKm ?? _l, conductor: (heavy.kind === 'cable' ? ['300 Al XLPE', '185 Al XLPE', '185 Al XLPE', '95 Al XLPE'] : ['Hyena', 'Dog', 'Dog', 'Rabbit'])[i]!, share: DISTRICT.sectionShares[i]!, device: (['none', 'manual', 'manual', 'none'] as const)[i]!, assetId: `${id}.${i + 1}` })),
+        tie: false, recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: heavy.kind === 'cable' ? 0 : 0.3,
       };
       heavy.customers -= half; heavy.baseKw /= 2;
       nf.sections.forEach((sec, i) => s.assets.push({ id: sec.assetId, cls: 'line', feederId: id, sectionIdx: i, primaryId: null, installQ: s.t, wear: 1, wearFaults: 0, extraYears: 0, ratingMVA: 0, failed: false, outQ: 0, known: { health: 10, q: s.t } }));

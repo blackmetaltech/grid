@@ -1,15 +1,15 @@
 import { newStory } from './story';
 // The district: building it, and turning a feeder into the sim/distrib models (reliability sections, radial load flow).
 import { dmath } from '@core/numerics';
-import { CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
+import { CABLES_11KV, CABLE_FOR, CONDUCTORS, reliability, solveRadial, type RadialFeeder, type ReliabilityResult, type ReliabilitySection, type RadialResult } from '../sim/distrib';
 import { systemRng } from '../sim/rngs';
-import { WEEKLY_CHARTERS, CHARTERS, GROUND, STORM, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
+import { WEEKLY_CHARTERS, CHARTERS, OVERLOAD, GROUND, STORM, DISTRICT, FAULTS, GROWTH, INCENTIVE, MONEY, TIMES, WEATHER, WEIBULL, type CharterId, type CharterRow } from './data';
 import { wearRate, avgHealth } from './ageing';
 import { hourlyLoad } from './growth';
 import type { Asset, CareerState, Feeder, Primary, Section } from './state';
 import { totalCustomers } from './state';
 
-export const conductorRow = (id: string) => CONDUCTORS.find((c) => c.id === id) ?? CONDUCTORS[0]!;
+export const conductorRow = (id: string) => CONDUCTORS.find((c) => c.id === id) ?? CABLES_11KV.find((c) => c.id === id) ?? CONDUCTORS[0]!;
 const TAN_PHI = dmath.sqrt(1 / (GROWTH.pf * GROWTH.pf) - 1);
 export const LOAD_FACTOR = 0.55;
 export const sectionId = (feederId: string, idx: number): string => `${feederId}.${idx + 1}`;
@@ -44,23 +44,23 @@ export function buildDistrict(seed: number, charter: CharterId = 'standard'): Ca
     for (let k = 0; k < p.feeders; k++, fi++) {
       const id = `F${fi + 1}`, pat = fi % DISTRICT.conductors.length, cust = dmath.round((p.customersPerFeeder + dmath.round(rng.range(-250, 250))) * (ch.custMult ?? 1));
       const sections: Section[] = DISTRICT.sectionLengthsKm.map((l0, i) => {
-        const len = dmath.round(l0 * (ch.kmMult ?? 1) * 10) / 10;
+        const len = dmath.round(l0 * (ch.kmMult ?? 1) * (i === 0 && pi > 0 ? ch.farTrunkMult ?? 1 : 1) * 10) / 10;
         const aid = `${id}.${i + 1}`;
         mkAsset({ id: aid, cls: 'line', feederId: id, sectionIdx: i }, Math.max(8, DISTRICT.lineAgeMean + rng.normal(0, DISTRICT.lineAgeSd)) + ch.ageYears);
-        return { id: aid, lengthKm: len, conductor: DISTRICT.conductors[pat]![i]!, share: DISTRICT.sectionShares[i]!, device: DISTRICT.devices[(fi + k) % DISTRICT.devices.length]![i]!, assetId: aid };
+        return { id: aid, lengthKm: len, conductor: ch.geo === 'city' ? CABLE_FOR[DISTRICT.conductors[pat]![i]!]! : DISTRICT.conductors[pat]![i]!, share: DISTRICT.sectionShares[i]!, device: DISTRICT.devices[(fi + k) % DISTRICT.devices.length]![i]!, assetId: aid };
       });
       feeders.push({
         id, primaryId: p.id, customers: cust, baseKw: cust * DISTRICT.admdKw * rng.range(0.93, 1.07),
         growthPct: dmath.round((GROWTH.baseMinPct + rng.next() * (GROWTH.baseMaxPct - GROWTH.baseMinPct)) * ch.growth * 10) / 10,
         evBias: rng.range(0.6, 1.4) * ch.ev, pvBias: rng.range(0.6, 1.4) * ch.pv, sections,
         ...(ch.geo ? { kind: ch.geo === 'city' ? 'cable' as const : 'moor' as const } : {}),
-        tie: DISTRICT.tiedFeeders.includes(fi), recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: Math.min(1, DISTRICT.vegStart + rng.range(-0.15, 0.15) + ch.vegAdd),
+        tie: DISTRICT.tiedFeeders.includes(fi), recloser: false, regulator: false, batteryKw: 0, drKw: 0, solarKw: 0, veg: ch.geo === 'city' ? (rng.range(-0.15, 0.15), 0) : Math.min(1, DISTRICT.vegStart + rng.range(-0.15, 0.15) + ch.vegAdd),
       });
     }
   });
   const s: CareerState = {
     v: 1, seed, ...(charter !== 'standard' ? { charter } : {}), t: 0, phase: 'plan', cash: ch.startCash, rab: MONEY.rab0, ar: 0, arYear: 0, opexAllowance: 0,
-    feeders, primaries, assets, projects: [], requests: [], incidents: [], crews: DISTRICT.crews, vegLevel: 1, nextId: 1,
+    feeders, primaries, assets, projects: [], requests: [], incidents: [], crews: DISTRICT.crews, vegLevel: ch.geo === 'city' ? 0 : 1, nextId: 1,
     saidiTarget: 0, saifiTarget: 0, ytdCustMin: 0, ytdCustInt: 0, ytdExceptionalMin: 0, ytdIncentiveCapex: 0,
     yearsMet: 0, severeFineYears: 0, delivered: 0, missed: 0, netIncentiveM: 0, startHealth: 0, history: [], reviews: [], log: [], ending: null, pending: null,
   };
@@ -83,6 +83,8 @@ export interface FeederAnalysis {
   lossKwPeak: number; minVPu: number; maxVPu: number; vViolation: boolean; converged: boolean;
   /** Sustained customer interruptions and customer-minutes per fault on each section (from the FMEA outage-hour table). */
   perFault: SectionOutage[]; calmLambda: number[]; sections: ReliabilitySection[];
+  /** 1.12 load shed at the peak while loaded past the cyclic rating: per customer of this feeder, per quarter */
+  shedMinQ: number; shedIntQ: number;
 }
 
 /** Calm annual fault rate per km of a section (random + vegetation + wear), x fuse-blown transient uplift, x overload. */
@@ -150,10 +152,20 @@ export function analyseFeeder(s: CareerState, f: Feeder, solve = true): FeederAn
     return { ci, cm };
   });
   const calmLambda = secs.map((x) => x.lambdaPerKm / (1 + uplift) * x.lengthKm);
+  const sh = overloadShedQ(loading);
   return {
+    shedMinQ: sh.min, shedIntQ: sh.int,
     id: f.id, rel, peakKw: hl.peakKw, minKw: hl.minKw, peakHour: hl.peakHour, loadingPct: loading, headLoadingPct: loading, lossKwPeak: loss,
     minVPu: minV, maxVPu: maxV, vViolation: minV < V_LOW || maxV > V_HIGH, converged, perFault, calmLambda, sections: secs,
   };
+}
+
+/** 1.12 rota load shedding for a feeder at this loading (% of nominal) past its emergency rating, per customer per quarter: minutes and interruptions. */
+export function overloadShedQ(loadingPct: number): { min: number; int: number } {
+  if (loadingPct <= OVERLOAD.emergencyPct) return { min: 0, int: 0 };
+  const x = OVERLOAD.emergencyPct / loadingPct, k = OVERLOAD.exponent;
+  const hours = 2190 * dmath.pow(Math.min(1, (1 - x) / (1 - OVERLOAD.minShare)), k), share = (1 - x) / (k + 1);
+  return { min: hours * share * 60, int: (hours * share) / OVERLOAD.rotaBlockH };
 }
 
 /** District expected SAIDI (min/yr) and SAIFI weighted by customers. */
@@ -161,7 +173,7 @@ export function districtExpected(s: CareerState, an?: FeederAnalysis[]): { saidi
   const A = an ?? s.feeders.map((f) => analyseFeeder(s, f, false));
   const N = totalCustomers(s);
   let di = 0, fi = 0;
-  s.feeders.forEach((f, k) => { di += f.customers * A[k]!.rel.saidi; fi += f.customers * A[k]!.rel.saifi; });
+  s.feeders.forEach((f, k) => { di += f.customers * (A[k]!.rel.saidi + 4 * (A[k]!.shedMinQ ?? 0)); fi += f.customers * (A[k]!.rel.saifi + 4 * (A[k]!.shedIntQ ?? 0)); });
   return { saidi: N ? di / N : 0, saifi: N ? fi / N : 0 };
 }
 

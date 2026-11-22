@@ -83,7 +83,7 @@ function settle(s: CareerState): ActionResult {
   const capex = out.capexM + out.emergencyCapexM;
   s.cash += revenue - opex - capex + interestQ(s.cash);
   s.rab = rabNext(s.rab, out.rabAddM);
-  for (const f of s.feeders) f.veg = vegStep(f.veg, s.vegLevel);
+  for (const f of s.feeders) if (f.kind !== 'cable') f.veg = vegStep(f.veg, s.vegLevel);   // 1.12 no trees along a cable
   // KPI row
   const saidiYtdBefore = N ? s.ytdCustMin / N : 0, saifiYtdBefore = N ? s.ytdCustInt / N : 0;
   const t = s.t;

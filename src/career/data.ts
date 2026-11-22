@@ -108,6 +108,25 @@ export const MONEY: Sourced & {
 };
 
 /** Incentive (RIIO-style interruption incentive, SIMPLIFIED: one rate per customer-minute lost and per interruption, symmetric around target, capped). */
+/** 1.12 owners and network risk. Cash above the working reserve is paid to the owners at each annual review (a regulated network
+ * company does not sit on cash: most free cash goes out as dividends, 60 % of the excess here). At each price-control close the regulator compares the
+ * replacement funding it allowed (the depreciation allowance, RAB / life) with what was spent on the network; when the network's
+ * average health ended the period below where it started, it claws back the unspent funding plus a penalty (RIIO-ED2 NARM:
+ * under-delivered network risk is returned with a 2.5 % penalty). */
+export const OWNERS: Sourced & { reserveM: number; reserveQuarters: number; payout: number; narmPenaltyPct: number } = {
+  reserveM: 3, reserveQuarters: 4, payout: 0.6, narmPenaltyPct: 2.5,
+  source: 'Ofgem RIIO-ED2 Network Asset Risk Metric: under-delivery returned to customers with a 2.5 % penalty; dividend policy illustrative', recall: true,
+};
+
+/** 1.12 overload: past its cyclic rating a feeder ages and faults faster; past its short-time emergency rating it cannot carry the
+ * load at all, and the control room sheds the excess
+ * in rota blocks for the hours the load stands above the rating, read from a peaky load-duration curve,
+ * hours above x * peak = quarter hours * ((1 - x) / (1 - minShare)) ^ exponent. Those are customer interruptions like any other. */
+export const OVERLOAD: Sourced & { emergencyPct: number; minShare: number; exponent: number; rotaBlockH: number } = {
+  emergencyPct: 125, minShare: 0.4, exponent: 3, rotaBlockH: 3,
+  source: 'short-time emergency rating ~1.2-1.3 x nominal for 11 kV overhead and cable in winter (ENA P27-style); UK rota disconnection blocks of ~3 h; a distribution feeder load-duration curve with its top 10 % of load in ~1-3 % of hours (illustrative fit)', recall: true,
+};
+
 export const INCENTIVE: Sourced & { cmiRateM: number; cifRateM: number; rewardCapPct: number; fineCapPct: number; severeFinePct: number; yearsToRevoke: number; targetTightenPct: number; targetHeadroom: number; /** the regulator judges the mean of the last rollingYears years (smooths weather) */ rollingYears: number; /** price-control period (years): at its end the targets reset to resetFactor x the network's modelled expected SAIDI / SAIFI when that is lower (RIIO resets targets each period; SIMPLIFIED) */ periodYears: number; resetFactor: number; /** a reset never tightens a target by more than this in one review (no cliff) */ maxResetCutPct: number; /** a year's tightening may reach this while the network beats its target by a wide margin */ glideMaxPct: number } = {
   cmiRateM: 0.12e-6, cifRateM: 12e-6, rewardCapPct: 2, fineCapPct: 5, severeFinePct: 3, yearsToRevoke: 3, targetTightenPct: 1.5, targetHeadroom: 0.9, rollingYears: 3, periodYears: 5, resetFactor: 1.3, maxResetCutPct: 25, glideMaxPct: 8,
   source: 'RIIO-style ICE: RIIO ICE is roughly GBP 0.2-0.4 per customer-minute lost; scaled down here because this district runs ~3x the SAIDI of a real DNO; caps +2 % / -5 % of allowed revenue (illustrative); targets start 10 % below the day-one expected value (the regulator expects improvement) and tighten 1.5 %/yr',
@@ -141,6 +160,8 @@ export interface CharterRow {
   geo?: 'city' | 'moor';
   /** x section lengths, x customers per feeder, x storms by season (Q1 winter first) */
   kmMult?: number; custMult?: number; stormSeason?: number[];
+  /** 1.12 High Moor: the second primary sits far up the moor, so its feeders' first section is a long trunk (this multiple) */
+  farTrunkMult?: number;
   storm: number; heat: number; conn: number; growth: number; ev: number; pv: number; ageYears: number; vegAdd: number; allowance: number; startCash: number; /** x the cost of a feeder out of voltage limits (complaints, compensation) */ vPenalty: number; /** x the whole allowed revenue (an efficiency challenge on top of the allowance) */ revenue: number }
 const NONE: CharterRow = { storm: 1, heat: 1, conn: 1, growth: 1, ev: 1, pv: 1, ageYears: 0, vegAdd: 0, allowance: 1, startCash: MONEY.startCash, vPenalty: 1, revenue: 1 };
 export const CHARTERS: Record<CharterId, CharterRow> = {
@@ -154,7 +175,7 @@ export const CHARTERS: Record<CharterId, CharterRow> = {
   // 1.10: districts with their own ground. Harbour City: dense, underground, few faults that take a day to joint; ties and remote switching
   // are what restore it. High Moor: long lines over open hills, few customers, snow and ice in winter, mostly transient faults (reclosers).
   city: { ...NONE, geo: 'city', kmMult: 0.55, custMult: 1.3, storm: 0.25, growth: 1.1, ev: 1.25, allowance: 1.05, startCash: MONEY.startCash + 2 },
-  moor: { ...NONE, geo: 'moor', kmMult: 1.9, custMult: 0.4, storm: 1.1, stormSeason: [2.2, 0.5, 0.4, 1.3], vegAdd: -0.2, allowance: 1.05 },
+  moor: { ...NONE, geo: 'moor', kmMult: 1.9, farTrunkMult: 2.5, custMult: 0.4, storm: 1.1, stormSeason: [2.2, 0.5, 0.4, 1.3], vegAdd: -0.2, allowance: 1.05 },
 };
 /** The charters the weekly district walks through (fixed: adding a district must not reshuffle past weeks' boards). */
 export const WEEKLY_CHARTERS: CharterId[] = ['storm', 'boom', 'iron', 'sun', 'lean', 'forest'];

@@ -72,7 +72,7 @@ export type Phase = 'plan' | 'incident' | 'over';
 export interface QuarterOutcome {
   /** Sustained customer interruptions and customer-minutes that count for the incentive (before incident responses). */
   custInt: number; custMin: number; exceptionalMin: number; faults: number; repairCostM: number;
-  lossesMWh: number; vViolations: number; maxLoadingPct: number; firmMarginPct: number; emergencyCapexM: number; heat: boolean;
+  lossesMWh: number; vViolations: number; maxLoadingPct: number; firmMarginPct: number; emergencyCapexM: number; heat: boolean; /** 1.12 customer-minutes shed at the peak past the cyclic rating */ shedCustMin?: number;
   expSaidiQ: number; expSaifiQ: number; storms: number;
   /** Money paid in project instalments this quarter and the part of finished projects that enters the RAB. */
   capexM: number; rabAddM: number; completed: string[];
@@ -94,6 +94,8 @@ export interface CareerState {
   ytdCustMin: number; ytdCustInt: number; ytdExceptionalMin: number; ytdIncentiveCapex: number;
   yearsMet: number; /** current streak of severe-fine years on an inadequate network (three end the licence) */ severeFineYears: number; delivered: number; missed: number; netIncentiveM: number;
   startHealth: number;
+  /** 1.12: dividends paid to the owners at the annual reviews, and the network-risk clawbacks at period closes (GBP m) */
+  dividendsM?: number; clawbackM?: number;
   history: Kpi[]; reviews: Review[]; log: string[];
   ending: Ending | null;
   /** The quarter being played while phase is 'incident' (events already rolled, incidents await a response). */

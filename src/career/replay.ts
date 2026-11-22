@@ -1,7 +1,7 @@
 import { CHARTER_IDS, type CharterId } from './data';
 // A career is a seed plus an action list. The career code is a compact text form of it; replaying it reproduces the final state exactly.
 import { buildDistrict } from './district';
-import { acceptConnection, dispatchCrew, switchTie } from './events';
+import { acceptConnection, declineConnection, dispatchCrew, switchTie } from './events';
 import { cancelProject, inspect, setReadiness, setVegetationBudget, startProject } from './projects';
 import { stateHash, fail, type ActionResult, type CareerState, type ProjectKind, PROJECT_KINDS } from './state';
 import { endQuarter } from './turn';
@@ -9,7 +9,7 @@ import { chooseStory } from './story';
 
 export type CareerAction =
   | { a: 'start'; kind: ProjectKind; target: string } | { a: 'cancel'; id: string } | { a: 'inspect'; asset: string } | { a: 'veg'; level: number } | { a: 'ready'; level: number }
-  | { a: 'accept'; id: string } | { a: 'tie'; id: string } | { a: 'crew'; id: string } | { a: 'end'; interactive?: boolean } | { a: 'story'; id: string; opt: string };
+  | { a: 'accept'; id: string } | { a: 'decline'; id: string } | { a: 'tie'; id: string } | { a: 'crew'; id: string } | { a: 'end'; interactive?: boolean } | { a: 'story'; id: string; opt: string };
 
 export function applyAction(s: CareerState, act: CareerAction): ActionResult {
   switch (act.a) {
@@ -19,6 +19,7 @@ export function applyAction(s: CareerState, act: CareerAction): ActionResult {
     case 'veg': return setVegetationBudget(s, act.level);
     case 'ready': return setReadiness(s, act.level);
     case 'accept': return acceptConnection(s, act.id);
+    case 'decline': return declineConnection(s, act.id);
     case 'tie': return switchTie(s, act.id);
     case 'crew': return dispatchCrew(s, act.id);
     case 'end': return endQuarter(s, !!act.interactive);
@@ -43,6 +44,7 @@ const tok = (a: CareerAction): string => {
     case 'veg': return `v:${a.level}`;
     case 'ready': return `r:${a.level}`;
     case 'accept': return `a:${a.id}`;
+    case 'decline': return `n:${a.id}`;
     case 'tie': return `t:${a.id}`;
     case 'crew': return `d:${a.id}`;
     case 'end': return a.interactive ? 'E' : 'e';
@@ -69,6 +71,7 @@ export function decodeCareer(code: string): { seed: number; actions: CareerActio
     else if (k === 'v' && a) actions.push({ a: 'veg', level: Number(a) });
     else if (k === 'r' && a) actions.push({ a: 'ready', level: Number(a) });
     else if (k === 'a' && a) actions.push({ a: 'accept', id: a });
+    else if (k === 'n' && a) actions.push({ a: 'decline', id: a });
     else if (k === 't' && a) actions.push({ a: 'tie', id: a });
     else if (k === 'd' && a) actions.push({ a: 'crew', id: a });
     else if (k === 'y' && a && b) actions.push({ a: 'story', id: a, opt: b });

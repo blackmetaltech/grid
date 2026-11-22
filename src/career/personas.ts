@@ -30,20 +30,31 @@ const lineAssets = (s: CareerState) => s.assets.filter((a) => a.cls === 'line');
 
 export const idle: Persona = { name: 'idle', plan: () => [], respond: () => [] };
 
-/** Reacts only: answers incidents, fixes assets that have failed (line with a patched fault, 2+ patches), accepts every connection request. */
-export const firefighter: Persona = {
-  name: 'firefighter',
-  respond: respondAll,
-  plan: (s) => {
-    const d = doer(s);
-    for (const r of s.requests) d.do({ a: 'accept', id: r.id });
-    for (const a of lineAssets(d.s).filter((x) => x.failed && x.wearFaults >= 2)) {
-      if (d.s.cash < 1) break;
-      d.do({ a: 'start', kind: 'replaceAssets', target: a.id });
-    }
-    return d.acts;
-  },
-};
+/** Reacts only: answers incidents, fixes assets that have failed (line with a patched fault, 2+ patches), accepts every connection request.
+ * With `late`, it also reconductors a feeder once its customers lose hours a year to load shedding (1.12): the sweep's firefighter. */
+function reactor(name: string, late: boolean): Persona {
+  return {
+    name,
+    respond: respondAll,
+    plan: (s) => {
+      const d = doer(s);
+      for (const r of s.requests) d.do({ a: 'accept', id: r.id });
+      if (late) for (const f of d.s.feeders) {   // 1.12 a feeder past its emergency rating is shedding customers: a visible emergency, answered late
+        const a = analyseFeeder(d.s, f); if (a.shedMinQ * 4 < 400 || d.s.cash < 1) continue;
+        const worst = f.sections.map((sec) => sec.id).find((id) => quoteProject(d.s, 'reconductor', id).ok && !d.s.projects.some((p) => p.status === 'building' && p.target === id));
+        if (worst) d.do({ a: 'start', kind: 'reconductor', target: worst });
+      }
+      for (const a of lineAssets(d.s).filter((x) => x.failed && x.wearFaults >= 2)) {
+        if (d.s.cash < 1) break;
+        d.do({ a: 'start', kind: 'replaceAssets', target: a.id });
+      }
+      return d.acts;
+    },
+  };
+}
+export const firefighter: Persona = reactor('firefighter', true);
+/** 1.12 the purely reactive player: answers faults and failures, never the load (tension.test.ts: it must fail). */
+export const reactiveOnly: Persona = reactor('reactiveOnly', false);
 
 /** Builds everything it can afford (it will borrow up to half the credit limit), in a fixed priority order. */
 export const goldPlater: Persona = {

@@ -108,6 +108,7 @@ export function buildCareerActions(): Record<string, ActionFn<GridState>> {
     careerReadiness: (s, level: unknown) => act(s, { a: 'ready', level: Number(level) }),
     careerVegetation: (s, level: unknown) => act(s, { a: 'veg', level: Number(level) }),
     careerAccept: (s, id: unknown) => act(s, { a: 'accept', id: str(id) }),
+    careerDecline: (s, id: unknown) => act(s, { a: 'decline', id: str(id) }),
     careerTie: (s, id: unknown) => act(s, { a: 'tie', id: str(id) }),
     careerCrew: (s, id: unknown) => act(s, { a: 'crew', id: str(id) }),
     careerStory: (s, id: unknown, opt: unknown) => act(s, { a: 'story', id: str(id), opt: str(opt) }),
@@ -159,7 +160,8 @@ function storyView(st: CareerState, m: (x: number) => string): Record<string, un
   const nm = storyNames(geo);
   const places = [{ kind: 'hospital', feeder: sy.hospital, name: nm.hospitalName }, { kind: 'villages', feeder: sy.villages, name: nm.villagesName },
     ...(took('evRush') || took('evReturn') ? [{ kind: 'hub', feeder: sy.villages, name: t('career.place.hub') }] : []),
-    ...(took('moorTurbine') ? [{ kind: 'turbine', feeder: sy.villages, name: t('career.place.turbine') }] : [])];
+    ...(took('moorTurbine') ? [{ kind: 'turbine', feeder: sy.villages, name: t('career.place.turbine') }] : []),
+    ...(took('cityDucts') ? [{ kind: 'ducts', feeder: sy.villages, name: t('career.place.ducts') }] : [])];
   return { story, cast, recap, epilogue, promises, places, villageNames };
 }
 
@@ -177,7 +179,8 @@ function rollingProj(st: CareerState, ytdSaidi: number, expSaidi: number): { rol
   const inP = Math.floor(st.t / 4) % INCENTIVE.periodYears, k = Math.min(INCENTIVE.rollingYears - 1, inP), past = k > 0 ? st.reviews.slice(-k).map((r) => r.saidi) : [];
   if (!past.length || st.ending) return { rollingText: '', rollingOk: true };
   const thisYear = ytdSaidi + expSaidi * (4 - (st.t % 4)) / 4, avg = (past.reduce((a, b) => a + b, 0) + thisYear) / (past.length + 1), ok = avg <= st.saidiTarget;
-  return { rollingText: t(ok ? 'career.rolling.ok' : 'career.rolling.bad', { years: past.length + 1, thisYear: r1(thisYear), avg: r1(avg), target: r1(st.saidiTarget) }), rollingOk: ok };
+  const key = !ok ? 'career.rolling.bad' : thisYear > st.saidiTarget ? 'career.rolling.okCarried' : 'career.rolling.ok';   // 1.12 red bars beside 'on track' read as a contradiction: say why
+  return { rollingText: t(key, { years: past.length + 1, thisYear: r1(thisYear), avg: r1(avg), target: r1(st.saidiTarget) }), rollingOk: ok };
 }
 
 /** 1.6 Storm Coast, the passive player: what readiness is costing, whether to stand it down after a settled forecast, and a nudge when cash sits idle
@@ -263,6 +266,8 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         cash: careerMoney(s, st.cash), cashText: m(st.cash), creditText: m(MONEY.creditLimit), arText: m(st.ar), rabText: m(st.rab), committedQText: m(committedPerQuarter(st)), committedQ: careerMoney(s, committedPerQuarter(st)), owedText: m(owedM(st)), cashAfterText: m(st.cash - owedM(st)), borrowing: st.cash < 0,
         netIncentiveText: m(st.netIncentiveM), yearsMet: st.yearsMet, severeFineYears: st.severeFineYears, delivered: st.delivered, missed: st.missed,
         crews: st.crews, crewsFree: crewsFree(st), vegLevel: st.vegLevel, vegCostQText: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length),
+        // 1.12 the standing charges you set once and pay every quarter (a tester's standby crews ran on unseen for a year)
+        standingText: [st.vegLevel > 0 ? t('career.standingVeg', { veg: st.vegLevel, vegQ: m(st.vegLevel * MONEY.vegPerLevelFeederQ * st.feeders.length) }) : '', (st.readiness ?? 0) > 0 ? t('career.standingReady', { ready: st.readiness ?? 0, readyQ: m(STORM.readyCostQ[st.readiness ?? 0]!) }) : ''].filter(Boolean).join(' · '),
         // what each tree-cutting level buys: the expected SAIDI after a year held at that level (the same tree growth rule as turn.ts), and its cost
         vegLevels: [0, 1, 2, 3].map((lv) => { const yr = { ...st, feeders: st.feeders.map((f) => ({ ...f, veg: vegAfterYear(f.veg, lv) })) }; const e = districtExpected(yr);
           return { level: lv, saidi: r1(e.saidi), dSaidi: r1(e.saidi - exp.saidi), costQText: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length), text: t('career.vegLevel', { dSaidi: `${e.saidi - exp.saidi > 0 ? '+' : ''}${r1(e.saidi - exp.saidi)}`, costQ: m(lv * MONEY.vegPerLevelFeederQ * st.feeders.length) }) }; }),
@@ -273,7 +278,7 @@ export function buildCareerQueries(): Record<string, QueryFn<GridState>> {
         feeders: st.feeders.map((f, i) => {
           const a = an[i]!;
           return { id: f.id, kind: f.kind ?? 'overhead', primaryId: f.primaryId, customers: f.customers, peakKw: Math.round(a.peakKw), loadingPct: r1(a.loadingPct), minV: r2(a.minVPu), maxV: r2(a.maxVPu), vViolation: a.vViolation,
-            saidi: r1(a.rel.saidi), saifi: r2(a.rel.saifi), veg: r2(f.veg), tie: f.tie, recloser: f.recloser, hardened: !!f.hardened, regulator: f.regulator, batteryKw: f.batteryKw, drKw: Math.round(f.drKw), solarKw: f.solarKw,
+            saidi: r1(a.rel.saidi + 4 * a.shedMinQ), saifi: r2(a.rel.saifi + 4 * a.shedIntQ), shedMin: r1(4 * a.shedMinQ), veg: r2(f.veg), tie: f.tie, recloser: f.recloser, hardened: !!f.hardened, regulator: f.regulator, batteryKw: f.batteryKw, drKw: Math.round(f.drKw), solarKw: f.solarKw,
             sections: f.sections.map((sec) => ({ id: sec.id, km: sec.lengthKm, conductor: sec.conductor, device: sec.device, assetId: sec.assetId, ...healthOf(sec.assetId) })) };
         }),
         projects: st.projects.map((p) => ({ id: p.id, kind: p.kind, kindName: t(`career.kind.${p.kind}`), target: p.target, left: p.left, leadQ: p.leadQ, crew: p.crew, status: p.status, capexText: m(p.capexM), spentText: m(p.spentM) })),

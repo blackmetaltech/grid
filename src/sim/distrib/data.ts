@@ -12,6 +12,17 @@ export const CONDUCTORS: ConductorRow[] = [
   { id: 'Hyena', mm2: 150, rOhmKm: 0.187, xOhmKm: 0.36, ampacityA: 380, costPerKm: 2.9, source: 'Indian ACSR designations (IS 398 pt 2) typical values', recall: true },
 ];
 
+/** 11 kV underground cable (three single-core aluminium XLPE in trefoil, direct buried), for Career cable feeders. Cost in the same
+ * relative units as the overhead rows: a buried cable costs several times an overhead line per km (trenching, reinstatement). */
+export const CABLES_11KV: ConductorRow[] = [
+  { id: '70 Al XLPE', mm2: 70, rOhmKm: 0.443, xOhmKm: 0.12, ampacityA: 190, costPerKm: 3.5, source: 'IEC 60502-2 11 kV Al XLPE single-core trefoil, buried, 20 C ground (typical datasheet values)', recall: true },
+  { id: '95 Al XLPE', mm2: 95, rOhmKm: 0.320, xOhmKm: 0.11, ampacityA: 225, costPerKm: 4.2, source: 'IEC 60502-2 11 kV Al XLPE single-core trefoil, buried, 20 C ground (typical datasheet values)', recall: true },
+  { id: '185 Al XLPE', mm2: 185, rOhmKm: 0.164, xOhmKm: 0.10, ampacityA: 330, costPerKm: 5.4, source: 'IEC 60502-2 11 kV Al XLPE single-core trefoil, buried, 20 C ground (typical datasheet values)', recall: true },
+  { id: '300 Al XLPE', mm2: 300, rOhmKm: 0.100, xOhmKm: 0.095, ampacityA: 430, costPerKm: 6.6, source: 'IEC 60502-2 11 kV Al XLPE single-core trefoil, buried, 20 C ground (typical datasheet values)', recall: true },
+];
+/** The cable a Career cable feeder lays where the overhead pattern names a conductor (the same step in the size ladder). */
+export const CABLE_FOR: Record<string, string> = { Weasel: '70 Al XLPE', Rabbit: '95 Al XLPE', Dog: '185 Al XLPE', Hyena: '300 Al XLPE' };
+
 /** Reliability parameters (Billinton and Allan style typical ranges). */
 export interface RelRow extends Sourced { id: string; lambdaPerKmYr: number; repairH: number }
 export const RELIABILITY_DATA: RelRow[] = [

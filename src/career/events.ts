@@ -43,6 +43,8 @@ export function rollQuarter(s: CareerState, an: FeederAnalysis[]): Rolled {
     out.maxLoadingPct = Math.max(out.maxLoadingPct, A.loadingPct);
     if (A.vViolation) out.vViolations++;
     out.lossesMWh += (A.lossKwPeak * 0.3 * HOURS_Q) / 1000;
+    out.custMin += f.customers * A.shedMinQ; out.custInt += f.customers * A.shedIntQ;   // 1.12 rota shedding past the cyclic rating (not weather: it counts)
+    out.shedCustMin = (out.shedCustMin ?? 0) + f.customers * A.shedMinQ;
     f.sections.forEach((_, si) => {
       const n = poisson(r, (A.calmLambda[si]! * 91) / 365 * hotMult(s, f));
       out.faults += n; out.custInt += n * A.perFault[si]!.ci; out.custMin += n * A.perFault[si]!.cm;
@@ -148,6 +150,15 @@ export function acceptConnection(state: CareerState, id: string): ActionResult {
   const s: CareerState = { ...state, cash: state.cash + r.chargeM, delivered: state.delivered + 1, requests: state.requests.filter((x) => x.id !== id), feeders: state.feeders.map((x) => (x === f0 ? f : x)) };
   const lp = analyseFeeder(s, f, false).loadingPct;
   return ok(s, lp > 100 ? 'career.accept.overload' : 'career.accept', { id, kind: r.kind, feeder: f.id, chargeM: r.chargeM, loadingPct: Math.round(lp) });
+}
+
+/** 1.12 Decline a connection request now instead of letting it lapse: it counts as missed at once (twice for a critical one), as a lapsed one does. */
+export function declineConnection(state: CareerState, id: string): ActionResult {
+  if (state.phase !== 'plan') return fail(state, 'career.err.phase');
+  const r = state.requests.find((x) => x.id === id);
+  if (!r) return fail(state, 'career.err.noRequest', { id });
+  const s: CareerState = { ...state, missed: state.missed + (r.critical ? 2 : 1), requests: state.requests.filter((x) => x.id !== id) };
+  return ok(s, 'career.declined', { id, kind: r.kind, feeder: r.feederId });
 }
 
 /** During an incident: close the tie to restore the feeder from its neighbour (cuts the incident's customer-minutes by 35 %). */

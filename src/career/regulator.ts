@@ -1,10 +1,10 @@
 // The annual review (regulator Ms Okafor, finance director Vance, crew chief Tobi), the endings and the score.
-import { ENDINGS, INCENTIVE, MONEY, SCORE } from './data';
+import { ENDINGS, INCENTIVE, MONEY, OWNERS, SCORE } from './data';
 import { allowedRevenue, incentive as incentiveFor } from './money';
 import { avgHealth, trueHealth } from './ageing';
 import { totalCustomers, type CareerState, type Ending, type Review, type Verdict } from './state';
 import { analyseFeeder, districtExpected, charterOf } from './district';
-import { firmMarginPct } from './projects';
+import { committedPerQuarter, firmMarginPct } from './projects';
 
 /** Load index (RIIO reports one): feeders over their winter cyclic rating at peak, primaries short of firm capacity. Chief Engineer needs both at 0. */
 export function loadIndex(s: CareerState): { overloaded: number; firmShort: number } {
@@ -27,6 +27,18 @@ export function annualReview(s: CareerState): Review {
   const prevHealth = s.reviews.length ? s.reviews[s.reviews.length - 1]!.avgHealth : s.startHealth;
   const health = avgHealth(s);
   s.cash += inc; s.netIncentiveM += inc;
+  // 1.12 the price-control close: unspent replacement funding comes back when the network got older over the period (NARM)
+  let claw = 0;
+  if ((yearOf(s.t) + 1) % INCENTIVE.periodYears === 0) {
+    const q = INCENTIVE.periodYears * 4, rows = s.history.slice(-(q - 1));
+    const funded = rows.reduce((a, k) => a + k.rab, s.rab) / MONEY.lifeYears / 4, spent = rows.reduce((a, k) => a + k.capexM, 0) + (s.pending?.capexM ?? 0) + (s.pending?.emergencyCapexM ?? 0);
+    const h0 = s.history.length >= q ? s.history[s.history.length - q]!.avgHealth : s.startHealth;
+    if (avgHealth(s) < h0 && spent < funded) claw = (funded - spent) * (1 + OWNERS.narmPenaltyPct / 100);
+    s.cash -= claw; s.clawbackM = (s.clawbackM ?? 0) + claw;
+  }
+  // 1.12 the owners take the cash above the working reserve (a buffer plus the next quarters' committed instalments)
+  const reserve = OWNERS.reserveM + committedPerQuarter(s) * OWNERS.reserveQuarters, dividend = Math.max(0, s.cash - reserve) * OWNERS.payout;
+  s.cash -= dividend; s.dividendsM = (s.dividendsM ?? 0) + dividend;
   if (met) s.yearsMet++;
   // a severe fine counts toward revocation only when the network itself cannot meet the targets (its modelled, luck-free SAIDI or SAIFI is over them): a regulator revokes for failure to invest, not for weather
   const exp = districtExpected(s), inadequate = exp.saidi > s.saidiTarget || exp.saifi > s.saifiTarget;
@@ -44,6 +56,9 @@ export function annualReview(s: CareerState): Review {
   }
   const fin: Verdict = { axis: 'finance', who: 'Vance', grade: s.cash >= 2 ? 'good' : s.cash >= 0 ? 'ok' : 'poor', key: '', params: { cash: s.cash, rab: s.rab, arM: s.ar, creditM: MONEY.creditLimit } };
   fin.key = `career.review.finance.${fin.grade}`;
+  fin.params = { ...fin.params, dividendM: dividend, reserveM: reserve, clawbackM: claw };
+  if (claw > 0) fin.key = 'career.review.finance.clawback';   // 1.12 say where the money went
+  else if (dividend > 0.05) fin.key = 'career.review.finance.dividend';
   const crew: Verdict = { axis: 'crew', who: 'Tobi', grade: bl >= 5 || health < prevHealth - 0.4 ? 'poor' : bl <= 2 && health >= prevHealth - 0.05 ? 'good' : 'ok', key: '', params: { health, prevHealth, backlog: bl } };
   crew.key = `career.review.crew.${crew.grade}`;
   const rv: Review = { year: yearOf(s.t), saidi, saifi, saidiTarget: s.saidiTarget, saifiTarget: s.saifiTarget, exceptionalMin: N ? s.ytdExceptionalMin / N : 0, met, incentiveM: inc, saidiRolling: saidiR, saifiRolling: saifiR, avgHealth: health, cash: s.cash, rab: s.rab, verdicts: [reg, fin, crew], ...loadIndex(s) };
