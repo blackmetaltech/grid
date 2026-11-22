@@ -153,7 +153,7 @@ func _update_sky(mn: float) -> void:
 	sky_mat.set_shader_parameter("cloud_dark", Color(0.55, 0.58, 0.66).lerp(Color(0.35, 0.25, 0.35), d).lerp(Color(0.03, 0.04, 0.07), n))
 	# the sun: east at 06:00, south at noon, west at 18:00 (the map's +X is east, +Z south); 50 degrees high at noon
 	var a := (mn - 360.0) / 720.0 * PI
-	var elev := sin(a) * deg_to_rad(50.0)
+	var elev := sin(a) * deg_to_rad(50.0) + deg_to_rad(6.0)   # sunset near 18:30, where WorldMath.dusk peaks: raking light at the job's start
 	var az := a   # 0 = east, PI/2 = south, PI = west
 	var to_sun := Vector3(cos(az) * cos(elev), sin(elev), sin(az) * cos(elev) * 0.6 + 0.35 * cos(elev)).normalized()
 	sun.visible = elev > deg_to_rad(-6.0)
@@ -456,6 +456,41 @@ func _build_layout() -> void:
 		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = hmat; mi.name = "Blocks" if kind else "Houses"
 		_root_infra.add_child(mi)
 		_house_mm.append(mm); _house_map.append(mp)
+	for ai in areas.size():   # a centre for each town: a hall with a tower at the middle of its tiles
+		var tl: Array = areas[ai]
+		if tl.size() < 6: continue
+		var cc := Vector2.ZERO
+		for t2 in tl: cc += Vector2(t2) + Vector2(0.5, 0.5)
+		cc = cc / float(tl.size()) * tm
+		var tw2 := _nearest_town(cc / tm)
+		var hall := MeshInstance3D.new(); hall.mesh = Props3D.lighthouse(); hall.scale = Vector3(1.4, 1.6, 1.4)
+		var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.78, 0.74, 0.66); hm.roughness = 0.9; hall.material_override = hm
+		hall.position = Vector3(cc.x, ground(cc.x, cc.y) - 0.3, cc.y); _root_infra.add_child(hall)
+		var nave := MeshInstance3D.new(); var nb2 := BoxMesh.new(); nb2.size = Vector3(26, 11, 12); nave.mesh = nb2; nave.material_override = hm
+		nave.position = hall.position + Vector3(16, 5.5, 0); _root_infra.add_child(nave)
+		var nr := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.size = Vector3(12.5, 5, 27); nr.mesh = pr; nr.rotation.y = PI * 0.5
+		var rm2 := StandardMaterial3D.new(); rm2.albedo_color = Color(0.32, 0.3, 0.3); nr.material_override = rm2; nr.position = hall.position + Vector3(16, 13.5, 0); _root_infra.add_child(nr)
+	# the harbour: a quay along the shore below the harbour town, with moored boats
+	for ai in areas.size():
+		var tl2: Array = areas[ai]
+		var south := -1.0; var x0 := 1e9; var x1 := -1e9
+		for t3 in tl2: south = maxf(south, float(t3.y)); x0 = minf(x0, float(t3.x)); x1 = maxf(x1, float(t3.x))
+		if south < field.H - 8: continue   # only a town by the sea
+		var zq := 0.0
+		for j2 in range(int(south), field.H2):   # first sea row below the town
+			if field.kind_at_tile(int((x0 + x1) * 0.5), j2) == TerrainField.K_SEA: zq = j2 * tm; break
+		if zq <= 0.0: continue
+		var qm := StandardMaterial3D.new(); qm.albedo_color = Color(0.55, 0.53, 0.5); qm.roughness = 0.95
+		var quay := MeshInstance3D.new(); var qb := BoxMesh.new(); qb.size = Vector3((x1 - x0 + 2.0) * tm, 4.0, 14.0); quay.mesh = qb; quay.material_override = qm
+		quay.position = Vector3((x0 + x1 + 1.0) * 0.5 * tm, 0.6, zq + 4.0); _root_infra.add_child(quay)
+		for k2 in 2:
+			var pier := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(8, 3.0, 70); pier.mesh = pb; pier.material_override = qm
+			pier.position = Vector3((x0 + (x1 - x0) * (0.3 + 0.4 * k2)) * tm, 0.4, zq + 40.0); _root_infra.add_child(pier)
+			for b2 in 3:
+				var boat := MeshInstance3D.new(); boat.mesh = Props3D.trawler(); boat.scale = Vector3.ONE * (0.45 + 0.15 * _h(k2, b2, 620))
+				var bm2 := StandardMaterial3D.new(); bm2.vertex_color_use_as_albedo = true; boat.material_override = bm2
+				boat.position = pier.position + Vector3(9.0 * (1 if b2 % 2 == 0 else -1), -0.3, -20.0 + 18.0 * b2); boat.rotation.y = PI * 0.5 + 0.1 * _h(k2, b2, 621)
+				_root_infra.add_child(boat)
 	if not garden.is_empty():   # garden trees between the houses
 		var gm := MultiMesh.new(); gm.transform_format = MultiMesh.TRANSFORM_3D; gm.use_colors = true; gm.mesh = Props3D.broadleaf()
 		gm.instance_count = garden.size() * 2

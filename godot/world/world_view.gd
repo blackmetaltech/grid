@@ -20,6 +20,7 @@ var model: Dictionary = WorldModel.empty()
 const LOOK2_LEVELS := ["L30"]
 var look3d = null              # Province3D or null (tests, CI, levels not yet rebuilt)
 var _drag_btn := 0
+var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
 func _l3() -> bool: return look3d != null and look3d.visible and look3d.field != null
 
 signal tapped(pos: Vector2)         ## a click / tap that did not drag (local coordinates)
@@ -573,6 +574,7 @@ func key(e: InputEventKey) -> bool:
 			KEY_RIGHT: look3d.pan_px(Vector2(-80, 0))
 			KEY_UP: look3d.pan_px(Vector2(0, 80))
 			KEY_DOWN: look3d.pan_px(Vector2(0, -80))
+			KEY_L: sld_on = not sld_on; queue_redraw()   # the single-line overlay on / off
 			KEY_Q: look3d.orbit_px(Vector2(-40, 0))
 			KEY_E: look3d.orbit_px(Vector2(40, 0))
 			KEY_PAGEUP: look3d.orbit_px(Vector2(0, 30))
@@ -1065,7 +1067,7 @@ func _paint_top() -> void:
 	var t0 := Time.get_ticks_usec()
 	if _flash > 0.0:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
-	if _l3(): _draw_line_overlay()
+	if _l3() and sld_on: _draw_line_overlay()
 	_draw_labels()
 	_draw_pegs()
 	_draw_hand()
