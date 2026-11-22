@@ -224,8 +224,8 @@ func refresh() -> void:
 	(stats.cash as Label).tooltip_text = T("CAR_CASH_LIM") % str(d.creditText)
 	if bool(d.get("borrowing", false)): (stats.cash as Label).text = T("CAR_CASH_DEBT") % str(d.cashText)
 	(stats.owed as Label).text = T("CAR_CASH_OWED") % [str(d.get("owedText", "")), str(d.get("cashAfterText", ""))] if str(d.get("owedText", "")) != "" and float(d.get("committedQ", 0.0)) > 0.0 else ""
-	(stats.standing as Label).text = str(d.get("standingText", "")); (stats.standing as Label).visible = not compact   # a phone has no room for a third line: there it is the cash tooltip
-	if compact and str(d.get("standingText", "")) != "": (stats.cash as Label).tooltip_text += "\n" + str(d.standingText)
+	(stats.standing as Label).text = "\n".join([str(d.get("standingText", "")), str(d.get("ownersDueText", ""))].filter(func(x): return x != "")); (stats.standing as Label).visible = not compact   # a phone has no room for a third line: there it is the cash tooltip
+	if compact and (stats.standing as Label).text != "": (stats.cash as Label).tooltip_text += "\n" + (stats.standing as Label).text
 	(stats.owed as Label).add_theme_color_override("font_color", Color(GridTheme.PAPER_INK, 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else CareerKit.INK_BAD)
 	bar_saidi.set_vals(T("CAR_SAIDI"), float(d.ytd.saidi), float(d.targets.saidi), float(d.expected.saidi), 1)
 	var al := str(d.get("alarmDo", "")); alarm_lbl.text = al; alarm_note.visible = al != ""; alarm_note.tooltip_text = str(d.get("alarmText", "")); alarm_lbl.tooltip_text = alarm_note.tooltip_text
