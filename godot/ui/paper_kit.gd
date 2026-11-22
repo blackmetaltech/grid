@@ -232,9 +232,10 @@ class DashedRule extends Control:
 ## A pencil-drawn empty check box (a pass condition not yet met).
 class Check extends Control:
 	var done := false
-	func _init(d := false) -> void: done = d; custom_minimum_size = Vector2(30, 30); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var _ink := INK   # LOOK2: captured at build time (light ink on glass)
+	func _init(d := false) -> void: _ink = PaperKit.ink(INK); done = d; custom_minimum_size = Vector2(30, 30); mouse_filter = Control.MOUSE_FILTER_IGNORE; size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	func _draw() -> void:
-		var c := Color(INK, 0.85)
+		var c := Color(_ink, 0.85)
 		var pts := PackedVector2Array([Vector2(5, 6), Vector2(25, 5), Vector2(26, 25), Vector2(4, 26), Vector2(5, 5)])
 		draw_polyline(pts, c, 2.4, true)
 		if done: draw_polyline(PackedVector2Array([Vector2(8, 16), Vector2(14, 22), Vector2(29, 2)]), PaperKit.BLUE, 3.2, true)
@@ -268,22 +269,23 @@ class Lamp extends Control:
 	var lit := false
 	var stamp := 0.0
 	var ring := PaperKit.RED
-	func _init(px := 96.0, is_lit := false) -> void: lit = is_lit; custom_minimum_size = Vector2(px, px * 1.1); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var _ink := INK
+	func _init(px := 96.0, is_lit := false) -> void: _ink = PaperKit.ink(INK); lit = is_lit; custom_minimum_size = Vector2(px, px * 1.1); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func set_stamp(v: float) -> void: stamp = v; queue_redraw()
 	func _draw() -> void:
 		var c := Vector2(size.x * 0.5, size.y * 0.42); var r := size.x * 0.27
-		var ink := Color(INK, 0.85)
+		var ink := Color(_ink, 0.85)
 		if lit:
 			for i in 5: draw_circle(c, r * (2.0 - 0.25 * i), Color(GridTheme.SODIUM, 0.07 + 0.02 * i))
 			for i in 8:
 				var a := TAU * i / 8.0 + 0.2; var d := Vector2(cos(a), sin(a)); draw_line(c + d * r * 1.3, c + d * r * 1.75, Color(PaperKit.AMBER, 0.9), maxf(2.0, r * 0.1), true)
-		draw_circle(c, r, GridTheme.SODIUM if lit else Color(INK, 0.07))
+		draw_circle(c, r, GridTheme.SODIUM if lit else Color(_ink, 0.07))
 		draw_arc(c, r, 0.0, TAU, 40, PaperKit.AMBER if lit else ink, maxf(2.0, r * 0.1), true)
 		var nk := PackedVector2Array([c + Vector2(-r * 0.55, r * 0.8), c + Vector2(r * 0.55, r * 0.8), c + Vector2(r * 0.42, r * 1.35), c + Vector2(-r * 0.42, r * 1.35)])
-		draw_colored_polygon(nk, Color(INK, 0.55)); draw_polyline(nk + PackedVector2Array([nk[0]]), ink, 2.0, true)
+		draw_colored_polygon(nk, Color(_ink, 0.55)); draw_polyline(nk + PackedVector2Array([nk[0]]), ink, 2.0, true)
 		for k in 2: draw_line(c + Vector2(-r * 0.4, r * (1.5 + 0.2 * k)), c + Vector2(r * 0.4, r * (1.5 + 0.2 * k)), ink, 3.0, true)
 		var fil := PackedVector2Array([c + Vector2(-r * 0.3, r * 0.7), c + Vector2(-r * 0.3, r * 0.1), c + Vector2(-r * 0.1, -r * 0.2), c + Vector2(r * 0.1, r * 0.1), c + Vector2(r * 0.3, -r * 0.2), c + Vector2(r * 0.3, r * 0.7)])
-		draw_polyline(fil, Color("#9A4A08") if lit else Color(INK, 0.55), 2.2, true)
+		draw_polyline(fil, Color("#9A4A08") if lit else Color(_ink, 0.55), 2.2, true)
 		if stamp > 0.0 and lit:   # ink ring pressed on the paper: starts big and faint, thumps down to size
 			var k := ease(clampf(stamp, 0.0, 1.0), 0.35); var sc := lerpf(1.9, 1.0, k); var al := clampf(stamp * 2.0, 0.0, 1.0) * 0.9
 			draw_set_transform(c, deg_to_rad(-9.0), Vector2(sc, sc))

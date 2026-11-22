@@ -42,13 +42,16 @@ static func open(app: CbApp) -> void:
 	ph.app = app; PaperKit.bleed(app, host)
 	(host.get_child(0) as ColorRect).color = Color(GridTheme.NIGHT, 0.72)
 	var pn: PanelContainer = d.panel; pn.clip_contents = false
+	var glass: bool = app.get("grid_world") != null and app.grid_world.look3d != null   # LOOK2 (1.16): the jobs list in the glass language wherever the 3D look runs
+	PaperKit.glass = glass
 	var board := GridTheme._sb(Color("#6A4B2E"), Color("#3A2814"), 14, 3, 22.0); board.content_margin_top = 22 if compact else 34; board.shadow_color = Color(0, 0, 0, 0.45); board.shadow_size = 10
+	if glass: board = GridTheme.glass_sb(0.9, 6, 18.0)
 	pn.add_theme_stylebox_override("panel", board)
 	var vb: VBoxContainer = d.vb; vb.add_theme_constant_override("separation", 10)
-	var clip := ClipArt.new(); pn.add_child(clip)   # last child = drawn over the sheet
-	var sheet := PanelContainer.new(); sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL; sheet.add_theme_stylebox_override("panel", GridTheme.paper_sb(3, 12.0 if compact else 18.0)); vb.add_child(sheet)
+	if not glass: var clip := ClipArt.new(); pn.add_child(clip)   # last child = drawn over the sheet
+	var sheet := PanelContainer.new(); sheet.size_flags_vertical = Control.SIZE_EXPAND_FILL; sheet.add_theme_stylebox_override("panel", StyleBoxEmpty.new() if glass else GridTheme.paper_sb(3, 12.0 if compact else 18.0)); vb.add_child(sheet)
 	var sv := VBoxContainer.new(); sv.add_theme_constant_override("separation", 8); sheet.add_child(sv)
-	sv.add_child(PaperKit.lbl(T("JOBS_TITLE").to_upper(), 34 if compact else 46, "title", PaperKit.INK))
+	sv.add_child(PaperKit.lbl(T("JOBS_TITLE").to_upper(), (26 if compact else 32) if glass else (34 if compact else 46), "title", PaperKit.INK))
 	if not compact: sv.add_child(PaperKit.lbl(T("JOBS_SUB"), 16, "sans", Color(PaperKit.INK, 0.7), true))
 	var rows := VBoxContainer.new(); rows.add_theme_constant_override("separation", 6); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sv.add_child(PaperKit.scroll_box(rows))
@@ -71,6 +74,7 @@ static func open(app: CbApp) -> void:
 	var close := PaperKit.btn(T("JOBS_CLOSE"), false, func(): host.queue_free(), 18); close.name = "Close"
 	sv.add_child(close)
 	ph.closer = func(): host.queue_free()
+	PaperKit.glass = false
 	PaperKit.slide_in(d, 50.0)
 	ph.primary = first
 	app.focus_dialog()
@@ -108,11 +112,12 @@ static func classic_chip() -> Control:
 
 ## A small hand-drawn padlock (locked job).
 class Padlock extends Control:
-	func _init() -> void: custom_minimum_size = Vector2(40, 44); mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var _ink := PaperKit.INK
+	func _init() -> void: _ink = PaperKit.ink(PaperKit.INK); custom_minimum_size = Vector2(40, 44); mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		var c := Color(PaperKit.INK, 0.85)
+		var c := Color(_ink, 0.85)
 		draw_arc(Vector2(20, 19), 9.0, PI, TAU, 16, c, 3.4, true); draw_line(Vector2(11, 19), Vector2(11, 23), c, 3.4); draw_line(Vector2(29, 19), Vector2(29, 23), c, 3.4)
-		draw_rect(Rect2(6, 22, 28, 20), Color(PaperKit.INK, 0.8)); draw_circle(Vector2(20, 31), 3.0, GridTheme.PAPER); draw_line(Vector2(20, 31), Vector2(20, 37), GridTheme.PAPER, 2.6)
+		draw_rect(Rect2(6, 22, 28, 20), Color(_ink, 0.8)); draw_circle(Vector2(20, 31), 3.0, GridTheme.PAPER); draw_line(Vector2(20, 31), Vector2(20, 37), GridTheme.PAPER, 2.6)
 
 ## The metal clip at the top of the clipboard.
 class ClipArt extends Control:

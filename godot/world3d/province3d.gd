@@ -459,7 +459,9 @@ func _build_layout() -> void:
 		cm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(cm)
 		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
 		for k in places.size(): if _h(k, 1, 615) > 0.8: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
-		for cc in tg.centres: _build_hall(cc[0], cc[2])
+		var counts := {}
+		for t in model.towns: counts[str(t.id)] = int(t.get("count", 1))
+		for cc in tg.centres: _build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
 	for ai in areas.size():
 		var tiles: Array = areas[ai]
 		var c := Vector2.ZERO
@@ -626,13 +628,22 @@ func _build_town_lamps(lamp_list: Array) -> void:
 		_town_lamps[id] = nodes
 
 ## A town centre: a hall with a tower on the square, the nave along the main street.
-func _build_hall(c: Vector2, rot: float) -> void:
+## The town centre: a church with a tall spire, and in a big town a works chimney with a red beacon. Both are drawn larger than life (like the map) so a town
+## has a silhouette from play height (art review 1.15).
+func _build_hall(c: Vector2, rot: float, count := 1) -> void:
 	var n := Node3D.new(); n.position = Vector3(c.x, ground(c.x, c.y) - 0.3, c.y); n.rotation.y = -rot; _root_infra.add_child(n)
 	var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.8, 0.75, 0.66); hm.roughness = 0.9
-	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(1.4, 1.7, 1.4); tower.material_override = hm; tower.position = Vector3(-14, 0, 0); n.add_child(tower)
+	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(2.0, 3.4, 2.0); tower.material_override = hm; tower.position = Vector3(-14, 0, 0); n.add_child(tower)
 	var nave := MeshInstance3D.new(); var nb := BoxMesh.new(); nb.size = Vector3(28, 11, 13); nave.mesh = nb; nave.material_override = hm; nave.position = Vector3(4, 5.5, 0); n.add_child(nave)
 	var roof := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.size = Vector3(13.5, 5.5, 29); roof.mesh = pr; roof.rotation.y = PI * 0.5
 	var rm := StandardMaterial3D.new(); rm.albedo_color = Color(0.3, 0.29, 0.3); roof.material_override = rm; roof.position = Vector3(4, 13.75, 0); n.add_child(roof)
+	if count >= 26:
+		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 2.6; cy.bottom_radius = 4.2; cy.height = 84.0; ch.mesh = cy
+		var cm2 := StandardMaterial3D.new(); cm2.albedo_color = Color(0.72, 0.66, 0.6); cm2.roughness = 0.9; ch.material_override = cm2; ch.position = Vector3(70, 42.0, 55); n.add_child(ch)
+		var band := MeshInstance3D.new(); var bc := CylinderMesh.new(); bc.top_radius = 2.65; bc.bottom_radius = 2.9; bc.height = 9.0; band.mesh = bc
+		var bm2 := StandardMaterial3D.new(); bm2.albedo_color = Color(0.62, 0.14, 0.1); band.material_override = bm2; band.position = Vector3(70, 79.0, 55); n.add_child(band)
+		var bk := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 1.1; bs.height = 2.2; bk.mesh = bs
+		bk.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 6.0); bk.position = Vector3(70, 85.0, 55); n.add_child(bk); _warn.append(bk)
 	var sq := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(60, 0.3, 60); sq.mesh = sb
 	var sqm := StandardMaterial3D.new(); sqm.albedo_color = Color(0.55, 0.52, 0.47); sqm.roughness = 0.95; sq.material_override = sqm; sq.position = Vector3(0, 0.35, 0); n.add_child(sq)
 

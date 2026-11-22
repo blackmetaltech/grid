@@ -65,7 +65,7 @@ void fragment() {
 
 	if (cheap) {
 		vec3 cc = texture(grass_a, p).rgb * grass_tint * w.r + texture(forest_a, p * 1.3).rgb * vec3(0.55, 0.62, 0.45) * w.g + texture(rock_a, p * 0.6).rgb * w.b
-			+ texture(sand_a, p * 1.5).rgb * w.a + texture(mud_a, p).rgb * mud + vec3(0.36, 0.35, 0.33) * paved;
+			+ texture(sand_a, p * 1.5).rgb * w.a + texture(mud_a, p).rgb * mud + vec3(0.26, 0.29, 0.20) * paved;
 		cc *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
 		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)); ROUGHNESS = 0.92; SPECULAR = 0.25;
 	} else {
@@ -97,7 +97,7 @@ void fragment() {
 		+ tex2f(rock_a, p * 0.6, m, g_mid, g_far) * w.b
 		+ tex2f(sand_a, p * 1.5, m, g_mid, g_far) * w.a
 		+ tex2f(mud_a, p, m, g_mid, g_far) * vec3(0.85, 0.9, 0.8) * mud
-		+ mix(vec3(0.32, 0.31, 0.30), vec3(0.42, 0.40, 0.37), m2) * paved;
+		+ mix(vec3(0.22, 0.27, 0.16), vec3(0.33, 0.32, 0.29), m2 * 0.6) * paved;   // gardens and yards between the houses: a town reads darker than the fields around it, not as a pale disc
 	// macro colour drift: some hillsides drier, some lusher
 	col *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
 	// wet sand / mud darkens near the waterline

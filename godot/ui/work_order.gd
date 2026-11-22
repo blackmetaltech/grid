@@ -163,7 +163,8 @@ static func open(app: CbApp) -> void:
 	var w := minf(880.0, app.vw() - 40.0)
 	var compact := PaperKit.compact(app)   # landscape phone: Goal and "To pass" first, everything else scrolls under a "more" cue
 	var short: bool = app.vs_h() < 840.0 or _force_short
-	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 24.0) if short else 0.0, 0.8, 18.0 if compact else 30.0)
+	PaperKit.glass = GridTheme.look2   # LOOK2: the work order in the glass language over the 3D province (1.16); reset below
+	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 24.0) if short else 0.0, 0.45 if PaperKit.glass else 0.8, (14.0 if compact else 24.0) if PaperKit.glass else (18.0 if compact else 30.0))
 	_d = d
 	app.sfx("page")
 	var host: PaperHost = d.host; host.closer = func(): close(app)
@@ -174,6 +175,7 @@ static func open(app: CbApp) -> void:
 	else: vb.add_child(col)
 	_content(app, col, li, short, compact)
 	_footer(app, vb, li, fresh)
+	PaperKit.glass = false
 	if not short: app.get_tree().process_frame.connect(func(): _fit(app, d), CONNECT_ONE_SHOT)
 	if instant_next: instant_next = false
 	else: PaperKit.slide_in(d)
@@ -219,7 +221,7 @@ static func _content(app: CbApp, col: VBoxContainer, li: Dictionary, short := fa
 	var num_s := str(li.id).trim_prefix("L")
 	var head := HBoxContainer.new(); head.add_theme_constant_override("separation", 12); col.add_child(head)
 	var hv := VBoxContainer.new(); hv.size_flags_horizontal = Control.SIZE_EXPAND_FILL; hv.add_theme_constant_override("separation", 2); head.add_child(hv)
-	var t := PaperKit.lbl(T("WO_TITLE") % [num_s, str(li.title).to_upper()], 36 if compact else 54, "title", PaperKit.INK, true); hv.add_child(t)
+	var t := PaperKit.lbl(T("WO_TITLE") % [num_s, str(li.title).to_upper()], (26 if compact else 34) if PaperKit.glass else (36 if compact else 54), "title", PaperKit.INK, true); hv.add_child(t)
 	if str(li.get("place", "")) != "": hv.add_child(PaperKit.lbl(str(li.place), 15 if compact else 18, "semi", Color(PaperKit.INK, 0.75), true))
 	if GridSettings.cute and not compact: head.add_child(PaperKit.Doodle.new())
 	col.add_child(PaperKit.rule())

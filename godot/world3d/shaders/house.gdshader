@@ -27,6 +27,8 @@ void fragment() {
 	if (roof > 0.5) {
 		vec3 rc = ic.g < 0.6 ? roof_a : (ic.g < 0.85 ? roof_b : vec3(0.42, 0.34, 0.26));   // mostly terracotta: slate and brown read as holes from above
 		rc *= 0.75 + 0.5 * h21(vec2(ic.g * 91.0, 3.0));
+		float rfar = smoothstep(500.0, 3000.0, length(VERTEX));
+		rc = mix(rc, rc * vec3(1.18, 1.0, 0.92), rfar * (1.0 - night));   // far roofs by day: a little warmer so a town reads as red roofs, not a pale texture
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
 		float dark = (1.0 - step(0.001, ic.r)) * night;   // a dark town at night: roofs lose the lamplight they would catch
 		ALBEDO = rc * tiles * (1.0 - 0.45 * dark); ROUGHNESS = 0.62; SPECULAR = 0.55;   // roofs catch the moon instead of reading as holes
@@ -41,11 +43,12 @@ void fragment() {
 		win *= step(1.0, hy);   // no windows in the plinth
 		float lit = step(h21(cell + ic.g * 17.0), ic.r) * win * step(0.18, h21(cell * 1.7 + ic.g * 5.0));   // some rooms dark by design
 		float dark = (1.0 - step(0.001, ic.r)) * night;
-		ALBEDO = mix(base, vec3(0.05, 0.06, 0.08), win * 0.85) * (1.0 - 0.45 * dark);
+		float wfar = smoothstep(600.0, 3000.0, length(VERTEX));
+		ALBEDO = mix(base * (1.0 - 0.25 * wfar), vec3(0.05, 0.06, 0.08), win * 0.85) * (1.0 - 0.45 * dark);   // far walls a little darker so the roofs carry the town
 		ROUGHNESS = mix(0.85, 0.15, win);
 		float flick = 0.85 + 0.15 * h21(cell * 3.1 + ic.g);
 		float far = smoothstep(350.0, 1500.0, length(VERTEX));
-		EMISSION = lamp * lit * lamp_power * flick * (0.15 + 0.85 * night) * (1.0 + 2.2 * far);   // windows carry the town from afar, not a tinted wall
+		EMISSION = lamp * lit * lamp_power * flick * (0.04 * (1.0 - far) + smoothstep(0.15, 0.8, night)) * (1.0 + 2.2 * far);   // windows carry the town from afar at night; by day they do not glow (far daytime towns read as pink dots)
 		EMISSION += lamp * step(0.001, ic.r) * night * 0.16 * far;   // a lit house reads as a warm dot from the whole province; a dark one is dark
 	}
 }
