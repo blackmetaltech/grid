@@ -2,23 +2,194 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GRID</title>
-<meta name="description" content="GRID: a learning game where real equations are the rules.">
-<style>
-  :root { --bg: #070b12; --fg: #e6f0ff; --dim: #93a7bd; --acc: #4fd1ff; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
-  main { max-width: 860px; margin: 0 auto; padding: 64px 16px; }
-  h1 { font-size: clamp(48px, 10vw, 96px); margin: 0; letter-spacing: 0.04em; color: var(--acc); }
-  p { color: var(--dim); }
-  a.btn { display: inline-block; margin: 8px 8px 0 0; padding: 12px 20px; border: 1px solid var(--acc); border-radius: 10px; color: var(--fg); text-decoration: none; }
-</style>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GRID · keep the lights on with real physics</title>
+<meta name="description" content="GRID is a free game about building and running a power grid, one job at a time: cables, lines over rivers, transformers, capacitor banks, relays and a ten-year career as a district engineer. Every rule is a textbook equation. Linux and Windows.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://grid.blackmetal.tech/">
+<meta property="og:site_name" content="GRID">
+<meta property="og:title" content="GRID: keep the lights on with real physics">
+<meta property="og:description" content="Build a province's power grid one job at a time, then run the day. A full AC load flow every 15 minutes, real conductors, real relay curves. Free, Linux and Windows.">
+<meta property="og:url" content="https://grid.blackmetal.tech/">
+<meta property="og:image" content="https://grid.blackmetal.tech/assets/og.jpg">
+<meta property="og:image:alt" content="GRID: the province map on the finale, buses labelled with their voltages">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://grid.blackmetal.tech/assets/og.jpg">
+<meta name="theme-color" content="#0B1026">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"GRID","description":"A game about building and running a power grid with real physics, and a ten-year career as a district engineer.","url":"https://grid.blackmetal.tech/","image":"https://grid.blackmetal.tech/assets/og.jpg","genre":["Simulation","Educational","Puzzle"],"gamePlatform":["Linux","Windows"],"operatingSystem":"Linux, Windows","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="preload" href="assets/shots/hero.jpg" as="image" fetchpriority="high">
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="home.css">
 </head>
 <body>
-<main>
-  <h1>GRID</h1>
-  <p>A learning game where real equations are the rules. Part of COBANANA.</p>
-  <p><a class="btn" id="dl" href="https://github.com/ixaxaar/grid/releases/latest">Download</a></p>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav">
+  <a class="logo" href="#top" aria-label="GRID home">GRID</a>
+  <nav aria-label="Primary">
+    <a href="#shift" class="hide-s">How it plays</a>
+    <a href="#campaign" class="hide-s">Campaign</a>
+    <a href="#career" class="hide-s">Career</a>
+    <a href="wiki/">Wiki</a>
+    <a href="#download" class="btn mini go">Download</a>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="lamps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux · Windows</span></p>
+      <h1>GRID</h1>
+      <p class="tagline">Keep the lights on with real physics.</p>
+      <p class="lede">Build a province's power grid one job at a time, then press Run and watch the day happen to it. Demand climbs at dusk, the sun goes down on the solar farms, a storm takes out a line. The rules are the textbook equations: a full AC load flow every 15 minutes, real conductors, real relay curves.</p>
+      <div class="cta">
+        <a class="btn go" id="dl-main" href="https://github.com/ixaxaar/grid/releases/latest">Download <small id="dl-main-sub">latest release</small></a>
+        <a class="btn" href="wiki/">Player wiki</a>
+      </div>
+      <p class="fine" id="dl-note">Free and open source on <a href="https://github.com/ixaxaar/grid">GitHub</a>.</p>
+    </div>
+    <figure class="hero-shot">
+      <img src="assets/shots/hero.jpg" alt="The finale: the whole province at dusk, every bus labelled with its voltage in per unit" width="1600" height="900">
+      <figcaption>The finale, on the third evening. Every label is a live bus voltage.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band" id="shift">
+  <div class="wrap">
+    <p class="kicker">How it plays</p>
+    <h2>One shift, start to finish</h2>
+    <ol class="steps">
+      <li class="step">
+        <img src="assets/shots/workorder.jpg" alt="Work order 05, The River Line: the radio, the goal, the pass conditions and three lamps" width="1600" height="900" loading="lazy">
+        <h3><b>1</b> Read the work order</h3>
+        <p>The place, three people on the radio, the goal in plain words, the pass conditions with their numbers and the three lamps you can earn.</p>
+      </li>
+      <li class="step">
+        <img src="assets/shots/river.jpg" alt="Surveying a line route over a river and a ridge, with the parts tray at the bottom" width="1600" height="900" loading="lazy">
+        <h3><b>2</b> Build</h3>
+        <p>Cables by cross-section, pole families and named conductors on a surveyed route, transformers, capacitor banks, gas units, pumped hydro, batteries. Every part has a price.</p>
+      </li>
+      <li class="step">
+        <img src="assets/shots/nose.jpg" alt="The map at noon with dials for the clock and frequency, and the P-V nose curve" width="1600" height="900" loading="lazy">
+        <h3><b>3</b> Run the day</h3>
+        <p>A lever runs the 24-hour clock at 1×, 2× or 4×. Voltages, line loadings and the frequency move on the dials and on the map.</p>
+      </li>
+      <li class="step">
+        <img src="assets/shots/report.jpg" alt="The shift report: three lamps earned, cost, losses and what happened, in the player's own numbers" width="1600" height="900" loading="lazy">
+        <h3><b>4</b> Read the shift report</h3>
+        <p>What happened, in your own numbers, and what to try next. Fail, and the incident report names the bus and the minute.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="band dark" id="run">
+  <div class="wrap run-grid">
+    <figure class="gif">
+      <img src="assets/shots/finale-run.gif" alt="A recording of the finale running at 4×: a night, a day and a night pass over the province while the voltages change and a storm trips a line" width="880" height="495" loading="lazy">
+      <figcaption>Recorded in the game: the finale at 4×, about forty hours in ten seconds.</figcaption>
+    </figure>
+    <div>
+      <p class="kicker">See it run</p>
+      <h2>Three days, one province</h2>
+      <p>The finale, <em>Keep the Lights On</em>, runs everything you have learned for three days: a heatwave that sags the far ends, a storm that trips a line, a generator and a transformer, and a holiday of full sun and no factories. The ticker on the right names each event as it lands.</p>
+      <p class="fine">A trip runs a 10 ms frequency window with governors, batteries and under-frequency load shedding before the clock moves on.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="campaign">
+  <div class="wrap">
+    <p class="kicker">The campaign</p>
+    <h2>A prologue, 36 jobs, eight chapters and a finale</h2>
+    <p class="intro">It starts with one cable from a battery hut to ten homes on a beach and ends running a 400 kV province. Each chapter opens a part of a real power-engineering course.</p>
+    <ul class="chapters" id="chapters">
+      <li><a href="wiki/chapter-1.html"><b>1</b><span>The Island</span><em>Ohm's law, cable resistance, the price of distance</em></a></li>
+      <li><a href="wiki/chapter-2.html"><b>2</b><span>The Mainland</span><em>Route survey, sag and clearance, transformers, a sea cable</em></a></li>
+      <li><a href="wiki/chapter-3.html"><b>3</b><span>Phasors and Power Factor</span><em>Reactive power, capacitor banks, harmonics</em></a></li>
+      <li><a href="wiki/chapter-4.html"><b>4</b><span>Three-Phase and Machines</span><em>Unbalance, star and delta, the P-δ curve</em></a></li>
+      <li><a href="wiki/chapter-5.html"><b>5</b><span>Load Flow and Voltage</span><em>Per unit, the long line, loop flow, the nose curve</em></a></li>
+      <li><a href="wiki/chapter-6.html"><b>6</b><span>Frequency and Renewables</span><em>Fifty hertz, the duck curve, inertia</em></a></li>
+      <li><a href="wiki/chapter-7.html"><b>7</b><span>Protection and Markets</span><em>Fault level, relay coordination, merit order</em></a></li>
+      <li><a href="wiki/chapter-8.html"><b>8</b><span>Distribution</span><em>Feeder voltage drop, SAIFI and SAIDI, fuse saving, rooftop solar</em></a></li>
+      <li><a href="wiki/chapter-9.html"><b>F</b><span>Keep the Lights On</span><em>The whole province for three days</em></a></li>
+    </ul>
+    <div class="gallery" id="gallery">
+      <figure><a href="assets/shots/harmonics.jpg"><img src="assets/shots/harmonics.jpg" alt="Chapter 3: the harmonic spectrum of a mill feeder beside the map" width="1600" height="900" loading="lazy"></a><figcaption><b>Resonance at the fifth</b> · chapter 3</figcaption></figure>
+      <figure><a href="assets/shots/phasors.jpg"><img src="assets/shots/phasors.jpg" alt="Chapter 4: generator phasors drawn from the player's answer" width="1600" height="900" loading="lazy"></a><figcaption><b>Generator phasors</b> · chapter 4</figcaption></figure>
+      <figure><a href="assets/shots/relays.jpg"><img src="assets/shots/relays.jpg" alt="Chapter 7: four inverse-time relay curves and their grading margins" width="1600" height="900" loading="lazy"></a><figcaption><b>Relay coordination</b> · chapter 7</figcaption></figure>
+      <figure><a href="assets/shots/tcc.jpg"><img src="assets/shots/tcc.jpg" alt="Chapter 8: recloser and fuse curves on a time-current chart" width="1600" height="900" loading="lazy"></a><figcaption><b>Fuse saving</b> · chapter 8</figcaption></figure>
+      <figure><a href="assets/shots/duck.jpg"><img src="assets/shots/duck.jpg" alt="Chapter 6: the shift report after the dusk ramp" width="1600" height="900" loading="lazy"></a><figcaption><b>The sun goes down</b> · chapter 6</figcaption></figure>
+      <figure><a href="assets/shots/fault.jpg"><img src="assets/shots/fault.jpg" alt="Chapter 7: an incident report naming the breaker and the fault current" width="1600" height="713" loading="lazy"></a><figcaption><b>An incident report</b> · chapter 7</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="band paper" id="career">
+  <div class="wrap">
+    <p class="kicker">Career: The Utility</p>
+    <h2>Ten years as a district engineer</h2>
+    <div class="career-grid">
+      <div class="career-copy">
+        <p>Two primary substations and nine feeders (about 40,000 customers in Home Counties), one quarter at a time. Pick projects from a board: reconductoring, new feeders, ties, remote switches, reclosers, tree clearance, batteries. Every card shows what it does to expected SAIDI, loading and firm margin before you buy it.</p>
+        <dl class="terms">
+          <dt>SAIDI</dt><dd>minutes off per customer in a year</dd>
+          <dt>SAIFI</dt><dd>power cuts per customer in a year</dd>
+        </dl>
+        <p>Assets age, load grows, storms come with a forecast. Tobi the crew chief, Vance from finance, the regulator, the hospital and the villages write to you, and a promise in writing comes due two years later. Nine districts teach different things, and each ISO week has one district and seed that is the same for everyone.</p>
+        <p><a href="wiki/career.html">The Career guide in the wiki →</a></p>
+      </div>
+      <figure class="taped"><img src="assets/shots/career-letter.jpg" alt="The Career screen: a letter from the hospital on the desk, the district map behind it" width="1400" height="787" loading="lazy"><figcaption>A letter on the desk. Each answer shows its cost first.</figcaption></figure>
+    </div>
+    <div class="districts">
+      <figure><img src="assets/shots/home-counties-map.jpg" alt="Home Counties: fields, named villages and the hospital on its feeder" width="980" height="500" loading="lazy"><figcaption><b>Home Counties</b> Balanced: fields, villages, the hospital on F1.</figcaption></figure>
+      <figure><img src="assets/shots/harbour-city-map.jpg" alt="Harbour City: city blocks along the harbour, all underground cable" width="980" height="500" loading="lazy"><figcaption><b>Harbour City</b> All underground: rare faults that take a day. Ties pay, reclosers don't.</figcaption></figure>
+      <figure><img src="assets/shots/high-moor-map.jpg" alt="High Moor in winter: long lines over the hills, snow on the roofs" width="980" height="500" loading="lazy"><figcaption><b>High Moor</b> Long lines, winter storms, mostly passing faults. Reclosers pay.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="honest">
+  <div class="wrap honest">
+    <div>
+      <p class="kicker">Honest by design</p>
+      <h2>Textbook equations, not tuned curves</h2>
+    </div>
+    <ul>
+      <li><b>Load flow.</b> The grid levels solve a full Newton-Raphson AC load flow every 15-minute block.</li>
+      <li><b>Frequency.</b> A trip runs a 10 ms RK4 window: the swing equation, governors, batteries, under-frequency load shedding.</li>
+      <li><b>Protection.</b> Relays use IEC inverse-time curves; conductors carry their real names and resistances.</li>
+      <li><b>Checked.</b> The engine is tested against oracle values computed independently in Python. Every level has a naive build that must fail and a reference build that must pass.</li>
+      <li><b>Simplified, and says so.</b> Time runs in 15-minute blocks. Transients are not electromagnetic. Places and companies are fictional; prices are typical figures, not quotes.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="band dark" id="download">
+  <div class="wrap">
+    <p class="kicker">Download</p>
+    <h2>Free. Unzip and play.</h2>
+    <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. It has been played on desktop Linux; the Windows build is made and smoke-tested on every release but not yet played on Windows. Node.js is bundled; nothing else to install.</p>
+    <div class="dl-row">
+      <a class="dl" id="dl-linux" href="https://github.com/ixaxaar/grid/releases/latest"><b>Linux</b><span>x86_64 · zip</span><em>unzip, then run <code>GRID/grid.sh</code> (needs a Vulkan-capable driver)</em></a>
+      <a class="dl" id="dl-windows" href="https://github.com/ixaxaar/grid/releases/latest"><b>Windows</b><span>x64 · zip</span><em>unzip, then run <code>GRID\GRID.exe</code> (unsigned: More info → Run anyway)</em></a>
+    </div>
+    <p class="fine"><span id="dl-ver">Latest release</span> · <a id="dl-sums" href="https://github.com/ixaxaar/grid/releases/latest">SHA256SUMS.txt</a> · <a href="https://github.com/ixaxaar/grid/releases">All releases</a> · <a href="https://github.com/ixaxaar/grid/blob/master/CHANGELOG.md">Changelog</a> · No macOS build yet.</p>
+  </div>
+</section>
 </main>
+
+<footer class="foot">
+  <p>GRID is part of COBANANA, a set of learning games where real equations are the rules. Places, people and companies are fictional.</p>
+  <p><a href="https://github.com/ixaxaar/grid">Source</a> · <a href="wiki/">Wiki</a> · <a href="https://github.com/ixaxaar/grid/issues">Issues</a></p>
+</footer>
+<dialog id="lightbox" aria-label="Screenshot"><img alt=""><button type="button" aria-label="Close">×</button></dialog>
+<script src="app.js" defer></script>
 </body>
 </html>
