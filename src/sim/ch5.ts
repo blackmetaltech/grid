@@ -88,13 +88,17 @@ export function ch5Track(s: GridState): void {
     let worstDev = 0, worstV = 1, worstBus = -1, vmin = Infinity, vmax = 0;
     s.buses.forEach((b, i) => {
       if (w.buses ? !w.buses.includes(b.id) : !w.kv.some((k) => Math.abs(k - b.kvNom) < 1e-9)) return;
-      const v = solved.sol.energised[b.id] === false ? 0 : solved.sol.V[b.id] ?? 0;
+      // a de-energised bus has no voltage to read (the load-flow convention, as in the tick's voltage bands): darkness is judged by its own rules (ENS, the island, darkLoadsLose), never as 0 pu
+      if (solved.sol.energised[b.id] === false) return;
+      const v = solved.sol.V[b.id] ?? 0;
       vmin = Math.min(vmin, v); vmax = Math.max(vmax, v);
       const dev = v < w.lo ? w.lo - v : v > w.hi ? v - w.hi : 0;
       if (dev > worstDev) { worstDev = dev; worstV = v; worstBus = i; }
     });
     if (Number.isFinite(vmin)) {
-      tr.vMinPu = fin(Math.min(tr.vMinPu ?? Infinity, vmin)); tr.vMaxPu = fin(Math.max(tr.vMaxPu ?? 0, vmax));
+      // the extremes over the run, with the day and block they happened in (a multi-day level labels them by that day)
+      if (tr.vMinPu === undefined || vmin < tr.vMinPu) { tr.vMinPu = fin(vmin); tr.vMinDay = s.clock.day; tr.vMinBlock = block; }
+      if (tr.vMaxPu === undefined || vmax > tr.vMaxPu) { tr.vMaxPu = fin(vmax); tr.vMaxDay = s.clock.day; tr.vMaxBlock = block; }
       tr.vNowMin = fin(vmin); tr.vNowMax = fin(vmax);
     }
     if (worstBus >= 0) { tr.vViolBlocks = (tr.vViolBlocks ?? 0) + 1; tr.vViolBus = worstBus; tr.vViolV = fin(worstV); tr.vViolBlock = block; } else tr.vViolBlocks = tr.vViolBlocks ?? 0;

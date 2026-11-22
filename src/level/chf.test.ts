@@ -9,7 +9,8 @@ import { specOf } from './index';
 import { runDesign } from './run';
 import { botPopulation } from './population';
 import { designs } from './spec';
-import { islandBattery, secondCauseway, FINALE, BUS, LINE_ID } from './levels/l28';
+import { islandBattery, secondCauseway, tapsEastgate, capsEastgate, FINALE, BUS, LINE_ID } from './levels/l28';
+import { solvedOf } from '../sim/solved';
 import type { GridState } from '../types';
 
 const EXP = JSON.parse(readFileSync(fileURLToPath(new URL('../../tools/oracles/chf_expected.json', import.meta.url)), 'utf8'));
@@ -114,10 +115,34 @@ describe('lesson, hint, coach, determinism, speed', () => {
     expect(li).toMatch(/Day 1: demand peaked at (\d+) MW and the lowest voltage was ([\d.]+) pu/);
     expect(Number(li.match(/peaked at (\d+) MW/)![1])).toBe(Math.round(e.state.metrics.track.peakDemandMW!));
     expect(li).toMatch(/Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew [\d.]+ MWh through a battery: 124\.\d MWh of nameplate/);
-    expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu; losses over the three days [\d.]+ %.*0 quarter-hours spent outside (49\.\d\d) to 50\.05 Hz/);
+    expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu at \d\d:\d\d on Day [123]; losses over the three days [\d.]+ %.*0 quarter-hours spent outside (49\.\d\d) to 50\.05 Hz/);
     expect(Number(li.match(/outside (49\.\d\d) to/)![1])).toBe(e.state.metrics.track.bandLoHz);   // the band the count used (it was always printed as 49.90)
     const lost = run(play([])); expect(info(lost).tryHint).toMatch(/A bus fell below 0\.95 pu/);
     const isl = run(play(spec.reference.filter((a) => a.name !== 'placeStorage'))); expect(info(isl).tryHint).toMatch(/at least 125 MWh of nameplate/);
+  });
+  it('a dark bus is not a voltage reading: with the island dark, the lesson prints the lowest live voltage and the day it happened', () => {
+    // taps and capacitors, no reserve and no island fix: Saltmarsh goes dark at 23:30 on Day 2. The oracle walks the run block by block and takes the minimum
+    // over the energised buses of the watched voltages (400, 220, 132 kV) straight from the load-flow solution, with the day of that block.
+    const e = play([...tapsEastgate, ...capsEastgate]);
+    const kv = new Set([400, 220, 132]);
+    let vmin = Infinity, vminDay = -1, darkSeen = false;
+    for (let i = 0; i < 292 && e.state.status === 'playing'; i++) {
+      e.step(TICK);
+      const sv = solvedOf(e.state); if (!sv) continue;
+      for (const b of e.state.buses) {
+        if (!kv.has(b.kvNom)) continue;
+        if (sv.sol.energised[b.id] === false) { darkSeen = true; continue; }
+        const v = sv.sol.V[b.id]!; if (v < vmin) { vmin = v; vminDay = e.state.clock.day; }
+      }
+    }
+    expect(e.state.metrics.track.islandDarkDay).toBe(1); expect(darkSeen).toBe(true);
+    const tr = e.state.metrics.track;
+    expect(tr.vMinPu!).toBeCloseTo(vmin, 9); expect(tr.vMinPu!).toBeGreaterThan(0.5);
+    const li = info(e).lesson as string;
+    expect(li).not.toMatch(/lowest voltage was 0\.000 pu/);
+    const m = li.match(/lowest voltage was ([\d.]+) pu at (\d\d:\d\d) on Day (\d)/);
+    expect(m, li).not.toBeNull();
+    expect(Number(m![1])).toBeCloseTo(vmin, 3); expect(Number(m![3])).toBe(vminDay + 1);
   });
   it('coach: volt, reserve, island, run', () => {
     expect(spec.coach.map((c) => c.id)).toEqual(['volt', 'reserve', 'island', 'run']);

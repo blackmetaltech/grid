@@ -26,7 +26,7 @@ export function finaleLesson(s: GridState): string {
   const fmt = (x: number, d = 0): string => x.toFixed(d);
   const parts: string[] = [];
   if (s.region === 'in') parts.push(t('level.L28.lessonTie', { nadir: fmt(s.metrics.nadirHz, 2) }));
-  parts.push(t('level.L28.lessonA', { peak: fmt(tr.peakDemandMW ?? 0), vmin: fmt(tr.vMinPu ?? 0, 3) }));
+  parts.push(t('level.L28.lessonA', { peakDay: (tr.peakDemandDay ?? 0) + 1, peak: fmt(tr.peakDemandMW ?? 0), vmin: fmt(tr.vMinPu ?? 0, 3), vminTime: hhmm(tr.vMinBlock ?? 0), vminDay: (tr.vMinDay ?? 0) + 1 }));
   if (s.clock.day >= 1 || s.status === 'won') parts.push(t('level.L28.lessonB', { ens: fmt(s.metrics.ensMWh, 1), ensPct: fmt(tr.ensPct ?? 0, 3), energy: fmt(f.energyMWh), dips: tr.freqDips ?? 0, nadir: fmt(tr.freqNadirHz ?? 50, 2) }));
   if ((tr.islandDarkBlocks ?? 0) === 0 && (tr.lightning ?? 0) > 0) {
     const bats = s.storage.filter((b) => b.bus === f.islandBus);
@@ -34,7 +34,7 @@ export function finaleLesson(s: GridState): string {
     const path = bats.length > 0 ? t('level.L28.lessonIslandBattery', { need: fmt(needMWh, 1), have: fmt(bats.reduce((a, b) => a + b.mwh, 0), 0) }) : t('level.L28.lessonIslandLine');
     parts.push(t('level.L28.lessonIsland', { mwh: fmt(mwh, 1), path }));
   }
-  if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0, lo: fmt(tr.bandLoHz ?? 49.9, 2), hi: fmt(tr.bandHiHz ?? 50.05, 2) }));
+  if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), vmaxTime: hhmm(tr.vMaxBlock ?? 0), vmaxDay: (tr.vMaxDay ?? 0) + 1, loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0, lo: fmt(tr.bandLoHz ?? 49.9, 2), hi: fmt(tr.bandHiHz ?? 50.05, 2) }));
   return parts.join(' ');
 }
 

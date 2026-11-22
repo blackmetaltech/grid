@@ -112,7 +112,8 @@ export function finaleTrack(s: GridState, standardRangeHz: [number, number]): vo
   tr.islandDarkBlocks = (tr.islandDarkBlocks ?? 0) + (dark ? 1 : 0);
   if (dark && tr.islandDarkBlock === undefined) { tr.islandDarkBlock = s.clock.block; tr.islandDarkDay = s.clock.day; }
   tr.islandMWh = (tr.islandMWh ?? 0) + island.reduce((a, l) => a + (dark ? 0 : l.P * (1 - l.shedFrac)), 0) * 0.25;
-  tr.peakDemandMW = Math.max(tr.peakDemandMW ?? 0, s.loads.reduce((a, l) => a + l.P, 0));
+  const demand = s.loads.reduce((a, l) => a + l.P, 0);
+  if (tr.peakDemandMW === undefined || demand > tr.peakDemandMW) { tr.peakDemandMW = demand; tr.peakDemandDay = s.clock.day; }
   const lt = f.lightning, ltBranch = lt ? s.branches.find((x) => x.id === lt.id) : undefined;
   if (lt && (tr.lightning ?? 0) > 0 && ltBranch && !ltBranch.inService) tr.islandNightMWh = (tr.islandNightMWh ?? 0) + island.reduce((a, l) => a + l.P, 0) * 0.25;   // what the island drew while its feeder was open
   const hz = s.freq.fHz;
