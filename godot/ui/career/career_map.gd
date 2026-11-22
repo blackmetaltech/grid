@@ -81,50 +81,142 @@ func _conductor_w(c: String) -> float:
 		_: w = 4.0
 	return w * _sc()
 
-const GROUND_TOP := Color("#16241F"); const GROUND_BOT := Color("#0F1A22"); const RIVER := Color("#1B3A55"); const ROAD := Color("#2A2F38")
-const ROOF := Color("#2C3346"); const WALL := Color("#3A4258"); const WIN_LIT := Color("#FFC46B"); const WIN_DARK := Color("#20263A")
+const RIVER := Color("#2B5E86"); const ROAD := Color("#3A3F4A")
+const ROOF := Color("#4A5068"); const WALL := Color("#6A7290"); const WIN_LIT := Color("#FFC46B"); const WIN_DARK := Color("#1A1F30")
+const PAPER_LBL := Color("#EFE6CF"); const INK_LBL := Color("#2A2418")
 
-## 1.9: the district as a place at night (the owner: "not a table"): fields, a river, a road under every feeder with its poles, and the
-## houses each section serves beside it, windows lit while the section is in service and dark while it is out. Stable per seed of the ids.
+## 1.10: the district as a place (coordinator: "a letter about F1 points at something you can see"). Ground by district: Home Counties
+## patchwork fields, Harbour City streets and a harbour, High Moor hills with snow in winter. Each feeder runs down a road through its
+## villages (a named village per feeder, houses clustered per section, windows dark while the section or the feeder is out). The
+## story's places (the hospital, the villages, the charging hub, the turbine) stand on their feeders with a paper label.
+var _name_rects: Array = []
+
+func _geo() -> String:
+	var c := str(d.get("charter", "standard"))
+	return c if c == "city" or c == "moor" else ""
+
+func _draw_ground() -> void:
+	var g := _geo()
+	var winter := int(d.get("quarter", 1)) == 1
+	if g == "city":
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#1C2230"))
+		var step := 46.0 * _sc()
+		var y := 0.0; var row := 0
+		while y < size.y * 0.86:   # blocks between streets, a few windows lit
+			var x := fmod(float(row) * 17.0, step); var col := 0
+			while x < size.x:
+				var bw := step - 8.0; var bh := step * 0.62
+				draw_rect(Rect2(Vector2(x + 4.0, y + 4.0), Vector2(bw, bh)), Color("#262E40"))
+				for k in 3:
+					if WorldMath.hash2(row * 31 + col, k, 41) < 0.35: draw_rect(Rect2(Vector2(x + 8.0 + k * bw * 0.3, y + 10.0), Vector2(5, 5) * _sc()), Color(WIN_LIT, 0.55))
+				x += step; col += 1
+			y += step * 0.75; row += 1
+		draw_rect(Rect2(Vector2(0, size.y * 0.88), Vector2(size.x, size.y * 0.12)), Color("#183A5A"))   # the harbour
+		for k in 6: draw_rect(Rect2(Vector2(size.x * (0.08 + k * 0.16), size.y * 0.86), Vector2(60, 10) * _sc()), Color("#4A4F5C"))   # quays
+		return
+	if g == "moor":
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#22281F"))
+		for k in 14:   # hills as soft contour bands
+			var c := Vector2(WorldMath.hash2(k, 1, 51) * size.x, WorldMath.hash2(k, 2, 51) * size.y)
+			var r := (90.0 + 120.0 * WorldMath.hash2(k, 3, 51)) * _sc()
+			for ring in 3: draw_arc(c, r - ring * 26.0 * _sc(), 0, TAU, 40, Color("#3A4632", 0.5 - ring * 0.12), 2.0, true)
+			if winter:   # snow lying on the tops: flecks inside the inner contour
+				for j in 26: draw_circle(c + Vector2.from_angle(WorldMath.hash2(k, j, 53) * TAU) * r * 0.5 * sqrt(WorldMath.hash2(j, k, 54)), 2.2 * _sc(), Color("#E8EEF6", 0.55))
+		for k in 24:   # dry-stone walls
+			var a0 := Vector2(WorldMath.hash2(k, 4, 51) * size.x, WorldMath.hash2(k, 5, 51) * size.y)
+			draw_line(a0, a0 + Vector2(60.0 + 60.0 * WorldMath.hash2(k, 6, 51), 18.0 - 36.0 * WorldMath.hash2(k, 7, 51)) * _sc(), Color("#5A5A50", 0.6), 1.5)
+		return
+	draw_rect(Rect2(Vector2.ZERO, size), Color("#1A2A22"))
+	var cell := 70.0 * _sc()
+	var yy := 0.0; var r2 := 0
+	while yy < size.y:   # patchwork fields, each a slightly different green or stubble
+		var xx := 0.0; var c2 := 0
+		while xx < size.x:
+			var h := WorldMath.hash2(r2, c2, 61)
+			var fc := Color("#24402C") if h < 0.4 else (Color("#2E4A2A") if h < 0.7 else (Color("#3E4A2C") if h < 0.88 else Color("#46402A")))
+			draw_rect(Rect2(Vector2(xx + 1.5, yy + 1.5), Vector2(cell - 3.0, cell * 0.8 - 3.0)), fc)
+			xx += cell; c2 += 1
+		yy += cell * 0.8; r2 += 1
+
 func _draw_place(feeders: Array) -> void:
-	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([GROUND_TOP, GROUND_TOP, GROUND_BOT, GROUND_BOT]))
-	for k in 90:   # fields and copses: faint patches
-		var p := Vector2(WorldMath.hash2(k, 3, 17) * size.x, WorldMath.hash2(k, 5, 17) * size.y)
-		var r := (14.0 + 30.0 * WorldMath.hash2(k, 7, 17)) * _sc()
-		draw_circle(p, r, Color(0.2, 0.32, 0.24, 0.10 + 0.08 * WorldMath.hash2(k, 9, 17)))
-	var rv := PackedVector2Array()   # the river, across the district below the substations
+	_draw_ground()
+	var rv := PackedVector2Array()   # the river (an estuary in the city, a beck on the moor)
 	for k in 41:
 		var x := size.x * float(k) / 40.0
 		rv.append(Vector2(x, size.y * 0.42 + sin(float(k) * 0.35) * 26.0 * _sc() + float(k) * 0.9))
-	draw_polyline(rv, Color(RIVER, 0.55), 26.0 * _sc(), true); draw_polyline(rv, Color(RIVER.lightened(0.15), 0.5), 12.0 * _sc(), true)
-	for f in feeders:
+	var rw := 30.0 if _geo() == "city" else (14.0 if _geo() == "moor" else 22.0)
+	draw_polyline(rv, RIVER, rw * _sc(), true); draw_polyline(rv, RIVER.lightened(0.2), rw * 0.35 * _sc(), true)
+	var names: Array = d.get("villageNames", [])
+	_name_rects.clear()
+	for fi in feeders.size():
+		var f: Dictionary = feeders[fi]
 		var pts: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
 		if pts.size() < 2: continue
-		draw_polyline(pts, ROAD, 15.0 * _sc(), true)
+		draw_polyline(pts, ROAD, 16.0 * _sc(), true)
 		var secs: Array = f.sections
-		var per := maxi(2, int(float(f.get("customers", 4000)) / 1200.0 / maxf(1.0, float(secs.size()))))
+		var out_feeder := hot.has(str(f.id))
+		var per := clampi(int(float(f.get("customers", 4000)) / 900.0 / maxf(1.0, float(secs.size()))), 2, 7)
 		for k in secs.size():
-			var a := pts[k]; var b := pts[k + 1]; var dirv := (b - a).normalized(); var nrm := dirv.orthogonal()
-			var lit := not (bool(secs[k].failed) and float(secs[k].outQ) > 0.0)
-			for h in per:
-				var t := (float(h) + 0.5) / float(per)
-				var side := 1.0 if (h + k) % 2 == 0 else -1.0
-				var hp := a.lerp(b, t) + nrm * side * (20.0 + 8.0 * WorldMath.hash2(h, k + int(str(f.id).hash() % 97), 23)) * _sc()
-				_house(hp, lit, h + k * 7)
-			var pole := pts[k + 1]
-			draw_line(pole, pole + Vector2(0, -9.0) * _sc(), Color("#5B4A38"), 2.0)
+			var a := pts[k]; var b := pts[k + 1]; var nrm := (b - a).normalized().orthogonal()
+			var lit := not out_feeder and not (bool(secs[k].failed) and float(secs[k].get("outQ", 0)) > 0.0)
+			var mid := a.lerp(b, 0.55)
+			for h in per:   # a cluster: a village street either side of the road
+				var side := 1.0 if h % 2 == 0 else -1.0
+				var along := (float(h / 2) - float(per) * 0.25) * 15.0 * _sc()
+				var hp := mid + (b - a).normalized() * along + nrm * side * (22.0 + 6.0 * WorldMath.hash2(h, k + fi * 7, 23)) * _sc()
+				_house(hp, lit, h + k * 7 + fi * 31)
+			draw_line(pts[k + 1], pts[k + 1] + Vector2(0, -11.0) * _sc(), Color("#8A7458"), 2.5)   # a pole at each section end
+		if fi < names.size() and not compact:   # the feeder's village, named beside its middle
+			# low on the feeder, where the feeders have spread apart, centred on the road (they ran into each other near the primaries)
+			var nf := GridTheme.font("semi"); var nfz := GridText.floor_size(self, GridTheme.fs(13))
+			var np := pts[pts.size() - 2].lerp(pts[pts.size() - 1], 0.35)
+			var ntw := nf.get_string_size(str(names[fi]), HORIZONTAL_ALIGNMENT_LEFT, -1, nfz).x
+			var nr := Rect2(np + Vector2(-ntw * 0.5 - 5.0, -nfz - 1.0), Vector2(ntw + 10.0, nfz + 7.0))
+			if _name_rects.any(func(r): return (r as Rect2).grow(3.0).intersects(nr)): continue   # narrow screens: a name that would touch its neighbour is left out
+			_name_rects.append(nr)
+			draw_rect(nr, Color(0.06, 0.08, 0.1, 0.72))
+			GridText.ds(self, nf, np + Vector2(-ntw * 0.5, 3.0), str(names[fi]), HORIZONTAL_ALIGNMENT_LEFT, -1, nfz, Color(PAPER_LBL, 0.92))
+	for pl in d.get("places", []):
+		_place(pl)
+
+func _place(pl: Dictionary) -> void:
+	var pts: PackedVector2Array = _pts.get(str(pl.feeder), PackedVector2Array())
+	if pts.size() < 3: return
+	var kind := str(pl.kind)
+	var at: Vector2 = pts[2] if kind == "hospital" else (pts[pts.size() - 1] if kind == "villages" else pts[3])
+	var lit := not hot.has(str(pl.feeder))
+	var p := at + Vector2(-58.0, -30.0) * _sc() if kind != "villages" else pts[pts.size() - 3] + Vector2(64.0, -10.0) * _sc()
+	match kind:
+		"hospital":
+			draw_rect(Rect2(p - Vector2(22, 14) * _sc(), Vector2(44, 28) * _sc()), Color("#C9CCD6"))
+			for k in 4: draw_rect(Rect2(p + Vector2(-18.0 + k * 10.0, -8.0) * _sc(), Vector2(6, 6) * _sc()), WIN_LIT if lit else WIN_DARK)
+			draw_rect(Rect2(p + Vector2(-4, 4) * _sc(), Vector2(8, 8) * _sc()), Color("#C0392B"))
+		"hub":
+			for k in 4: draw_rect(Rect2(p + Vector2(-16.0 + k * 9.0, -6.0) * _sc(), Vector2(6, 12) * _sc()), Color("#3FA9F5") if lit else WIN_DARK)
+		"turbine":
+			draw_line(p + Vector2(0, 14) * _sc(), p + Vector2(0, -14) * _sc(), Color("#D8DCE4"), 2.5)
+			for k in 3: draw_line(p + Vector2(0, -14) * _sc(), p + Vector2(0, -14) * _sc() + Vector2.from_angle(Time.get_ticks_msec() * 0.002 + k * TAU / 3.0) * 13.0 * _sc(), Color("#D8DCE4"), 2.0)
+		_: pass
+	var fz := GridTheme.fs(14)
+	var f := GridTheme.font("semi"); var tw := f.get_string_size(str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, fz)).x
+	var lr := Rect2(p + Vector2(-tw * 0.5 - 8.0, 18.0 * _sc()), Vector2(tw + 16.0, GridText.floor_size(self, fz) + 8.0))
+	lr.position.x = clampf(lr.position.x, 2.0, size.x - lr.size.x - 2.0)   # keep the label on the map
+	draw_rect(lr, PAPER_LBL); draw_rect(lr, Color(INK_LBL, 0.5), false, 1.0)
+	GridText.ds(self, f, lr.position + Vector2(8.0, lr.size.y - 6.0), str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
 
 func _house(p: Vector2, lit: bool, seed_i: int) -> void:
-	var w := (13.0 + 4.0 * WorldMath.hash2(seed_i, 1, 31)) * _sc(); var h := w * 0.7
+	var w := (16.0 + 5.0 * WorldMath.hash2(seed_i, 1, 31)) * _sc(); var h := w * 0.72
+	if _geo() == "city": h *= 1.6
 	draw_rect(Rect2(p - Vector2(w * 0.5, h * 0.5), Vector2(w, h)), WALL)
-	draw_colored_polygon(PackedVector2Array([p + Vector2(-w * 0.6, -h * 0.5), p + Vector2(w * 0.6, -h * 0.5), p + Vector2(0, -h * 1.15)]), ROOF)
+	if _geo() != "city": draw_colored_polygon(PackedVector2Array([p + Vector2(-w * 0.62, -h * 0.5), p + Vector2(w * 0.62, -h * 0.5), p + Vector2(0, -h * 1.15)]), Color("#E8EEF4") if _geo() == "moor" and int(d.get("quarter", 1)) == 1 else ROOF)
 	var wc := WIN_LIT if lit else WIN_DARK
-	if lit and WorldMath.hash2(seed_i, 2, 31) < 0.2: wc = Color(WIN_LIT, 0.5)
-	draw_rect(Rect2(p + Vector2(-w * 0.3, -h * 0.15), Vector2(w * 0.22, h * 0.3)), wc)
-	draw_rect(Rect2(p + Vector2(w * 0.08, -h * 0.15), Vector2(w * 0.22, h * 0.3)), wc)
+	if lit and WorldMath.hash2(seed_i, 2, 31) < 0.2: wc = Color(WIN_LIT, 0.55)
+	draw_rect(Rect2(p + Vector2(-w * 0.32, -h * 0.18), Vector2(w * 0.24, h * 0.32)), wc)
+	draw_rect(Rect2(p + Vector2(w * 0.08, -h * 0.18), Vector2(w * 0.24, h * 0.32)), wc)
+	if lit: draw_circle(p, w * 1.1, Color(WIN_LIT, 0.035))   # the glow of a lit street at night
 
 func _draw() -> void:
-	if d.is_empty() or _pts.is_empty(): draw_rect(Rect2(Vector2.ZERO, size), GROUND_BOT); return
+	if d.is_empty() or _pts.is_empty(): draw_rect(Rect2(Vector2.ZERO, size), Color("#0F1A22")); return
 	_draw_place(d.get("feeders", []))
 	var f_bold := GridTheme.font("semi"); var f_mono := GridTheme.font("mono")
 	var fs_l := GridTheme.fs(13 if compact else 15)
@@ -199,7 +291,7 @@ func _draw() -> void:
 		GridText.ds(self, f_bold, Vector2(rect.position.x + 12.0, rect.position.y + 17.0 * _sc() + fs_l * 0.35), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs_l, GridTheme.SODIUM if chosen else GridTheme.TEXT)
 		if pi >= 0 and not compact:
 			var mp := float(d.primaries[pi].firmMarginPct)
-			var s2 := T("CAR_FIRM_TAG") % CareerKit.num(mp, 0)
+			var s2 := T("CAR_FIRM_TAG") % CareerKit.num(0.0 if absf(mp) < 0.5 else mp, 0)
 			GridText.ds(self, f_mono, Vector2(rect.position.x + 12.0, rect.end.y - 8.0), s2, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13), CareerKit.load_col(100.0 - mp) if mp < 100.0 else GridTheme.GOOD)
 
 func _badges(f: Dictionary) -> Array:

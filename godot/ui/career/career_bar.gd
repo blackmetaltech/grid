@@ -21,15 +21,28 @@ func set_vals(cap: String, y: float, tg: float, ex: float, decimals: int) -> voi
 func _draw() -> void:
 	var f := GridTheme.font("mono"); var fb := GridTheme.font("semi")
 	var fz := GridTheme.fs(13); var fz2 := GridTheme.fs(15 if not compact else 14)
-	GridText.ds(self, f, Vector2(0, fz), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.62))
+	# 1.10: the caption is in plain words now ("Minutes off per customer (SAIDI) / target"): it wraps by words to the bar's width, and the
+	# value sits at the right of the last caption line when it fits, else on a line of its own
+	var fzf := GridText.floor_size(self, fz)
+	var lines: Array = []; var cur := ""
+	for w in caption.split(" "):
+		var t2 := w if cur == "" else cur + " " + w
+		if cur != "" and f.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, fzf).x > size.x: lines.append(cur); cur = w
+		else: cur = t2
+	if cur != "": lines.append(cur)
 	var tx := "%s / %s" % [CareerKit.num(ytd, dec), CareerKit.num(target, dec)]
 	var col := GridTheme.GOOD if ytd < target * 0.8 else (GridTheme.WARN if ytd <= target else GridTheme.BAD)
-	var ts := fb.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2)
-	var cw := f.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x
-	var stacked := cw + 10.0 + ts.x > size.x   # 1.9: at the 16 px floor a narrow bar put the value over its caption: stack them
-	var want_h := (fz + fz2 + 22.0) if stacked else 40.0
+	if ink.v < 0.3: col = CareerKit.INK_GOOD if ytd < target * 0.8 else (CareerKit.INK_WARN if ytd <= target else CareerKit.INK_BAD)   # on the paper planner
+	var fz2f := GridText.floor_size(self, fz2)
+	var ts := fb.get_string_size(tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2f)
+	var lh := float(fzf) + 3.0
+	for i in lines.size(): GridText.ds(self, f, Vector2(0, fzf + i * lh), str(lines[i]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, Color(ink, 0.62))
+	var last_w := f.get_string_size(str(lines.back()) if not lines.is_empty() else "", HORIZONTAL_ALIGNMENT_LEFT, -1, fzf).x
+	var inline := last_w + 12.0 + ts.x <= size.x
+	var vy := fzf + (lines.size() - 1) * lh if inline else fzf + lines.size() * lh + 2.0
+	GridText.ds(self, fb, Vector2(size.x - ts.x, vy), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2, col)
+	var want_h := vy + 22.0
 	if absf(custom_minimum_size.y - want_h) > 0.5: custom_minimum_size.y = want_h
-	GridText.ds(self, fb, Vector2(size.x - ts.x, fz + fz2 + 2.0 if stacked else fz2), tx, HORIZONTAL_ALIGNMENT_LEFT, -1, fz2, col)
 	var mx := maxf(maxf(target, expected), ytd) * 1.12
 	var by := size.y - 12.0; var bh := 7.0
 	draw_rect(Rect2(0, by, size.x, bh), Color(ink, 0.12))

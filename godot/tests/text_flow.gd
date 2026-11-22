@@ -133,8 +133,9 @@ static func run(app: CbApp) -> void:
 		if _want("career"):
 			app.to_title(); await _frames(app, 3)
 			CareerScreen.guide_all = false
-			Career.start(app, 11, "charter"); await _frames(app, 6); await audit(app, "career quarter 1" + at)
-			var sc := Career.screen(app)
-			if sc != null: sc.queue_free(); await _frames(app, 2)
+			for ch in ["standard", "city", "moor"]:   # 1.10: every district's ground and labels
+				Career.start(app, 11, ch); await _frames(app, 6); await audit(app, "career quarter 1 (%s)%s" % [ch, at])
+				var sc := Career.screen(app)
+				if sc != null: sc.queue_free(); await _frames(app, 2)
 	print("TEXT-FLOW checks=%d" % checks)
 	print("TEXT-FLOW OK" if fails == 0 else "TEXT-FLOW FAILED %d" % fails)
