@@ -521,7 +521,9 @@ func _build_town_lamps(places: Array) -> void:
 		var id: String = p[6]
 		if not by_town.has(id): by_town[id] = []
 		by_town[id].append(Vector2(p[0], p[1]))
-	var sph := SphereMesh.new(); sph.radius = 0.9; sph.height = 1.8; sph.radial_segments = 6; sph.rings = 3
+	var sph := SphereMesh.new(); sph.radius = 0.45; sph.height = 0.9; sph.radial_segments = 6; sph.rings = 3
+	var pole_m := CylinderMesh.new(); pole_m.top_radius = 0.08; pole_m.bottom_radius = 0.12; pole_m.height = 7.0; pole_m.radial_segments = 5
+	var pole_mat := StandardMaterial3D.new(); pole_mat.albedo_color = Color(0.25, 0.26, 0.28); pole_mat.metallic = 0.5
 	for id in by_town:
 		var pts: Array = by_town[id]
 		var nodes: Array = []
@@ -533,7 +535,10 @@ func _build_town_lamps(places: Array) -> void:
 			lamps.append(Vector3(p.x, ground(p.x, p.y) + 7.0, p.y))
 		mm.instance_count = lamps.size()
 		for k in lamps.size(): mm.set_instance_transform(k, Transform3D(Basis(), lamps[k]))
-		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = _glow_mat(Color(1.0, 0.72, 0.4), 3.0)
+		var pm2 := MultiMesh.new(); pm2.transform_format = MultiMesh.TRANSFORM_3D; pm2.mesh = pole_m; pm2.instance_count = lamps.size()
+		for k in lamps.size(): pm2.set_instance_transform(k, Transform3D(Basis(), lamps[k] - Vector3(0, 3.6, 0)))
+		var pmi := MultiMeshInstance3D.new(); pmi.multimesh = pm2; pmi.material_override = pole_mat; _root_infra.add_child(pmi)
+		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = _glow_mat(Color(1.0, 0.62, 0.3), 2.0)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_root_infra.add_child(mi); nodes.append(mi)
 		var c := Vector3.ZERO
@@ -553,10 +558,13 @@ func _build_yard(s: Dictionary) -> void:
 	var pad := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(26, 0.6, 18); pad.mesh = bm
 	var pm := StandardMaterial3D.new(); pm.albedo_color = Color(0.5, 0.49, 0.46); pm.roughness = 1.0; pad.material_override = pm
 	pad.position = Vector3(0, 0.1, 0); y.add_child(pad)
-	var fence := StandardMaterial3D.new(); fence.albedo_color = Color(0.6, 0.62, 0.64); fence.metallic = 0.6; fence.roughness = 0.4
+	var fence := StandardMaterial3D.new(); fence.albedo_color = Color(0.6, 0.62, 0.64, 0.28); fence.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; fence.metallic = 0.6; fence.roughness = 0.4; fence.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for e in [[Vector3(0, 1.2, -9), Vector3(26, 2.2, 0.08)], [Vector3(0, 1.2, 9), Vector3(26, 2.2, 0.08)], [Vector3(-13, 1.2, 0), Vector3(0.08, 2.2, 18)], [Vector3(13, 1.2, 0), Vector3(0.08, 2.2, 18)]]:
 		var f := MeshInstance3D.new(); var fb := BoxMesh.new(); fb.size = e[1]; f.mesh = fb; f.material_override = fence; f.position = e[0]; y.add_child(f)
-	var tr := MeshInstance3D.new(); tr.mesh = Props3D.transformer(); tr.position = Vector3(-5, 0.4, 2)
+	for k in 2:   # the yard kit: two transformers, the gantry, a control hut
+		var t2 := MeshInstance3D.new(); t2.mesh = Props3D.transformer(); t2.position = Vector3(-8 + 6 * k, 0.4, 3); var tm4 := StandardMaterial3D.new(); tm4.vertex_color_use_as_albedo = true; tm4.roughness = 0.5; tm4.metallic = 0.3; t2.material_override = tm4; y.add_child(t2)
+	var hut := MeshInstance3D.new(); var hb := BoxMesh.new(); hb.size = Vector3(6, 3.2, 4); hut.mesh = hb; var hm3 := StandardMaterial3D.new(); hm3.albedo_color = Color(0.7, 0.68, 0.62); hut.material_override = hm3; hut.position = Vector3(8, 2.0, 5); y.add_child(hut)
+	var tr := MeshInstance3D.new(); tr.mesh = Props3D.transformer(); tr.position = Vector3(-5, 0.4, 2); tr.visible = false
 	var tmat := StandardMaterial3D.new(); tmat.vertex_color_use_as_albedo = true; tmat.roughness = 0.5; tmat.metallic = 0.3
 	tr.material_override = tmat; y.add_child(tr)
 	var g := MeshInstance3D.new(); g.mesh = Props3D.gantry(); g.material_override = tmat; g.position = Vector3(5, 0.4, -2); y.add_child(g)
