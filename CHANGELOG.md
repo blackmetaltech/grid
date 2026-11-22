@@ -2,6 +2,24 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.15.0] - "Into the Light" (tag v1.15.0; LOOK2 phase B; review in docs/CRITIQUE-1.15.md)
+### Added
+- **The finale in a new 3D look.** L28 "Keep the Lights On" now draws the province in 3D: hills, a river, a coast with cliffs and the island, fields and forests. Towns have streets, a square, a skyline and street lamps. Lattice towers carry the lines, and conductors glow in a voltage colour at night. Yards have busbars, breakers, a fence and red warning lights.
+- **Lights follow your power flow, street by street.** When the engine sheds load or a bus goes dark, the houses go dark in a wave from the town centre. They come back the same way. A 21 % under-frequency shed darkens a 21 % wedge of streets.
+- **The map says it is compressed.** Each 4 km grid square is drawn as 300 m so towns can be read. A note on screen says so, and every number is still the engine's.
+- **"See the finale in the new look"** opens L28 from the jobs list in every mode. Jobs and the Career still in the classic 2D look carry a small "Classic" chip.
+- **A low tier for integrated GPUs**, using the Compatibility renderer: about 30 fps at 1280x800 on an AMD Radeon iGPU.
+### Changed
+- **The finale makes you choose.** The build kit is now a shelf of priced parts under Voltage, Reserve and Saltmarsh Island, and it never names the answer. The budget drops from $70M to $60M, so you cannot buy every safe extra. A 2-hour battery fits the budget and runs dry on the second night.
+- **The incident report in the 3D look** is dark glass, docked in the left third of the screen, and does not dim the world. You can see the dark district while you read why.
+- **The finale card** is glass in the 3D look. It scrolls above the speed dock at 1280x800.
+### Fixed
+- **Grainy terrain.** 3D textures were imported without mipmaps. They now have mipmaps and VRAM compression. Detail fades with distance, and anti-aliasing is temporal. A test fails if a 3D texture loses its mipmaps.
+- **"Lowest voltage was 0.000 pu".** The finale's debrief counted a dark bus as a voltage reading and always labelled it Day 1. It now skips dark buses and names the day and time.
+- Taking a part back no longer refunds a spun unit's fuel.
+### Notes
+- Wall-clock performance budgets now run locally (`pnpm perf`), not in CI.
+
 ## [1.14.0] - "Legible" (tag v1.14.0; driven by docs/CRITIQUE-1.13.md's gate and the coordinator's notes on the 1.12/1.13 shots; review in docs/CRITIQUE-1.14.md)
 ### Changed
 - **Map labels no longer collide.**
