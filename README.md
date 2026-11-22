@@ -10,6 +10,16 @@ The front end is a **Godot 4.7** game: an isometric diorama of the island and th
 
 ![The finale: the province on the third evening](docs/readme/hero.png)
 
+### What's new in 1.9
+
+| A letter on the desk: the hospital asks for a promise | A call in a storm: push the crews or rest them |
+|---|---|
+| ![letter](docs/readme/new19/career-letter.png) | ![storm call](docs/readme/new19/storm-call.png) |
+| **The ending tells your ten years back to you** | **Small maps fill the screen; nothing is under 16 px** |
+| ![ending recap](docs/readme/new19/ending-recap.png) | ![L20 framed](docs/readme/new19/l20-framed.png) |
+
+The Career now has people in it: Tobi the crew chief, Vance from finance, Ms Okafor the regulator, the hospital's estates manager and the villages' councillor. Their seventeen letters and calls each have two honest answers, and each answer shows what it costs before you press it. A promise in writing comes due two years later. The Career screen itself is paper cards and a district drawn at night ([before](docs/readme/new18/career-guide.png), [after](docs/readme/new19/career-after.png)). A test walks every screen at 1920×1080 and 1280×800 and fails on any text under 16 px.
+
 ### What's new in 1.8
 
 | The Career's first quarter is one job | A pad can answer the exams |

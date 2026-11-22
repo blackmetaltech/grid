@@ -2,6 +2,51 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.9.0] - "Storylines" (tag v1.9.0; driven by docs/CRITIQUE-1.8.md and the coordinator's 1.8 shot review; review in docs/CRITIQUE-1.9.md)
+### Fixed
+- **Text under 16 px.** The coordinator measured 9-10 px text in the Career, the finale's log and checklist, and the L20 coach and tray.
+  - Every hand-drawn string (94 call sites) now goes through `GridText`, which floors it to 16 px on screen and slides it back inside its control.
+  - Every Label, Button, LineEdit and RichTextLabel is floored to 16 px when it enters the tree.
+  - Panels, tray cells, price tags, the ch3/ch6 panels and the L36 "why" rows were re-laid out for the bigger text.
+- **The pad strip overlapped itself.** "Start menu" was drawn over chapter 4's line. The legend is shorter, breaks into two lines at the radio's width and sits on the bottom edge.
+- **Small maps sat in an empty screen.** The headroom kept for stacks and smoke is now a share of the map, not a fixed 210 px. L20 fills the screen instead of sitting as a small island in the middle.
+- **The Career screen looked like a dark dashboard.**
+  - The board is a clipboard of paper cards with ink text.
+  - The quarter's job is a pinned work order in 26/20 px type, the most readable thing on screen.
+  - The map is the district at night: fields, a river, a road and poles under each feeder, and the houses each section serves (their windows go dark while it is out). The substations sit in fenced yards.
+
+### Added
+- **Storylines: the people of the district.** Seventeen beats from five people. Each brings two honest answers with real consequences, and each answer moves what that person thinks of you:
+  - Tobi, the crew chief; Vance, finance; Ms Okafor, the regulator; Dr Ines Kovač of St Brigid's Hospital; and Cllr Tom Pryce of the villages.
+  - **Letters on the desk** at the start of a quarter:
+    - the hospital asks for a promise in writing, and it comes due two years later, kept or broken by what you built;
+    - finance wants the tree-cutting stopped, a crew let go, or a dividend;
+    - the villages want hardening or at least clearing;
+    - apprentices; a charging hub; a new hospital wing (real load on the feeder);
+    - publishing your records; Tobi's last winter.
+  - **Calls during a storm:** keep the crews out all night or stand them down (and live with it next storm), and the hospital asking to go first.
+  - **Effects are mechanical:** cash, the storm's customer-minutes, crews, the tree-cutting level, hardening and new load. Trust has one edge of its own: a crew chief who trusts you gets 5 % more out of the crews in a storm; one who does not gets 5 % less.
+  - **A letter left unanswered lapses** at the end of the quarter, and the asker decides alone (trust only).
+  - Answers ride in the career code (`y:<beat>:<a|b>`) and replay exactly.
+- **Endings recap the run.** The ending sheet lists every answer as a line ("Year 3: put the hospital first in a storm, and the rest waited."), then where each person ends up, chosen by what they think of you.
+- **An Opus story review** before release. Its fixes are in, among them:
+  - "hospital first" now makes the storm's total minutes longer, as Tobi warns;
+  - redundancy costs money up front;
+  - Tobi's epilogues agree with his last winter;
+  - the weather argument with Ms Okafor gets a reply that matches whether it was true.
+- **QA.**
+  - `tests/text_flow.gd` (`CB_TEXTAUDIT=1`, a test-godot step) walks the title, Jobs, every level's work order and opening view, the menus, a shift report and the Career board at 1920x1080 and 1280x800. It fails on any visible text under 16 px, any drawn string wider than its control, and a pad strip that leaves the window or overlaps other text.
+  - `src/career/story.test.ts`.
+  - The career flow answers a call and a letter.
+
+### Changed
+- Scores: rules 1.9.0, weekly board epoch 3 (answers change outcomes).
+
+### Known gaps
+- Still no fun-critic tester; load stayed above 12 for most of the session.
+- Still owed: a listening pass, an idle-machine fps number on a real GPU, and a physical pad.
+- The Career's top bar is still a dark strip of numbers. It is readable now, but not yet drawn as a place.
+
 ## [1.8.0] - "Pad and progress" (tag v1.8.0; driven by docs/CRITIQUE-1.7.md; review in docs/CRITIQUE-1.8.md)
 ### Fixed
 - **The finale's frame rate.** On the software-GL QA desk the finale ran at 3-8 fps in 1.7. Four causes, four fixes:
