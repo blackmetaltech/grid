@@ -5,6 +5,11 @@ extends SceneTree
 func _initialize() -> void:
 	var T := Truth.new()
 	if not T.start(root): print("TOWN-LIGHTS-TRUTH FAILED engine"); quit(1); return
+	# LOOK2 quality tier: an integrated GPU never gets medium (118 ms a frame on a Radeon iGPU), a discrete NVIDIA gets high
+	T.check(Province3D.quality_for("forward_plus", "AMD Ryzen 9 9900X (RADV RAPHAEL_MENDOCINO)", RenderingDevice.DEVICE_TYPE_INTEGRATED_GPU) == "low", "an iGPU under Forward+ gets low")
+	T.check(Province3D.quality_for("forward_plus", "llvmpipe", RenderingDevice.DEVICE_TYPE_CPU) == "low", "a software renderer gets low")
+	T.check(Province3D.quality_for("gl_compatibility", "NVIDIA GeForce RTX 4090", RenderingDevice.DEVICE_TYPE_DISCRETE_GPU) == "low", "Compatibility is always low")
+	T.check(Province3D.quality_for("forward_plus", "NVIDIA GeForce RTX 4090", RenderingDevice.DEVICE_TYPE_DISCRETE_GPU) == "high", "a discrete NVIDIA gets high")
 	var pairs: Array = []   # [v, mean energy] over every town seen
 	# 1. grid levels: building energy = V^2 of the bus in overlay('voltage'); a dead bus is dark
 	T.level("P0"); T.b.act("tick", [1]); _grid(T, pairs)

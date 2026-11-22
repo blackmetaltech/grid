@@ -73,14 +73,20 @@ static func pick_quality() -> String:
 	var q := OS.get_environment("CB_QUALITY")
 	if q != "": return q
 	var rm := str(ProjectSettings.get_setting("rendering/renderer/rendering_method", "forward_plus"))
-	var drv := RenderingServer.get_current_rendering_method()
-	if drv == "gl_compatibility" or DisplayServer.get_name() == "headless": return "low"
-	if drv == "mobile": return "medium"
-	var name := RenderingServer.get_video_adapter_name().to_lower()
-	if name.contains("nvidia") or name.contains("radeon rx") or name.contains("arc"): return "high"
-	return "medium"
+	if DisplayServer.get_name() == "headless": return "low"
+	return quality_for(RenderingServer.get_current_rendering_method(), RenderingServer.get_video_adapter_name(), RenderingServer.get_video_adapter_type())
 	@warning_ignore("unreachable_code")
 	return rm
+
+## Pure part of pick_quality (tests/town_lights_truth.gd). An integrated GPU gets low even under Forward+: medium measured 118 ms a frame on a Radeon
+## iGPU at 1280x800 (8 fps), low 12.6 ms (LOOK2 phase B).
+static func quality_for(drv: String, adapter: String, type: int) -> String:
+	if drv == "gl_compatibility": return "low"
+	if type == RenderingDevice.DEVICE_TYPE_INTEGRATED_GPU or type == RenderingDevice.DEVICE_TYPE_CPU: return "low"
+	if drv == "mobile": return "medium"
+	var name := adapter.to_lower()
+	if name.contains("nvidia") or name.contains("radeon rx") or name.contains("arc"): return "high"
+	return "medium"
 
 func _ready() -> void:
 	quality = pick_quality()
