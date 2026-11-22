@@ -2,6 +2,31 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.14.0] - "Legible" (tag v1.14.0; driven by docs/CRITIQUE-1.13.md's gate and the coordinator's notes on the 1.12/1.13 shots; review in docs/CRITIQUE-1.14.md)
+### Changed
+- **Map labels no longer collide.**
+  - Feeder, place and village labels go through one placement pass. Each label tries several spots near what it names. Feeder labels go first, then the story's places, then village names.
+  - A spot that touches another label is refused. Among the rest, the label takes the one that covers the fewest houses, buildings, route lines and tie lines.
+  - A village name goes only where it covers nothing at all, so a crowded map leaves some names out rather than printing them over the houses.
+  - Every label sits on a paper chip. A feeder's chip carries a loading swatch, its name and load, and its badges.
+- **Harbour City reads at a glance.** The streets are a light grey grid between dark blocks with lit roof edges. The harbour is a brighter blue, with a pale quay edge and ripples.
+- **The board shows assets as cards.** Each worst asset is a card with:
+  - a small picture: a pole and crossarm, a cable joint in its trench, a transformer with fins and bushings, or a switchboard;
+  - its health as a ten-cell gauge;
+  - the gain in plain words ("Replacing it saves each customer about 18.7 min of power cuts a year");
+  - for plant, the failure risk and its cost at emergency rates;
+  - the price and Start.
+
+  Tapping a card picks the asset on the map. Picking an asset on the map outlines its card.
+- **Standing costs on one labelled line.** It reads "Set costs a quarter: trees lv 1 $91,440 · standby lv 1 $76,200". The owners' share before a review has its own line.
+### Engine and tests
+- New `career_map_truth` Godot test. It covers all nine districts, at the desktop and the 1280 px map sizes, in both colour modes. It fails if:
+  - two labels overlap, or a label leaves the map;
+  - a feeder or story place has no label;
+  - a village name covers a house or a line;
+  - fewer than two thirds of the villages are named at desktop size.
+- Rules bundle 1.14.0 accepts game 1.14.0. Outcomes are the same as 1.12, so the boards keep epoch 5.
+
 ## [1.13.0] - "Fresh eyes" (tag v1.13.0; driven by docs/CRITIQUE-1.12.md's gate; review in docs/CRITIQUE-1.13.md)
 ### Changed
 - **The owners' dividend is announced before it is taken.** In the half-year before a review, the top bar shows what the owners would take at today's cash ("Owners ~$4,345,451 at review"). That leaves time to commit the money to work first. The review quarter's report now names the dividend (and any price-control clawback), so its cash line adds up.
