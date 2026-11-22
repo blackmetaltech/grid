@@ -399,6 +399,7 @@ func _build_layout() -> void:
 	var walls := [Color(0.86, 0.82, 0.74), Color(0.78, 0.72, 0.62), Color(0.9, 0.88, 0.84), Color(0.72, 0.62, 0.52), Color(0.82, 0.8, 0.76), Color(0.66, 0.6, 0.55)]
 	var places: Array = []   # [x, z, w, d, h, rot, town_id, idx, block?]
 	var areas := _town_areas()
+	var garden: Array = []   # plots left as gardens (trees)
 	for ai in areas.size():
 		var tiles: Array = areas[ai]
 		var c := Vector2.ZERO
@@ -414,6 +415,11 @@ func _build_layout() -> void:
 				var lx := 0.27 + 0.46 * float(q % 2); var lz := 0.27 + 0.46 * float(q / 2)
 				var x := (t.x + lx) * tm + (_h(t.x, t.y, 500 + q) - 0.5) * 5.0
 				var z := (t.y + lz) * tm + (_h(t.x, t.y, 510 + q) - 0.5) * 5.0
+				var nb := 0   # town tiles around this one: the edge of town thins out, the centre stays dense
+				for dd in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]: if tiles.has(t + dd): nb += 1
+				var keep := 0.78 if nb == 4 else 0.45
+				if _h(t.x, t.y, 600 + q) > keep:   # a garden, an orchard or a yard: a tree or two instead of a house
+					garden.append(Vector3(x, 0, z)); continue
 				var big := _h(t.x, t.y, 520 + q) > 0.9
 				var w := 9.0 + 5.0 * _h(t.x, t.y, 530 + q); var d := 7.0 + 3.0 * _h(t.x, t.y, 540 + q)
 				var h := 5.5 + 3.5 * _h(t.x, t.y, 550 + q)
@@ -449,6 +455,17 @@ func _build_layout() -> void:
 		var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = hmat; mi.name = "Blocks" if kind else "Houses"
 		_root_infra.add_child(mi)
 		_house_mm.append(mm); _house_map.append(mp)
+	if not garden.is_empty():   # garden trees between the houses
+		var gm := MultiMesh.new(); gm.transform_format = MultiMesh.TRANSFORM_3D; gm.use_colors = true; gm.mesh = Props3D.broadleaf()
+		gm.instance_count = garden.size() * 2
+		for k in garden.size():
+			for q in 2:
+				var gp: Vector3 = garden[k] + Vector3((_h(k, q, 610) - 0.5) * 14.0, 0, (_h(k, q, 611) - 0.5) * 14.0)
+				var sc := 7.0 + 6.0 * _h(k, q, 612)
+				gm.set_instance_transform(k * 2 + q, Transform3D(Basis(Vector3.UP, TAU * _h(k, q, 613)).scaled(Vector3(sc, sc, sc)), Vector3(gp.x, ground(gp.x, gp.z) - 0.3, gp.z)))
+				gm.set_instance_color(k * 2 + q, Color(0.9 + 0.2 * _h(k, q, 614), 1.0, 0.85))
+		var gmi := MultiMeshInstance3D.new(); gmi.multimesh = gm; var tm3 := ShaderMaterial.new(); tm3.shader = load("res://world3d/shaders/tree.gdshader"); gmi.material_override = tm3
+		_root_infra.add_child(gmi)
 	_build_town_lamps(places)
 	for s in model.subs: _build_yard(s)
 	for u in model.units: _build_unit(u)

@@ -24,7 +24,8 @@ void vertex() {
 float h21(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 void fragment() {
 	if (roof > 0.5) {
-		vec3 rc = mix(roof_a, roof_b, step(0.62, ic.g)) * (0.8 + 0.4 * h21(vec2(ic.g * 91.0, 3.0)));
+		vec3 rc = ic.g < 0.45 ? roof_a : (ic.g < 0.8 ? roof_b : vec3(0.36, 0.30, 0.24));
+		rc *= 0.75 + 0.5 * h21(vec2(ic.g * 91.0, 3.0));
 		float tiles = 0.85 + 0.15 * step(0.5, fract(wp.y * 3.0));
 		ALBEDO = rc * tiles; ROUGHNESS = 0.8;
 	} else {
