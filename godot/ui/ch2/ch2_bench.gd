@@ -24,6 +24,8 @@ var predict_msg := ""
 var _t := 0.0
 var _level := ""
 var _hover := ""
+var pad_row := 0               ## the pad ring: a row of the panel (a knob, the ratio chips, the kVA chips, the prediction box) ...
+var pad_col := 0               ## ... and a chip in that row
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
 
@@ -33,8 +35,15 @@ func _init() -> void:
 	predict_edit = LineEdit.new(); predict_edit.placeholder_text = "0"; predict_edit.custom_minimum_size = Vector2(80, 30); predict_edit.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	predict_edit.text_submitted.connect(func(_s): _on_predict()); predict_edit.visible = false; add_child(predict_edit)
 	predict_btn = Button.new(); predict_btn.pressed.connect(_on_predict); predict_btn.visible = false; add_child(predict_btn)
+	predict_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())   # the core pad parks its focus here; its outline read as a second pad ring beside the panel's (1.19)
 	GridUi.load_strings(); TrayStrings.load_strings()
 	predict_btn.text = T("C2_PREDICT_BTN")
+
+## The core pad node takes the D-pad for the shell's focus, which never reaches these drawn knobs: a relay after it on the app hands D-pad and A to the panel first.
+func _ready() -> void:
+	if app == null: return
+	var rl := PadRelay.new(); rl.bench = self; rl.name = "Ch2PadRelay"
+	app.add_child.call_deferred(rl)
 
 func _locked() -> bool:
 	return app == null or app.speed > 0 or str(app.b.g.get("status", "playing")) != "playing"
@@ -60,7 +69,7 @@ func refresh() -> void:
 	q = r; kind = str(r.kind); visible = true
 	var li = app.b.q("levelInfo")
 	var id: String = str(li.id) if li is Dictionary and li.get("active", false) else ""
-	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""
+	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""; pad_row = 0; pad_col = -1   # a new job: the ring starts on the first row
 	predict_edit.editable = not _locked(); predict_btn.disabled = _locked()
 	layout(); queue_redraw()
 
@@ -214,12 +223,98 @@ func _on_predict() -> void:
 	else: app.sfx("bad"); app.toast(str(r.get("message", "")), "bad")
 	predict_edit.release_focus(); app.game_on_changed()
 
+# ---- pad --------------------------------------------------------------------------------------------------------------------------
+## The rows the ring walks: L04 one knob a row (left / right nudge it), L06 the ratio chips, the kVA chips; last the prediction box.
+func _pad_rows() -> Array:
+	var rows: Array = []
+	if kind == "machine":
+		for h in hits: if str(h.kind) == "knob": rows.append([h])
+	elif kind == "town":
+		for id in ["ratio", "kva"]: rows.append(hits.filter(func(h): return str(h.id) == id))
+	if predict_edit.visible: rows.append([{"kind": "predict", "id": "predict", "rect": Rect2(predict_edit.position, Vector2(predict_btn.position.x + predict_btn.size.x - predict_edit.position.x, predict_btn.size.y))}])
+	return rows.filter(func(r): return not (r as Array).is_empty())
+
+## The chip of a row that is chosen now (the ring lands there coming from another row).
+func _chosen_col(row: Array) -> int:
+	for i in row.size():
+		var h: Dictionary = row[i]
+		if str(h.kind) == "chip" and int(h.arg) == int(q.town.ratio if str(h.id) == "ratio" else q.town.kva): return i
+	return 0
+
+## The stop under the ring ({} when there is none).
+func pad_stop() -> Dictionary:
+	var rows := _pad_rows()
+	if rows.is_empty(): return {}
+	pad_row = clampi(pad_row, 0, rows.size() - 1)
+	var row: Array = rows[pad_row]
+	if pad_col < 0 or pad_col >= row.size(): pad_col = _chosen_col(row)
+	return row[pad_col]
+
+func numpad_host() -> Node: return app.root if app != null and app.get("root") != null else self
+
+## The panel has the pad unless a dialog, the number pad, the drawer or another tray is up.
+func pad_free() -> bool:
+	if not visible or kind == "" or app == null or app.modal() != null or app.world_cover() > 0.0: return false
+	if numpad_host().get_node_or_null("Numpad") != null: return false
+	var ch = app.get("chrome")
+	if ch != null:
+		for t in [ch.get("tray"), ch.get("rtray"), ch.get("gtray")]: if t != null and (t as Control).visible: return false
+	return true
+
+## A pad button press, from the relay (or a test). True when the panel used it.
+func pad_input(e: InputEvent) -> bool:
+	if not (e is InputEventJoypadButton) or not e.pressed or not pad_free(): return false
+	return pad_button((e as InputEventJoypadButton).button_index)
+
+func pad_button(idx: int) -> bool:
+	var st := pad_stop()
+	if st.is_empty(): return false
+	var rows := _pad_rows()
+	match idx:
+		JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN:   # rows; the ring stays inside the panel at either end
+			var nr := clampi(pad_row + (-1 if idx == JOY_BUTTON_DPAD_UP else 1), 0, rows.size() - 1)
+			if nr != pad_row: pad_row = nr; pad_col = _chosen_col(rows[nr])
+			queue_redraw(); return true
+		JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
+			var d := -1 if idx == JOY_BUTTON_DPAD_LEFT else 1
+			match str(st.kind):
+				"knob":   # the same as the − / + steps
+					if _locked(): app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
+					else: _nudge(str(st.id), d)
+				"chip": pad_col = clampi(pad_col + d, 0, (rows[pad_row] as Array).size() - 1)
+			queue_redraw(); return true
+		JOY_BUTTON_A:
+			match str(st.kind):
+				"chip":
+					if _locked(): app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
+					else: _send("setLineRatio" if str(st.id) == "ratio" else "setTransformerKva", st.arg)
+				"predict":
+					if not predict_edit.editable: app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
+					else: predict_edit.grab_focus(); GridNumpad.open_for(predict_edit, numpad_host())
+			queue_redraw(); return true
+	return false
+
+## Heard before the core pad (it is added to the app after it): D-pad and A go to the panel while it has the pad.
+class PadRelay extends Node:
+	var bench: Ch2Bench
+	func _input(e: InputEvent) -> void:
+		if CbPad.enabled and is_instance_valid(bench) and bench.pad_input(e): get_viewport().set_input_as_handled()
+
+# ---- the prediction's answer stays hidden until it is made ---------------------------------------------------------------------------
+## L04 asks for the winding's peak e0 (the rms is e0 ÷ √2), L06 for the loss at 4 kV (the kW, the % and the line current lead straight to it).
+func hide_answer() -> bool: return not q.is_empty() and q.get("prediction") == null
+
+func shown(x: float, d: int) -> String: return "?" if hide_answer() else _f(x, d)
+
 # ---- drawing helpers --------------------------------------------------------------------------------------------------------------
 func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, w := -1.0, align := 0) -> void:
 	var f := GridTheme.fs(fsz); var tw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x
 	var x := at.x
 	if w > 0.0: x = at.x + (w - tw) * (0.5 if align == 1 else 1.0 if align == 2 else 0.0)
 	GridText.ds(self, font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, f, col)
+
+## The right edge of the free stage: the screen, less the drawer when one is open.
+func _right() -> float: return size.x - (app.world_cover() if app != null else 0.0)
 
 func _money(x: float) -> String: return CbRegion.money(x, false, 0)
 func _f(x: float, d: int) -> String: return String.num(x, d)
@@ -289,7 +384,7 @@ func _draw_scope(r: Rect2, boxed := true) -> void:
 	draw_polyline(pts, Color(col, 0.22), 7.0, true)
 	draw_polyline(pts, col, 2.5, true)
 	_text(semi, 11, r.position + Vector2(12, 16), T("C2_SCOPE") % int(SCOPE_MS), Color(GridTheme.LIVE, 0.8))
-	_text(mono, 13, Vector2(r.position.x + 210.0, r.position.y + 17.0), T("C2_SCOPE_E0") % _f(e0, 1), col)
+	_text(mono, 13, Vector2(r.position.x + 210.0, r.position.y + 17.0), T("C2_SCOPE_E0") % shown(e0, 1), col)
 	_text(mono, 11, Vector2(r.end.x - 200.0, r.end.y - 8.0), T("C2_SCOPE_BAND") % _f(pk, 0), Color(GridTheme.GOOD, 0.9), 190.0, 2)
 	# one period's width, measured on the trace: a ruler under the first cycle
 	var per_px := wd * (1.0 / f) / (SCOPE_MS / 1000.0)
@@ -378,8 +473,8 @@ func _draw_readouts(r: Rect2) -> void:
 	var m: Dictionary = q.machine
 	var rows := [
 		[T("C2_R_FREQ"), T("C2_R_FREQ_V") % _f(float(q.fHz), 2), T("C2_R_NEED") % [_f(float(q.fLoHz), 2), _f(float(q.fHiHz), 2)], bool(q.fOk)],
-		[T("C2_R_RMS"), T("C2_R_RMS_V") % _f(float(q.eRmsV), 1), T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], bool(q.vOk)],
-		[T("C2_R_PEAK"), T("C2_R_PEAK_V") % _f(float(q.e0V), 1), T("C2_R_NEED_PEAK"), bool(q.vOk)],
+		[T("C2_R_RMS"), T("C2_R_RMS_V") % shown(float(q.eRmsV), 1), T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], bool(q.vOk)],
+		[T("C2_R_PEAK"), T("C2_R_PEAK_V") % shown(float(q.e0V), 1), T("C2_R_NEED_PEAK"), bool(q.vOk)],
 		[T("C2_R_NBA"), T("C2_R_NBA_V") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], "", true],
 		[T("C2_R_COPPER"), T("C2_R_COPPER_V") % _f(float(q.kg), 0), "", true],
 	]
@@ -446,7 +541,7 @@ func _draw_town() -> void:
 		for d in 14:
 			var u2 := fposmod(float(d) / 14.0 + (_t * speed) * (1.0 if wi == 0 else -1.0), 1.0)
 			var idx := int(u2 * 59.0); draw_circle(pts[idx] + Vector2(0, -3), 2.4, Color(GridTheme.LIVE, 0.9))
-	_text(mono, 14, Vector2((xs0 + xs1) * 0.5 - 120.0, ground - th - 38.0 * sc), T("C2_LINE_KV") % _f(float(q.vLineV) / 1000.0, 0) + "   " + T("C2_LINE_AMPS") % _f(iA, 0), wire.lightened(0.25), 240.0, 1)
+	_text(mono, 14, Vector2((xs0 + xs1) * 0.5 - 120.0, ground - th - 38.0 * sc), T("C2_LINE_KV") % _f(float(q.vLineV) / 1000.0, 0) + "   " + T("C2_LINE_AMPS") % shown(iA, 0), wire.lightened(0.25), 240.0, 1)
 	# the town: houses whose windows light with the voltage the town gets
 	var cols := [Color("#C9A27A"), Color("#B88A6B"), Color("#D2B48C"), Color("#BFA58A")]
 	var hs := 1.25 * sc
@@ -460,25 +555,28 @@ func _draw_town() -> void:
 			draw_rect(Rect2(wc - wh, wh * 2.0), Color("#141A33"))
 			draw_rect(Rect2(wc - wh, wh * 2.0), Color(Color("#FFD27A"), clampf(vtown * vtown, 0.0, 1.0) * (0.35 + 0.65 * float((i + wy) % 2 == 0 or vtown > 0.6))), true)
 			if GridSettings.cute: _face(wc, 7.5 * hs, vtown >= 0.97, 0.7 if vtown > 0.3 else 0.9)
-	var tv := T("C2_TOWN_V") % _f(vtown * 100.0, 0); var tvw := mono.get_string_size(tv, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13)).x
+	var tv := T("C2_TOWN_V") % shown(vtown * 100.0, 0); var tvw := mono.get_string_size(tv, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13)).x
 	_text(mono, 13, Vector2(minf(x_town - 20.0, w - 14.0 - tvw), ground + 20.0), tv, _good(bool(q.ok)))
 	# Sankey: the 800 kW as sent; green what arrives, red what the wire kept
-	_draw_sankey(Rect2(Vector2(w * 0.10, maxf(h * 0.20, 134.0)), Vector2(w * 0.82, 92.0)))
+	_draw_sankey(Rect2(Vector2(w * 0.10, maxf(h * 0.20, 134.0)), Vector2(minf(w * 0.82, _right() - M - w * 0.10), 92.0)))
 
 func _draw_sankey(r: Rect2) -> void:
 	var mono := GridTheme.font("mono"); var semi := GridTheme.font("semi")
 	var tw: Dictionary = q.town; var p := float(tw.pW) / 1000.0; var lossk := float(q.lossKw); var arr := float(q.deliveredKw)
 	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	_text(semi, 11, r.position + Vector2(12, 18), T("C2_SANKEY"), Color(GridTheme.TEXT, 0.7))
-	var lt := T("C2_LOST") % [_f(lossk, 1 if lossk < 100.0 else 0), _f(loss_pct(), 2 if loss_pct() < 10.0 else 0)]
-	_text(mono, 13, Vector2(r.end.x - 12.0 - 460.0, r.position.y + 18.0), lt, _good(bool(q.ok)), 460.0, 2)
+	var hid := hide_answer()   # before the prediction: the bar is one plain bar and its numbers read "?"
+	var lt := T("C2_LOST") % [shown(lossk, 1 if lossk < 100.0 else 0), shown(loss_pct(), 2 if loss_pct() < 10.0 else 0)]
+	_text(mono, 13, Vector2(r.end.x - 12.0 - 460.0, r.position.y + 18.0), lt, _good(bool(q.ok)) if not hid else Color(GridTheme.TEXT, 0.8), 460.0, 2)
 	var bar := Rect2(r.position + Vector2(12, 28), Vector2(r.size.x - 24.0, 24.0)); var gw := bar.size.x * arr / p
-	draw_rect(Rect2(bar.position, Vector2(gw, bar.size.y)), GridTheme.GOOD); draw_rect(Rect2(bar.position + Vector2(gw, 0), Vector2(bar.size.x - gw, bar.size.y)), GridTheme.BAD)
+	if hid: gw = bar.size.x; draw_rect(bar, Color(GridTheme.DIM, 0.45))
+	else: draw_rect(Rect2(bar.position, Vector2(gw, bar.size.y)), GridTheme.GOOD); draw_rect(Rect2(bar.position + Vector2(gw, 0), Vector2(bar.size.x - gw, bar.size.y)), GridTheme.BAD)
 	var limit_x := bar.position.x + bar.size.x * (1.0 - float(tw.lossMaxPct) / 100.0)   # the loss limit marks where green must reach
 	draw_line(Vector2(limit_x, bar.position.y - 4), Vector2(limit_x, bar.end.y + 4), Color.WHITE, 2.0)
 	_text(mono, 12, Vector2(limit_x - 190.0, bar.end.y + 15.0), T("C2_R_LIMIT") % WorkOrder.num(float(tw.lossMaxPct)), Color(Color.WHITE, 0.85), 186.0, 2)
-	_text(mono, 13, bar.position + Vector2(8, 17), T("C2_ARRIVES") % _f(arr, 0), GridTheme.NIGHT)
-	_text(mono, 12, Vector2(r.position.x + 12, r.end.y - 10.0), T("C2_LOSS_EQ") % [_f(float(q.iA), 1), _f(float(q.iA), 1), _f(float(tw.rLoopOhm), 0), _f(lossk, 2)], Color(GridTheme.TEXT, 0.9))
+	_text(mono, 13, bar.position + Vector2(8, 17), T("C2_ARRIVES") % shown(arr, 0), GridTheme.NIGHT)
+	var eq := T("C2_LOSS_EQ_HIDE") if hid else T("C2_LOSS_EQ") % [_f(float(q.iA), 1), _f(float(q.iA), 1), _f(float(tw.rLoopOhm), 0), _f(lossk, 2)]
+	_text(mono, 12, Vector2(r.position.x + 12, r.end.y - 10.0), eq, Color(GridTheme.TEXT, 0.9))
 
 func loss_pct() -> float: return float(q.lossPct)
 
@@ -533,6 +631,9 @@ func _draw_panel() -> void:
 	elif pr is Dictionary:
 		var s2 := T("C2_PREDICTED") % [_f(float(pr.predicted), 1), unit] if pr.get("actual") == null else T("C2_PREDICTED_ACT") % [_f(float(pr.predicted), 1), unit, _f(float(pr.actual), 1)]
 		_text(mono, 12, Vector2(inner.position.x + 10.0, inner.position.y + 118.0), s2, GridTheme.SODIUM)
+	if CbKit.pad_mode and pad_free():   # the pad ring: where D-pad and A act
+		var st := pad_stop()
+		if not st.is_empty(): draw_style_box(GridTheme.focus_sb(), (st.rect as Rect2).grow(2.0))
 	_draw_price_tag(panel)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
@@ -593,8 +694,8 @@ func _draw_machine3() -> void:
 	# the numbers the player needs, as compact cells under the scope: each value against its target
 	var cells := [
 		[[T("C2_R_FREQ_V") % _f(float(q.fHz), 2), _good(bool(q.fOk))], [T("C2_R_NEED") % [_f(float(q.fLoHz), 2), _f(float(q.fHiHz), 2)], dim]],
-		[[T("C2_C_RMS_V") % _f(float(q.eRmsV), 1), _good(bool(q.vOk))], [T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], dim]],
-		[[T("C2_C_PEAK_V") % _f(float(q.e0V), 1), _good(bool(q.vOk))], [T("C2_C_NEED_PK") % _f(float(q.vPeakTargetV), 0), dim]],
+		[[T("C2_C_RMS_V") % shown(float(q.eRmsV), 1), _good(bool(q.vOk))], [T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], dim]],
+		[[T("C2_C_PEAK_V") % shown(float(q.e0V), 1), _good(bool(q.vOk))], [T("C2_C_NEED_PK") % _f(float(q.vPeakTargetV), 0), dim]],
 		[[T("C2_C_NBA") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], GridTheme.G_TEXT]],
 		[[T("C2_C_COPPER") % _f(float(q.kg), 0), GridTheme.G_TEXT]],
 	]
@@ -632,7 +733,7 @@ func _draw_town3() -> void:
 	draw_style_box(GridTheme.glass_sb(0.78, 4, 0.0), badge)
 	_text(semi, 14, badge.position + Vector2(12, 21), t1, GridTheme.G_TEXT)
 	_text(sans, 11, badge.position + Vector2(12, 43), t2, GridTheme.G_DIM)
-	var sk := Rect2(Vector2(w * 0.10, badge.end.y + 10.0), Vector2(w * 0.80, 92.0))
+	var sk := Rect2(Vector2(w * 0.10, badge.end.y + 10.0), Vector2(minf(w * 0.80, _right() - M - w * 0.10), 92.0))   # left of an open drawer (1.19: it ran over the drawer's labels)
 	_draw_sankey(sk)
 	_top_y = sk.end.y + 10.0
 	var tw: Dictionary = q.town; var ratio := int(tw.ratio)
@@ -641,8 +742,8 @@ func _draw_town3() -> void:
 		_chip("up", ["%d:1" % ratio], [GridTheme.SODIUM])
 		_chip("down", ["1:%d" % ratio], [GridTheme.SODIUM])
 	var heat := Bench3D.line_heat(float(q.lossPct))
-	_chip("line", [sentence(T("C2_LINE_KV") % _f(float(q.vLineV) / 1000.0, 0)) + " · " + T("C2_LINE_AMPS") % _f(float(q.iA), 0), T("C2_LINE_KM") % _f(float(q.kmOneWay), 0)], [GridTheme.G_TEXT.lerp(Bench3D.heat_colour(heat).lightened(0.3), heat), GridTheme.G_DIM])
-	_chip("town", [T("C2_TOWN_V") % _f(clampf(float(q.vTownPu), 0.0, 1.0) * 100.0, 0)], [_good(bool(q.ok))])
+	_chip("line", [sentence(T("C2_LINE_KV") % _f(float(q.vLineV) / 1000.0, 0)) + " · " + T("C2_LINE_AMPS") % shown(float(q.iA), 0), T("C2_LINE_KM") % _f(float(q.kmOneWay), 0)], [GridTheme.G_TEXT.lerp(Bench3D.heat_colour(heat).lightened(0.3), heat), GridTheme.G_DIM])
+	_chip("town", [T("C2_TOWN_V") % shown(clampf(float(q.vTownPu), 0.0, 1.0) * 100.0, 0)], [_good(bool(q.ok))])
 
 ## A glass chip hung over a 3D place (Bench3D.anchors), with a leader line down to it; off screen or behind the camera it is not drawn.
 func _chip(key: String, lines: Array, cols: Array, lift := 34.0) -> void:
@@ -653,18 +754,18 @@ func _chip(key: String, lines: Array, cols: Array, lift := 34.0) -> void:
 	var wp: Vector2 = l3.project(a)
 	if wp.x < -9000.0: return
 	var sp: Vector2 = get_global_transform_with_canvas().affine_inverse() * ((wv as Control).get_global_transform_with_canvas() * wp)
-	if not Rect2(Vector2.ZERO, size).grow(-4.0).has_point(sp): return
+	if not Rect2(Vector2.ZERO, Vector2(_right(), size.y)).grow(-4.0).has_point(sp): return   # a place under the open drawer gets no chip
 	var semi := GridTheme.font("semi"); var fz := GridTheme.fs(13)
 	var cw := 0.0
 	for ln in lines: cw = maxf(cw, semi.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x)
 	var lh := float(fz) + 6.0
 	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - lift * size.y / 1080.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
-	r.position.x = clampf(r.position.x, M, size.x - M - r.size.x)
+	r.position.x = clampf(r.position.x, M, _right() - M - r.size.x)
 	r.position.y = clampf(r.position.y, _top_y, panel.position.y - 8.0 - r.size.y)
 	for c in _chips:   # step clear of the chips already drawn: to the side first (a chip pushed down lands on its own place), below only if no side fits
 		var cr := c as Rect2
 		if not cr.grow(4.0).intersects(r): continue
-		if cr.end.x + 10.0 + r.size.x <= size.x - M and sp.x >= cr.get_center().x: r.position.x = cr.end.x + 10.0
+		if cr.end.x + 10.0 + r.size.x <= _right() - M and sp.x >= cr.get_center().x: r.position.x = cr.end.x + 10.0
 		elif cr.position.x - 10.0 - r.size.x >= M: r.position.x = cr.position.x - 10.0 - r.size.x
 		else: r.position.y = cr.end.y + 8.0
 	if r.end.y > panel.position.y - 8.0: return

@@ -6,7 +6,7 @@ const S := {
 	"DOCK_BUILD": "Build", "DOCK_BUILD_SHORT": "Build", "DOCK_INSPECT": "Inspector", "DOCK_INSPECT_SHORT": "Inspect", "DOCK_TIMELINE": "Timeline", "DOCK_TIMELINE_SHORT": "Time",
 	"BUILD_TITLE": "Build", "BUILD_HINT": "The parts this level allows. Choose, then place: the engine checks every action and explains a refusal.",
 	"BUILD_NO_LEVEL": "Start a level to see its parts.", "BUILD_PLACE": "Place", "BUILD_APPLY": "Apply", "BUILD_NONE": "Nothing to pick yet",
-	"BUILD_PARTS": "Allowed: %s", "BUILD_NOTE": "Cost and effect show in the HUD and the Inspector the moment you place it.",
+	"BUILD_PARTS": "Allowed: %s", "BUILD_NOTE": "Cost and effect show in the HUD and the Inspector the moment you place it.", "BUILD_ON_PANEL": "Set this on the panel at the bottom.",
 	"ACT_placeHut": "Battery hut", "ACT_placeHut_D": "The energy store of the hamlet. Its distance from the houses sets the cable run, and the cable is the cost.",
 	"ACT_layCable": "Cable", "ACT_layCable_D": "Two-core copper cable. Thicker copper has less resistance, so less voltage is lost, and it costs more.",
 	"ACT_placeJunction": "Junction box", "ACT_placeJunction_D": "One shared trunk from the hut and a short branch to each hamlet, instead of two long cables.",

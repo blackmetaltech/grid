@@ -43,7 +43,9 @@ func _tile(b: VBoxContainer, a: Dictionary, w: Dictionary) -> void:
 	var desc: String = tr("ACT_" + act + "_D") if tr("ACT_" + act + "_D") != "ACT_" + act + "_D" else tr("ACT_UNKNOWN_D")
 	var pn := CbKit.panel(title, false, b); var v: VBoxContainer = pn[1]
 	v.add_child(CbKit.label(desc, 14, CbKit.DIM, true))
-	var schema: Array = SCHEMA.get(act, [])
+	if not SCHEMA.has(act):   # 1.19: no argument form here, so a bare Place sent nothing ("undefined is not one"); these are set on the level's own panel
+		v.add_child(CbKit.label(tr("BUILD_ON_PANEL"), 14, CbKit.DIM, true)); return
+	var schema: Array = SCHEMA[act]
 	if not values.has(act): values[act] = []
 	var vals: Array = values[act]
 	var parts: Array = a.parts
