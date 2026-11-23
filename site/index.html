@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>GRID · keep the lights on with real physics</title>
+<title>GRID · build a power grid, keep the lights on</title>
 <meta name="description" content="GRID is a free game about building and running a power grid, one job at a time: cables, lines over rivers, transformers, capacitor banks, relays and a ten-year career as a district engineer. Every rule is a textbook equation. Linux and Windows.">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="https://grid.blackmetal.tech/">
 <meta property="og:site_name" content="GRID">
-<meta property="og:title" content="GRID: keep the lights on with real physics">
-<meta property="og:description" content="Build a province's power grid one job at a time, then run the day. A full AC load flow every 15 minutes, real conductors, real relay curves. Free, Linux and Windows.">
+<meta property="og:title" content="GRID: build a power grid, keep the lights on">
+<meta property="og:description" content="Build a province's power grid one job at a time, then run the day. A full AC load flow every 15 minutes, named conductors with their resistances, IEC relay curves. Free, Linux and Windows.">
 <meta property="og:url" content="https://grid.blackmetal.tech/">
 <meta property="og:image" content="https://grid.blackmetal.tech/assets/og.jpg">
 <meta property="og:image:alt" content="GRID: the province map on the finale, buses labelled with their voltages">
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://grid.blackmetal.tech/assets/og.jpg">
 <meta name="theme-color" content="#0B1026">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"GRID","description":"A game about building and running a power grid with real physics, and a ten-year career as a district engineer.","url":"https://grid.blackmetal.tech/","image":"https://grid.blackmetal.tech/assets/og.jpg","genre":["Simulation","Educational","Puzzle"],"gamePlatform":["Linux","Windows"],"operatingSystem":"Linux, Windows","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"GRID","description":"A game about building and running a power grid, solved by AC load flow, and a ten-year career as a district engineer.","url":"https://grid.blackmetal.tech/","image":"https://grid.blackmetal.tech/assets/og.jpg","genre":["Simulation","Educational","Puzzle"],"gamePlatform":["Linux","Windows"],"operatingSystem":"Linux, Windows","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -46,7 +46,7 @@
     <div class="hero-copy">
       <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux</span><span>Windows (untested)</span></p>
       <h1>GRID</h1>
-      <p class="tagline">Keep the lights on with real physics.</p>
+      <p class="tagline">Build the grid. Run the day. Keep the lights on.</p>
       <p class="lede">Build a power grid one job at a time. Then run the day and watch it hold, or fail. The rules are textbook equations.</p>
       <div class="cta">
         <a class="btn go" id="dl-main" href="https://github.com/blackmetaltech/grid/releases/latest">Download <small id="dl-main-sub">latest release</small></a>
@@ -110,7 +110,7 @@
   <div class="wrap">
     <p class="kicker">The campaign</p>
     <h2>A prologue, 36 jobs, eight chapters and a finale</h2>
-    <p class="intro">One cable to ten homes at the start. A 400 kV province at the end. Each chapter is a part of a real power-engineering course.</p>
+    <p class="intro">One cable to ten homes at the start. A 400 kV province at the end. Each chapter covers a part of a power-engineering course.</p>
     <ul class="chapters" id="chapters">
       <li><a href="wiki/chapter-1.html"><b>1</b><span>The Island</span><em>Ohm's law, cable resistance, the price of distance</em></a></li>
       <li><a href="wiki/chapter-2.html"><b>2</b><span>The Mainland</span><em>Route survey, sag and clearance, transformers, a sea cable</em></a></li>
@@ -184,7 +184,7 @@
     <ul>
       <li><b>Load flow.</b> The grid levels solve a full Newton-Raphson AC load flow every 15-minute block.</li>
       <li><b>Frequency.</b> A trip runs a 10 ms RK4 window: the swing equation, governors, batteries, under-frequency load shedding.</li>
-      <li><b>Protection.</b> Relays use IEC inverse-time curves; conductors carry their real names and resistances.</li>
+      <li><b>Protection.</b> Relays use IEC inverse-time curves; conductors carry their trade names and resistances.</li>
       <li><b>Checked.</b> The engine is tested against oracle values computed independently in Python. Every level has a naive build that must fail and a reference build that must pass.</li>
       <li><b>Simplified, and says so.</b> Time runs in 15-minute blocks. Transients are not electromagnetic. Places and companies are fictional; prices are typical figures, not quotes.</li>
     </ul>
@@ -206,7 +206,7 @@
 </main>
 
 <footer class="foot">
-  <p>GRID is one of the <a href="https://blackmetal.tech">blackmetal.tech</a> learning games, where real equations are the rules. Places, people and companies are fictional.</p>
+  <p>GRID is one of the <a href="https://blackmetal.tech">blackmetal.tech</a> learning games, where the equations are the rules. Places, people and companies are fictional.</p>
   <p><a href="https://github.com/blackmetaltech/grid">Source</a> · <a href="wiki/">Wiki</a> · <a href="https://github.com/blackmetaltech/grid/issues">Issues</a></p>
 </footer>
 <dialog id="lightbox" aria-label="Screenshot"><img alt=""><button type="button" aria-label="Close">×</button></dialog>

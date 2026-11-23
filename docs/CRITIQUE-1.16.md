@@ -1,7 +1,7 @@
 # CRITIQUE 1.16: "Mill Town" (2026-11-23)
 
 **What this layer is:** LOOK2 phase C.
-- The finale now has real choices: a $53.5M budget, two calls during the run, and a report that does not name the answer.
+- The finale now makes you choose: a $53.5M budget, two calls during the run, and a report that does not name the answer.
 - Chapter 3 (L07 to L09) is drawn in 3D.
 - Towns have landmarks, and day has a palette.
 - The work order and the jobs list are glass.
@@ -13,7 +13,7 @@
 | Item | Result | Evidence |
 |---|---|---|
 | Site first: no classic shot above the fold | **Met.** "How it plays" uses new-look shots, reshot for 1.16. Classic shots sit under a labelled heading. Sigrid confirms nothing classic is above the fold. | site/index.html, 5fb44e1 |
-| Finale real choices (Dagny, DECISIONS 17) | **Met.** The budget is $53.5M, so the safest set does not fit. There are two live calls (spin U4 at the radio's call; open the north feeder at the lightning). The hint gives the draw and the window. A domain fix holds an operator's shed. Goldens and the wiki moved in their own commits. | DECISIONS 20, aa0d464, 9498007, 43b3a7f |
+| The finale makes you choose (Dagny, DECISIONS 17) | **Met.** The budget is $53.5M, so the safest set does not fit. There are two live calls (spin U4 at the radio's call; open the north feeder at the lightning). The hint gives the draw and the window. A domain fix holds an operator's shed. Goldens and the wiki moved in their own commits. | DECISIONS 20, aa0d464, 9498007, 43b3a7f |
 | Towns by day and landmarks (DECISIONS 16) | **Partly met.** Windows no longer glow by day. Spires are dark and tall, and there is a 140 m chimney in towns of 14 homes or more. Day has fields. At the default 3.6 km view the landmarks are still thin (Sigrid). | r4-*.jpg, DECISIONS 22 |
 | Jobs list and tray in glass | **Met** for the jobs list and the work order. The tray was already glass. | r4-a, r4-b |
 | Next chapter in 3D, picked with Priya | **Met.** Chapter 3, because it is all grid levels whose towns light on the player's flow (DECISIONS 21). We argued against chapter 1 because its bench levels have no towns to light. That case is reopened for 1.17 (manager point 4). | DECISIONS 21, 22 |

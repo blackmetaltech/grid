@@ -1,4 +1,4 @@
-# ⚡ GRID — keep the lights on with real physics
+# ⚡ GRID — build a power grid, keep the lights on
 
 **[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.16.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
@@ -10,7 +10,7 @@ The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript 
 
 ![The finale in the new look: a town at street level at dusk](docs/readme/new115/street.jpg)
 
-### What's new in 1.16: real choices, and chapter 3 in 3D
+### What's new in 1.16: the finale makes you choose, and chapter 3 is in 3D
 
 | The capital at dusk, with the two calls you can make during the run | Chapter 3: the mill town at 18:30, power factor 0.95 after the bank |
 |---|---|
@@ -131,7 +131,7 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 
 1.14. **1528 engine tests in 71 files** and **26 Godot steps** (25 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
 
-- Played on desktop Linux only. The gamepad pass used scripted pad events in the game window at 1280×800, not a physical pad; there is no pass on a real phone; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
+- Played on desktop Linux only. The gamepad pass used scripted pad events in the game window at 1280×800, not a physical pad; no one has played it on a phone; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
 - The Windows build is produced but not played on Windows; there is no macOS build on the releases.
 - Sound: four synthesised tracks and a cue per interaction, measured (loudness, clipping, structure) but not yet listened to by a person.
 - Building from source needs the cobanana-core submodule, which is not public yet.

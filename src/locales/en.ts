@@ -136,12 +136,12 @@ export const en: Record<string, string> = {
   'save.label': '{region} · day {day} · {buses} buses',
   // levels (placeholders until M2 authors the real campaign)
   'level.T00.title': 'Placeholder: speed the clock up',
-  'level.T00.brief': 'Placeholder until the real first level exists. Set the clock to 4x and let 8 blocks (2 hours) pass.',
+  'level.T00.brief': 'Placeholder until the first level exists. Set the clock to 4x and let 8 blocks (2 hours) pass.',
   'level.T00.late': 'Block 8 passed and the clock was not running at 4x.',
   // level framework (src/level): gates, bench actions, result card
   'level.action.notAllowed': 'This level does not offer "{action}". Use the parts in the Build panel for {level}.',
   'level.part.notAllowed': 'The part "{part}" is not available in {level}. Pick one from the Build panel.',
-  'hist.bot': 'Every design the job allows (offline sample, not real players yet)',
+  'hist.bot': 'Every design the job allows (offline sample, no players yet)',
   'hist.metric.capex': 'Build cost',
   'hist.metric.lossPct': 'Losses (%)',
   'bench.none': 'There is no bench circuit in this level.',

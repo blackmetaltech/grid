@@ -25,7 +25,7 @@ CLOCK_BLOCK_FMT,%d of %d
 CLOCK_SPEED_FMT,%sx
 COACH_WELCOME_TITLE,Welcome to the control room
 COACH_WELCOME_BODY,This is the empty province. Time moves in 15-minute blocks; press {tick} to move to the next one.
-COACH_WELCOME_WHY,"Real grids are balanced and settled every 15 minutes in many markets, so the game uses the same step."
+COACH_WELCOME_WHY,"Power grids are balanced and settled every 15 minutes in many markets, so the game uses the same step."
 WORLD_BUS_FMT,%s%.2f pu
 WORLD_VOLTS_FMT,%.1f V
 WORLD_LOSS_FMT,loss %.1f %%

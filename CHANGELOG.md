@@ -18,7 +18,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - The finale closed an operator's shed again within a block, so a shed could not be held. It now holds until the crews repair the feeder.
 - The release workflow went green: macOS is no longer exported (it was never played).
 ### Notes
-- `scripts/gpu-play.sh` runs a hand play at real speed on the GPU, driven only by the virtual pad.
+- `scripts/gpu-play.sh` runs a hand play at full speed on the GPU, driven only by the virtual pad.
 
 ## [1.15.0] - "Into the Light" (tag v1.15.0; LOOK2 phase B; review in docs/CRITIQUE-1.15.md)
 ### Added
