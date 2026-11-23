@@ -1,16 +1,30 @@
 # ⚡ GRID — build a power grid, keep the lights on
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.16.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.17.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
 **Build a power grid one job at a time. Then run the day and watch it hold, or fail.** Demand climbs at dusk. A storm opens a line. Towns go dark street by street, because the windows are lit by your own power flow.
 
 The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript engine**: an AC load flow, the swing equation, harmonics, relay curves. The same inputs always give the same day.
 
-> **Alpha, 1.16.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The finale and chapter 3 are drawn in the new 3D look.** The other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
+> **Alpha, 1.17.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The title, chapter 1, chapter 3 and the finale are drawn in the new 3D look.** The prologue, the other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
 
 ![The finale in the new look: a town at street level at dusk](docs/readme/new115/street.jpg)
 
-### What's new in 1.16: the finale makes you choose, and chapter 3 is in 3D
+### What's new in 1.17: the game opens on a dark bay, and chapter 1 is in 3D
+
+| The title: the island at dusk, the lighthouse, a hamlet waiting for power | Chapter 1: the first cable, and the hamlet lights up at the voltage it gets |
+|---|---|
+| ![title](docs/readme/new117/title.jpg) | ![chapter 1](docs/readme/new117/l01.jpg) |
+| **Chapter 3: the mill, with its sheds, chimneys and siding, lit at 18:30** | **The report: the lamps you earned and the next one to aim for** |
+| ![the mill](docs/readme/new117/mill.jpg) | ![report](docs/readme/new117/report.jpg) |
+
+- Chapter 1's island is drawn in 3D. Each home's windows glow by the voltage that reaches it.
+- The mill in chapter 3 is a works: sheds, two chimneys with smoke, a yard and a rail siding.
+- Towns follow their roads instead of sitting in circles. Clouds cast moving shadows; the sea reflects the sky.
+- The finale's third lamp rewards keeping the lights on with the plan, not buying the most capacity.
+- A loading card covers the finale's long load, and the pad no longer drops the first press on a new screen.
+
+### 1.16: the finale makes you choose, and chapter 3 is in 3D
 
 | The capital at dusk, with the two calls you can make during the run | Chapter 3: the mill town at 18:30, power factor 0.95 after the bank |
 |---|---|
@@ -51,7 +65,7 @@ Older releases: see the [CHANGELOG](CHANGELOG.md).
 
 *Recorded in the game.*
 
-## Classic look (chapters 1, 2, 4 to 8 and the Career)
+## Classic look (the prologue, chapters 2 and 4 to 8, and the Career)
 
 These chapters still use the 2D look.
 
@@ -59,7 +73,7 @@ These chapters still use the 2D look.
 | The work order | The river line (chapter 2) |
 |---|---|
 | ![work order](docs/readme/workorder.png) | ![river line](docs/readme/river.png) |
-| **The bench: one cable to a hamlet (chapter 1)** | **A plain capacitor bank: resonance at h = 8.6, near the 7th (chapter 3)** |
+| **The bench in the classic look (chapter 1 before 1.17)** | **A plain capacitor bank: resonance at h = 8.6, near the 7th (chapter 3)** |
 | ![bench](docs/readme/bench.png) | ![harmonics](docs/readme/harmonics.png) |
 
 | Generator phasors (chapter 4) | The nose of the curve (chapter 5) |
@@ -138,4 +152,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.16.md](docs/CRITIQUE-1.16.md) for the harsh version.
+See [docs/CRITIQUE-1.17.md](docs/CRITIQUE-1.17.md) for the harsh version.
