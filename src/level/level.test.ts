@@ -53,7 +53,8 @@ describe('level list', () => {
       expect(spec.sites.length, spec.id).toBeGreaterThan(0);
       for (const site of spec.sites) { expect(site.options.length, `${spec.id}/${site.id}`).toBeGreaterThan(1); expect(new Set(site.options.map((o) => o.id)).size).toBe(site.options.length); }
       const names = [...spec.naive.actions, ...spec.lesson, ...spec.reference, ...[...designs(spec)].flatMap((d) => d.actions)].map((a) => a.name);
-      for (const n of names) if (n !== 'predict') expect(spec.allowed.actions, `${spec.id} uses ${n}`).toContain(n);   // predict is always allowed (spec.ts ALWAYS), never on the palette
+      for (const n of names) if (n !== 'predict' && n !== 'tick') expect(spec.allowed.actions, `${spec.id} uses ${n}`).toContain(n);   // predict is always allowed (spec.ts ALWAYS), never on the palette; tick is the engine's clock (a live call waits for its moment, L28)
+      for (const a of [...spec.lesson, ...spec.reference, ...[...designs(spec)].flatMap((d) => d.actions)]) if (a.name === 'tick') expect(Number((a.args as unknown[])?.[0]), `${spec.id} waits a whole number of blocks inside the run`).toSatisfy((k: number) => Number.isInteger(k) && k >= 1 && k < spec.horizonBlocks!);
       expect(spec.coach.length, spec.id).toBeGreaterThanOrEqual(2); expect(spec.coach.length).toBeLessThanOrEqual(6);
       expect(new Set(spec.coach.map((c) => c.id)).size).toBe(spec.coach.length);
       for (const k of [spec.titleKey, spec.briefKey, ...spec.coach.flatMap((c) => [c.textKey, c.whyKey])]) expect(en[k], `${spec.id} string ${k}`).toBeTruthy();
@@ -137,6 +138,7 @@ describe.each(REGION_IDS)('authored levels in region %s', (region) => {
         near(f.budget, pop.budget, 0.02); near(f.starA, pop.starA, 0.02); near(f.starB, pop.starB, 0.02);
         expect(f.budget).toBeGreaterThanOrEqual((spec.budgetOverCheapest ?? 1.3) * pop.cheapestPass);   // DESIGN 9.4 item 6 (a finale may tighten it to force a choice, never under 1.1)
         expect(spec.budgetOverCheapest ?? 1.3).toBeGreaterThanOrEqual(1.1);
+        expect(spec.budgetHeadroom ?? 1.1).toBeGreaterThanOrEqual(1.0);   // the reference always fits (L28 uses 1.0, DECISIONS 20)
         expect(pop.passing).toBeGreaterThan(0);
         // "everything maxed" is over budget, unless the dearest design is the reference itself
         const dearest = Math.max(...[...designs(spec)].map((d) => runDesign(spec, region, d.actions, { frozen: null }).capex));
@@ -320,5 +322,6 @@ describe('histogram population (bot stub)', () => {
   it('helpers: percentile interpolates, niceUp rounds a budget up to two figures', () => {
     expect(percentile([1, 2, 3, 4, 5], 0.5)).toBe(3); expect(percentile([10, 20], 0.15)).toBeCloseTo(11.5, 9); expect(percentile([], 0.5)).toBe(0);
     expect(niceUp(3960)).toBe(4000); expect(niceUp(31680)).toBe(32000); expect(niceUp(39600)).toBe(40000); expect(niceUp(0)).toBe(0);
+    expect(niceUp(53495309, 3)).toBe(53500000); expect(niceUp(53500000, 3)).toBe(53500000); expect(niceUp(3960, 3)).toBe(3960);
   });
 });

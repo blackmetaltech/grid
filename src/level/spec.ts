@@ -108,6 +108,11 @@ export interface GridLevelSpec {
   /** DESIGN 9.4 item 6 floor on the budget, as a multiple of the cheapest passing design (default 1.3). A finale that must force a choice between
    *  fixes may lower it, never under 1.1 (level.test.ts): the budget still admits the cheapest pass with 10 % headroom (L28, docs/DECISIONS.md 14). */
   budgetOverCheapest?: number;
+  /** Headroom of the budget over the dearer of the lesson and reference builds (default 1.1, population.ts) and the significant figures it is rounded up to (default 2).
+   *  L28 sets 1.0 and 3 (DECISIONS 20): the reference already holds its reserve only for the hours of risk, so 10 % more, rounded to two figures, would buy that reserve for all three days.
+   *  Never under 1.0 (level.test.ts): the reference always fits. */
+  budgetHeadroom?: number;
+  budgetFigures?: number;
   /** Targets frozen per region id (null: none, e.g. the prologue). */
   frozen: Record<string, Frozen> | null;
   coach: CoachStep[];

@@ -36,12 +36,15 @@ export interface BotPopulation {
   starB: number;
 }
 
-/** Round up to two significant figures (a budget a designer would print). */
-export function niceUp(x: number): number {
+/** Round up to two significant figures (a budget a designer would print), or to `figures`. */
+export function niceUp(x: number, figures = 2): number {
   if (!(x > 0)) return 0;
+  let top = 1;
+  for (let i = 0; i < figures; i++) top *= 10;   // exact powers of ten (no `**`: determinism.test)
+  const low = top / 10;
   let mag = 1;
-  while (x / mag >= 100) mag *= 10;
-  while (x / mag < 10) mag /= 10;
+  while (x / mag >= top) mag *= 10;
+  while (x / mag < low) mag /= 10;
   return Math.ceil(x / mag - 1e-9) * mag;
 }
 /** Budget rule: 10 % above the dearer of the lesson and reference builds, and never under 1.3 x the cheapest pass; rounded up. */
@@ -73,7 +76,7 @@ export function botPopulation(spec: GridLevelSpec, region: string): BotPopulatio
   }
   const costOf = (actions: GridLevelSpec['lesson']): number => runDesign(spec, region, actions, { frozen: null }).capex;
   const cheapest = Math.min(...all.filter((d) => d.status === 'won').map((d) => d.capex));
-  const budget = niceUp(Math.max(BUDGET_HEADROOM * Math.max(costOf(spec.lesson), costOf(spec.reference)), (spec.budgetOverCheapest ?? MIN_BUDGET_OVER_CHEAPEST) * cheapest));
+  const budget = niceUp(Math.max((spec.budgetHeadroom ?? BUDGET_HEADROOM) * Math.max(costOf(spec.lesson), costOf(spec.reference)), (spec.budgetOverCheapest ?? MIN_BUDGET_OVER_CHEAPEST) * cheapest), spec.budgetFigures ?? 2);
   const pass = all.filter((d) => d.status === 'won' && d.capex <= budget + 1e-9);
   const starVal = (d: BotDesign): number => (spec.histogram === 'score' ? d.metric : d.capex);   // chapter 7's score levels: the stars measure the score, the budget stays the build cost
   const costs = pass.map(starVal).sort((a, b) => a - b);

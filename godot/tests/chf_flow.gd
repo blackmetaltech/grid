@@ -1,6 +1,6 @@
 extends SceneTree
 ## Finale flow (L28), headless with the real engine bridge: the day card shows only on L28 and reads Day 1 with the heatwave threat; the engine's parts reach the tray; the parts shelf
-## names no answer and prices every part, buying every fix overspends, taking parts back refunds them, and a plan picked by hand runs through the bridge, the island lamp reads "on its battery" after the lightning and the card never lies about a dark island; the game-end card builds.
+## names no answer and prices every part, buying every fix overspends, taking parts back refunds them, the live calls (spin U4 for the hours left, the north feeder) work during the run (DECISIONS 20), and a plan picked by hand runs through the bridge, the island lamp reads "on its battery" after the lightning and the card never lies about a dark island; the game-end card builds.
 
 func _initialize() -> void:
 	var T := Truth.new()
@@ -35,29 +35,52 @@ func _initialize() -> void:
 	T.check(priced, "every part carries its price (%s)" % (p._kit.get_node("cf_batt4") as Button).text)
 	T.check("$50.8M" in (p._kit.get_node("cf_batt4") as Button).text and "$53.4M" in (p._kit.get_node("cf_line") as Button).text, "prices are the engine's (battery %s, line %s)" % [(p._kit.get_node("cf_batt4") as Button).text, (p._kit.get_node("cf_line") as Button).text])
 	# the safe "buy every fix" plan breaks the budget: a reactor and both island paths on top of the rest
-	for id in ["tap", "cap", "reactor", "spin", "line", "batt4"]:
+	for id in ["tap", "cap", "reactor", "line", "batt4"]:
 		(p._kit.get_node("cf_" + id) as Button).pressed.emit(); p.refresh()
 	var spent := float(T.b.g.budget.spent); var cap := float(T.b.g.budget.capexLimit)
 	T.check(spent > cap, "buying every fix overspends the budget (%s of %s)" % [str(spent), str(cap)])
-	# take back the reactor and the line by pressing them again: the engine refunds them, the spun unit's fuel stays paid
+	# take back the reactor and the line by pressing them again: the engine refunds them
 	for id in ["reactor", "line"]:
 		(p._kit.get_node("cf_" + id) as Button).pressed.emit(); p.refresh()
 	var spent2 := float(T.b.g.budget.spent)
 	T.check(spent2 <= cap and spent2 > 5.3e7, "taken back, the plan fits (%s of %s)" % [str(spent2), str(cap)])
-	T.check(not ChfPanel.bought(T.b.g, "line") and not ChfPanel.bought(T.b.g, "reactor") and ChfPanel.bought(T.b.g, "spin"), "the line and the reactor are gone, U4 still spins")
-	T.check((p._kit.get_node("cf_spin") as Button).disabled and (p._kit.get_node("cf_batt4") as Button).text.begins_with("✓"), "bought parts are ticked; the spun unit cannot be taken back")
+	T.check(not ChfPanel.bought(T.b.g, "line") and not ChfPanel.bought(T.b.g, "reactor"), "the line and the reactor are gone")
+	T.check((p._kit.get_node("cf_spin") as Button).disabled and not ChfPanel.bought(T.b.g, "spin"), "with the 4-hour battery the card will not commit three days of U4's fuel the budget cannot pay (DECISIONS 20)")
+	T.check((p._kit.get_node("cf_batt4") as Button).text.begins_with("✓"), "bought parts are ticked")
 	T.check(not (p._kit.get_node("cf_line") as Button).disabled, "the other island path stays open: buying both is the player's call, not the card's")
+	T.check(not p._live.visible, "no live calls before the run")
 	for i in 100: T.b.act("tick", [1])
 	p.refresh()
 	T.check(str(p._day_lbl.text).begins_with("DAY 2 of 3"), "Day 2 after a day of ticks (%s)" % p._day_lbl.text)
 	T.check("Storm" in str(p._threat.text), "the storm threat on Day 2")
-	for i in 94: T.b.act("tick", [1])
+	T.check(p._live.visible and p._live.get_node_or_null("cf_live_spin") != null, "the live calls show while the day runs, folded card or not")
+	T.check((p._live.get_node("cf_live_spin") as Button).disabled, "at Day 2 01:00 the fuel for the hours left is still over the budget (%s)" % (p._live.get_node("cf_live_spin") as Button).text)
+	for i in 8: T.b.act("tick", [1])
+	p.refresh()
+	var sp := p._live.get_node("cf_live_spin") as Button
+	T.check(not sp.disabled and "$" in sp.text, "at the radio's call (Day 2 03:00) U4 can be spun for the hours left (%s)" % sp.text)
+	sp.pressed.emit(); p.refresh()
+	T.check(ChfPanel.bought(T.b.g, "spin") and float(T.b.g.budget.spent) <= cap, "U4 spins and the bill fits (%s of %s)" % [str(T.b.g.budget.spent), str(cap)])
+	for i in 86: T.b.act("tick", [1])
 	p.refresh()
 	T.check("battery" in str(p._island.text), "after the lightning the island is on its battery (%s)" % p._island.text)
 	var n := 0
 	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
 	p.refresh(); T.check(str(p._day_lbl.text) == "THREE DAYS DONE", "after the end the card says the three days are done (%s)" % p._day_lbl.text)
-	T.check(str(T.b.g.get("status", "")) == "won", "the plan picked by hand (taps, capacitor, U4, the 4-hour battery) wins all three days (%s after %d ticks, %s)" % [str(T.b.g.get("status", "")), n, str(T.b.g.get("statusReason", ""))])
+	T.check(str(T.b.g.get("status", "")) == "won" and int(T.b.g.get("stars", 0)) == 3, "taps, capacitor, the 4-hour battery and U4 spun at the call win three lamps (%s, %s stars, %s)" % [str(T.b.g.get("status", "")), str(T.b.g.get("stars", 0)), str(T.b.g.get("statusReason", ""))])
+	# the cheaper island answer: the 2-hour battery with the north feeder opened from the card when the lightning comes
+	T.level("L28"); p.refresh()
+	for id in ["tap", "cap", "spin", "batt2"]:
+		(p._kit.get_node("cf_" + id) as Button).pressed.emit(); p.refresh()
+	for i in 190: T.b.act("tick", [1])
+	p.refresh()
+	var fb := p._live.get_node("cf_live_shed") as Button
+	T.check(not fb.disabled and "north feeder" in fb.text, "at the lightning the card offers the island's north feeder (%s)" % fb.text)
+	fb.pressed.emit(); p.refresh()
+	T.check(ChfPanel.north_open(T.b.g) and (p._live.get_node("cf_live_shed") as Button).text.begins_with("✓"), "the north feeder is open and the card says so")
+	n = 0
+	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
+	T.check(str(T.b.g.get("status", "")) == "won" and not ChfPanel.north_open(T.b.g), "the 2-hour battery lasts the night with the feeder open; the 06:00 repair closes it again (%s, %s)" % [str(T.b.g.get("status", "")), str(T.b.g.get("statusReason", ""))])
 	# a STATCOM placed by hand in the tray shows on the shelf as bought, and pressing it takes it back with a refund; its map peg names it a STATCOM
 	T.level("L28"); p.refresh()
 	T.check(not (p._kit.get_node("cf_statcom") as Button).disabled and float(T.b.g.budget.spent) == 0.0, "a fresh L28: the shelf is open and nothing is spent")

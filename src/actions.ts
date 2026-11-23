@@ -231,6 +231,7 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       const l = s.loads.find((x) => x.id === loadId);
       if (!l) return unknown('load', loadId);
       l.shedFrac = frac;
+      if (frac > 0) l.shedHold = frac; else delete l.shedHold;   // an operator's order holds (the finale closes relay sheds again, never this)
       return accept(s, 'shedLoad', 'act.shed.ok', { id: loadId, pct: Math.round(frac * 100) });
     },
     switchBranch: (s, id: unknown, inService: unknown) => {

@@ -31,7 +31,8 @@ export function finaleLesson(s: GridState): string {
   if ((tr.islandDarkBlocks ?? 0) === 0 && (tr.lightning ?? 0) > 0) {
     const bats = s.storage.filter((b) => b.bus === f.islandBus);
     const { mwh, needMWh } = islandNeed(s);
-    const path = bats.length > 0 ? t('level.L28.lessonIslandBattery', { need: fmt(needMWh, 1), have: fmt(bats.reduce((a, b) => a + b.mwh, 0), 0) }) : t('level.L28.lessonIslandLine');
+    const have = fmt(bats.reduce((a, b) => a + b.mwh, 0), 0), shed = tr.islandShedMWh ?? 0;
+    const path = bats.length === 0 ? t('level.L28.lessonIslandLine') : shed > 0 ? t('level.L28.lessonIslandShed', { have, shed: fmt(shed, 1) }) : t('level.L28.lessonIslandBattery', { need: fmt(needMWh, 1), have });
     parts.push(t('level.L28.lessonIsland', { mwh: fmt(mwh, 1), path }));
   }
   if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), vmaxTime: hhmm(tr.vMaxBlock ?? 0), vmaxDay: (tr.vMaxDay ?? 0) + 1, loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0, lo: fmt(tr.bandLoHz ?? 49.9, 2), hi: fmt(tr.bandHiHz ?? 50.05, 2) }));
@@ -42,7 +43,7 @@ export function finaleTryHint(s: GridState): string {
   if (s.status !== 'lost') return '';
   const k = s.block.verdictKey ?? '', tr = s.metrics.track;
   if (k === 'level.lost.budget') return t('level.L28.tryBudget');
-  if (k.startsWith('level.lost.island')) { const { mwh, needMWh } = islandNeed(s); return t('level.L28.tryIsland', { mwh: mwh.toFixed(0) || '75', need: Math.ceil(needMWh || 100.6) }); }
+  if (k.startsWith('level.lost.island')) return t('level.L28.tryIsland', { mwh: islandNeed(s).mwh.toFixed(0) });   // the draw and the usable window, not the answer (DECISIONS 20)
   if (k === 'level.lost.voltageLow') return t('level.L28.tryLow');
   if (k === 'level.lost.voltageHigh') return t('level.L28.tryHigh', { mvar: ringChargingMVAr(s) });
   if (k === 'level.lost.ens' || k === 'level.lost.blackout') return t('level.L28.tryEns');

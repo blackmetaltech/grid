@@ -15,6 +15,8 @@ var _stats: Label
 var _ticker: Label
 var _lamp: Control
 var _kit: VBoxContainer
+var _live: VBoxContainer   ## DECISIONS 20: the two calls made during the run (spin U4 for the hours left; open the island's north feeder), shown in the strip too
+var _live_sig := ""
 var _toggle: Button
 var _scroll: ScrollContainer
 var _open := true
@@ -36,7 +38,7 @@ func _apply_skin() -> void:
 		if l == _day_lbl: ls.font = GridTheme.font(GridTheme.skin_font("title"))
 		(l as Label).label_settings = ls
 	_toggle.add_theme_color_override("font_color", ink())
-	_kit_sig = ""
+	_kit_sig = ""; _live_sig = ""
 
 func _init() -> void:
 	name = "ChfPanel"; visible = false; mouse_filter = Control.MOUSE_FILTER_STOP
@@ -53,6 +55,7 @@ func _init() -> void:
 	_day_lbl = GridTheme.label("", 22, GridTheme.PAPER_INK, "title"); _day_lbl.name = "cf_day"; _box.add_child(_day_lbl)
 	_threat = _wrap("", 13); _threat.name = "cf_threat"; _box.add_child(_threat)
 	_island = GridTheme.label("", 15, GridTheme.PAPER_INK, "semi"); _island.name = "cf_island"; _box.add_child(_island)
+	_live = VBoxContainer.new(); _live.add_theme_constant_override("separation", 3); _live.name = "cf_live"; _box.add_child(_live)
 	_stats = _wrap("", 12); _stats.name = "cf_stats"; _box.add_child(_stats)
 	_th = GridTheme.label(tx("CF_TICKER"), 12, Color(GridTheme.PAPER_INK, 0.7), "mono"); _box.add_child(_th)
 	_ticker = _wrap("", 12); _ticker.name = "cf_ticker"; _box.add_child(_ticker)
@@ -89,6 +92,7 @@ func refresh() -> void:
 	var sig := str((g.actionLog as Array).size()) + str(g.get("status", "")) + str(g.tick)
 	if sig != _sig: _sig = sig; _rebuild_ticker(g)
 	_rebuild_kit(g)
+	_rebuild_live(g)
 	_layout()
 
 func _island_text(g: Dictionary) -> Array:
@@ -243,9 +247,61 @@ func _rebuild_kit(g: Dictionary) -> void:
 			var key: String = "CF_P_" + str(id).to_upper()
 			if has: b.text = "✓ " + tx(key) + "  ·  " + (tx("CF_P_SPUN") if id == "spin" else tx("CF_P_BACK"))
 			else: b.text = tx(key) + "  ·  " + tag
-			b.disabled = locked or (has and id == "spin")   # fuel burned is not returned
+			b.disabled = locked or (has and id == "spin") or (id == "spin" and not has and float(g.budget.spent) + p > float(g.budget.capexLimit) + 1e-6)   # fuel burned is not returned, so the card never commits fuel the budget cannot pay
 			b.pressed.connect(_press.bind(str(id)))
 			_kit.add_child(b)
+
+## The live calls (DECISIONS 20), on actions the engine already has: spin U4 now (spinUnit prices the fuel for the hours left) and open or close the island's north feeder
+## (shedLoad on the island's load, a third of it; the school stays on; the crews' 06:00 repair closes it again). Shown only while the three days run.
+const NORTH_FEEDER := 1.0 / 3.0
+var _spin_cost := {"tick": -1, "cost": 0.0}
+
+static func island_load(g: Dictionary) -> String:
+	var ib := str(g.rules.get("finale", {}).get("islandBus", ""))
+	for l in g.loads: if str(l.bus) == ib: return str(l.id)
+	return ""
+
+static func north_open(g: Dictionary) -> bool:
+	var id := island_load(g)
+	for l in g.loads: if str(l.id) == id: return l.get("shedHold") != null and float(l.shedHold) > 0.0
+	return false
+
+## What spinning U4 costs at this moment (the engine's own price on a copy), cached per tick.
+func live_spin_cost() -> float:
+	var tk := int(_g().tick)
+	if int(_spin_cost.tick) != tk:
+		var r = app.b.q("actionCost", ["spinUnit", ["U4"]])
+		_spin_cost = {"tick": tk, "cost": float(r.cost) if r is Dictionary and bool(r.get("ok", false)) else -1.0}
+	return float(_spin_cost.cost)
+
+func _rebuild_live(g: Dictionary) -> void:
+	var running: bool = int(g.tick) > int(g.levelStart) and str(g.get("status", "playing")) == "playing"
+	_live.visible = running
+	if not running: return
+	var spun := bought(g, "spin"); var open := north_open(g)
+	var cost := live_spin_cost() if not spun else 0.0
+	var left := float(g.budget.capexLimit) - float(g.budget.spent)
+	var sig := "%s%s%d%d" % [spun, open, int(round(cost / 1000.0)), int(round(left / 1000.0))]
+	if sig == _live_sig: return
+	_live_sig = sig
+	for c in _live.get_children(): _live.remove_child(c); c.queue_free()
+	_live.add_child(_wrap_ink(tx("CF_LIVE_HEAD"), 12, 0.75))
+	var sb := _live_btn("cf_live_spin")
+	if spun: sb.text = tx("CF_LIVE_SPUN"); sb.disabled = true
+	else:
+		sb.text = tx("CF_LIVE_SPIN") % [CbRegion.money(maxf(cost, 0.0), true, 2), CbRegion.money(maxf(left, 0.0), true, 2)]
+		sb.disabled = cost < 0.0 or cost > left + 1e-6
+		sb.pressed.connect(func(): _do("spinUnit", ["U4"]); _live_sig = ""; refresh())
+	var fb := _live_btn("cf_live_shed")
+	fb.text = tx("CF_LIVE_SHED_OFF") if open else tx("CF_LIVE_SHED")
+	var lid := island_load(g)
+	fb.disabled = lid == ""
+	fb.pressed.connect(func(): _do("shedLoad", [lid, 0.0 if north_open(_g()) else NORTH_FEEDER]); _live_sig = ""; refresh())
+
+func _live_btn(n: String) -> Button:
+	var b := Button.new(); b.name = n; b.custom_minimum_size = Vector2(W - 24.0, 30); b.focus_mode = CbKit.focus_mode()
+	b.add_theme_font_size_override("font_size", GridTheme.fs(13)); b.alignment = HORIZONTAL_ALIGNMENT_LEFT; b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_live.add_child(b); return b
 
 func _wrap_ink(t: String, fs: int, a: float) -> Label:
 	var l := _wrap(t, fs); var ls: LabelSettings = l.label_settings.duplicate(); ls.font_color = ink(a); l.label_settings = ls; return l

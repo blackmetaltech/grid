@@ -144,7 +144,7 @@ export const TRIP = { line: LINE_ID['capital-eastgate']!, unit: 'U1', ict: XFMR_
 export const EVENTS = { stormBlock: 48, stormBlocks: 48, lineBlock: 57, unitBlock: 74, ictBlock: 84, lightningBlock: 94, holidayTripBlock: 47, holidayUnit: 'U5' };
 export const REPAIRS = [{ id: TRIP.line, day: 2, block: 8 }, { id: TRIP.ict, day: 2, block: 12 }, { id: TRIP.island, day: 2, block: 24 }];
 export const ENERGY_MWH = 131237.51379137684;   // oracle F-1 (tools/oracles/chf_oracles.py)
-export const FINALE = { days: FINALE_DAYS, islandBus: BUS.saltmarsh!, repairs: REPAIRS, restorePerBlock: 0.5, lightning: { id: TRIP.island, day: 1, block: EVENTS.lightningBlock }, beats: [{ day: 0, block: 1, key: 'log.finale.day1' }, { day: 1, block: 1, key: 'log.finale.day2' }, { day: 1, block: 44, key: 'log.finale.stormWarn' }, { day: 2, block: 1, key: 'log.finale.day3' }], energyMWh: ENERGY_MWH, nightMWh: 92.141 };
+export const FINALE = { days: FINALE_DAYS, islandBus: BUS.saltmarsh!, repairs: REPAIRS, restorePerBlock: 0.5, lightning: { id: TRIP.island, day: 1, block: EVENTS.lightningBlock }, beats: [{ day: 0, block: 1, key: 'log.finale.day1' }, { day: 1, block: 1, key: 'log.finale.day2' }, { day: 1, block: 12, key: 'log.finale.spinCall' }, { day: 1, block: 44, key: 'log.finale.stormWarn' }, { day: 1, block: EVENTS.lightningBlock, key: 'log.finale.shedCall' }, { day: 2, block: 1, key: 'log.finale.day3' }], energyMWh: ENERGY_MWH, nightMWh: 92.141 };
 
 
 // ---- the player's parts -------------------------------------------------------------------------------------------------------------
@@ -171,8 +171,23 @@ export const REACTIVE = [
   { id: 'taps+caps+reactors', actions: [...tapsEastgate, ...capsEastgate, ...reactorsCapital] }, { id: 'taps+statcom+reactors', actions: [...tapsEastgate, ...statcomEastgate, ...reactorsCapital] },
 ];
 export const spinCcgt: Action[] = [act('spinUnit', 'U4')];
-export const RESERVE = [{ id: 'none', actions: [] as Action[] }, { id: 'gfm4', actions: gfm(4) }, { id: 'spin', actions: spinCcgt }, { id: 'gfm4+spin', actions: [...gfm(4), ...spinCcgt] }];
-export const ISLAND = [{ id: 'none', actions: [] as Action[] }, { id: 'second-causeway', actions: secondCauseway }, { id: 'eastgate-feeder', actions: eastgateFeeder }, { id: 'battery-4h', actions: islandBattery('bess-4h-50') }];
+export const RESERVE = [{ id: 'none', actions: [] as Action[] }, { id: 'gfm4', actions: gfm(4) }, { id: 'spin', actions: spinCcgt }];
+export const ISLAND = [{ id: 'none', actions: [] as Action[] }, { id: 'second-causeway', actions: secondCauseway }, { id: 'eastgate-feeder', actions: eastgateFeeder }, { id: 'battery-2h', actions: islandBattery('bess-2h-50') }, { id: 'battery-4h', actions: islandBattery('bess-4h-50') }];
+
+// ---- the live calls (DECISIONS 20): two moves made during the run, on actions the engine already has -----------------------------------
+/** Saltmarsh Island's load (the sixth load placed). */
+export const ISLAND_LOAD = 'L6';
+/** The island's north feeder: a third of its homes. The school is on the other feeders (opening a third keeps the island lit: finale.ts calls it dark above a half). */
+export const NORTH_FEEDER = 1 / 3;
+/** Blocks from the start of the run: the radio's reserve call (Day 2 03:00) and the lightning (Day 2 23:30). */
+export const SPIN_CALL = BLOCKS_PER_DAY + 12, LIGHTNING_AT = BLOCKS_PER_DAY + EVENTS.lightningBlock;
+const wait = (n: number): Action => ({ name: 'tick', args: [n] });
+/** Spin U4 at the radio's call: the fuel is paid for the hours left, not for three days. */
+export const spinAtCall: Action[] = [wait(SPIN_CALL), ...spinCcgt];
+/** Open the north feeder when the lightning puts the island on its battery (the crews' repair closes it again). */
+export const shedAtLightning: Action[] = [wait(LIGHTNING_AT), act('shedLoad', ISLAND_LOAD, NORTH_FEEDER)];
+export const LIVE = [{ id: 'none', actions: [] as Action[] }, { id: 'spin-at-call', actions: spinAtCall }, { id: 'north-feeder', actions: shedAtLightning },
+  { id: 'spin+north-feeder', actions: [...spinAtCall, wait(LIGHTNING_AT - SPIN_CALL), act('shedLoad', ISLAND_LOAD, NORTH_FEEDER)] }];
 
 /** A second path onto Saltmarsh (a feeder other than the causeway T20) or storage on the island. */
 const islandFixed = (s: { branches: { from: string; to: string; id: string }[]; storage: { bus: string }[] }): boolean => s.branches.some((b) => (b.to === 'B18' || b.from === 'B18') && b.id !== 'T20') || s.storage.some((b) => b.bus === 'B18');
@@ -180,9 +195,9 @@ const islandFixed = (s: { branches: { from: string; to: string; id: string }[]; 
 export const L28: GridLevelSpec = {
   id: 'L28', kind: 'grid', chapter: 9, titleKey: 'level.L28.title', briefKey: 'level.L28.brief', concepts: ['n-1', 'voltage-control', 'inertia', 'reserve'],
   startBlock: 0, horizonBlocks: HORIZON, maxTicks: HORIZON + 4,
-  allowed: { actions: ['stringLine', 'placeTransformer', 'placeShunt', 'setShuntAuto', 'setShuntSteps', 'setTapAuto', 'placeStorage', 'spinUnit', 'setUflsMap', 'demolish'],
+  allowed: { actions: ['stringLine', 'placeTransformer', 'placeShunt', 'setShuntAuto', 'setShuntSteps', 'setTapAuto', 'placeStorage', 'spinUnit', 'shedLoad', 'setUflsMap', 'demolish'],
     parts: { stringLine: ['l132-panther', 'l220-twinzebra', 'l400-twinmoose'], placeTransformer: ['ict-400-220-315', 'ict-220-132-160'], placeShunt: ['cap-400-50', 'reactor-400-125', 'statcom-200'], placeStorage: ['bess-2h-50', 'bess-4h-50', 'bess-gfm-50'] } },
-  sites: [{ id: 'reactive', options: REACTIVE }, { id: 'reserve', options: RESERVE }, { id: 'island', options: ISLAND }],
+  sites: [{ id: 'reactive', options: REACTIVE }, { id: 'reserve', options: RESERVE }, { id: 'island', options: ISLAND }, { id: 'live', options: LIVE }],   // 'live' last: its waits run the clock
   thresholds: { freqViolMax: 0, lossMaxPct: 3 },
   decisive: null,
   // ensPct <= 0 is the engine's own third-star rule (no energy shed) written where the bot population can see it: without it the population counted the lesson's
@@ -191,16 +206,17 @@ export const L28: GridLevelSpec = {
   brownoutLoses: false, blackoutLoses: true, stars: true, histogram: 'capex',
   story: { placeKey: 'level.L28.place', lineKeys: ['level.L28.story1', 'level.L28.story2', 'level.L28.story3'], lessonKey: 'level.L28.lesson', lessonKind: 'finale' },
   extraRules: () => ({ finale: FINALE, vWatch: { lo: 0.95, hi: 1.05, kv: [400, 220, 132], graceBlocks: 6 }, maxEnsMWh: 0.001 * ENERGY_MWH, freqTrack: false }),
-  // lesson: taps and capacitors for the heat and a 4-hour battery for the island, no reserve bought: it passes with 131.0 MWh not served against the 131.2 allowed (two stars, not three);
-  // the reference adds the spun gas unit (no energy shed: three stars). The budget (DECISIONS 14) is 10 % over the reference, so a reactor for the holiday, a STATCOM, grid-forming
-  // batteries, the Eastgate feeder or a second island path each break it: the player must judge which threats need money and which part answers each
+  // lesson (DECISIONS 20): taps and capacitors, U4 spun for the three days, the 2-hour battery, and the north feeder opened at the lightning: the cells last to 06:00 with a third of the
+  // island off, 29 MWh not served (two stars). Reference: taps, capacitors, the 4-hour battery, and U4 spun at the radio's call on Day 2 (fuel for the hours left): nothing shed, three stars.
+  // The budget is the reference rounded up to three figures (US$53.5M), so the 4-hour battery with U4 spun from the start (US$53.68M) does not fit
   naive: { actions: [], failKind: 'brownout' },
-  lesson: [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50')], reference: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-4h-50')],
-  // frozen from the bot population (80 designs per region; budget = 1.1 x the dearer of lesson and reference, and >= 1.1 x the cheapest pass, rounded up to 2 significant figures; A = median passing cost; B = 15th percentile of the passing
+  lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50'), ...shedAtLightning], reference: [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50'), ...spinAtCall],
+  // frozen from the bot population (300 designs per region, the live calls included; budget = the dearer of lesson and reference, and >= 1.1 x the cheapest pass, rounded up to 3 significant figures; A = median passing cost; B = 15th percentile of the passing
   // designs with no shed energy, no frequency block out of range, the island always lit and losses <= 3 %): chf.test.ts regenerates them and fails on drift > 2 %
   // in the `in` pack the national tie supplies the reserve and the battery is 14 times dearer than the second line: the reference is the cheapest pass there (no spun unit, a second feeder); the lesson is the global one
   byRegion: { in: { lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway], reference: [...tapsEastgate, ...capsEastgate, ...secondCauseway] } },
-  budgetOverCheapest: 1.1,   // DECISIONS 14: the finale's budget forces a choice (DESIGN 9.4's 1.3 x the cheapest pass left room for a reactor, a second fix and the spare unit together)
+  budgetOverCheapest: 1.1,
+  budgetHeadroom: 1.0, budgetFigures: 3,   // DECISIONS 20: the reference holds U4 only from the call; 10 % more, rounded to two figures, would let the 4-hour battery and three days of U4 fit together   // DECISIONS 14: the finale's budget forces a choice (DESIGN 9.4's 1.3 x the cheapest pass left room for a reactor, a second fix and the spare unit together)
   frozen: { global: { budget: 60000000, starA: 54735708.50865215, starB: 54072857.36354617 }, in: { budget: 550000000, starA: 447083478.5954592, starB: 413066581.0983571 } },
   coach: [
     { id: 'volt', textKey: 'coach.L28.volt', whyKey: 'coach.L28.volt.why', done: (s) => s.actionLog.some((a) => a.name === 'setTapAuto') && s.shunts.length > 0 },

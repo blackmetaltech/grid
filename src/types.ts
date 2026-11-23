@@ -138,6 +138,8 @@ export interface Load {
   zip: [number, number, number];
   /** Fraction of the demand currently shed (0..1). */
   shedFrac: number;
+  /** The share the operator ordered off with `shedLoad` (absent when none): a relay's shed is closed again by the operator, the operator's own order holds until it is lifted (L28). */
+  shedHold?: number;
   /** UFLS stage index this load is fed from; null when not on a stage. */
   uflsStage: number | null;
   priority: 'hospital' | 'school' | null;

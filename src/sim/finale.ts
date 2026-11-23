@@ -69,7 +69,10 @@ export function finaleWeather(s: GridState): void {
   s.weather.tempC = finaleTemp(d, block);
   if (!s.weather.stormActive) s.weather.windMs = d.windMs;
   s.weather.clouds = [{ x: s.map.w / 2, y: s.map.h / 2, radiusTiles: 1000, opacity: d.cloud, vx: 0, vy: 0 }];
-  for (const l of s.loads) if (l.shedFrac > 0) l.shedFrac = l.shedFrac - f.restorePerBlock > 1e-9 ? l.shedFrac - f.restorePerBlock : 0;   // feeders the under-frequency relays opened are closed again by the operator
+  for (const l of s.loads) {   // feeders the under-frequency relays opened are closed again by the operator, down to what the operator ordered off (shedLoad)
+    const hold = l.shedHold ?? 0;
+    if (l.shedFrac > hold) l.shedFrac = l.shedFrac - f.restorePerBlock > hold + 1e-9 ? l.shedFrac - f.restorePerBlock : hold;
+  }
   for (const r of f.repairs) {
     if (r.day !== s.clock.day || r.block !== block) continue;
     const b = s.branches.find((x) => x.id === r.id);
@@ -77,6 +80,10 @@ export function finaleWeather(s: GridState): void {
     b.inService = true; b.timer = null;
     s.events.log.push({ day: s.clock.day, block, tS: 0, element: r.id, causeKey: 'finale.repaired' });
     log(s, t('log.finale.repaired', { id: r.id, time: hhmm(block) }), 'good');
+    if (f.lightning && r.id === f.lightning.id) for (const l of s.loads) if (l.bus === f.islandBus && l.shedHold !== undefined) {   // with its feeder back, the island's own feeders are closed again with it
+      delete l.shedHold; l.shedFrac = 0;
+      log(s, t('log.finale.feederBack', { id: l.id }), 'good');
+    }
   }
   const lt = f.lightning;
   if (lt && lt.day === s.clock.day && lt.block === block) {
@@ -115,7 +122,11 @@ export function finaleTrack(s: GridState, standardRangeHz: [number, number]): vo
   const demand = s.loads.reduce((a, l) => a + l.P, 0);
   if (tr.peakDemandMW === undefined || demand > tr.peakDemandMW) { tr.peakDemandMW = demand; tr.peakDemandDay = s.clock.day; }
   const lt = f.lightning, ltBranch = lt ? s.branches.find((x) => x.id === lt.id) : undefined;
-  if (lt && (tr.lightning ?? 0) > 0 && ltBranch && !ltBranch.inService) tr.islandNightMWh = (tr.islandNightMWh ?? 0) + island.reduce((a, l) => a + l.P, 0) * 0.25;   // what the island drew while its feeder was open
+  if (lt && (tr.lightning ?? 0) > 0 && ltBranch && !ltBranch.inService) {
+    tr.islandNightMWh = (tr.islandNightMWh ?? 0) + island.reduce((a, l) => a + l.P, 0) * 0.25;   // what the island drew while its feeder was open
+    const shed = island.reduce((a, l) => a + l.P * l.shedFrac, 0) * 0.25;
+    if (shed > 0) tr.islandShedMWh = (tr.islandShedMWh ?? 0) + shed;   // of it, what the operator's open feeders left unserved (absent when none)
+  }
   const hz = s.freq.fHz;
   if (s.block.eventWindow) {   // a 60 s event-window dip is not a violation (the card counts excursions of 15 minutes or more): it is reported, not counted
     tr.freqDips = (tr.freqDips ?? 0) + 1; tr.freqNadirHz = Math.min(tr.freqNadirHz ?? 50, s.metrics.nadirHz);

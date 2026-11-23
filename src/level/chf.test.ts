@@ -9,7 +9,7 @@ import { specOf } from './index';
 import { runDesign } from './run';
 import { botPopulation } from './population';
 import { designs } from './spec';
-import { islandBattery, secondCauseway, eastgateFeeder, tapsEastgate, capsEastgate, reactorsCapital, statcomEastgate, spinCcgt, gfm, FINALE, BUS, LINE_ID } from './levels/l28';
+import { islandBattery, secondCauseway, eastgateFeeder, tapsEastgate, capsEastgate, reactorsCapital, statcomEastgate, spinCcgt, gfm, FINALE, BUS, LINE_ID, ISLAND_LOAD, NORTH_FEEDER, SPIN_CALL, LIGHTNING_AT, spinAtCall, shedAtLightning } from './levels/l28';
 import { solvedOf } from '../sim/solved';
 import type { GridState } from '../types';
 
@@ -35,7 +35,7 @@ describe('L28 three-day gate', () => {
       } else {
         // the national tie holds the frequency in the in pack (nadir well above the 49.4 Hz first UFLS stage): the reference is the cheapest pass there (no spun unit)
         expect(l.stars).toBeLessThan(3); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.state.metrics.nadirHz).toBeGreaterThan(49.8); expect(r.track.islandDarkBlocks).toBe(0);
-        expect(info(run(play(spec.reference, 'in'))).lesson).toContain('All-India grid');
+        expect(info(run(play(spec.byRegion!.in!.reference!, 'in'))).lesson).toContain('All-India grid');   // the in pack's own reference
       }
     });
   }
@@ -43,7 +43,7 @@ describe('L28 three-day gate', () => {
     const pop = botPopulation(spec, 'global'), f = spec.frozen!.global!;
     near(pop.budget, f.budget, 0.02); near(pop.starA, f.starA, 0.02); near(pop.starB, f.starB, 0.02);
     expect(f.budget).toBeGreaterThanOrEqual(spec.budgetOverCheapest! * pop.cheapestPass);
-    expect(pop.passing).toBe(4);   // taps and capacitors, a 4-hour battery or a second causeway line, with or without the spun unit: nothing else fits
+    expect(pop.passing).toBe(7);   // the 2-hour battery with the north feeder (U4 from the start or at the call, with or without the reactor), the 4-hour battery with no reserve, or with U4 at the call (also with the feeder opened): DECISIONS 20
     const dearest = Math.max(...[...designs(spec)].map((d) => runDesign(spec, 'global', d.actions, { frozen: null }).capex));
     expect(f.budget).toBeLessThan(dearest);
   }, 300000);
@@ -74,7 +74,7 @@ describe('the budget forces a choice (DECISIONS 14)', () => {
   it('a passing plan exists by hand at 90 % of the budget or less, and the cheap trap (a 2-hour battery) fits the budget but runs dry', () => {
     const cheap = priced(spec.lesson); expect(cheap.status).toBe('won'); expect(cheap.capex).toBeLessThanOrEqual(0.9 * spec.frozen!.global!.budget);
     const ref = priced(spec.reference); expect(ref.status).toBe('won'); expect(ref.stars).toBe(3);
-    const line = priced([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway]); expect(line.status).toBe('won'); expect(line.stars).toBe(1);   // the classic N-1 line fits but costs more than the battery sized for the night
+    const line = priced([...tapsEastgate, ...capsEastgate, ...secondCauseway]); expect(won([...tapsEastgate, ...capsEastgate, ...secondCauseway]).status).toBe('won'); expect(line.failKind).toBe('budget');   // the classic N-1 line works but costs more than the budget (DECISIONS 20)
     const trap = priced([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')]);
     expect(trap.capex).toBeLessThan(spec.frozen!.global!.budget); expect(trap.failKind).toBe('islandDark');
   });
@@ -87,13 +87,49 @@ describe('the budget forces a choice (DECISIONS 14)', () => {
   });
 });
 
+describe('the live calls (DECISIONS 20)', () => {
+  const priced = (acts: Action[]): ReturnType<typeof runDesign> => runDesign(spec, 'global', acts);
+  const plan4 = [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50')], plan2 = [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')];
+  const at = (k: number, ...a: Action[]): Action[] => [{ name: 'tick', args: [k] }, ...a];
+  it('the 4-hour battery with U4 spun for three days does not fit; U4 spun at the radio call does, and earns three stars', () => {
+    const safe = priced([...plan4, ...spinCcgt]); expect(safe.failKind).toBe('budget'); expect(safe.capex).toBeGreaterThan(spec.frozen!.global!.budget);
+    const ref = priced([...plan4, ...spinAtCall]); expect(ref.status).toBe('won'); expect(ref.stars).toBe(3); expect(ref.ensMWh).toBe(0);
+    expect(SPIN_CALL).toBe(96 + 12);   // Day 2 03:00, the radio's call (log.finale.spinCall)
+  });
+  it('no reserve at all passes on the last few MWh; U4 spun after the morning of Day 2 is too late for Day 3', () => {
+    const none = priced(plan4); expect(none.status).toBe('won'); expect(none.stars).toBe(2); expect(none.ensMWh).toBeGreaterThan(0.99 * 0.001 * FINALE.energyMWh);
+    const late = priced([...plan4, ...at(144, ...spinCcgt)]); expect(late.status).toBe('won'); expect(late.stars).toBe(2); expect(late.ensMWh).toBeGreaterThan(10);   // Day 2 12:00: a cold CCGT is not back before the Day 3 trip
+  });
+  it('the 2-hour battery lasts the night with the north feeder open at the lightning: a third of the island off, the school lit, the energy counted as not served', () => {
+    const o = priced(plan2.concat(shedAtLightning)); expect(o.status, o.reason).toBe('won'); expect(o.stars).toBe(2);
+    expect(o.track.islandDarkBlocks).toBe(0); expect(o.track.islandShedMWh!).toBeGreaterThan(20); expect(o.ensMWh).toBeCloseTo(o.track.islandShedMWh!, 6);
+    near(o.track.islandShedMWh!, NORTH_FEEDER * o.track.islandNightMWh!, 0.06);   // a third of the draw, from the block after the lightning
+    expect(o.capex).toBeLessThanOrEqual(0.6 * spec.frozen!.global!.budget);
+    expect(o.state.loads.find((l) => l.id === ISLAND_LOAD)!.shedFrac).toBe(0);   // closed again with the causeway at 06:00
+    expect(o.state.log.some((x) => /feeders are closed again/.test(x.text))).toBe(true);
+  });
+  it('opened three hours late, the feeder cannot save the cells; without reserve the shed breaks the energy limit', () => {
+    const late = priced([...plan2, ...at(LIGHTNING_AT + 12, { name: 'shedLoad', args: [ISLAND_LOAD, NORTH_FEEDER] })]); expect(late.failKind).toBe('islandDark');
+    const noRes = priced([...tapsEastgate, ...capsEastgate, ...islandBattery('bess-2h-50'), ...shedAtLightning]); expect(noRes.status).toBe('lost'); expect(noRes.ensMWh).toBeGreaterThan(0.001 * FINALE.energyMWh);
+  });
+  it('the operator\'s open feeder holds through the night; the relays\' sheds are still closed again (finale.ts)', () => {
+    const e = play(plan2); for (let i = 0; i < LIGHTNING_AT; i++) e.step(TICK);
+    expect(e.step({ name: 'shedLoad', args: [ISLAND_LOAD, NORTH_FEEDER] }).info.ok).toBe(true);
+    for (let i = 0; i < 4; i++) e.step(TICK);
+    const l = e.state.loads.find((x) => x.id === ISLAND_LOAD)!; expect(l.shedFrac).toBeCloseTo(NORTH_FEEDER, 12); expect(l.shedHold).toBeCloseTo(NORTH_FEEDER, 12);
+    const other = e.state.loads.find((x) => x.bus === BUS.harbour)!; other.shedFrac = 0.9;   // a relay's shed: no hold
+    e.step(TICK); expect(e.state.loads.find((x) => x.bus === BUS.harbour)!.shedFrac).toBeCloseTo(0.4, 9);
+    expect(e.step({ name: 'shedLoad', args: [ISLAND_LOAD, 0] }).info.ok).toBe(true); expect(e.state.loads.find((x) => x.id === ISLAND_LOAD)!.shedHold).toBeUndefined();
+  });
+});
+
 describe('the island through the lightning', () => {
-  const base = spec.reference.filter((a) => a.name !== 'placeStorage');
+  const base = [...tapsEastgate, ...capsEastgate, ...spinCcgt];   // the plan with reserve for three days, no island fix
   it('no second path: it goes dark at 23:30 on Day 2 and the report names the island; a second feeder and a 4-hour battery both keep it lit', () => {
     const none = runDesign(spec, 'global', base);
     expect(none.status).toBe('lost'); expect(none.failKind).toBe('islandDark'); expect(none.state.block.verdictKey).toBe('level.lost.islandStorm'); expect(none.reason).toMatch(/^At 23:30 on Day 2 Saltmarsh Island/);
-    expect(runDesign(spec, 'global', [...base, ...secondCauseway]).status).toBe('won');
-    expect(runDesign(spec, 'global', [...base, ...islandBattery('bess-4h-50')]).status).toBe('won');
+    expect(runDesign(spec, 'global', [...base, ...secondCauseway], { frozen: null }).status).toBe('won');   // physics only: with U4 for three days both are over the budget (DECISIONS 20)
+    expect(runDesign(spec, 'global', [...base, ...islandBattery('bess-4h-50')], { frozen: null }).status).toBe('won');
   });
   it('a 2-hour battery holds 100 MWh against the 124 MWh of nameplate the night needs (oracle F-3): it runs dry', () => {
     expect(EXP['F-3'].nameplate_MWh).toBeGreaterThan(100); expect(EXP['F-3'].nameplate_MWh).toBeLessThan(125);
@@ -153,7 +189,10 @@ describe('lesson, hint, coach, determinism, speed', () => {
     expect(li).toMatch(/Day 3: highest voltage [\d.]+ pu at \d\d:\d\d on Day [123]; losses over the three days [\d.]+ %.*0 quarter-hours spent outside (49\.\d\d) to 50\.05 Hz/);
     expect(Number(li.match(/outside (49\.\d\d) to/)![1])).toBe(e.state.metrics.track.bandLoHz);   // the band the count used (it was always printed as 49.90)
     const lost = run(play([])); expect(info(lost).tryHint).toMatch(/A bus fell below 0\.95 pu/);
-    const isl = run(play(spec.reference.filter((a) => a.name !== 'placeStorage'))); expect(info(isl).tryHint).toMatch(/at least 125 MWh of nameplate/);
+    // the island's hint gives the draw and the battery's usable window, never the size to buy (DECISIONS 20)
+    const isl = run(play([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')])); const th = info(isl).tryHint as string;
+    expect(th).toContain(`draws ${FINALE.nightMWh.toFixed(0)} MWh`); expect(th).toMatch(/middle 80 % of its rated energy \(10 to 90 % charge\)/); expect(th).toContain(`about ${Math.round(100 * (1 - Math.sqrt(0.86)))} % is lost`);
+    expect(th).not.toMatch(/at least|125|holds only|2-hour|4-hour/);
   });
   it('a dark bus is not a voltage reading: with the island dark, the lesson prints the lowest live voltage and the day it happened', () => {
     // taps and capacitors, no reserve and no island fix: Saltmarsh goes dark at 23:30 on Day 2. The oracle walks the run block by block and takes the minimum
@@ -183,7 +222,7 @@ describe('lesson, hint, coach, determinism, speed', () => {
     expect(spec.coach.map((c) => c.id)).toEqual(['volt', 'reserve', 'island', 'run']);
     const e = fresh(); const q = (): string | null => (e.engine.q('coach') as any).id;
     expect(q()).toBe('volt');
-    for (const a of spec.reference) e.step(a);
+    for (const a of spec.reference.filter((x) => x.name !== 'tick' && x.name !== 'spinUnit')) e.step(a);   // the plan; the reference's spin waits for the radio's call
     expect(q()).toBe('run');
   });
   it('same actions, same hash; a full three-day run (288 blocks, 26 buses, five events) under 2.5 s', () => {
