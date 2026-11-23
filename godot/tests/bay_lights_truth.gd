@@ -22,6 +22,9 @@ func _initialize() -> void:
 	for id in Bay3D.LEVELS: T.check(WorldView.LOOK2_LEVELS.has(id), "%s is in LOOK2_LEVELS (no Classic chip)" % id)
 	for id in ["L04", "L06"]: T.check(not WorldView.LOOK2_LEVELS.has(id), "%s is not a province level" % id)   # 1.18: L05 and L29 are drawn in 3D (DECISIONS 25)
 	T.check(WorldView.LOOK2_LEVELS.has("P0"), "P0, the prologue, is drawn by the 3D province (1.19, DECISIONS 27)")
+	for id in ["L04", "L06"]: T.check(Bench3D.LEVELS.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D bench: no Classic chip (1.19)" % id)   # was: L04 and L06 keep the Classic chip
+	for id in WorldView.LOOK2_LEVELS: T.check(not Jobs.is_classic(id), "%s has no Classic chip" % id)
+	T.check(Jobs.is_classic("L10"), "a job no 3D layer draws (L10) keeps the Classic chip")
 	for id in ["L05", "L29", "L30"]: T.check(WorldView.LOOK2_LEVELS.has(id), "%s, a chapter 2 map level, is in the 3D look" % id)
 	T.check(Bay3D.LEVELS.has("L01"), "L01 is drawn in 3D")
 	T.finish("BAY-LIGHTS-TRUTH", self)
