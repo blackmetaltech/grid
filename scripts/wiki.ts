@@ -56,7 +56,7 @@ export function releasePlatforms(src = read('.github/workflows/release.yml')): s
   return m ? m[1]!.trim().split(/\s+/) : null;
 }
 /** What the wiki home says about builds. src/wiki.test.ts fails when release.yml builds for another list. */
-export const PLATFORMS = ['Linux', 'Windows'];
+export const PLATFORMS = ['Linux', 'Windows', 'macOS'];
 
 /** Jobs of a chapter, in play order. */
 const idsOf = (n: number): string[] => LEVEL_SPECS.filter((l) => l.chapter === n).map((l) => l.id);
@@ -406,7 +406,7 @@ function nowSection(): string {
 <dt>Career</dt><dd>Ten years as a district engineer, one quarter at a time. ${['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][CHARTER_IDS.length] ?? CHARTER_IDS.length} districts, and a weekly district that is the same for everyone.</dd>
 <dt>In the new 3D look</dt><dd>The title, ${byChapter(newIds.filter((i) => i !== 'P0'))}.</dd>
 <dt>Still in the classic 2D look</dt><dd>The prologue, ${byChapter(classicJobs)}. The job board marks them "Classic".</dd>
-<dt>Platforms</dt><dd>${PLATFORMS.join(' and ')}. No macOS build.</dd>
+<dt>Platforms</dt><dd>${PLATFORMS.join(' and ')}. The macOS build is untested: no one has opened it on a Mac.</dd>
 </dl>
 <h3>The campaign is complete. What is not built yet</h3>
 <p>Every chapter, job and the Career exist. What is left is mostly the look:</p>
