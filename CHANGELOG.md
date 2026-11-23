@@ -2,6 +2,21 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.19.0] - "Powerhouse" (LOOK2 phase D; review in docs/CRITIQUE-1.19.md)
+### Added
+- **The prologue is in 3D.** The night opens behind a lit coal plant, looking along Line 7 to the city. Close the breaker and watch the grid fall.
+- **Spin the Alternator (WO-04) is a place.** A waterfall valley, a powerhouse cut open, and the alternator inside with the poles you chose, turning. The village lights follow its voltage and flicker when the frequency is low.
+- **The Town Line (WO-06) is a place.** A powerhouse, 15 km of line and a town. The line glows with the power it wastes. The town's windows follow the voltage it gets.
+- **Power stations.** Coal plants have a boiler house, a turbine hall, a chimney with red lights and cooling towers. Gas plants have a hall and stacks. They show in the prologue and the finale.
+- **The Mainland town has a church and a water tower**, so you can find it.
+### Changed
+- **Woods have natural edges** with bays and scattered trees, not square blocks.
+- **Fields end in grass margins and broken hedges**, not hard lines.
+- **The Mainland is greener.**
+- **The mill yard is lit concrete** with floodlights, not a dark slab.
+- **The work order fits its text** on short screens instead of leaving empty space.
+- Chapters 1 to 3 and the prologue no longer carry the Classic chip.
+
 ## [1.18.1] - "Bay and Mainland" (patch)
 ### Fixed
 - The game reported itself as 1.17.0. It now reports its own version. No gameplay change.
