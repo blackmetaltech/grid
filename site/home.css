@@ -70,7 +70,7 @@
 .honest li b{color:var(--sodium);font-weight:600}
 
 .alpha{max-width:70ch;padding:12px 16px;border-left:3px solid var(--sodium);background:rgba(255,197,107,.06)}
-.dl-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:22px 0 14px;max-width:900px}
+.dl-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:22px 0 14px;max-width:900px}
 .dl{display:grid;gap:2px;padding:18px 20px;border:1.5px solid var(--sodium-dim);border-radius:var(--r);text-decoration:none;color:var(--text);background:rgba(255,197,107,.04)}
 .dl:hover,.dl.mine{border-color:var(--sodium);background:rgba(255,197,107,.1)}
 .dl b{font:800 30px var(--head);letter-spacing:.04em;color:var(--sodium)}

@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>GRID · build a power grid, keep the lights on</title>
-<meta name="description" content="GRID is a free game about building and running a power grid, one job at a time: cables, lines over rivers, transformers, capacitor banks, relays and a ten-year career as a district engineer. Every rule is a textbook equation. Linux and Windows.">
+<meta name="description" content="GRID is a free game about building and running a power grid, one job at a time: cables, lines over rivers, transformers, capacitor banks, relays and a ten-year career as a district engineer. Every rule is a textbook equation. Linux, Windows and macOS (untested).">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="https://grid.blackmetal.tech/">
 <meta property="og:site_name" content="GRID">
 <meta property="og:title" content="GRID: build a power grid, keep the lights on">
-<meta property="og:description" content="Build a province's power grid one job at a time, then run the day. A full AC load flow every 15 minutes, named conductors with their resistances, IEC relay curves. Free, Linux and Windows.">
+<meta property="og:description" content="Build a province's power grid one job at a time, then run the day. A full AC load flow every 15 minutes, named conductors with their resistances, IEC relay curves. Free, Linux, Windows and macOS (untested).">
 <meta property="og:url" content="https://grid.blackmetal.tech/">
 <meta property="og:image" content="https://grid.blackmetal.tech/assets/og.jpg">
 <meta property="og:image:alt" content="GRID: the province map on the finale, buses labelled with their voltages">
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://grid.blackmetal.tech/assets/og.jpg">
 <meta name="theme-color" content="#0B1026">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"GRID","description":"A game about building and running a power grid, solved by AC load flow, and a ten-year career as a district engineer.","url":"https://grid.blackmetal.tech/","image":"https://grid.blackmetal.tech/assets/og.jpg","genre":["Simulation","Educational","Puzzle"],"gamePlatform":["Linux","Windows"],"operatingSystem":"Linux, Windows","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"GRID","description":"A game about building and running a power grid, solved by AC load flow, and a ten-year career as a district engineer.","url":"https://grid.blackmetal.tech/","image":"https://grid.blackmetal.tech/assets/og.jpg","genre":["Simulation","Educational","Puzzle"],"gamePlatform":["Linux","Windows","macOS"],"operatingSystem":"Linux, Windows, macOS","applicationCategory":"Game","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -44,7 +44,7 @@
   <div class="lamps" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux</span><span>Windows (untested)</span></p>
+      <p class="eyebrow"><b>Alpha</b><span>Free</span><span>No account</span><span>Linux</span><span>Windows (untested)</span><span>macOS (untested)</span></p>
       <h1>GRID</h1>
       <p class="tagline">Build the grid. Run the day. Keep the lights on.</p>
       <p class="lede">Build a power grid one job at a time. Then run the day and watch it hold, or fail. The rules are textbook equations.</p>
@@ -199,12 +199,13 @@
   <div class="wrap">
     <p class="kicker">Download</p>
     <h2>Free. Unzip and play.</h2>
-    <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. Played on Linux. The Windows build is smoke-tested but not yet played. Nothing else to install.</p>
+    <p class="alpha"><b>Alpha.</b> The whole campaign and the Career are playable. Played on Linux. The Windows build is smoke-tested but not yet played; the macOS build is smoke-tested on a Mac build server but never opened by a person. Nothing else to install.</p>
     <div class="dl-row">
       <a class="dl" id="dl-linux" href="https://github.com/blackmetaltech/grid/releases/latest"><b>Linux</b><span>x86_64 · zip</span><em>unzip, then run <code>GRID/grid.sh</code> (needs a Vulkan-capable driver)</em></a>
       <a class="dl" id="dl-windows" href="https://github.com/blackmetaltech/grid/releases/latest"><b>Windows</b><span>x64 · zip</span><em><b class="untested">Untested build:</b> made and smoke-run on Linux for every release, never yet run on Windows. Unzip, then run <code>GRID\GRID.exe</code> (unsigned: More info → Run anyway).</em></a>
+      <a class="dl" id="dl-macos" href="https://github.com/blackmetaltech/grid/releases/latest"><b>macOS</b><span>universal · zip</span><em><b class="untested">Untested build:</b> checked on a Mac build server, never opened by a person on a Mac. Unzip, then right-click <code>GRID.app</code> and choose Open (not signed by Apple; on macOS 15 and later: System Settings → Privacy &amp; Security → Open Anyway).</em></a>
     </div>
-    <p class="fine"><span id="dl-ver">Latest release</span> · <a id="dl-sums" href="https://github.com/blackmetaltech/grid/releases/latest">SHA256SUMS.txt</a> · <a href="https://github.com/blackmetaltech/grid/releases">All releases</a> · <a href="https://github.com/blackmetaltech/grid/blob/master/CHANGELOG.md">Changelog</a> · No macOS build yet.</p>
+    <p class="fine"><span id="dl-ver">Latest release</span> · <a id="dl-sums" href="https://github.com/blackmetaltech/grid/releases/latest">SHA256SUMS.txt</a> · <a href="https://github.com/blackmetaltech/grid/releases">All releases</a> · <a href="https://github.com/blackmetaltech/grid/blob/master/CHANGELOG.md">Changelog</a></p>
   </div>
 </section>
 </main>

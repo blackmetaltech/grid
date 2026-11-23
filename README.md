@@ -109,10 +109,11 @@ From [Releases](https://github.com/blackmetaltech/grid/releases). Each release i
 
 | OS | File | Run |
 |---|---|---|
-| Linux (x86_64) | `GRID-<ver>-linux-x86_64.zip` | unzip, then `GRID/grid.sh` (needs a Vulkan-capable GPU/driver) |
-| Windows (x64) | `GRID-<ver>-windows-x64.zip` | unzip, then `GRID\GRID.exe` (unsigned: SmartScreen, *More info → Run anyway*). Not yet played on Windows. |
+| Linux (x86_64) | `GRID-<ver>-linux.tar.gz` | unzip, then `GRID/grid.sh` (needs a Vulkan-capable GPU/driver) |
+| Windows (x64) | `GRID-<ver>-windows.zip` | unzip, then `GRID\GRID.exe` (unsigned: SmartScreen, *More info → Run anyway*). Not yet played on Windows. |
+| macOS (untested) | `GRID-<ver>-macos.zip` | unzip, then right-click `GRID.app` and choose Open (not signed by Apple; on macOS 15 and later: System Settings → Privacy & Security → Open Anyway). Universal (Apple silicon and Intel). Smoke-run on a Mac build server, never opened by a person on a Mac. |
 
-No macOS build is attached yet. An Android debug APK can be built locally with `core/qa/buildapk.sh`.
+An Android debug APK can be built locally with `core/qa/buildapk.sh`.
 
 ## Run from source
 
@@ -163,7 +164,7 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 1.14. **1528 engine tests in 71 files** and **26 Godot steps** (25 flow and truth tests plus the UI smoke, paper flow and Career flow) pass on every tag. Wall-clock perf budgets are re-run alone when the machine is loaded. Every clock time and quantity a level's text quotes is checked against the engine by a test.
 
 - Played on desktop Linux only. The gamepad pass used scripted pad events in the game window at 1280×800, not a physical pad; no one has played it on a phone; the phone layout was checked on a desktop window at 2424×1080. On the phone layout chapter 8's study screens pan (drag or wheel) to clear the coach card.
-- The Windows build is produced but not played on Windows; there is no macOS build on the releases.
+- The Windows build is produced but not played on Windows. The macOS build (from 1.18.0) passes a headless smoke run on a Mac build server but no one has opened it on a Mac.
 - Sound: four synthesised tracks and a cue per interaction, measured (loudness, clipping, structure) but not yet listened to by a person.
 - Building from source needs the cobanana-core submodule, which is not public yet.
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
