@@ -166,3 +166,26 @@ Newest last. Each entry: what, why, where.
     - **`in` pack:** the same headroom rule moves it to US$496M (was 550M); lesson and reference are unchanged and still earn fewer than three and three stars.
     - **Strongest argument against:** the three-star window is about 7 game hours and only US$350k wide, so the top lamp rewards reading the live price more than understanding reserve. A player who spins at the plan, the way the earlier jobs taught, is stopped by the card with no explanation beyond the number. The reply: the price is on the button and falls as the run goes, and the radio calls at the moment the window opens.
 21. **Chapter 3 (Mill Town, L07 to L09) is the next chapter in the new look (look3, 2026-11-23, Priya and Ingrid).** All three are grid levels, so towns light and go dark on the player's power flow. They already render through the finale's generated province, so one switch covers the whole chapter; the chapter's phasor and spectrum card is now glass. Chapter 1 would need a metre-scale bench scene (about two sessions) and still would not show a town lit by the grid. Chapter 2 would ship mixed: L04 and L06 are bench levels. Strongest argument against: a new player still meets the classic title and L01 first. Priya asked for a 3D title backdrop if it costs under half a session; it does not fit this layer and is cut to the next one.
+22. **What the 1.16 hand play and the round 4 review changed, and what waits for 1.17 (look3, 2026-11-23, Ingrid).**
+    - **Taken from three rounds of GPU hand play (a playtester, pad only):**
+      - the pad walks the jobs list and the list scrolls;
+      - the finale card keeps focus across a purchase;
+      - the live-call buttons are updated in place;
+      - at 2x or 4x the clock drops to 1x an hour before the lightning;
+      - at the lightning the run pauses, says what happened, focuses the north-feeder button and turns the camera to Saltmarsh;
+      - the pick cursor shows from the start.
+    - **Taken from Sigrid and the manager:**
+      - a darker, taller spire and a 140 m works chimney in towns of 14 homes or more;
+      - the opening camera on the capital moves in from 5.2 km to 3.6 km;
+      - a day palette (pasture, crop, plough) on warped plots;
+      - the scale note at the text floor and below the clock;
+      - the coast stays east of every town outside the finale;
+      - chapter 3 opens on its town.
+    - **Open and written down:** an A pressed within about 3 s of a screen or speed change is sometimes dropped on the virtual pad. It is not reproduced or explained; the idle frame cap (30 fps after 3 s idle) is the first suspect. A playtester lost one U4 call to it.
+    - **Led into the 1.17 gate:**
+      - the mill as a place: a works with chimneys, a yard, a rail siding, and the feeder along a road;
+      - towns with irregular outlines that follow roads and rivers;
+      - cloud shadows and sky reflection by day;
+      - the first impression: either a 3D title and first job, or chapter 1 converted next, decided with Priya;
+      - no mill exists in L07 today.
+    - **Strongest argument against shipping now (Sigrid):** the landmarks are thin at the default distance, and chapter 3 is a plain with a disc of town. I ship because the gate items are met and these points are named here, not hidden.

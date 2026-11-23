@@ -264,7 +264,7 @@ func _build_static() -> void:
 	var mn := NoiseTexture2D.new(); mn.seamless = true; mn.width = 512; mn.height = 512
 	var fn := FastNoiseLite.new(); fn.frequency = 0.008; fn.fractal_octaves = 4; mn.noise = fn
 	_terrain_mat.set_shader_parameter("macro_noise", mn)
-	if field is GenField: _terrain_mat.set_shader_parameter("grass_tint", Vector3(0.78, 1.0, 0.66))
+	if field is GenField: _terrain_mat.set_shader_parameter("grass_tint", Vector3(0.66, 0.92, 0.5))
 	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var step := 12.5 if quality == "high" else (20.0 if quality == "medium" else 30.0)
 	var margin := 900.0
@@ -640,17 +640,18 @@ func _build_town_lamps(lamp_list: Array) -> void:
 func _build_hall(c: Vector2, rot: float, count := 1) -> void:
 	var n := Node3D.new(); n.position = Vector3(c.x, ground(c.x, c.y) - 0.3, c.y); n.rotation.y = -rot; _root_infra.add_child(n)
 	var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.8, 0.75, 0.66); hm.roughness = 0.9
-	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(2.0, 3.4, 2.0); tower.material_override = hm; tower.position = Vector3(-14, 0, 0); n.add_child(tower)
+	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(2.6, 6.5, 2.6); var sm := StandardMaterial3D.new(); sm.albedo_color = Color(0.36, 0.33, 0.33); sm.roughness = 0.9; tower.material_override = sm;   # 1.16 (Sigrid): a dark spire that breaks the skyline
+	tower.position = Vector3(-14, 0, 0); n.add_child(tower)
 	var nave := MeshInstance3D.new(); var nb := BoxMesh.new(); nb.size = Vector3(28, 11, 13); nave.mesh = nb; nave.material_override = hm; nave.position = Vector3(4, 5.5, 0); n.add_child(nave)
 	var roof := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.size = Vector3(13.5, 5.5, 29); roof.mesh = pr; roof.rotation.y = PI * 0.5
 	var rm := StandardMaterial3D.new(); rm.albedo_color = Color(0.3, 0.29, 0.3); roof.material_override = rm; roof.position = Vector3(4, 13.75, 0); n.add_child(roof)
-	if count >= 26:
-		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 2.6; cy.bottom_radius = 4.2; cy.height = 84.0; ch.mesh = cy
-		var cm2 := StandardMaterial3D.new(); cm2.albedo_color = Color(0.72, 0.66, 0.6); cm2.roughness = 0.9; ch.material_override = cm2; ch.position = Vector3(70, 42.0, 55); n.add_child(ch)
-		var band := MeshInstance3D.new(); var bc := CylinderMesh.new(); bc.top_radius = 2.65; bc.bottom_radius = 2.9; bc.height = 9.0; band.mesh = bc
-		var bm2 := StandardMaterial3D.new(); bm2.albedo_color = Color(0.62, 0.14, 0.1); band.material_override = bm2; band.position = Vector3(70, 79.0, 55); n.add_child(band)
-		var bk := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 1.1; bs.height = 2.2; bk.mesh = bs
-		bk.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 6.0); bk.position = Vector3(70, 85.0, 55); n.add_child(bk); _warn.append(bk)
+	if count >= 14:   # the works chimney: dark brick, 140 m, a red band and beacon (1.16, Sigrid: the light 84 m one did not read at play height)
+		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 4.0; cy.bottom_radius = 7.0; cy.height = 140.0; ch.mesh = cy
+		var cm2 := StandardMaterial3D.new(); cm2.albedo_color = Color(0.34, 0.24, 0.21); cm2.roughness = 0.9; ch.material_override = cm2; ch.position = Vector3(70, 70.0, 55); n.add_child(ch)
+		var band := MeshInstance3D.new(); var bc := CylinderMesh.new(); bc.top_radius = 4.05; bc.bottom_radius = 4.5; bc.height = 14.0; band.mesh = bc
+		var bm2 := StandardMaterial3D.new(); bm2.albedo_color = Color(0.85, 0.85, 0.82); band.material_override = bm2; band.position = Vector3(70, 128.0, 55); n.add_child(band)
+		var bk := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 2.4; bs.height = 4.8; bk.mesh = bs
+		bk.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 8.0); bk.position = Vector3(70, 142.0, 55); n.add_child(bk); _warn.append(bk)
 	var sq := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(60, 0.3, 60); sq.mesh = sb
 	var sqm := StandardMaterial3D.new(); sqm.albedo_color = Color(0.55, 0.52, 0.47); sqm.roughness = 0.95; sq.material_override = sqm; sq.position = Vector3(0, 0.35, 0); n.add_child(sq)
 
@@ -1081,7 +1082,7 @@ func reset_camera() -> void:
 	_g_yaw = deg_to_rad(32.0); _g_pitch = deg_to_rad(29.0); _g_dist = maxf(map_size.x, map_size.y) * 0.62
 	if field is GenField:   # the generated province opens on its capital at play zoom: whole streets readable, the next towns on the horizon
 		_g_target = Vector3(map_size.x * 0.5, 0.0, map_size.y * 0.56); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-		_g_yaw = deg_to_rad(205.0); _g_pitch = deg_to_rad(22.0); _g_dist = 5200.0
+		_g_yaw = deg_to_rad(205.0); _g_pitch = deg_to_rad(22.0); _g_dist = 3600.0   # 1.16: closer, so the spire and chimney read (Sigrid)
 		if _big_centre.x < INF and Vector2(_g_target.x, _g_target.z).distance_to(_big_centre) > maxf(map_size.x, map_size.y) * 0.2:   # 1.16: L07 and L09 opened on empty hills
 			_g_target = Vector3(_big_centre.x, 0.0, _big_centre.y); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 			_g_dist = 2400.0; _g_pitch = deg_to_rad(26.0)

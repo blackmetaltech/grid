@@ -70,7 +70,7 @@ void fragment() {
 		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)); ROUGHNESS = 0.92; SPECULAR = 0.25;
 	} else {
 	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
-	vec2 fq = wpos.xz / 170.0;
+	vec2 fq = wpos.xz / 170.0 + 0.32 * vec2(sin(wpos.z / 97.0 + sin(wpos.x / 233.0) * 2.0), cos(wpos.x / 113.0 + sin(wpos.z / 251.0) * 2.0));   // 1.16: warped, so plots are not a hex board
 	vec2 fi = floor(fq); vec2 ff = fract(fq);
 	float d1 = 8.0; float d2 = 8.0; vec2 cell = vec2(0.0);
 	for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
@@ -82,15 +82,17 @@ void fragment() {
 	float crop = h21(cell * 1.31);
 	vec3 g = tex2f(grass_a, p, m, g_mid, g_far);
 	vec3 plot = g;
-	if (crop < 0.34) plot = g * vec3(0.96, 1.04, 0.88);
-	else if (crop < 0.52) plot = mix(g, vec3(0.55, 0.52, 0.32), 0.30);
-	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(g, tex2f(field_a, rp / 14.0, m, g_mid, g_far) * vec3(1.0, 0.92, 0.82), 0.6); }
-	else if (crop < 0.84) plot = g * vec3(0.86, 1.0, 0.76);
-	else plot = mix(g, vec3(0.62, 0.56, 0.32), 0.22);
+	// 1.16 (manager): a day palette, not one olive wash: green pasture, golden crop, brown plough, darker meadow
+	float lum = dot(g, vec3(0.33));
+	if (crop < 0.34) plot = vec3(0.30, 0.46, 0.18) * (0.75 + lum);
+	else if (crop < 0.52) plot = vec3(0.74, 0.60, 0.27) * (0.8 + 0.6 * lum);
+	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(vec3(0.40, 0.30, 0.20), tex2f(field_a, rp / 14.0, m, g_mid, g_far) * vec3(0.8, 0.66, 0.5), 0.5); }
+	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum);
+	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum);
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
 	plot = mix(g, plot, smoothstep(0.0, 0.12, d2 - d1));   // soft field edges: crops fade into the hedge line
-	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.6);
-	vec3 grass = mix(g, plot, 0.6 * (1.0 - 0.7 * g_far)) * grass_tint;   // field colours calm down with distance: no quilt from the air
+	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.4);
+	vec3 grass = mix(g * grass_tint, plot, 0.55 * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
 
 	vec3 col = grass * w.r
 		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g
