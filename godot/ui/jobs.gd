@@ -103,7 +103,7 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 	var br := PaperKit.lbl(lock if lock != "" else str(lv.get("brief", "")), 15, "sans", Color(PaperKit.INK, 0.72), true); br.max_lines_visible = 1 if compact else 2; br.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; mid.add_child(br)
 	var earned := GridSettings.stars(id)
 	var lr := HBoxContainer.new(); lr.mouse_filter = Control.MOUSE_FILTER_IGNORE; lr.add_theme_constant_override("separation", 0); lr.size_flags_vertical = Control.SIZE_SHRINK_CENTER; hb.add_child(lr)
-	if not WorldView.LOOK2_LEVELS.has(id): hb.add_child(classic_chip())   # this job still draws in the classic look
+	if is_classic(id): hb.add_child(classic_chip())   # this job still draws in the classic look
 	for i in 3:
 		var lamp := PaperKit.Lamp.new(34.0, i < earned); lamp.tooltip_text = (T("JOBS_STARS") % earned) if earned > 0 else T("JOBS_NO_STARS"); lr.add_child(lamp)
 	if lock != "":   # locked: the row greys out, a padlock replaces the lamps, and it cannot be started
@@ -112,7 +112,10 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 		b.tooltip_text = lock
 	return b
 
-## A small "Classic" chip: this job still draws in the classic 2D look (the levels listed in WorldView.LOOK2_LEVELS are in the new look).
+## A job still drawn in the classic 2D look: neither the province or the bay (WorldView.LOOK2_LEVELS) nor the chapter 2 bench (Bench3D.LEVELS) draws it.
+static func is_classic(id: String) -> bool: return not WorldView.LOOK2_LEVELS.has(id) and not Bench3D.LEVELS.has(id)
+
+## A small "Classic" chip: this job still draws in the classic 2D look (see is_classic).
 static func classic_chip() -> Control:
 	var l := PaperKit.lbl(T("JOBS_CLASSIC"), 14, "mono", Color(PaperKit.INK, 0.6)); l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	l.tooltip_text = T("JOBS_CLASSIC_TIP"); l.mouse_filter = Control.MOUSE_FILTER_PASS; l.name = "Classic"
