@@ -19,9 +19,22 @@ func _init() -> void:
 func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT and codex_id != "": codex_requested.emit(codex_id); accept_event()
 
+## 1.18 (Dagny): a new low of the run (a unit trip) holds the needle at the dip, in red, for DIP_HOLD s with "lowest 49.18 Hz" under it,
+## then the needle settles at the block's frequency. The block's settled value alone hid a 660 MW loss (50.00 Hz in every frame).
+const DIP_HOLD := 3.0
+var _low := INF          ## lowest frequency seen this run
+var _dip_t := 0.0        ## seconds of dip display left
+var _dip_hz := 0.0
+
 func set_query(d: Dictionary, instant := false) -> void:
 	q = d; f = float(d.fHz); f0 = float(d.f0)
-	target_deg = DialMath.angle_deg(f, f0)
+	var nd = d.get("nadirHz")
+	if nd != null and float(nd) > 0.0:
+		if float(nd) > _low + 0.3: _low = INF   # a new run: the engine's minimum reset
+		if float(nd) < _low - 0.05 and float(nd) < f0 - 0.1 and _low != INF:
+			_dip_hz = float(nd); _dip_t = DIP_HOLD
+		_low = minf(_low, float(nd))
+	target_deg = DialMath.angle_deg(_dip_hz if _dip_t > 0.0 else f, f0)
 	if instant or not _have or CbSettings.reduced_motion: needle_deg = target_deg
 	_have = true
 	queue_redraw()
@@ -29,6 +42,10 @@ func set_query(d: Dictionary, instant := false) -> void:
 func snap(d: Dictionary) -> void: set_query(d, true)
 
 func _process(dt: float) -> void:
+	if _dip_t > 0.0:
+		_dip_t -= dt
+		if _dip_t <= 0.0: target_deg = DialMath.angle_deg(f, f0)
+		queue_redraw()
 	if not _have or is_equal_approx(needle_deg, target_deg): return
 	needle_deg = lerpf(needle_deg, target_deg, 1.0 - exp(-dt * 9.0))
 	if absf(needle_deg - target_deg) < 0.05: needle_deg = target_deg
@@ -74,6 +91,10 @@ func _draw() -> void:
 	if not l2: draw_rect(plate, GridTheme.NIGHT, true)
 	GridText.ds(self, mf, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, [GridTheme.SODIUM, GridTheme.WARN, GridTheme.BAD][DialMath.zone(self.f, q)])
 	if not l2: draw_line(c + Vector2(2, 2), _pt(c, r - 5.0, needle_deg) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)
-	draw_line(c, _pt(c, r - 5.0, needle_deg), GridTheme.SODIUM if l2 else Color("#B3261E"), 1.8 if l2 else 3.0, true)
+	var dipping := _dip_t > 0.0
+	draw_line(c, _pt(c, r - 5.0, needle_deg), GridTheme.BAD if dipping else (GridTheme.SODIUM if l2 else Color("#B3261E")), (3.0 if dipping else 1.8) if l2 else 3.0, true)
+	if dipping:
+		var ds := TranslationServer.translate("HUD_DIP") % ("%.2f" % _dip_hz)
+		GridText.ds(self, cf, Vector2(10.0, h - 6.0), ds, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, GridTheme.BAD)
 	if l2: draw_circle(c, 4.0, GridTheme.GLASS); draw_arc(c, 4.0, 0.0, TAU, 16, GridTheme.SODIUM, 1.0, true)
 	else: draw_circle(c, 5.5, GridTheme.NIGHT); draw_circle(c, 2.0, GridTheme.SODIUM_DIM)

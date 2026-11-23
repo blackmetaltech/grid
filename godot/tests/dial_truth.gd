@@ -35,6 +35,17 @@ func _initialize() -> void:
 		if absf(dv.needle_deg - last_deg) > 1e-6 and last_deg < 1e8: saw_move = true
 		last_deg = dv.needle_deg
 	T.check(saw_move or true, "needle followed the engine")
+	# 1.18 (Dagny): a new low of the run holds the needle at the dip, then it settles at the block's frequency
+	var qd: Dictionary = (T.b.q("dial") as Dictionary).duplicate()
+	T.check(qd.has("nadirHz"), "the dial query carries the run's lowest frequency")
+	var dv2 := DialView.new(); root.add_child(dv2)
+	qd.fHz = 50.0; qd.nadirHz = 50.0; dv2.snap(qd)
+	qd.fHz = 49.9; qd.nadirHz = 49.18; dv2.snap(qd)
+	T.near(dv2.needle_deg, DialMath.angle_deg(49.18, float(qd.f0)), 1e-9, "a trip's dip shows on the dial (49.18 Hz, not the settled 49.9)")
+	dv2._process(DialView.DIP_HOLD + 0.1); dv2.needle_deg = dv2.target_deg
+	T.near(dv2.needle_deg, DialMath.angle_deg(49.9, float(qd.f0)), 1e-9, "after the hold the needle settles at the block's frequency")
+	dv2.snap(qd); T.near(dv2.needle_deg, DialMath.angle_deg(49.9, float(qd.f0)), 1e-9, "the same low does not dip again")
+	dv2.queue_free()
 	# the engine's standard range and UFLS stages come through the query and sit on the dial at their own angles
 	var q2: Dictionary = T.b.q("dial")
 	T.near(DialMath.angle_deg(float(q2.stdLo), float(q2.f0)), DialMath.angle_deg(49.95, 50.0), 1e-9, "the standard range is the pack's")

@@ -74,7 +74,7 @@ export function buildUiQueries(d: UiDeps): Record<string, QueryFn<GridState>> {
     /** The frequency dial's inputs: f, RoCoF, the pack's centre and standard range, the UFLS stage frequencies and the generator trip limits. */
     dial: (s) => {
       const p = d.getParams(s), g = p.gridcode;
-      return { fHz: r3(s.freq.fHz), rocof: r3(s.freq.rocof), f0: p.f0, stdLo: g.standardRangeHz[0], stdHi: g.standardRangeHz[1], uflsHz: g.ufls.map((u) => u.hz), genUfHz: g.genUf.hz, genOfHz: g.genOf.hz, blackout: s.block.blackout };
+      return { fHz: r3(s.freq.fHz), rocof: r3(s.freq.rocof), f0: p.f0, stdLo: g.standardRangeHz[0], stdHi: g.standardRangeHz[1], uflsHz: g.ufls.map((u) => u.hz), genUfHz: g.genUf.hz, genOfHz: g.genOf.hz, blackout: s.block.blackout, nadirHz: r3(s.metrics.nadirHz) };   // 1.18 (Dagny): the lowest frequency so far, so the dial can show a trip's dip (the block's settled value hid a 660 MW loss)
     },
     /** The result card: where this design sits in the histogram. Source is 'bot' (labelKey hist.bot, "Bot population (offline estimate)") until 20 verified players exist; no player data is offline. */
     resultCard: (s) => {
