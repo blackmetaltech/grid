@@ -156,6 +156,10 @@ func _make_env() -> void:
 	moon = DirectionalLight3D.new(); moon.name = "Moon"; moon.shadow_enabled = quality == "high"
 	moon.directional_shadow_max_distance = 6000.0; moon.light_color = Color(0.62, 0.72, 1.0)
 	add_child(moon)
+	# 1.18: the sun and moon lit the haze only inside their shadow range, so a disc of brighter haze sat round the town in view (Sigrid, r7-d);
+	# proven by switching it off alone (CB_FX_OFF=sunfog). The haze keeps its ambient light.
+	sun.light_volumetric_fog_energy = 0.0; moon.light_volumetric_fog_energy = 0.0
+	if off.has("ambfog"): env.volumetric_fog_ambient_inject = 0.0
 	if quality == "high":
 		RenderingServer.directional_shadow_atlas_set_size(8192, true)
 		get_viewport().msaa_3d = Viewport.MSAA_4X   # geometry edges
@@ -336,14 +340,21 @@ func _build_water() -> void:
 			if field.kind_at_tile(i, j) != TerrainField.K_RIVER: continue
 			for dj in [-1, 0, 1]:
 				for di in [-1, 0, 1]: wet[Vector2i(i + di, j + dj)] = true
+	# a bank tile's water is cut into 8 x 8 pieces and only the pieces whose ground dips near the water stay, so no sheet of water lies over
+	# low land at the river mouth (Sigrid r7-f)
+	var y := TerrainField.RIVER_LEVEL * VEX
 	for key in wet:
 		var i: int = key.x; var j: int = key.y
-		if true:
-			any = true
-			var y := TerrainField.RIVER_LEVEL * VEX
-			var x0 := i * tm; var x1 := (i + 1) * tm; var z0 := j * tm; var z1 := (j + 1) * tm
-			st.set_normal(Vector3.UP)
-			for p in [Vector3(x0, y, z0), Vector3(x1, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z1)]: st.add_vertex(p)
+		var kd := field.kind_at_tile(i, j); var own := kd == TerrainField.K_RIVER
+		if kd == TerrainField.K_SEA or kd == TerrainField.K_SAND: continue   # the sea and the beach have their own water: no raised sheet at the mouth
+		var q := 8; var d := tm / q
+		for b in q:
+			for a in q:
+				var x0 := i * tm + a * d; var z0 := j * tm + b * d; var x1 := x0 + d; var z1 := z0 + d
+				if not own and minf(minf(ground(x0, z0), ground(x1, z0)), minf(ground(x0, z1), ground(x1, z1))) > y + 0.5: continue
+				any = true
+				st.set_normal(Vector3.UP)
+				for p in [Vector3(x0, y, z0), Vector3(x1, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z1)]: st.add_vertex(p)
 	if field is GenField:
 		var rg := MeshInstance3D.new(); rg.name = "River"; rg.mesh = (field as GenField).river_mesh(); rg.material_override = _water_mat(true)
 		rg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_static.add_child(rg)
@@ -756,6 +767,7 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 	var brick := StandardMaterial3D.new(); brick.albedo_color = Color(0.5, 0.28, 0.22); brick.roughness = 0.95
 	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.22, 0.2, 0.21); slate.roughness = 0.9
 	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.78, 0.45); lit.emission_energy_multiplier = 1.6   # the mill runs 06:00-22:00: its windows are lit
+	var roof_lit: StandardMaterial3D = lit.duplicate(); roof_lit.emission_energy_multiplier = 0.55
 	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.42, 0.4, 0.37); yard.roughness = 1.0
 	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(230, 0.5, 170); pad.mesh = pb; pad.material_override = yard; pad.position = Vector3(10, 0.2, 0); n.add_child(pad)
 	for k in 3:   # weaving sheds: long and low, a saw-tooth of north lights
@@ -764,9 +776,12 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 		for t in 8:   # 1.17 (Sigrid): slate saw-teeth, the glazing only on each tooth's steep north face (it read as solar panels)
 			var tooth := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.left_to_right = 0.0; pr.size = Vector3(15, 5, 34); tooth.mesh = pr
 			tooth.material_override = slate; tooth.position = Vector3(-62.5 + 15.0 * t + 7.5, 11.5, z); n.add_child(tooth)
-			var gl := MeshInstance3D.new(); var gb := BoxMesh.new(); gb.size = Vector3(0.3, 3.6, 32); gl.mesh = gb; gl.material_override = lit; gl.position = Vector3(-62.5 + 15.0 * t + 0.3, 11.6, z); n.add_child(gl)
-		for sd in [-1.0, 1.0]:   # a row of lit windows down each long wall
-			var wr := MeshInstance3D.new(); var wb2 := BoxMesh.new(); wb2.size = Vector3(110, 2.2, 0.3); wr.mesh = wb2; wr.material_override = lit; wr.position = Vector3(-10, 5.0, z + sd * 17.1); n.add_child(wr)
+			for q in 7:   # 1.18 (Sigrid r7-d): panes between dark glazing bars, and dimmer than the walls, so a roof no longer reads as a glowing rod
+				var gl := MeshInstance3D.new(); var gb := BoxMesh.new(); gb.size = Vector3(0.3, 3.2, 3.4); gl.mesh = gb; gl.material_override = roof_lit
+				gl.position = Vector3(-62.5 + 15.0 * t + 0.3, 11.6, -13.8 + 4.6 * q + z); n.add_child(gl)
+		for sd in [-1.0, 1.0]:   # a row of lit windows down each long wall, one per bay
+			for q in 18:
+				var wr := MeshInstance3D.new(); var wb2 := BoxMesh.new(); wb2.size = Vector3(3.6, 2.2, 0.3); wr.mesh = wb2; wr.material_override = lit; wr.position = Vector3(-62.0 + 6.1 * q, 5.0, z + sd * 17.1); n.add_child(wr)
 	var eng := MeshInstance3D.new(); var eb := BoxMesh.new(); eb.size = Vector3(30, 22, 26); eng.mesh = eb; eng.material_override = brick; eng.position = Vector3(75, 11, -20); n.add_child(eng)
 	var er := MeshInstance3D.new(); var epr := PrismMesh.new(); epr.size = Vector3(31, 7, 27); er.mesh = epr; er.material_override = slate; er.position = Vector3(75, 25.5, -20); n.add_child(er)
 	for k in 2:   # two chimneys: the works reads from across the valley
