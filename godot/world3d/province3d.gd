@@ -213,6 +213,10 @@ func _update_sky(mn: float) -> void:
 	env.tonemap_exposure = lerpf(1.0, 1.55, n)
 	if env.volumetric_fog_enabled:
 		env.volumetric_fog_albedo = Color(0.9, 0.85, 0.8).lerp(Color(0.5, 0.55, 0.7), n)
+		# 1.18 (manager review: L05 washed out under white haze): thin haze by day, the full haze only at dusk and night
+		env.volumetric_fog_density = lerpf(0.00003, 0.00012, clampf(maxf(n, d), 0.0, 1.0))
+	var day := (1.0 - n) * (1.0 - d)
+	env.adjustment_contrast = lerpf(1.06, 1.14, day); env.adjustment_saturation = lerpf(1.04, 1.16, day)   # daylight colour with some bite
 	for wm in _water_mats: wm.set_shader_parameter("night", n)
 	if _terrain_mat != null: _terrain_mat.set_shader_parameter("night", n)
 
@@ -308,6 +312,7 @@ func _build_static() -> void:
 	_build_water(); _tp("water")
 	_build_forests(near); _tp("forests")
 	_build_rocks(); _tp("rocks")
+	if not field is GenField: _build_farms(); _tp("farms")
 	print("LOOK2 terrain built in %d ms (step %.1f m)" % [Time.get_ticks_msec() - t0, step])
 
 func _water_mat(river: bool) -> ShaderMaterial:
@@ -321,6 +326,47 @@ func _water_mat(river: bool) -> ShaderMaterial:
 		wm.set_shader_parameter("flow_z", 0.02); wm.set_shader_parameter("scale", 0.35)
 	_water_mats.append(wm)
 	return wm
+
+## 1.18 (manager review: L05 empty): farmsteads on the engine map's open fields, a red barn and a white farmhouse round a yard, one mesh.
+## Only on grass tiles clear of towns, yards and routes; one tile in about 25, picked by a hash so the same map always has the same farms.
+func _build_farms() -> void:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	for j in field.H:
+		for i in field.W:
+			if field.kind_at_tile(i, j) != TerrainField.K_GRASS or _h(i, j, 401) > 0.04: continue
+			var x := (i + 0.25 + 0.5 * _h(i, j, 402)) * tm; var z := (j + 0.25 + 0.5 * _h(i, j, 403)) * tm
+			if not _clear_of_infra(x, z): continue
+			var y := ground(x, z) - 0.3; var rot := TAU * _h(i, j, 404)
+			var ax := Vector3(cos(rot), 0, sin(rot)); var az := Vector3(-ax.z, 0, ax.x)
+			var o := Vector3(x, y, z)
+			_farm_box(st, o, ax, az, Vector3(0, 0, 0), Vector3(24, 9, 12), Color(0.55, 0.20, 0.15), Color(0.30, 0.28, 0.28), 5.0)   # barn
+			_farm_box(st, o, ax, az, Vector3(4, 0, 22), Vector3(12, 6, 9), Color(0.90, 0.88, 0.82), Color(0.45, 0.24, 0.18), 3.5)   # farmhouse
+			_farm_box(st, o, ax, az, Vector3(-16, 0, 6), Vector3(5, 11, 5), Color(0.62, 0.62, 0.60), Color(0.50, 0.50, 0.50), 1.0)   # silo
+			any = true
+	if not any: return
+	st.generate_normals()
+	var mat := StandardMaterial3D.new(); mat.vertex_color_use_as_albedo = true; mat.roughness = 0.9; mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new(); mi.name = "Farms"; mi.mesh = st.commit(); mi.material_override = mat; _root_static.add_child(mi)
+
+## A box with a gable roof, at offset `off` (x along ax, z along az) from o, for _build_farms.
+func _farm_box(st: SurfaceTool, o: Vector3, ax: Vector3, az: Vector3, off: Vector3, sz: Vector3, wall: Color, roof: Color, rh: float) -> void:
+	var c := o + ax * off.x + az * off.z
+	var hx := ax * sz.x * 0.5; var hz := az * sz.z * 0.5; var up := Vector3(0, sz.y, 0)
+	var b := [c - hx - hz, c + hx - hz, c + hx + hz, c - hx + hz]
+	st.set_color(wall)
+	for k in 4:
+		var p0: Vector3 = b[k]; var p1: Vector3 = b[(k + 1) % 4]
+		st.add_vertex(p0); st.add_vertex(p1 + up); st.add_vertex(p1)
+		st.add_vertex(p0); st.add_vertex(p0 + up); st.add_vertex(p1 + up)
+	var r0 := c - hx + up + Vector3(0, rh, 0); var r1 := c + hx + up + Vector3(0, rh, 0)
+	st.set_color(wall)   # gable ends
+	st.add_vertex(b[0] + up); st.add_vertex(r0); st.add_vertex(b[3] + up)
+	st.add_vertex(b[1] + up); st.add_vertex(b[2] + up); st.add_vertex(r1)
+	st.set_color(roof)
+	for q in [[b[0] + up, b[1] + up, r1, r0], [b[2] + up, b[3] + up, r0, r1]]:
+		st.add_vertex(q[0]); st.add_vertex(q[2]); st.add_vertex(q[1])
+		st.add_vertex(q[0]); st.add_vertex(q[3]); st.add_vertex(q[2])
 
 func _build_water() -> void:
 	_water_mats.clear()
@@ -358,6 +404,28 @@ func _build_water() -> void:
 	if field is GenField:
 		var rg := MeshInstance3D.new(); rg.name = "River"; rg.mesh = (field as GenField).river_mesh(); rg.material_override = _water_mat(true)
 		rg.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_static.add_child(rg)
+	# 1.18 (manager review): where a road reaches the river it crosses on a bridge: a deck on two piers with low parapets
+	if not field is GenField:
+		var stone := StandardMaterial3D.new(); stone.albedo_color = Color(0.55, 0.52, 0.48); stone.roughness = 0.9
+		var done := {}
+		for j in field.H:
+			for i in field.W:
+				if field.kind_at_tile(i, j) != TerrainField.K_RIVER: continue
+				for dir: Vector2i in [Vector2i(1, 0), Vector2i(0, 1)]:
+					var a := Vector2i(i, j) - dir; var b := Vector2i(i, j) + dir
+					while field.kind_at_tile(b.x, b.y) == TerrainField.K_RIVER: b += dir
+					if field.kind_at_tile(a.x, a.y) != TerrainField.K_PAVED and field.kind_at_tile(b.x, b.y) != TerrainField.K_PAVED: continue
+					if done.has(a): continue
+					done[a] = true
+					var pa := (Vector2(a) + Vector2(0.5, 0.5)) * tm; var pb := (Vector2(b) + Vector2(0.5, 0.5)) * tm
+					var mid := (pa + pb) * 0.5; var ln := pa.distance_to(pb)
+					var y0 := maxf(ground(pa.x, pa.y), ground(pb.x, pb.y)) + 1.0
+					var br := Node3D.new(); br.name = "Bridge"; br.position = Vector3(mid.x, y0, mid.y); br.rotation.y = 0.0 if dir.x == 1 else PI * 0.5; _root_static.add_child(br)
+					var deck := MeshInstance3D.new(); var dm := BoxMesh.new(); dm.size = Vector3(ln, 1.6, 9.0); deck.mesh = dm; deck.material_override = stone; br.add_child(deck)
+					for sz in [-4.3, 4.3]:
+						var pp := MeshInstance3D.new(); var pm2 := BoxMesh.new(); pm2.size = Vector3(ln, 1.2, 0.5); pp.mesh = pm2; pp.material_override = stone; pp.position = Vector3(0, 1.4, sz); br.add_child(pp)
+					for sx in [-0.17, 0.17]:
+						var pier := MeshInstance3D.new(); var pr := BoxMesh.new(); pr.size = Vector3(3.0, 14.0, 8.0); pier.mesh = pr; pier.material_override = stone; pier.position = Vector3(sx * ln, -7.5, 0); br.add_child(pier)
 	if any:
 		var rv := MeshInstance3D.new(); rv.name = "River"; rv.mesh = st.commit(); rv.material_override = _water_mat(true)
 		rv.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -765,9 +833,9 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 	var o := c + ax * (edge + 140.0)
 	var n := Node3D.new(); n.name = "Works"; n.position = Vector3(o.x, ground(o.x, o.y) - 0.4, o.y); n.rotation.y = -rot; _root_infra.add_child(n)
 	var brick := StandardMaterial3D.new(); brick.albedo_color = Color(0.5, 0.28, 0.22); brick.roughness = 0.95
-	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.22, 0.2, 0.21); slate.roughness = 0.9
+	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.36, 0.34, 0.36); slate.roughness = 0.8   # 1.18 (manager review): lighter, so each tooth's lit slope reads from above
 	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.78, 0.45); lit.emission_energy_multiplier = 1.6   # the mill runs 06:00-22:00: its windows are lit
-	var roof_lit: StandardMaterial3D = lit.duplicate(); roof_lit.emission_energy_multiplier = 0.55
+	var roof_lit: StandardMaterial3D = lit.duplicate(); roof_lit.emission_energy_multiplier = 1.1   # panes between bars, so bright skylights no longer read as rods
 	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.42, 0.4, 0.37); yard.roughness = 1.0
 	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(230, 0.5, 170); pad.mesh = pb; pad.material_override = yard; pad.position = Vector3(10, 0.2, 0); n.add_child(pad)
 	for k in 3:   # weaving sheds: long and low, a saw-tooth of north lights
@@ -791,9 +859,14 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 		var cap := MeshInstance3D.new(); var cc2 := CylinderMesh.new(); cc2.top_radius = 3.0; cc2.bottom_radius = 2.6; cc2.height = 3.0; cap.mesh = cc2
 		cap.material_override = slate; cap.position = Vector3(96 + 14 * k, h + 1.5, -36 + 30 * k); n.add_child(cap)
 		if quality != "low": n.add_child(_smoke(Vector3(96 + 14 * k, h + 3.0, -36 + 30 * k)))
-	for b in 14:   # bales in the yard
-		var bale := MeshInstance3D.new(); var bb := BoxMesh.new(); bb.size = Vector3(4, 3, 4); bale.mesh = bb; bale.material_override = slate if b % 3 == 0 else yard
-		bale.position = Vector3(60 + 5.5 * (b % 7), 1.5 + 3.0 * float(b / 7), 50); n.add_child(bale)
+	var cotton := StandardMaterial3D.new(); cotton.albedo_color = Color(0.86, 0.82, 0.72); cotton.roughness = 1.0
+	var coal := StandardMaterial3D.new(); coal.albedo_color = Color(0.09, 0.09, 0.1); coal.roughness = 1.0
+	for b in 42:   # stock in the yard: cotton bales in three stacks (1.18: a yard that reads as a works, manager review)
+		var bale := MeshInstance3D.new(); var bb := BoxMesh.new(); bb.size = Vector3(4, 3, 4); bale.mesh = bb; bale.material_override = cotton
+		var st := b / 14; var k := b % 14
+		bale.position = Vector3(30 + 32.0 * st + 5.0 * (k % 5), 1.5 + 3.0 * float(k / 5), 52 - 5.0 * float((k / 5) % 2)); n.add_child(bale)
+	var heap := MeshInstance3D.new(); var hc := CylinderMesh.new(); hc.top_radius = 1.0; hc.bottom_radius = 14.0; hc.height = 8.0; heap.mesh = hc
+	heap.material_override = coal; heap.position = Vector3(100, 4.0, 10); n.add_child(heap)   # the boiler house's coal heap
 	var rail := StandardMaterial3D.new(); rail.albedo_color = Color(0.22, 0.2, 0.19); rail.roughness = 0.6; rail.metallic = 0.5
 	var bed := StandardMaterial3D.new(); bed.albedo_color = Color(0.38, 0.34, 0.3); bed.roughness = 1.0
 	for seg in 30:   # the siding: ballast and two rails, 900 m out across the fields, following the ground
@@ -1266,6 +1339,19 @@ func reset_camera() -> void:
 		if _big_centre.x < INF and Vector2(_g_target.x, _g_target.z).distance_to(_big_centre) > maxf(map_size.x, map_size.y) * 0.2:   # 1.16: L07 and L09 opened on empty hills
 			_g_target = Vector3(_big_centre.x, 0.0, _big_centre.y); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 			_g_dist = 2400.0; _g_pitch = deg_to_rad(26.0)
+		if true:   # 1.18 (Dagny): the finale opens on Eastgate, the harbour and Saltmarsh Island, where the first sag and the storm come
+			var pts: Array = []; var island := false
+			for t in model.get("towns", []):
+				var nm := str((t as Dictionary).get("name", "")).to_lower()
+				if nm == "eastgate" or nm == "harbour" or nm == "saltmarsh island": pts.append(tile_to_world((t.pos as Vector2) + Vector2(0.5, 0.5)))
+				if nm == "saltmarsh island": island = true
+			if island and pts.size() >= 2:
+				var c := Vector3.ZERO
+				for q in pts: c += q
+				c /= float(pts.size())
+				var spread := 0.0
+				for q in pts: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
+				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 2.4, 2400.0, 9000.0); _g_pitch = deg_to_rad(30.0)
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
