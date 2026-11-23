@@ -77,11 +77,11 @@ func layout() -> void:
 func _txt(s: String, at: Vector2, px: int, col: Color, font := "mono", w := -1.0) -> void:
 	GridText.ds(self, GridTheme.font(font), at, s, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(px), col)
 
-func _ink(a := 1.0) -> Color: return Color(GridTheme.PAPER_INK, a)
+func _ink(a := 1.0) -> Color: return Color(GridTheme.G_TEXT if GridTheme.look2 else GridTheme.PAPER_INK, a)   # LOOK2 (1.16): light ink on glass
 
 func _draw() -> void:
 	if mode == "" or not visible: return
-	draw_style_box(GridTheme.paper_sb(3, 0.0), Rect2(Vector2.ZERO, size))
+	draw_style_box(GridTheme.glass_sb(0.86, 4, 0.0) if GridTheme.look2 else GridTheme.paper_sb(3, 0.0), Rect2(Vector2.ZERO, size))
 	if CbLayout.kind == "phone":   # the fold toggle in the header's corner
 		_txt("▸" if collapsed else "▾", Vector2(W - 28.0, 24.0), 18, _ink(0.8))
 		if collapsed:

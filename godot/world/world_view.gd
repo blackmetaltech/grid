@@ -17,7 +17,7 @@ var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 ## LOOK2: the levels drawn by the 3D province (world3d/province3d.gd) when it is present; every other level keeps this 2D diorama.
-const LOOK2_LEVELS := ["L30", "L28"]   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
+const LOOK2_LEVELS := ["L30", "L28", "L07", "L08", "L09"]   # 1.16: chapter 3 (Mill Town) in the new look (DECISIONS 21)   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
 var look3d = null              # Province3D or null (tests, CI, levels not yet rebuilt)
 var _drag_btn := 0
 var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
