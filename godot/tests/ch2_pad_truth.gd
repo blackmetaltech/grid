@@ -41,6 +41,11 @@ func _initialize() -> void:
 	var t0 := int(T.b.q("ch2Bench").machine.turns)
 	_pad(bench, JOY_BUTTON_DPAD_RIGHT)
 	T.check(int(T.b.q("ch2Bench").machine.turns) == t0 + 1, "right on turns adds one turn")
+	_pad(bench, JOY_BUTTON_DPAD_DOWN); var b0 := float(T.b.q("ch2Bench").machine.fieldT)
+	_pad(bench, JOY_BUTTON_DPAD_RIGHT)
+	T.near(float(T.b.q("ch2Bench").machine.fieldT), b0 + 0.05, 1e-9, "a press on field B is 0.05 T (it was 0.01: 18 presses to 0.69)")
+	_pad(bench, JOY_BUTTON_DPAD_LEFT); _pad(bench, JOY_BUTTON_DPAD_UP)
+	T.near(float(T.b.q("ch2Bench").machine.fieldT), b0, 1e-9, "and back")
 	_pad(bench, JOY_BUTTON_DPAD_DOWN); _pad(bench, JOY_BUTTON_DPAD_DOWN)
 	T.check(bench.pad_stop().get("id", "") == "area", "down twice more: the coil area knob")
 	T.check(_pad(bench, JOY_BUTTON_DPAD_DOWN) and bench.pad_stop().get("kind", "") == "predict", "down: the prediction box")
@@ -48,9 +53,15 @@ func _initialize() -> void:
 	# the answer is hidden until the prediction is made
 	T.check(bench.hide_answer(), "L04 before predicting: the answer is hidden")
 	T.check(bench.shown(325.3, 1) == "?", "hidden numbers read '?'")
+	T.check(bench.trace_colour() == Ch2Bench.NEUTRAL and bench.value_colour(true) == Ch2Bench.NEUTRAL, "before predicting the scope trace and the voltage cells stay one neutral colour (green on target gave it away)")
 	# A on the prediction box opens the number pad; OK sends the prediction
 	T.check(_pad(bench, JOY_BUTTON_A), "A on the prediction box is used")
 	var np = bench.numpad_host().get_node_or_null("Numpad")
+	await process_frame
+	T.check(np != null and np.get_viewport().gui_get_focus_owner() != null and str(np.get_viewport().gui_get_focus_owner().name) != "K_13", "the number pad opens on a digit, not OK")
+	if np != null:
+		np._key("OK")
+		T.check(is_instance_valid(np) and not np.is_queued_for_deletion() and T.b.q("ch2Bench").prediction == null, "OK on an empty field does nothing (a stray A sent 6 kW)")
 	T.check(np != null, "A opens the number pad")
 	T.check(not bench.pad_free() and not _pad(bench, JOY_BUTTON_DPAD_UP), "the panel lets go of the pad while the number pad is up")
 	if np != null:

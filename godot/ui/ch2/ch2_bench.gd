@@ -10,6 +10,7 @@ const M := 14.0
 const PANEL_H := 138.0
 const SLOWMO := 25.0           ## the rotor is drawn this many times slower than the shaft turns (500 rpm is 8 turns a second)
 const SCOPE_MS := 40.0         ## the scope's horizontal span
+const NEUTRAL := Color("#C9D2E3")   ## the trace and the voltage cells before the prediction: green on target gave the answer away
 
 var app: CbApp
 var q: Dictionary = {}         ## the engine's ch2Bench
@@ -156,7 +157,7 @@ func _spec(id: String) -> Dictionary:
 	match id:
 		"poles": return {"act": "setPoles", "min": float(rg.poles.min), "max": float(rg.poles.max), "step": 2.0, "log": false}
 		"turns": return {"act": "setTurns", "min": float(rg.turns.min), "max": float(rg.turns.max), "step": 1.0, "log": true}
-		"field": return {"act": "setField", "min": float(rg.fieldT.min), "max": float(rg.fieldT.max), "step": 0.01, "log": false}
+		"field": return {"act": "setField", "min": float(rg.fieldT.min), "max": float(rg.fieldT.max), "step": 0.01, "nudge": 0.05, "log": false}   # a press is 0.05 T (0.01 took 18 presses); the slider keeps 0.01
 		_: return {"act": "setArea", "min": float(rg.areaM2.min), "max": float(rg.areaM2.max), "step": 0.005, "log": false}
 
 func _value(id: String) -> float:
@@ -194,7 +195,7 @@ func _knob_drag(h: Dictionary, p: Vector2) -> void:
 	if not is_equal_approx(v, _value(id)): _queue(str(_spec(id).act), v if id in ["field", "area"] else int(v))
 
 func _nudge(id: String, dir: int) -> void:
-	var s := _spec(id); var v := clampf(_value(id) + float(s.step) * dir, float(s.min), float(s.max))
+	var s := _spec(id); var v := clampf(_value(id) + float(s.get("nudge", s.step)) * dir, float(s.min), float(s.max))
 	v = snappedf(v, float(s.step) if float(s.step) >= 1.0 else 0.001)
 	_send(str(s.act), v if id in ["field", "area"] else int(v))
 
@@ -327,6 +328,14 @@ class PadRelay extends Node:
 ## L04 asks for the winding's peak e0 (the rms is e0 ÷ √2), L06 for the loss at 4 kV (the kW, the % and the line current lead straight to it).
 func hide_answer() -> bool: return not q.is_empty() and q.get("prediction") == null
 
+## The scope trace: green / amber / red against the band, one neutral colour until the prediction is made.
+func trace_colour() -> Color:
+	if hide_answer(): return NEUTRAL
+	return GridTheme.GOOD if bool(q.ok) else (GridTheme.WARN if (bool(q.vOk) or bool(q.fOk)) else GridTheme.BAD)
+
+## A voltage value's colour (rms, peak): in band or not, neutral until the prediction is made.
+func value_colour(ok: bool) -> Color: return NEUTRAL if hide_answer() else _good(ok)
+
 func shown(x: float, d: int) -> String: return "?" if hide_answer() else _f(x, d)
 
 # ---- drawing helpers --------------------------------------------------------------------------------------------------------------
@@ -397,7 +406,7 @@ func _draw_scope(r: Rect2, boxed := true) -> void:
 	var pk := float(q.vPeakTargetV); var tol := float(q.machine.vTolPct) / 100.0
 	for sgn in [-1.0, 1.0]:
 		draw_rect(Rect2(Vector2(r.position.x + 8, mid - sgn * pk * (1.0 + tol) * scale), Vector2(r.size.x - 16.0, pk * 2.0 * tol * scale)), Color(GridTheme.GOOD, 0.22), true)
-	var e0 := float(q.e0V); var f := float(q.fHz); var col: Color = GridTheme.GOOD if bool(q.ok) else (GridTheme.WARN if (bool(q.vOk) or bool(q.fOk)) else GridTheme.BAD)
+	var e0 := float(q.e0V); var f := float(q.fHz); var col := trace_colour()
 	var n := 220; var pts := PackedVector2Array(); var x0 := r.position.x + 8.0; var wd := r.size.x - 16.0
 	var drift := _t * 0.004 if not CbSettings.reduced_motion else 0.0   # the trace crawls: the scope runs 250 times slower than the clock on the wall
 	for i in n + 1:
@@ -496,8 +505,8 @@ func _draw_readouts(r: Rect2) -> void:
 	var m: Dictionary = q.machine
 	var rows := [
 		[T("C2_R_FREQ"), T("C2_R_FREQ_V") % _f(float(q.fHz), 2), T("C2_R_NEED") % [_f(float(q.fLoHz), 2), _f(float(q.fHiHz), 2)], bool(q.fOk)],
-		[T("C2_R_RMS"), T("C2_R_RMS_V") % shown(float(q.eRmsV), 1), T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], bool(q.vOk)],
-		[T("C2_R_PEAK"), T("C2_R_PEAK_V") % shown(float(q.e0V), 1), T("C2_R_NEED_PEAK"), bool(q.vOk)],
+		[T("C2_R_RMS"), T("C2_R_RMS_V") % shown(float(q.eRmsV), 1), T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], bool(q.vOk), true],
+		[T("C2_R_PEAK"), T("C2_R_PEAK_V") % shown(float(q.e0V), 1), T("C2_R_NEED_PEAK"), bool(q.vOk), true],
 		[T("C2_R_NBA"), T("C2_R_NBA_V") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], "", true],
 		[T("C2_R_COPPER"), T("C2_R_COPPER_V") % _f(float(q.kg), 0), "", true],
 	]
@@ -506,7 +515,7 @@ func _draw_readouts(r: Rect2) -> void:
 		for row in rows: vx = maxf(vx, semi.get_string_size(str(row[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x + 14.0)
 	for row in rows:
 		_text(semi, 11, Vector2(x, y), str(row[0]), Color(GridTheme.TEXT, 0.65))
-		_text(mono, 15, Vector2(x + vx, y), str(row[1]), _good(bool(row[3])) if str(row[2]) != "" else GridTheme.TEXT)
+		_text(mono, 15, Vector2(x + vx, y), str(row[1]), (value_colour(bool(row[3])) if row.size() > 4 else _good(bool(row[3]))) if str(row[2]) != "" else GridTheme.TEXT)
 		if str(row[2]) != "": _text(mono, 10, Vector2(r.end.x - 150.0, y), str(row[2]), Color(GridTheme.DIM, 0.95), 140.0, 2)
 		y += lh
 
@@ -717,8 +726,8 @@ func _draw_machine3() -> void:
 	# the numbers the player needs, as compact cells under the scope: each value against its target
 	var cells := [
 		[[T("C2_R_FREQ_V") % _f(float(q.fHz), 2), _good(bool(q.fOk))], [T("C2_R_NEED") % [_f(float(q.fLoHz), 2), _f(float(q.fHiHz), 2)], dim]],
-		[[T("C2_C_RMS_V") % shown(float(q.eRmsV), 1), _good(bool(q.vOk))], [T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], dim]],
-		[[T("C2_C_PEAK_V") % shown(float(q.e0V), 1), _good(bool(q.vOk))], [T("C2_C_NEED_PK") % _f(float(q.vPeakTargetV), 0), dim]],
+		[[T("C2_C_RMS_V") % shown(float(q.eRmsV), 1), value_colour(bool(q.vOk))], [T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], dim]],
+		[[T("C2_C_PEAK_V") % shown(float(q.e0V), 1), value_colour(bool(q.vOk))], [T("C2_C_NEED_PK") % _f(float(q.vPeakTargetV), 0), dim]],
 		[[T("C2_C_NBA") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], GridTheme.G_TEXT]],
 		[[T("C2_C_COPPER") % _f(float(q.kg), 0), GridTheme.G_TEXT]],
 	]

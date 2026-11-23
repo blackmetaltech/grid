@@ -8,9 +8,10 @@ var target: LineEdit
 var shown: Label
 var text := ""
 var _btns: Array = []
+var _orig := ""   ## the box's text when the pad opened: OK on an empty or unchanged field does nothing (1.19: a stray A on the wide OK sent 6 kW)
 
 static func open_for(le: LineEdit, host: Control) -> GridNumpad:
-	var p := GridNumpad.new(); p.name = "Numpad"; p.target = le; p.text = le.text
+	var p := GridNumpad.new(); p.name = "Numpad"; p.target = le; p.text = le.text; p._orig = le.text
 	host.add_child(p); p._build(); p._place()
 	return p
 
@@ -49,7 +50,9 @@ func _key(k: String) -> void:
 		"⌫": text = text.left(maxi(0, text.length() - 1))
 		"−": text = text.trim_prefix("-") if text.begins_with("-") else "-" + text
 		".": if not text.contains("."): text += "."
-		"OK": _done(true); return
+		"OK":
+			if text.strip_edges() == "" or text == _orig: return
+			_done(true); return
 		_: text += k
 	shown.text = text
 
