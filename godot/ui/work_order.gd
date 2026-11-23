@@ -162,7 +162,7 @@ static func open(app: CbApp) -> void:
 	var fresh: bool = int(app.b.g.get("tick", 0)) <= int(app.b.g.get("levelStart", 0))
 	var w := minf(880.0, app.vw() - 40.0)
 	var compact := PaperKit.compact(app)   # landscape phone: Goal and "To pass" first, everything else scrolls under a "more" cue
-	var short: bool = app.vs_h() < 840.0 or _force_short
+	var short: bool = _force_short or (app.vs_h() < 840.0 and compact)   # 1.19: a short screen tries the card at its own height first (_fit switches to the scrolling sheet only if it does not fit); the prologue's card was a third empty at 720 px
 	PaperKit.glass = GridTheme.look2   # LOOK2: the work order in the glass language over the 3D province (1.16); reset below
 	var d := PaperKit.sheet(app, "workorder", w, (app.vs_h() - 24.0) if short else 0.0, 0.45 if PaperKit.glass else 0.8, (14.0 if compact else 24.0) if PaperKit.glass else (18.0 if compact else 30.0))
 	_d = d
