@@ -35,6 +35,7 @@ const LONG_S := 0.55
 var _town_boxes: Array[Rect2] = []   # town / yard label boxes of the last frame
 var _pegs: Array = []               # [{tile: Vector2, label: String}] glowing site pegs (the kit tray's legal sites)
 var _peg_hi := -1
+var _note_rect := Rect2()   # the scale note this frame, kept clear of town labels
 var _press := false
 var _press_pos := Vector2.ZERO
 var _press_moved := 0.0
@@ -1505,13 +1506,15 @@ func _draw_labels() -> void:
 	var font := CbKit.font_regular()
 	var fs := 13 if size.x < 1400.0 else 15
 	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
+	_note_rect = Rect2()
 	if _l3() and look3d.field is GenField and _cover.size.x <= 0.0:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
 		var note := tr("WORLD_SCALE_NOTE"); var nfs := GridText.floor_size(_ci, 14); var nw := font.get_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, -1, nfs).x   # 1.16 (Sigrid): measured at the floored size, below the clock
-		var nr := Rect2(Vector2(16.0, 128.0), Vector2(nw + 20.0, nfs + 8.0))
+		var nr := Rect2(Vector2(16.0, 128.0), Vector2(nw + 20.0, nfs + 8.0)); _note_rect = nr
 		_dr(nr, Color(0.03, 0.05, 0.08, 0.62)); _bt_flush(); GridText.ds(_ci, font, nr.position + Vector2(10, nfs + 2.0), note, HORIZONTAL_ALIGNMENT_LEFT, -1, nfs, Color(0.82, 0.87, 0.92))
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	var site_seen := {}
 	var placed: Array[Rect2] = []; _town_boxes = placed   # (kept for the pegs, which leave a town name readable) grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other
+	if _note_rect.size.x > 0.0: placed.append(_note_rect.grow(4.0))   # 1.17: town labels move clear of the scale note (it sat on Eastgate)
 	for t in model.towns:
 		if t.kind == "school" or t.kind == "hamlet" or t.get("mascot", false):
 			if not t.has("volts"): continue
