@@ -190,7 +190,7 @@ func _build() -> void:
 	_clear(_root)
 	_water_mats.clear(); _homes.clear(); _xf_nodes.clear(); _junctions.clear(); _shoe_mats.clear(); anchors.clear()
 	_alt = null; _rotor = null; _coils = null; _gap_mat = null; _fall_mat = null; _wire_mat = null; _wire_glow = null
-	_rotor_key = ""; _coil_key = ""; _xf_kva = -1
+	_rotor_key = ""; _coil_key = ""; _xf_kva = -1; _line_key = ""; _line_root = null
 	if kind == "machine":
 		_play = Rect2(-110.0, -90.0, 240.0, 180.0)
 		_ph = Vector3(-6.0, 1.0, _rz(-6.0) + 40.0)
@@ -370,11 +370,6 @@ func _mat(c: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
 func _vc_mat(rough := 0.85) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; m.roughness = rough; m.cull_mode = BaseMaterial3D.CULL_DISABLED; return m
 
-func _stone_mat() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new(); m.albedo_texture = _tex("rock_albedo"); m.normal_enabled = true; m.normal_texture = _tex("rock_normal")
-	m.uv1_triplanar = true; m.uv1_scale = Vector3(0.22, 0.22, 0.22); m.albedo_color = Color(1.1, 1.04, 0.95); m.roughness = 0.92
-	return m
-
 func _box(parent: Node3D, c: Vector3, s: Vector3, m: Material, nm := "") -> MeshInstance3D:
 	var bm := BoxMesh.new(); bm.size = s
 	var mi := MeshInstance3D.new(); mi.mesh = bm; mi.material_override = m; mi.position = c
@@ -385,28 +380,72 @@ func _glow_mat(tint: Color, power: float) -> ShaderMaterial:
 	var g := ShaderMaterial.new(); g.shader = load("res://world3d/shaders/glow.gdshader")
 	g.set_shader_parameter("tint", tint); g.set_shader_parameter("power", power); return g
 
-## A stone powerhouse, 20 x 14 m, 8 m to the eaves, cut away: the wall that faces the opening camera (+z) is left out and the roof covers only the
-## back half, so the machine hall reads from outside. A work lamp lights the hall; it is not on the bench's circuit.
+## Dressed stone or poured concrete: the photo texture only modulates a base colour (shaders/soft_triplanar.gdshader), so walls read calm.
+func _soft_mat(t: String, base: Color, contrast: float, scale: float, courses := 0.0, bump := 0.35) -> ShaderMaterial:
+	var m := ShaderMaterial.new(); m.shader = load("res://world3d/shaders/soft_triplanar.gdshader")
+	m.set_shader_parameter("tex", _tex(t + "_albedo")); m.set_shader_parameter("nrm", _tex(t + "_normal"))
+	m.set_shader_parameter("base", base); m.set_shader_parameter("contrast", contrast); m.set_shader_parameter("scale", scale)
+	m.set_shader_parameter("courses", courses); m.set_shader_parameter("bump", bump)
+	return m
+
+## A beam between two points (square section `s`), for trusses and purlins.
+func _beam(parent: Node3D, a: Vector3, b: Vector3, s: float, m: Material) -> void:
+	var bm := BoxMesh.new(); bm.size = Vector3(s, s, a.distance_to(b) + s)
+	var mi := MeshInstance3D.new(); mi.mesh = bm; mi.material_override = m; parent.add_child(mi)
+	mi.position = (a + b) * 0.5
+	if not a.is_equal_approx(b): mi.look_at_from_position(mi.position, b, Vector3.UP if absf((b - a).normalized().y) < 0.99 else Vector3.RIGHT)
+
+const PH_RIDGE := 10.8            # the powerhouse's ridge height (m above the floor); the eaves are at 8
+
+## A stone powerhouse, 20 x 14 m, 8 m to the eaves, cut away for the camera: the front wall (+z) is left out between two corner piers that carry a
+## steel eaves beam, and only the back slope of the roof is sheeted; the front slope shows its king-post trusses and purlins, which rest on the side
+## walls and the eaves beam. A work lamp under the trusses lights the hall; it is not on the bench's circuit.
 func _build_powerhouse(at: Vector3) -> Node3D:
 	var n := Node3D.new(); n.name = "Powerhouse"; n.position = at; _root.add_child(n)
-	var stone := _stone_mat(); var conc := _mat(Color(0.40, 0.40, 0.39), 0.9); var steel := _mat(Color(0.30, 0.33, 0.36), 0.5, 0.6)
+	var stone := _soft_mat("rock", Color(0.66, 0.62, 0.55), 0.32, 0.16, 0.62, 0.45)
+	var conc := _soft_mat("sand", Color(0.60, 0.59, 0.56), 0.22, 0.22, 0.0, 0.15)
+	var steel := _mat(Color(0.24, 0.27, 0.30), 0.5, 0.3)
 	_box(n, Vector3(0, -0.6, 0), Vector3(20.4, 1.6, 14.4), conc, "Floor")
 	_box(n, Vector3(0, 4.0, -6.7), Vector3(20.4, 8.0, 0.8), stone, "BackWall")
-	_box(n, Vector3(-9.8, 4.0, 0), Vector3(0.8, 8.0, 14.2), stone, "WestWall")
-	_box(n, Vector3(9.8, 4.0, -3.0), Vector3(0.8, 8.0, 8.2), stone, "EastWall")   # cut back at the front corner
-	_box(n, Vector3(9.8, 1.0, 3.8), Vector3(0.8, 2.0, 6.4), stone)
-	_box(n, Vector3(-9.8, 4.0, 6.8), Vector3(0.9, 8.0, 0.9), stone)   # what is left of the front: the corner pier
-	_box(n, Vector3(-6.4, 0.55, 6.8), Vector3(6.0, 1.1, 0.7), stone)   # and a low sill clear of the machine
-	_box(n, Vector3(0, 8.35, -2.4), Vector3(21.0, 0.5, 9.6), _mat(Color(0.26, 0.28, 0.30), 0.6, 0.3), "Roof")
-	for z in [0.0, 2.6, 5.2]: _box(n, Vector3(0, 8.0, z + 2.6), Vector3(20.0, 0.35, 0.25), steel)   # the open half's roof beams
-	for z in [-5.0, 5.4]: _box(n, Vector3(0, 6.9, z), Vector3(19.0, 0.4, 0.4), steel)            # crane rails
-	_box(n, Vector3(-3.0, 6.6, 0.2), Vector3(0.5, 0.5, 10.6), _mat(Color(0.85, 0.62, 0.12), 0.5, 0.3), "Crane")
-	_box(n, Vector3(9.8, 1.4, -5.0), Vector3(0.9, 2.6, 1.6), _mat(Color(0.26, 0.18, 0.12), 0.8), "Door")
-	var lamp := OmniLight3D.new(); lamp.name = "WorkLamp"; lamp.position = Vector3(1.0, 7.2, 1.5); lamp.omni_range = 24.0; lamp.light_energy = 3.2; lamp.light_color = Color(1.0, 0.86, 0.66); lamp.shadow_enabled = quality == "high"; n.add_child(lamp)
-	for x in [-5.0, 5.0]:
+	for sx in [-1.0, 1.0]:
+		_box(n, Vector3(sx * 9.8, 4.0, 0), Vector3(0.8, 8.0, 14.2), stone, "SideWall")
+		_box(n, Vector3(sx * 9.8, 4.0, 6.8), Vector3(1.0, 8.0, 1.0), stone, "Pier")
+		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)   # the gable above the side wall, up to the ridge
+		var x0: float = sx * 9.8 - 0.4; var x1: float = sx * 9.8 + 0.4
+		var tri := [Vector3(0, 8.0, -7.1), Vector3(0, PH_RIDGE + 0.1, 0.0), Vector3(0, 8.0, 7.3)]
+		for x in [x0, x1]:
+			var o := Vector3(x, 0, 0)
+			if x == x1: Props3D._tri(st, tri[0] + o, tri[1] + o, tri[2] + o)
+			else: Props3D._tri(st, tri[2] + o, tri[1] + o, tri[0] + o)
+		for e in [[0, 1], [1, 2]]:
+			var p0: Vector3 = tri[e[0]]; var p1: Vector3 = tri[e[1]]
+			Props3D._tri(st, p0 + Vector3(x0, 0, 0), p0 + Vector3(x1, 0, 0), p1 + Vector3(x1, 0, 0)); Props3D._tri(st, p0 + Vector3(x0, 0, 0), p1 + Vector3(x1, 0, 0), p1 + Vector3(x0, 0, 0))
+		var gm := MeshInstance3D.new(); gm.name = "Gable"; gm.mesh = st.commit(); gm.material_override = stone; n.add_child(gm)
+	_box(n, Vector3(-6.4, 0.55, 6.8), Vector3(6.0, 1.1, 0.7), stone, "Sill")   # a low sill, clear of the machine
+	_box(n, Vector3(0, 7.7, 6.8), Vector3(20.6, 0.6, 0.6), steel, "EavesBeam")
+	# king-post trusses across the hall, resting on the back wall and the eaves beam
+	for x in [-6.4, -2.2, 2.2, 6.4]:
+		var tie_a := Vector3(x, 8.05, -6.9); var tie_b := Vector3(x, 8.05, 6.9); var top := Vector3(x, PH_RIDGE, 0.0)
+		_beam(n, tie_a, tie_b, 0.26, steel); _beam(n, tie_a, top, 0.3, steel); _beam(n, tie_b, top, 0.3, steel)
+		_beam(n, Vector3(x, 8.05, 0.0), top, 0.2, steel)
+		for sz in [-1.0, 1.0]: _beam(n, Vector3(x, 8.05, 0.0), Vector3(x, (8.05 + PH_RIDGE) * 0.5, sz * 3.45), 0.16, steel)
+	_beam(n, Vector3(-9.8, PH_RIDGE, 0), Vector3(9.8, PH_RIDGE, 0), 0.3, steel)   # ridge
+	for k in [1, 2]:   # purlins on the open front slope
+		var z := 6.9 * float(k) / 3.0
+		var y := PH_RIDGE - (PH_RIDGE - 8.05) * z / 6.9 + 0.2
+		_beam(n, Vector3(-9.8, y, z), Vector3(9.8, y, z), 0.2, steel)
+	var slope := atan((PH_RIDGE - 8.0) / 7.3)
+	var roof := _box(n, Vector3(0, (PH_RIDGE + 8.0) * 0.5 + 0.25, -3.65), Vector3(21.2, 0.22, Vector2(7.3, PH_RIDGE - 8.0).length() + 0.5), _mat(Color(0.34, 0.24, 0.20), 0.65, 0.2), "Roof")
+	roof.rotation.x = -slope
+	for sx in [-1.0, 1.0]: _box(n, Vector3(sx * 9.1, 6.9, 0), Vector3(0.45, 0.45, 13.2), steel)   # crane runways on corbels along the side walls
+	_box(n, Vector3(0, 7.2, -2.0), Vector3(18.2, 0.55, 0.7), _mat(Color(0.85, 0.62, 0.12), 0.5, 0.2), "Crane")
+	_box(n, Vector3(10.25, 1.4, -5.0), Vector3(0.12, 2.6, 1.6), _mat(Color(0.26, 0.18, 0.12), 0.8), "Door")
+	var lamp := OmniLight3D.new(); lamp.name = "WorkLamp"; lamp.position = Vector3(1.0, 7.4, 2.0); lamp.omni_range = 24.0; lamp.light_energy = 3.2; lamp.light_color = Color(1.0, 0.86, 0.66); lamp.shadow_enabled = quality == "high"; n.add_child(lamp)
+	for x in [-6.4, 6.4]:   # two lamps hung from the ties
+		_beam(n, Vector3(x, 8.0, 1.5), Vector3(x, 7.45, 1.5), 0.04, steel)
 		var bulb := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.25; sm.height = 0.5; bulb.mesh = sm
 		var bmat := _mat(Color(0.1, 0.1, 0.1)); bmat.emission_enabled = true; bmat.emission = Color(1.0, 0.86, 0.66); bmat.emission_energy_multiplier = 4.0
-		bulb.material_override = bmat; bulb.position = Vector3(x, 7.4, 0.5); bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(bulb)
+		bulb.material_override = bmat; bulb.position = Vector3(x, 7.3, 1.5); bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(bulb)
 	return n
 
 ## A ring between radii r0 < r1, from z0 to z1 (axis along z), outer and inner faces and both ends.
@@ -459,30 +498,40 @@ func _frac(v: float, lo: float, hi: float, logk := false) -> float:
 	if logk and lo > 0.0: return clampf(log(maxf(v, lo) / lo) / log(hi / lo), 0.0, 1.0)
 	return clampf((v - lo) / (hi - lo), 0.0, 1.0)
 
-## The rotor: `p` salient poles round a hub, N red and S blue in turn; the pole faces are wider and longer for a larger coil area (af 0..1).
+## The rotor: a dark steel spider (boss, spokes, rim) carrying `p` salient poles, each a steel body in its copper field coil with a pole shoe; only the
+## shoe's face carries the N red / S blue. The shoes grow wider and longer with the coil area (af 0..1).
 func _build_rotor(p: int, af: float) -> void:
 	if _rotor != null: _alt.remove_child(_rotor); _rotor.queue_free()
 	_shoe_mats.clear()
 	_rotor = Node3D.new(); _rotor.name = "Rotor"; _alt.add_child(_rotor)
-	var steel := _mat(Color(0.42, 0.45, 0.48), 0.4, 0.3)
-	var hub := MeshInstance3D.new(); hub.name = "Hub"; var cm := CylinderMesh.new(); cm.top_radius = 1.0; cm.bottom_radius = 1.0; cm.height = 1.7; cm.radial_segments = 32
-	hub.mesh = cm; hub.material_override = steel; hub.rotation.x = PI * 0.5; _rotor.add_child(hub)
-	var cap := MeshInstance3D.new(); var cc := CylinderMesh.new(); cc.top_radius = 0.38; cc.bottom_radius = 0.38; cc.height = 0.3; cap.mesh = cc; cap.material_override = _mat(Color(0.7, 0.72, 0.74), 0.3, 0.8); cap.rotation.x = PI * 0.5; cap.position.z = 0.95; _rotor.add_child(cap)
+	var dark := _mat(Color(0.20, 0.22, 0.25), 0.45, 0.3)
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	_ring(st, 0.0, 0.42, -0.9, 0.95, 24, Color.WHITE)        # the boss on the shaft
+	_ring(st, 0.88, 1.06, -0.8, 0.8, 48, Color.WHITE)        # the rim the poles bolt to
+	for k in 6:   # spokes
+		var a := TAU * float(k) / 6.0 + 0.3
+		Props3D._box(st, Vector3(cos(a), sin(a), 0) * 0.66, Vector3(0.5, 0.5, 1.2), Color.WHITE)
+	st.generate_normals()
+	var spider := MeshInstance3D.new(); spider.name = "Spider"; spider.mesh = st.commit(); spider.material_override = dark; _rotor.add_child(spider)
+	var cap := MeshInstance3D.new(); var cc := CylinderMesh.new(); cc.top_radius = 0.3; cc.bottom_radius = 0.3; cc.height = 0.2; cap.mesh = cc; cap.material_override = _mat(Color(0.62, 0.64, 0.66), 0.3, 0.4); cap.rotation.x = PI * 0.5; cap.position.z = 1.0; _rotor.add_child(cap)
 	var slot := TAU * 1.45 / float(p)
-	var w := clampf(slot * (0.40 + 0.30 * af), 0.10, 1.1)
-	var depth := 1.0 + 0.6 * af
-	var body := BoxMesh.new(); body.size = Vector3(w, 0.86, depth)
-	var shoe := BoxMesh.new(); shoe.size = Vector3(minf(w * 1.45, slot * 0.92), 0.16, depth + 0.06)
+	var w := clampf(slot * 0.42, 0.10, 0.75)
+	var depth := 1.05 + 0.5 * af
+	var body := BoxMesh.new(); body.size = Vector3(w, 0.74, depth)
+	var coil := BoxMesh.new(); coil.size = Vector3(minf(w + 0.18, slot * 0.8), 0.5, depth + 0.18)
+	var shoe := BoxMesh.new(); shoe.size = Vector3(minf(w * (1.5 + 0.5 * af), slot * 0.9), 0.22, depth + 0.1)
+	var copper := _mat(Color(0.72, 0.40, 0.22), 0.4, 0.3)
 	var mats: Array[StandardMaterial3D] = []
-	for c in [Color(0.80, 0.20, 0.17), Color(0.20, 0.36, 0.82)]:
-		var m := StandardMaterial3D.new(); m.albedo_color = c; m.roughness = 0.5; m.metallic = 0.2
+	for c in [Color(0.86, 0.20, 0.16), Color(0.20, 0.40, 0.90)]:
+		var m := StandardMaterial3D.new(); m.albedo_color = c; m.roughness = 0.5; m.metallic = 0.1
 		m.emission_enabled = true; m.emission = c; m.emission_energy_multiplier = 0.25
 		mats.append(m); _shoe_mats.append(m)
 	for k in p:
 		var a := TAU * float(k) / float(p)
-		var pole := MeshInstance3D.new(); pole.name = "Pole%d" % k; pole.mesh = body; pole.material_override = mats[k % 2]
-		pole.position = Vector3(cos(a), sin(a), 0.0) * 1.42; pole.rotation.z = a - PI * 0.5
-		var sh := MeshInstance3D.new(); sh.name = "Shoe"; sh.mesh = shoe; sh.material_override = mats[k % 2]; sh.position = Vector3(0, 0.51, 0); pole.add_child(sh)
+		var pole := MeshInstance3D.new(); pole.name = "Pole%d" % k; pole.mesh = body; pole.material_override = dark
+		pole.position = Vector3(cos(a), sin(a), 0.0) * 1.40; pole.rotation.z = a - PI * 0.5
+		var cl := MeshInstance3D.new(); cl.name = "FieldCoil"; cl.mesh = coil; cl.material_override = copper; cl.position = Vector3(0, -0.02, 0); pole.add_child(cl)
+		var sh := MeshInstance3D.new(); sh.name = "Shoe"; sh.mesh = shoe; sh.material_override = mats[k % 2]; sh.position = Vector3(0, 0.47, 0); pole.add_child(sh)
 		_rotor.add_child(pole)
 
 ## The stator's coil bundles on the front face: one per pole, thicker for more turns (tf 0..1 on a log scale, as the knob runs).
@@ -537,7 +586,8 @@ func _wires(atts: Array, r: float, sag: float) -> Array:
 	for k in atts.size() - 1:
 		for side in [0, 2]:
 			var a: Vector3 = atts[k][side]; var b: Vector3 = atts[k + 1][side]
-			Props3D.add_wire(st, a, b, sag, r, run, 12); Props3D.add_wire(gs, a, b, sag, r * 2.2, run, 12)
+			var sg := sag * clampf(a.distance_to(b) / 28.0, 0.1, 1.2)   # short drops sag less
+			Props3D.add_wire(st, a, b, sg, r, run, 12); Props3D.add_wire(gs, a, b, sg, r * 2.2, run, 12)
 		run += (atts[k][0] as Vector3).distance_to(atts[k + 1][0])
 	return [st.commit(), gs.commit()]
 
@@ -686,53 +736,86 @@ func _build_l06() -> void:
 	_water(-1.0, Rect2(-FAR_M, -FAR_M, FAR_M * 2.0, FAR_M * 2.0), Vector2(0.0, 0.05))
 	var ph := _build_powerhouse(_ph)
 	_build_alternator(ph, Vector3(1.5, 3.4, 0.6))
-	anchors["gen"] = _ph + Vector3(0, 11.0, 2.0)
-	# the transformer pads (and the plain poles that stand in at ratio 1)
-	for p in [Vector2(-182.0, 0.0), Vector2(160.0, 0.0)]:
-		var n := Node3D.new(); n.name = "Transformer"; n.position = Vector3(p.x, ground(p.x, p.y), p.y); _root.add_child(n)
-		_box(n, Vector3(0, 0.1, 0), Vector3(11.0, 0.3, 11.0), _mat(Color(0.48, 0.47, 0.44), 0.95))
+	anchors["gen"] = _ph + Vector3(0, 12.5, 2.0)
+	# the transformer pads, high-voltage side towards the line (the step-down is turned round); the plain poles that stand in at ratio 1
+	var bush := StandardMaterial3D.new(); bush.albedo_color = Color(0.62, 0.40, 0.30); bush.roughness = 0.5
+	for i in 2:
+		var p: Vector2 = [Vector2(-182.0, 0.0), Vector2(160.0, 0.0)][i]
+		var n := Node3D.new(); n.name = "Transformer"; n.position = Vector3(p.x, ground(p.x, p.y), p.y); n.rotation.y = 0.0 if i == 0 else PI; _root.add_child(n)
+		_box(n, Vector3(0, 0.1, 0), Vector3(11.0, 0.3, 11.0), _soft_mat("sand", Color(0.52, 0.50, 0.46), 0.3, 0.3, 0.0, 0.2))
 		for k in 16:   # a fence round the pad
 			var a := TAU * k / 16.0
-			_box(n, Vector3(cos(a) * 5.4, 1.0, sin(a) * 5.4), Vector3(0.08, 2.0, 0.08), _mat(Color(0.55, 0.56, 0.58), 0.5, 0.6))
+			_box(n, Vector3(cos(a) * 5.4, 1.0, sin(a) * 5.4), Vector3(0.08, 2.0, 0.08), _mat(Color(0.55, 0.56, 0.58), 0.5, 0.3))
 		var mi := MeshInstance3D.new(); mi.name = "Tank"; mi.mesh = Props3D.transformer(); mi.material_override = _vc_mat(0.55); n.add_child(mi)
+		var lv := SurfaceTool.new(); lv.begin(Mesh.PRIMITIVE_TRIANGLES)   # the low-voltage bushings on the far side
+		for z in [-0.4, 0.4]: Props3D._cyl(lv, Vector3(-0.95, 1.5, z), Vector3(-0.95, 2.2, z), 0.06, 0.045, 6, Color.WHITE, true)
+		var lvm := MeshInstance3D.new(); lvm.name = "LV"; lvm.mesh = lv.commit(); lvm.material_override = bush; mi.add_child(lvm)
 		_xf_nodes.append(n)
 		var j := MeshInstance3D.new(); j.name = "Junction"; var sp: Array = Props3D.support("wood", 10.0, 9.4); j.mesh = sp[0]; j.material_override = _vc_mat(0.85)
-		j.position = n.position; _root.add_child(j); _junctions.append(j)
+		j.position = n.position; _root.add_child(j); _junctions.append(j); _junction_att = sp[1]
 	anchors["up"] = Vector3(-182.0, ground(-182.0, 0.0) + 9.0, 0.0)
 	anchors["down"] = Vector3(160.0, ground(160.0, 0.0) + 9.0, 0.0)
-	# the line: wood poles across the fields, two conductors
-	var atts: Array = []
+	# the line's wood poles across the fields; its conductors are built by _build_line06 (they end on whichever pads stand)
+	_l06_atts.clear()
 	for k in L06_POLES:
 		var x := lerpf(L06_X0, L06_X1, float(k) / float(L06_POLES - 1)); var z := 2.0 * sin(float(k) * 1.7)
-		atts.append(_pole(x, z, 0.0, 11.0))
-	var gen_end: Array = [_ph + Vector3(10.2, 6.0, 2.0) + Vector3(0, 0, -0.95), _ph + Vector3(10.2, 6.6, 2.0), _ph + Vector3(10.2, 6.0, 2.0) + Vector3(0, 0, 0.95)]
-	var mid := atts[L06_POLES / 2][1] as Vector3
-	anchors["line"] = mid + Vector3(0, 3.0, 0)
-	var wm: Array = _wires(atts, 0.035, 0.9)
+		_l06_atts.append(_pole(x, z, 0.0, 11.0))
+	anchors["line"] = (_l06_atts[L06_POLES / 2][1] as Vector3) + Vector3(0, 3.0, 0)
+	_town_att = _pole(_town_rect().position.x + 4.0, 0.0, 0.0, 9.0)   # the town's first pole: the supply lands here
 	_wire_mat = StandardMaterial3D.new(); _wire_mat.albedo_color = Color(0.62, 0.62, 0.64); _wire_mat.metallic = 0.35; _wire_mat.roughness = 0.35
 	_wire_mat.emission_enabled = true; _wire_mat.emission = Color.BLACK; _wire_mat.emission_energy_multiplier = 0.0
-	var core := MeshInstance3D.new(); core.name = "Conductors"; core.mesh = wm[0]; core.material_override = _wire_mat; _root.add_child(core)
 	_wire_glow = _glow_mat(Color(1.0, 0.4, 0.1, 1.0), 0.0); _wire_glow.set_shader_parameter("inflate", 0.0009)
-	var gl := MeshInstance3D.new(); gl.name = "ConductorGlow"; gl.mesh = wm[1]; gl.material_override = _wire_glow; gl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root.add_child(gl)
-	# the short leads: generator to the first pole, last pole to the town (not part of the 15 km line: they stay plain metal)
-	var lead_a: Array = [gen_end, atts[0]]
-	var tw := _town_rect()
-	var town_in := Vector3(tw.position.x + 4.0, ground(tw.position.x + 4.0, 0.0) + 6.0, 0.0)
-	var lead_b: Array = [atts[L06_POLES - 1], [town_in + Vector3(0, 0, -0.95), town_in, town_in + Vector3(0, 0, 0.95)]]
-	for ld in [lead_a, lead_b]:
-		var lm: Array = _wires(ld, 0.03, 0.4)
-		var li := MeshInstance3D.new(); li.name = "Lead"; li.mesh = lm[0]; li.material_override = _mat(Color(0.5, 0.5, 0.52), 0.4, 0.8); _root.add_child(li)
+	_line_root = Node3D.new(); _line_root.name = "Line"; _root.add_child(_line_root)
 	# the town: three streets of homes
-	var k := 0
+	var tw := _town_rect()
 	for row in 3:
 		for col in 5:
 			if (row == 1 and col == 0) or (row == 2 and col == 4): continue
 			var x := tw.position.x + 14.0 + float(col) * 19.0 + (WorldMath.hash2(row, col, 61) - 0.5) * 4.0
 			var z := tw.position.y + 14.0 + float(row) * 30.0 + (WorldMath.hash2(row, col, 62) - 0.5) * 3.0
 			_home(Vector2(x, z), (0.0 if row % 2 == 0 else PI) + (WorldMath.hash2(row, col, 63) - 0.5) * 0.25, WorldMath.hash2(row, col, 64))
-			k += 1
 	anchors["town"] = Vector3(tw.get_center().x, ground(tw.get_center().x, tw.get_center().y) + 14.0, tw.get_center().y)
 	_trees(_tree_ok06, 620.0, 8.0)
+
+var _l06_atts: Array = []
+var _junction_att: Array = []
+var _line_root: Node3D
+var _line_key := ""
+var _town_att: Array = []
+var line_path: Array = []         # the heated run as built: [left, top, right] per attachment, first to last (tests read its ends)
+
+## Where a wire ends at pad `i` (0 the step-up, 1 the step-down): [left, middle, right] on the transformer's high- or low-voltage bushings, or on the
+## crossarm of the plain pole that stands there at ratio 1.
+func line_end(i: int, hv: bool) -> Array:
+	if not (_xf_nodes[i] as Node3D).visible:
+		var j: Node3D = _junctions[i]
+		return [j.position + (_junction_att[0] as Vector3), j.position + (_junction_att[1] as Vector3), j.position + (_junction_att[2] as Vector3)]
+	var n: Node3D = _xf_nodes[i]; var s := ((n.get_node("Tank") as Node3D).scale).x
+	var b := Basis(Vector3.UP, n.rotation.y)
+	var x := 0.3 if hv else -0.95; var y := 2.9 if hv else 2.2
+	return [n.position + b * (Vector3(x, y, -0.4) * s), n.position + b * (Vector3(x, y, 0.0) * s), n.position + b * (Vector3(x, y, 0.4) * s)]
+
+## The conductors: generator to the step-up's low side (plain), step-up high side over every pole to the step-down's high side (this is the line that
+## heats), step-down low side into the town (plain). Rebuilt when a pad appears, goes or changes size.
+func _build_line06() -> void:
+	_clear(_line_root)
+	var gen_end: Array = [_ph + Vector3(10.3, 6.0, 1.05), _ph + Vector3(10.3, 6.6, 2.0), _ph + Vector3(10.3, 6.0, 2.95)]
+	var town_end: Array = _town_att
+	var pads := (_xf_nodes[0] as Node3D).visible
+	# at ratio 1 the generator's 4 kV runs straight to the town: the same 200 A in the same wire, so the whole run heats alike
+	var path: Array = [line_end(0, true)] if pads else [gen_end, line_end(0, true)]
+	path.append_array(_l06_atts)
+	path.append(line_end(1, true))
+	if not pads: path.append(town_end)
+	line_path = path
+	var wm: Array = _wires(path, 0.035, 0.9)
+	var core := MeshInstance3D.new(); core.name = "Conductors"; core.mesh = wm[0]; core.material_override = _wire_mat; _line_root.add_child(core)
+	var gl := MeshInstance3D.new(); gl.name = "ConductorGlow"; gl.mesh = wm[1]; gl.material_override = _wire_glow; gl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _line_root.add_child(gl)
+	if not pads: return
+	var plain := _mat(Color(0.5, 0.5, 0.52), 0.4, 0.3)
+	for ld in [[gen_end, line_end(0, false)], [line_end(1, false), town_end]]:   # the low-voltage leads (heavier conductors, short): plain metal
+		var lm: Array = _wires(ld, 0.05, 0.4)
+		var li := MeshInstance3D.new(); li.name = "Lead"; li.mesh = lm[0]; li.material_override = plain; _line_root.add_child(li)
 
 func _tree_ok06(x: float, z: float) -> float:
 	if absf(z) < 14.0 and x > -200.0 and x < 190.0: return 0.0   # the line's corridor
@@ -788,6 +871,8 @@ func _apply() -> void:
 			((n as Node3D).get_node("Tank") as Node3D).scale = Vector3.ONE * s
 		for j in _junctions: (j as Node3D).visible = not on
 		_xf_kva = int(tw.kva)
+		var lk := "%s|%d" % [str(on), _xf_kva]
+		if lk != _line_key: _line_key = lk; _build_line06()
 		var h := line_heat(float(q.lossPct))
 		var hc := heat_colour(h)
 		_wire_mat.emission = hc; _wire_mat.emission_energy_multiplier = 7.0 * pow(h, 1.3)
@@ -798,15 +883,23 @@ func _apply() -> void:
 		_flicker = 0.0
 	_lights()
 
+const WINDOW_E := 6.0             # window emission at brightness 1; it falls in proportion, so 25 % of the voltage (b = 0.06) is a dull glow
+const STARVED := Color(0.50, 0.19, 0.04)   # a filament far under its voltage: dull red-amber
+
+## The lamp colour: warm in band; amber below it, going dull as the brightness falls.
+static func lamp_colour(b: float, amber: bool) -> Color:
+	if not amber: return WARM
+	return STARVED.lerp(AMBER, clampf(b / 0.5, 0.0, 1.0))
+
 func _lights() -> void:
-	var col := AMBER if _amber else WARM
+	var col := lamp_colour(_brightness, _amber)
 	for hm in _homes:
 		var b := _brightness
 		if _flicker > 0.0 and not CbSettings.reduced_motion:
 			b *= 1.0 - _flicker * (0.5 + 0.5 * sin(_t * TAU * _flicker_hz + float(hm.ph)))
 		var lt: OmniLight3D = hm.light; var mat: StandardMaterial3D = hm.mat
 		lt.light_energy = b * HOME_LIGHT_E; lt.light_color = col; lt.visible = b > 0.003
-		mat.emission = col; mat.emission_energy_multiplier = b * 9.0
+		mat.emission = col; mat.emission_energy_multiplier = b * WINDOW_E
 		var pm: ShaderMaterial = hm.pool; pm.set_shader_parameter("tint", Color(col, 1.0)); pm.set_shader_parameter("power", b * 1.4)
 
 ## What the scene shows now (tests/bench3d_truth.gd): pole and coil counts, the homes' brightness, the line's glow.
@@ -830,9 +923,9 @@ func report() -> Dictionary:
 # --------------------------------------------------------------------------------------------------------------------
 func reset_camera() -> void:
 	if kind == "machine":   # from the south bank: the cut-away hall in front, the fall behind it on the left, the village on the right
-		_g_target = Vector3(_ph.x + 10.0, 0.0, _ph.z - 16.0); _g_yaw = deg_to_rad(-12.0); _g_pitch = deg_to_rad(10.0); _g_dist = 88.0
+		_g_target = Vector3(_ph.x + 7.0, 0.0, _ph.z - 10.0); _g_yaw = deg_to_rad(-14.0); _g_pitch = deg_to_rad(9.0); _g_dist = 64.0
 	else:   # from the south-west, along the line: the powerhouse near, the town at the far end
-		_g_target = Vector3(10.0, 0.0, -10.0); _g_yaw = deg_to_rad(-12.0); _g_pitch = deg_to_rad(17.0); _g_dist = 400.0
+		_g_target = Vector3(-118.0, 0.0, -6.0); _g_yaw = deg_to_rad(-60.0); _g_pitch = deg_to_rad(12.0); _g_dist = 205.0
 	var vp := get_viewport()
 	if vp != null:   # a narrower window than 16:9 steps back, so both ends stay in the frame
 		var vs := vp.get_visible_rect().size

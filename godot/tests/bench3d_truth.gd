@@ -98,13 +98,25 @@ func _l06(T: Truth) -> void:
 		T.check(g < prev or (g == 0.0 and prev == 0.0), "L06: less loss, less glow at ratio %d (%.2f %%: %f)" % [ratio, float(q.lossPct), g])
 		if float(q.lossPct) <= 2.0: T.check(g == 0.0, "L06: plain metal at %.2f %% lost" % float(q.lossPct))
 		T.check(bool(rep.transformers) == (ratio > 1), "L06: transformer pads drawn exactly when the ratio is above 1 (%d)" % ratio)
+		var first: Vector3 = bn.line_path[0][1]; var last: Vector3 = bn.line_path[bn.line_path.size() - 1][1]
+		if ratio > 1:   # the heated run lands on the high-voltage bushings of both transformers
+			T.check(first.distance_to(bn.line_end(0, true)[1]) < 0.01 and first.distance_to((bn._xf_nodes[0] as Node3D).position) < 6.0, "L06: the line starts on the step-up's bushing at ratio %d" % ratio)
+			T.check(last.distance_to(bn.line_end(1, true)[1]) < 0.01 and last.distance_to((bn._xf_nodes[1] as Node3D).position) < 6.0, "L06: the line ends on the step-down's bushing at ratio %d" % ratio)
+		else:   # no transformers: the 4 kV run goes from the powerhouse wall to the town's first pole
+			T.check(Vector2(first.x, first.z).distance_to(Vector2(bn._ph.x, bn._ph.z)) < 14.0, "L06: at ratio 1 the heated run starts at the powerhouse (%s)" % str(first))
+			T.check(bn._town_rect().grow(6.0).has_point(Vector2(last.x, last.z)), "L06: at ratio 1 it ends at the town (%s)" % str(last))
+		for k in bn.line_path.size() - 1:
+			T.check((bn.line_path[k][1] as Vector3).distance_to(bn.line_path[k + 1][1]) < 70.0, "L06: no span longer than 70 m (a wire to nowhere) at ratio %d, span %d" % [ratio, k])
 		var vt := float(q.vTownPu)
 		T.near(float(rep.brightness), clampf(vt * vt, 0.0, 1.6), 1e-6, "L06: town windows are (V_town / V_nom)^2 at ratio %d" % ratio)
+		T.near(float(rep.window_e), clampf(vt * vt, 0.0, 1.6) * Bench3D.WINDOW_E, 1e-5, "L06: the window glow is in proportion to that brightness at ratio %d" % ratio)
 		T.check(bool(rep.amber) == (vt < Bench3D.TOWN_V_OK), "L06: amber exactly below %.2f of the voltage" % Bench3D.TOWN_V_OK)
 		prev = g
 	T.check(Bench3D.line_heat(2.0) == 0.0 and Bench3D.line_heat(75.0) == 1.0 and Bench3D.line_heat(20.0) > Bench3D.line_heat(5.0), "L06: heat is 0 at 2 %, full at 75 %, rising between")
-	for kva in [630, 1600]:
+	for kva in [630, 1600]:   # the pads resize; the line follows the bushings
 		_act(T, bn, "setTransformerKva", kva)
+		var first: Vector3 = bn.line_path[0][1]
+		T.check(first.distance_to(bn.line_end(0, true)[1]) < 0.01, "L06: at %d kVA the line still lands on the step-up's bushing" % kva)
 	_ground(T, bn, "L06")
 	bn.free()
 
