@@ -90,6 +90,11 @@ func game_camera(spec: String) -> void:
 	if later != "" and spec != later:
 		get_tree().create_timer(float(OS.get_environment("CB_CAM_LATER_AT")) if OS.get_environment("CB_CAM_LATER_AT") != "" else 4.0).timeout.connect(func(): game_camera(later))
 
+## The 3D look keeps moving while paused (water, clouds, smoke): the 30 fps idle cap waits 2 min, for a player who has left, not one reading a decision (1.17).
+func game_idle_ms() -> int:
+	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible: return 120000
+	return 20000
+
 func game_unhandled_key(e: InputEventKey) -> bool:
 	if chrome != null and chrome.key(e): return true
 	match e.keycode:   # bench levels use the kit tray and tags; the old Build / Inspect drawers remain on B / I for grid levels (L07) until their task
