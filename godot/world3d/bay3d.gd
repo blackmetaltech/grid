@@ -120,8 +120,8 @@ func _make_env() -> void:
 func _update_sky(mn: float) -> void:
 	_minute = mn
 	var n := WorldMath.night(mn); var d := WorldMath.dusk(mn)
-	var zen := Color(0.20, 0.40, 0.74).lerp(Color(0.02, 0.035, 0.09), n).lerp(Color(0.09, 0.17, 0.42), d * 0.7)
-	var hor := Color(0.70, 0.80, 0.90).lerp(Color(0.06, 0.09, 0.18), n).lerp(Color(0.95, 0.72, 0.52), d * 0.55)
+	var zen := Color(0.20, 0.40, 0.74).lerp(Color(0.035, 0.06, 0.15), n).lerp(Color(0.09, 0.17, 0.42), d * 0.7)   # 1.18: a moonlit night sky, not a black hole above the sea (Sigrid r7-c)
+	var hor := Color(0.70, 0.80, 0.90).lerp(Color(0.10, 0.14, 0.26), n).lerp(Color(0.95, 0.72, 0.52), d * 0.55)
 	sky_mat.set_shader_parameter("zenith", zen); sky_mat.set_shader_parameter("horizon", hor); sky_mat.set_shader_parameter("ground", hor * 0.35)
 	sky_mat.set_shader_parameter("night", n); sky_mat.set_shader_parameter("dusk", d)
 	sky_mat.set_shader_parameter("sun_glow", Color(1.0, 0.62, 0.32).lerp(Color(1.0, 0.9, 0.75), 1.0 - d))
