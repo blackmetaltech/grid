@@ -137,11 +137,11 @@ func _update_sky(mn: float) -> void:
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.0, lowk)
 	var mdir := Vector3(0.40, 0.55, 0.75).normalized()   # behind the camera, high: the bay is lit from the front and the sea's glint stays out of the frame
 	if moon.is_inside_tree(): moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 0.5 * smoothstep(0.35, 0.85, n); moon.visible = moon.light_energy > 0.01
+	moon.light_energy = 0.85 * smoothstep(0.35, 0.85, n)   # 1.18 (manager review): moonlight enough that the island, the hut and the cable route read at night; moon.visible = moon.light_energy > 0.01
 	sky_mat.set_shader_parameter("moon_dir", mdir)
 	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.20, 0.28, 0.46), n * 0.8)
-	env.ambient_light_energy = lerpf(0.9, 0.55, n)   # 1.17: a dark night, so the first lamps carry the scene
-	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.05, 0.08, 0.15), n * 0.6)
+	env.ambient_light_energy = lerpf(0.9, 0.75, n)   # 1.17: a dark night, so the first lamps carry the scene; 1.18: lifted, the island read as a void
+	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.08, 0.12, 0.22), n * 0.6)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.5, n)
 	for wm in _water_mats:
@@ -712,6 +712,30 @@ static func house_mesh(w: float, d: float, h: float, rh: float, wall: Color, roo
 	Props3D._box(st, Vector3(w * 0.18, h * 0.32, d * 0.5 + 0.04), Vector3(0.9, h * 0.64, 0.08), Color(0.32, 0.2, 0.13))
 	Props3D._box(st, Vector3(-w * 0.18, h * 0.32, -d * 0.5 - 0.04), Vector3(0.9, h * 0.64, 0.08), Color(0.32, 0.2, 0.13))
 	Props3D._box(st, Vector3(-w * 0.28, h + rh * 0.75, -d * 0.18), Vector3(0.7, rh * 1.1, 0.7), Color(0.45, 0.3, 0.25))
+	# 1.18 (manager review: the homes are the title's foreground): a porch over the front door, a picket fence round the front garden,
+	# and on some homes a washing line behind (v picks which)
+	var wood := Color(0.52, 0.40, 0.28); var paint := Color(0.88, 0.86, 0.80)
+	var pz := d * 0.5 + 0.9
+	Props3D._box(st, Vector3(w * 0.18, 0.12, pz), Vector3(2.6, 0.24, 1.8), wood)                                # deck
+	for sx in [-1.1, 1.1]: Props3D._box(st, Vector3(w * 0.18 + sx, h * 0.38, pz + 0.75), Vector3(0.14, h * 0.76, 0.14), paint)   # posts
+	Props3D._box(st, Vector3(w * 0.18, h * 0.78, pz), Vector3(2.9, 0.12, 2.0), roof)                             # porch roof
+	var fz := d * 0.5 + 4.2; var fx := w * 0.5 + 1.2
+	for sgn in [-1.0, 1.0]:
+		var gap0 := w * 0.18 - 0.8; var gap1 := w * 0.18 + 0.8   # the gate is open in front of the door
+		var px := -fx
+		while px <= fx + 0.01 and sgn < 0.0:   # one row of pickets (the loop runs once; the sides come from both signs)
+			if px < gap0 or px > gap1: Props3D._box(st, Vector3(px, 0.45, fz), Vector3(0.1, 0.9, 0.1), paint)
+			px += 0.6
+		if sgn < 0.0:
+			Props3D._box(st, Vector3((-fx + gap0) * 0.5, 0.6, fz), Vector3(gap0 + fx, 0.08, 0.06), paint)
+			Props3D._box(st, Vector3((gap1 + fx) * 0.5, 0.6, fz), Vector3(fx - gap1, 0.08, 0.06), paint)
+		Props3D._box(st, Vector3(sgn * fx, 0.6, (d * 0.5 + fz) * 0.5), Vector3(0.06, 0.08, fz - d * 0.5), paint)   # the sides back to the house
+	if int(w * 37.0) % 2 == 0:   # a washing line behind the house, three cloths on it
+		var lz := -d * 0.5 - 3.0
+		for sx in [-w * 0.4, w * 0.4]: Props3D._box(st, Vector3(sx, 1.0, lz), Vector3(0.1, 2.0, 0.1), wood)
+		Props3D._box(st, Vector3(0, 1.95, lz), Vector3(w * 0.8, 0.03, 0.03), Color(0.85, 0.85, 0.85))
+		var cloths := [Color(0.85, 0.35, 0.30), Color(0.92, 0.92, 0.88), Color(0.35, 0.50, 0.75)]
+		for k in 3: Props3D._box(st, Vector3(-w * 0.25 + w * 0.25 * k, 1.55, lz), Vector3(0.9, 0.8, 0.03), cloths[k])
 	return Props3D._commit(st)
 
 static func _quad(st: SurfaceTool, c: Vector3, ex: Vector3, ey: Vector3, n: Vector3) -> void:
@@ -726,6 +750,9 @@ static func windows_mesh(w: float, d: float, h: float) -> ArrayMesh:
 		_quad(st, Vector3(sx * w * 0.5, h * 0.58, -zf), Vector3(-0.7, 0, 0), Vector3(0, 0.7, 0), Vector3.FORWARD)
 	_quad(st, Vector3(w * 0.5 + 0.03, h * 0.58, 0.0), Vector3(0, 0, -0.7), Vector3(0, 0.7, 0), Vector3.RIGHT)
 	_quad(st, Vector3(-w * 0.5 - 0.03, h * 0.58, 0.0), Vector3(0, 0, 0.7), Vector3(0, 0.7, 0), Vector3.LEFT)
+	# 1.18: the glass of the front door and a porch lamp light with the windows, so light spills from the door when the home has power
+	_quad(st, Vector3(w * 0.18, h * 0.42, d * 0.5 + 0.09), Vector3(0.3, 0, 0), Vector3(0, h * 0.18, 0), Vector3.BACK)
+	_quad(st, Vector3(w * 0.18 + 0.75, h * 0.66, d * 0.5 + 0.09), Vector3(0.12, 0, 0), Vector3(0, 0.16, 0), Vector3.BACK)
 	return Props3D._commit(st)
 
 ## A soft disc of light on the ground (additive): the lamp's pool, readable from the whole bay. Its strength is set in _update_lights.
