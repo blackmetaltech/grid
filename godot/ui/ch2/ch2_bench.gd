@@ -268,9 +268,9 @@ func _draw_waterfall(at: Vector2, hh: float) -> void:
 	draw_rect(Rect2(cut + Vector2(-4, hh), Vector2(54, 10)), Color("#4A8FD0", 0.8))   # the pool, the Francis runner's penstock leads on to the machine
 	draw_line(cut + Vector2(40, hh + 4), Vector2(cut.x + 70.0, cut.y + hh - 20.0), Color("#6C7A8C"), 8.0)
 
-func _draw_scope(r: Rect2) -> void:
+func _draw_scope(r: Rect2, boxed := true) -> void:
 	var mono := GridTheme.font("mono"); var semi := GridTheme.font("semi")
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	if boxed: draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
 	draw_rect(r.grow(-6.0), Color(GridTheme.LIVE, 0.05), true)
 	var mid := r.position.y + r.size.y * 0.5; var scale := (r.size.y * 0.5 - 12.0) / 400.0   # px per volt, ±400 V full scale
 	for k in [-300, -200, -100, 0, 100, 200, 300]: draw_line(Vector2(r.position.x + 8, mid - k * scale), Vector2(r.end.x - 8, mid - k * scale), Color(GridTheme.LIVE, 0.14 if k != 0 else 0.3), 1.0)
@@ -585,16 +585,42 @@ static func sentence(s: String) -> String:
 	return out.substr(0, 1).to_upper() + out.substr(1) if out != "" else out
 
 func _draw_machine3() -> void:
-	var w := size.x; var h := size.y
-	var sh := clampf(h * 0.17, 128.0, 186.0)
-	var scope := Rect2(Vector2(M, TOP), Vector2(minf(w * 0.40, 760.0), sh))
-	_draw_scope(scope)
-	var rw := clampf(w * 0.33, 540.0, 620.0)
-	var ro := Rect2(Vector2(w - M - rw, TOP), Vector2(rw, 5.0 * 26.0 + 20.0))
-	_draw_readouts(ro)
-	_top_y = maxf(scope.end.y, ro.end.y) + 10.0
+	var w := size.x
+	var pw := minf(w * 0.44, w * 0.5 - 76.0 - M)   # left of the clock
+	var mono := GridTheme.font("mono"); var fz := GridTheme.fs(13)
 	var m: Dictionary = q.machine
-	_chip("alternator", [sentence(T("C2_POLES")) + " " + T("C2_V_POLES") % int(m.poles) + " · " + T("C2_FORMULA_F"), T("C2_RPM") % int(m.rpm) + " · " + T("C2_SLOWMO") % int(SLOWMO)], [GridTheme.G_TEXT, GridTheme.G_DIM])
+	var dim := GridTheme.G_DIM
+	# the numbers the player needs, as compact cells under the scope: each value against its target
+	var cells := [
+		[[T("C2_R_FREQ_V") % _f(float(q.fHz), 2), _good(bool(q.fOk))], [T("C2_R_NEED") % [_f(float(q.fLoHz), 2), _f(float(q.fHiHz), 2)], dim]],
+		[[T("C2_C_RMS_V") % _f(float(q.eRmsV), 1), _good(bool(q.vOk))], [T("C2_R_NEED") % [_f(float(q.vLoV), 1), _f(float(q.vHiV), 1)], dim]],
+		[[T("C2_C_PEAK_V") % _f(float(q.e0V), 1), _good(bool(q.vOk))], [T("C2_C_NEED_PK") % _f(float(q.vPeakTargetV), 0), dim]],
+		[[T("C2_C_NBA") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], GridTheme.G_TEXT]],
+		[[T("C2_C_COPPER") % _f(float(q.kg), 0), GridTheme.G_TEXT]],
+	]
+	var gap := 26.0; var inner := pw - 24.0
+	var lines: Array = [[]]; var lw := 0.0
+	for c in cells:
+		var cw := 0.0
+		for part in c: cw += mono.get_string_size(str(part[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x + 10.0
+		if lw > 0.0 and lw + gap + cw > inner: lines.append([]); lw = 0.0
+		(lines[lines.size() - 1] as Array).append(c); lw += (gap if lw > 0.0 else 0.0) + cw
+	var lh := float(fz) + 8.0; var sh := 104.0
+	var box := Rect2(Vector2(M, TOP), Vector2(pw, sh + lh * lines.size() + 10.0))
+	draw_style_box(GridTheme.glass_sb(0.78, 4, 0.0), box)
+	_draw_scope(Rect2(box.position, Vector2(pw, sh)), false)
+	draw_line(Vector2(box.position.x + 10.0, box.position.y + sh), Vector2(box.end.x - 10.0, box.position.y + sh), GridTheme.HAIR, 1.0)
+	var y := box.position.y + sh + lh - 4.0
+	for ln in lines:
+		var x := box.position.x + 12.0
+		for c in ln:
+			for part in c:
+				_text(mono, 13, Vector2(x, y), str(part[0]), part[1])
+				x += mono.get_string_size(str(part[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x + 10.0
+			x += gap - 10.0
+		y += lh
+	_top_y = box.end.y + 10.0
+	_chip("alternator", [sentence(T("C2_POLES")) + " " + T("C2_V_POLES") % int(m.poles) + " · " + T("C2_FORMULA_F"), T("C2_RPM") % int(m.rpm) + " · " + T("C2_SLOWMO") % int(SLOWMO)], [GridTheme.G_TEXT, GridTheme.G_DIM], 150.0)   # above the roof: the machine stays clear
 	_chip("village", [sentence(T("C2_VILLAGE"))], [GridTheme.G_TEXT])
 
 func _draw_town3() -> void:
@@ -619,7 +645,7 @@ func _draw_town3() -> void:
 	_chip("town", [T("C2_TOWN_V") % _f(clampf(float(q.vTownPu), 0.0, 1.0) * 100.0, 0)], [_good(bool(q.ok))])
 
 ## A glass chip hung over a 3D place (Bench3D.anchors), with a leader line down to it; off screen or behind the camera it is not drawn.
-func _chip(key: String, lines: Array, cols: Array) -> void:
+func _chip(key: String, lines: Array, cols: Array, lift := 34.0) -> void:
 	var wv = app.get("grid_world")
 	var l3 = wv.look3d
 	var a = l3.anchors.get(key)
@@ -632,11 +658,15 @@ func _chip(key: String, lines: Array, cols: Array) -> void:
 	var cw := 0.0
 	for ln in lines: cw = maxf(cw, semi.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x)
 	var lh := float(fz) + 6.0
-	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - 34.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
+	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - lift * size.y / 1080.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
 	r.position.x = clampf(r.position.x, M, size.x - M - r.size.x)
 	r.position.y = clampf(r.position.y, _top_y, panel.position.y - 8.0 - r.size.y)
-	for c in _chips:   # step clear of the chips already drawn
-		if (c as Rect2).grow(4.0).intersects(r): r.position.y = (c as Rect2).end.y + 8.0
+	for c in _chips:   # step clear of the chips already drawn: to the side first (a chip pushed down lands on its own place), below only if no side fits
+		var cr := c as Rect2
+		if not cr.grow(4.0).intersects(r): continue
+		if cr.end.x + 10.0 + r.size.x <= size.x - M and sp.x >= cr.get_center().x: r.position.x = cr.end.x + 10.0
+		elif cr.position.x - 10.0 - r.size.x >= M: r.position.x = cr.position.x - 10.0 - r.size.x
+		else: r.position.y = cr.end.y + 8.0
 	if r.end.y > panel.position.y - 8.0: return
 	_chips.append(r)
 	var foot := Vector2(clampf(sp.x, r.position.x + 8.0, r.end.x - 8.0), r.end.y)
