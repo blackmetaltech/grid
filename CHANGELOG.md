@@ -2,6 +2,11 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.18.1] - "Bay and Mainland" (patch)
+### Fixed
+- The game reported itself as 1.17.0. It now reports its own version. No gameplay change.
+- A test now fails when the version differs between files.
+
 ## [1.18.0] - "Bay and Mainland" (LOOK2 phase C; review in docs/CRITIQUE-1.18.md)
 ### Added
 - **The island has a shape.** Dunes, low hills, a rocky headland under the lighthouse, and a coast that wanders. Paths run from the hamlet to a jetty and to the lighthouse. Boats ride at the jetty and lie on the sand.
