@@ -32,4 +32,5 @@ Notes:
 ## Sound (1.16)
 Every GRID sound is made in code (`godot/audio/grid_audio.gd`, `grid_music.gd`). There are no audio files and nothing to license.
 - **Outdoor bed in the 3D look (new in 1.16):** `OutdoorSynth` adds wind (low-passed noise with slow gusts, quieter at night) and crickets at night (4.6 kHz chirps in groups of three). It is silent on every classic screen.
+- **Key moments (1.18):** `town_on0..2` (a warm chord that swells in, three sizes by homes lit), the redesigned `blackout` (hum spin-down, a low thud, then silence), and saturated low thumps in the breaker and trip cues so they carry on small speakers are all made in code (sine sums, noise bursts, tanh saturation). No files, no source, no licence. Levels and the numbers behind them are in `docs/audio/ANALYSIS.md`. No human has listened to any of it.
 - **No human has listened to the outdoor bed yet.** The levels were chosen by reading the code, not by ear.
