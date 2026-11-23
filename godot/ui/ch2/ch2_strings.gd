@@ -22,4 +22,5 @@ const S := {
 	"C2_LOSS_EQ": "I = P ÷ V = %s A      loss = I² × R = %s² × %s Ω = %s kW", "C2_LOAD": "step-up %s %% loaded", "C2_LOAD_OVER": "step-up %s %%: too small",
 	"C2_REP_FREQ": "Frequency", "C2_REP_HZ": "%s\u00a0Hz", "C2_REP_VOLT": "Voltage (rms)", "C2_REP_TOWN": "Town voltage",
 	"C2_TOWN_V": "town sees %s %% of its voltage", "C2_R_LIMIT": "limit %s %% lost",
+	"C2_LINE_KM": "%s km to the town, drawn short",
 }

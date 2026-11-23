@@ -833,6 +833,10 @@ func reset_camera() -> void:
 		_g_target = Vector3(_ph.x + 10.0, 0.0, _ph.z - 16.0); _g_yaw = deg_to_rad(-12.0); _g_pitch = deg_to_rad(10.0); _g_dist = 88.0
 	else:   # from the south-west, along the line: the powerhouse near, the town at the far end
 		_g_target = Vector3(10.0, 0.0, -10.0); _g_yaw = deg_to_rad(-12.0); _g_pitch = deg_to_rad(17.0); _g_dist = 400.0
+	var vp := get_viewport()
+	if vp != null:   # a narrower window than 16:9 steps back, so both ends stay in the frame
+		var vs := vp.get_visible_rect().size
+		if vs.y > 0.0: _g_dist *= clampf((16.0 / 9.0) / (vs.x / vs.y), 1.0, 1.4)
 	_dist_default = _g_dist
 	_g_target.y = ground(_g_target.x, _g_target.z) + 4.0
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist

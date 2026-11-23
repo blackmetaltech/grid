@@ -6,11 +6,18 @@ extends SceneTree
 ## pads stand only when the ratio is above 1, the town's windows are (V_town / V_nominal)^2. Both: the land reaches at least 3x the play area's
 ## size past it on every side, so no camera sees an edge.
 
+class Fake extends CbApp:
+	var grid_world = null
+	func game_on_changed() -> void: pass
+	func toast(_text: String, _level := "info") -> void: pass
+	func sfx(_k: String) -> void: pass
+
 func _initialize() -> void:
 	var T := Truth.new()
 	if not T.start(root): print("BENCH3D-TRUTH FAILED engine"); quit(1); return
 	_l04(T)
 	_l06(T)
+	await _input_pass(T)
 	T.check(Bench3D.LEVELS.has("L04") and Bench3D.LEVELS.has("L06"), "L04 and L06 are drawn by the 3D bench")
 	T.finish("BENCH3D-TRUTH", self)
 
@@ -100,3 +107,22 @@ func _l06(T: Truth) -> void:
 		_act(T, bn, "setTransformerKva", kva)
 	_ground(T, bn, "L06")
 	bn.free()
+
+## In 3D the stage lets the mouse through to the world (drags turn the camera) and only the panel keeps it; with no 3D bench the whole stage keeps it.
+func _input_pass(T: Truth) -> void:
+	CbRegion.refresh(T.b); GridUi.load_strings(); TrayStrings.load_strings()
+	T.level("L04")
+	var app := Fake.new(); app.b = T.b; app.started = true
+	var bench := Ch2Bench.new(); bench.app = app; root.add_child(bench); bench.size = Vector2(1366, 768)
+	await process_frame
+	bench.refresh()
+	var stage := Vector2(683, 300); var knob: Vector2 = (bench.hits[0].rect as Rect2).get_center()
+	T.check(bench._has_point(stage) and bench._has_point(knob), "classic: the opaque stage takes the mouse everywhere")
+	var wv := WorldView.new(); var bn := Bench3D.new(); root.add_child(bn)
+	bn.set_bench(T.b.q("ch2Bench"), 1080.0); bn.visible = true
+	wv.look3d = bn; app.grid_world = wv
+	bench._process(0.016)
+	T.check(not bench._has_point(stage), "3D: a press on the open stage goes to the world")
+	T.check(bench._has_point(knob), "3D: a press on a knob stays with the panel")
+	T.check(bench._has_point(bench.predict_btn.position + Vector2(4, 4)), "3D: the predict row stays with the panel")
+	bench.free(); bn.free(); wv.free()

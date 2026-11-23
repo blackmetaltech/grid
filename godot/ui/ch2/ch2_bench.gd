@@ -39,6 +39,18 @@ func _init() -> void:
 func _locked() -> bool:
 	return app == null or app.speed > 0 or str(app.b.g.get("status", "playing")) != "playing"
 
+## The 3D bench (world3d/bench3d.gd) is showing: the place is drawn in 3D and this stage keeps only its instruments and the panel, in glass.
+func _look3() -> bool:
+	var w = app.get("grid_world") if app != null else null
+	return w != null and w.look3d != null and w.look3d.visible and w.look3d is Bench3D
+
+## In 3D only the panel (and a price tag hung above a narrow panel) takes the mouse; drags on the stage reach the world and turn the camera.
+func _has_point(p: Vector2) -> bool:
+	if not _look3(): return Rect2(Vector2.ZERO, size).has_point(p)
+	var r := panel.grow(4.0)
+	if _tag_above(): r = r.grow_side(SIDE_TOP, 72.0)
+	return r.has_point(p)
+
 # ---- state ------------------------------------------------------------------------------------------------------------------------
 func refresh() -> void:
 	if app == null or not app.started: visible = false; return
@@ -80,10 +92,13 @@ func layout() -> void:
 
 func _narrow() -> bool: return panel.size.x < 540.0
 
+## The price tag hangs above the panel: on a narrow panel, and in 3D on any panel under 760 px (the 3D world has room above it; the predict row needs its width).
+func _tag_above() -> bool: return _narrow() or (_look3() and panel.size.x < 760.0)
+
 func _place_predict(row: Rect2) -> void:
 	predict_edit.visible = true; predict_btn.visible = true
 	var bw := 90.0
-	var tag_room := 0.0 if _narrow() else 186.0   # a narrow panel hangs the price tag above itself and gives the row to the prediction
+	var tag_room := 0.0 if _tag_above() else 186.0   # a narrow panel hangs the price tag above itself and gives the row to the prediction
 	predict_btn.position = row.position + Vector2(row.size.x - bw - tag_room, 4.0); predict_btn.size = Vector2(bw, 30.0)
 	predict_edit.position = predict_btn.position - Vector2(88.0, 0.0); predict_edit.size = Vector2(80.0, 30.0)
 
@@ -175,6 +190,8 @@ func _queue(act: String, arg) -> void: pending[act] = arg
 func _process(dt: float) -> void:
 	if not visible: return
 	_t += dt
+	var l3 := _look3()
+	if l3 != _was3: _was3 = l3; layout()   # the 3D bench came up (or went) after this level's first layout: the predict row and the tag move
 	for act in pending.keys():   # one action per knob per frame, whatever the drag sent
 		var arg = pending[act]; _send(String(act), arg)
 	pending.clear()
@@ -209,6 +226,13 @@ func _good(ok: bool) -> Color: return GridTheme.GOOD if ok else GridTheme.BAD
 
 func _draw() -> void:
 	if not visible or q.is_empty(): return
+	if _look3():
+		_chips.clear()
+		if _tag_above(): _chips.append(Rect2(Vector2(panel.end.x - 240.0, panel.position.y - 80.0), Vector2(240.0, 80.0)))   # the hanging price tag
+		if kind == "machine": _draw_machine3()
+		elif kind == "town": _draw_town3()
+		_draw_panel()
+		return
 	draw_rect(Rect2(Vector2.ZERO, size), GridTheme.NIGHT, true)   # an opaque stage: the island the world draws underneath is not this level's place
 	draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(size.x, 0), Vector2(size.x, size.y), Vector2(0, size.y)]), PackedColorArray([Color("#0E1432"), Color("#0E1432"), Color("#2A3768"), Color("#2A3768")]))
 	for i in 38: # stars
@@ -358,9 +382,12 @@ func _draw_readouts(r: Rect2) -> void:
 		[T("C2_R_NBA"), T("C2_R_NBA_V") % [_f(float(q.nba), 3), _f(float(q.omega), 1)], "", true],
 		[T("C2_R_COPPER"), T("C2_R_COPPER_V") % _f(float(q.kg), 0), "", true],
 	]
+	var vx := 140.0
+	if _look3():   # 3D: the value column starts after the widest caption (the fixed 140 px ran "PEAK e0 = rms x sqrt 2" into its value)
+		for row in rows: vx = maxf(vx, semi.get_string_size(str(row[0]), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x + 14.0)
 	for row in rows:
 		_text(semi, 11, Vector2(x, y), str(row[0]), Color(GridTheme.TEXT, 0.65))
-		_text(mono, 15, Vector2(x + 140.0, y), str(row[1]), _good(bool(row[3])) if str(row[2]) != "" else GridTheme.TEXT)
+		_text(mono, 15, Vector2(x + vx, y), str(row[1]), _good(bool(row[3])) if str(row[2]) != "" else GridTheme.TEXT)
 		if str(row[2]) != "": _text(mono, 10, Vector2(r.end.x - 150.0, y), str(row[2]), Color(GridTheme.DIM, 0.95), 140.0, 2)
 		y += lh
 
@@ -508,6 +535,7 @@ func _draw_panel() -> void:
 	_draw_price_tag(panel)
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
+	if _look3(): return GridTheme.glass_cell_sb(fill, lit)
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
 	s.border_color = GridTheme.SODIUM if lit else Color(GridTheme.SODIUM_DIM, 0.28); s.set_border_width_all(2 if lit else 1)
 	return s
@@ -520,13 +548,93 @@ func _draw_price_tag(pn: Rect2) -> void:
 	var w := 176.0; var h := 44.0
 	var fz16 := GridText.floor_size(self, 13)   # 1.9: the tag grows to its words at the 16 px floor (it clipped "build incl. starting kit")
 	w = maxf(w, maxf(semi.get_string_size(tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 34.0, mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 20.0)); h = maxf(h, fz16 * 2.0 + 16.0)
-	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _narrow() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
-	draw_set_transform(org + Vector2(w, h) * 0.5, deg_to_rad(-1.4), Vector2.ONE)
+	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _tag_above() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
+	var g3 := _look3()
+	draw_set_transform(org + Vector2(w, h) * 0.5, 0.0 if g3 else deg_to_rad(-1.4), Vector2.ONE)
 	var rect := Rect2(Vector2(-w * 0.5, -h * 0.5), Vector2(w, h))
-	draw_style_box(GridTheme.paper_sb(3, 0.0), rect)
-	draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
+	draw_style_box(GridTheme.glass_sb(0.8, 4, 0.0) if g3 else GridTheme.paper_sb(3, 0.0), rect)
+	if not g3: draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
 	var fsz := GridTheme.fs(13); var tw2 := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw2 > w - 16.0 and fsz > 9: fsz -= 1; tw2 = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	GridText.ds(self, semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
-	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	var ink := GridTheme.G_TEXT if g3 else GridTheme.PAPER_INK
+	GridText.ds(self, semi, Vector2(-w * 0.5 + (12.0 if g3 else 22.0), -h * 0.5 + 15.0), tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.G_DIM if g3 else ink, 1.0 if g3 else 0.7))
+	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, (GridTheme.BAD if g3 else GridTheme.BAD.darkened(0.15)) if over else ink)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+# ---- the 3D bench: glass instruments over the world, place names as chips on the 3D objects ---------------------------------------------
+const TOP := 92.0              ## below the work order pin
+var _chips: Array = []         ## rects of the chips drawn this frame (a later chip steps clear of an earlier one)
+var _top_y := TOP              ## chips stay below the instruments at the top
+var _was3 := false
+
+## A caption from the 2D bench's capitals, in sentence case for a chip ("GENERATOR 4 kV" -> "Generator 4 kV"); units keep their case.
+static func sentence(s: String) -> String:
+	var words := s.split(" ")
+	for i in words.size():
+		var wd := words[i]
+		if wd.length() > 1 and wd == wd.to_upper() and wd != wd.to_lower(): words[i] = wd.to_lower()
+	var out := " ".join(words)
+	return out.substr(0, 1).to_upper() + out.substr(1) if out != "" else out
+
+func _draw_machine3() -> void:
+	var w := size.x; var h := size.y
+	var sh := clampf(h * 0.17, 128.0, 186.0)
+	var scope := Rect2(Vector2(M, TOP), Vector2(minf(w * 0.40, 760.0), sh))
+	_draw_scope(scope)
+	var rw := clampf(w * 0.33, 540.0, 620.0)
+	var ro := Rect2(Vector2(w - M - rw, TOP), Vector2(rw, 5.0 * 26.0 + 20.0))
+	_draw_readouts(ro)
+	_top_y = maxf(scope.end.y, ro.end.y) + 10.0
+	var m: Dictionary = q.machine
+	_chip("alternator", [sentence(T("C2_POLES")) + " " + T("C2_V_POLES") % int(m.poles) + " · " + T("C2_FORMULA_F"), T("C2_RPM") % int(m.rpm) + " · " + T("C2_SLOWMO") % int(SLOWMO)], [GridTheme.G_TEXT, GridTheme.G_DIM])
+	_chip("village", [sentence(T("C2_VILLAGE"))], [GridTheme.G_TEXT])
+
+func _draw_town3() -> void:
+	var w := size.x
+	var semi := GridTheme.font("semi"); var sans := GridTheme.font("sans")
+	var t1 := sentence(T("C2_TEXTBOOK")); var t2 := T("C2_TEXTBOOK_SUB")
+	var bw := maxf(semi.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(14)).x, sans.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x) + 24.0
+	var badge := Rect2(Vector2(M, TOP), Vector2(bw, 52.0))
+	draw_style_box(GridTheme.glass_sb(0.78, 4, 0.0), badge)
+	_text(semi, 14, badge.position + Vector2(12, 21), t1, GridTheme.G_TEXT)
+	_text(sans, 11, badge.position + Vector2(12, 43), t2, GridTheme.G_DIM)
+	var sk := Rect2(Vector2(w * 0.10, badge.end.y + 10.0), Vector2(w * 0.80, 92.0))
+	_draw_sankey(sk)
+	_top_y = sk.end.y + 10.0
+	var tw: Dictionary = q.town; var ratio := int(tw.ratio)
+	_chip("gen", [sentence(T("C2_GEN_KV") % _f(float(tw.vGenV) / 1000.0, 0))], [GridTheme.G_TEXT])
+	if ratio > 1:
+		_chip("up", ["%d:1" % ratio], [GridTheme.SODIUM])
+		_chip("down", ["1:%d" % ratio], [GridTheme.SODIUM])
+	var heat := Bench3D.line_heat(float(q.lossPct))
+	_chip("line", [sentence(T("C2_LINE_KV") % _f(float(q.vLineV) / 1000.0, 0)) + " · " + T("C2_LINE_AMPS") % _f(float(q.iA), 0), T("C2_LINE_KM") % _f(float(q.kmOneWay), 0)], [GridTheme.G_TEXT.lerp(Bench3D.heat_colour(heat).lightened(0.3), heat), GridTheme.G_DIM])
+	_chip("town", [T("C2_TOWN_V") % _f(clampf(float(q.vTownPu), 0.0, 1.0) * 100.0, 0)], [_good(bool(q.ok))])
+
+## A glass chip hung over a 3D place (Bench3D.anchors), with a leader line down to it; off screen or behind the camera it is not drawn.
+func _chip(key: String, lines: Array, cols: Array) -> void:
+	var wv = app.get("grid_world")
+	var l3 = wv.look3d
+	var a = l3.anchors.get(key)
+	if a == null: return
+	var wp: Vector2 = l3.project(a)
+	if wp.x < -9000.0: return
+	var sp: Vector2 = get_global_transform_with_canvas().affine_inverse() * ((wv as Control).get_global_transform_with_canvas() * wp)
+	if not Rect2(Vector2.ZERO, size).grow(-4.0).has_point(sp): return
+	var semi := GridTheme.font("semi"); var fz := GridTheme.fs(13)
+	var cw := 0.0
+	for ln in lines: cw = maxf(cw, semi.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x)
+	var lh := float(fz) + 6.0
+	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - 34.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
+	r.position.x = clampf(r.position.x, M, size.x - M - r.size.x)
+	r.position.y = clampf(r.position.y, _top_y, panel.position.y - 8.0 - r.size.y)
+	for c in _chips:   # step clear of the chips already drawn
+		if (c as Rect2).grow(4.0).intersects(r): r.position.y = (c as Rect2).end.y + 8.0
+	if r.end.y > panel.position.y - 8.0: return
+	_chips.append(r)
+	var foot := Vector2(clampf(sp.x, r.position.x + 8.0, r.end.x - 8.0), r.end.y)
+	if sp.y > r.end.y + 4.0:
+		draw_line(foot, sp, Color(GridTheme.G_TICK, 0.7), 1.0, true)
+		draw_circle(sp, 3.0, GridTheme.G_TICK)
+	draw_style_box(GridTheme.glass_sb(0.78, 4, 0.0), r)
+	for i in lines.size():
+		_text(semi, 13, Vector2(r.position.x + 12.0, r.position.y + 6.0 + lh * (i + 1) - 6.0), str(lines[i]), cols[mini(i, cols.size() - 1)])
