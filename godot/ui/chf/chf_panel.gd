@@ -177,13 +177,16 @@ func _layout() -> void:
 	else:
 		var strip: bool = GridTheme.look2   # LOOK2 (manager review 1.15): the land is the star. While the day runs the card is a slim strip (day, time, headline, island) that opens on demand
 		var running: bool = app != null and app.b != null and int(_g().tick) > int(_g().levelStart) and str(_g().get("status", "playing")) == "playing"
-		var full: bool = not strip or (_user == 1 or (_user == -1 and not running))
+		var full: bool = not strip or _user == 1
+		# 1.18 (manager review): folded is the default. While planning the folded card still shows the parts shelf (the decision), not the
+		# ticker and notes, so it no longer covers a quarter of the land; "Parts shelf and ticker" opens the rest.
+		var shelf_only: bool = strip and _user == -1 and not running
 		_open = full
 		_toggle.visible = strip
 		if strip:
 			_toggle.text = tx("CF_LESS") if full else tx("CF_MORE")
 			if _toggle.get_index() != _toggle.get_parent().get_child_count() - 1: _toggle.get_parent().move_child(_toggle, -1)
-		for c in [_stats, _th, _ticker, _kit]: (c as Control).visible = full and (c != _stats or int(_g().tick) > int(_g().levelStart))
+		for c in [_stats, _th, _ticker, _kit]: (c as Control).visible = (full or (shelf_only and c == _kit)) and (c != _stats or int(_g().tick) > int(_g().levelStart))
 		var avail2 := vp.y - 74.0 - 300.0   # ends above the speed dock and the budget tag (1280x800 overlap)
 		var bh := _box.get_combined_minimum_size().y
 		if bh > avail2: _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO; _scroll.custom_minimum_size = Vector2(W - 24.0, avail2)
