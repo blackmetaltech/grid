@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chapter 7 · Protection and Markets · GRID wiki</title>
-<meta name="description" content="Chapter 7 · Protection and Markets: Fault level, inverse-time relays and their coordination, clearing time and the merit order.">
+<meta name="description" content="Chapter 7 · Protection and Markets: Fault level, inverse-time relays and how they grade, clearing time, and the merit order of a market.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -12,55 +12,71 @@
 <link rel="stylesheet" href="wiki.css">
 </head>
 <body class="wiki">
-<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<header class="nav"><a class="logo" href="../">GRID</a><nav aria-label="Primary"><a href="./">Wiki</a><a href="how.html">How a job goes</a><a href="controls.html">Controls</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
 <main class="wrap">
 <p class="crumbs"><a href="./">Wiki</a> / Chapter 7 · Protection and Markets</p>
 <h1>Chapter 7 · Protection and Markets</h1>
-<p class="lede">Fault level, inverse-time relays and their coordination, clearing time and the merit order.</p>
-<figure class="shot"><img src="../assets/shots/relays.jpg" alt="L24 Coordination: four relay curves and their grading margins" width="1600" height="900" loading="lazy"><figcaption>L24 Coordination: four relay curves and their grading margins</figcaption></figure>
-<nav class="toc"><a href="#L23">Fault Level</a><a href="#L24">Coordination</a><a href="#L25">Clear It in Time</a><a href="#L26">Merit Order</a><a href="#L27">Exam: Faults &amp; λ</a></nav>
+<p class="lede"><b>What it teaches.</b> Fault level, inverse-time relays and how they grade, clearing time, and the merit order of a market.</p>
+<p class="meta">5 jobs: WO-23 to WO-27. All of its jobs are in the classic 2D look for now.</p>
+<figure class="shot"><img src="../assets/shots/relays.jpg" alt="WO-24 Coordination: four relay curves and their grading margins" width="1600" height="900" loading="lazy" decoding="async"><figcaption><b class="look classic">Classic look.</b> WO-24 Coordination: four relay curves and their grading margins</figcaption></figure>
+<nav class="toc" aria-label="Jobs in this chapter"><a href="#L23">Fault Level</a><a href="#L24">Coordination</a><a href="#L25">Clear It in Time</a><a href="#L26">Merit Order</a><a href="#L27">Exam: Faults &amp; λ</a></nav>
 <article class="level card" id="L23">
-<h3><span class="wo">WO-23</span> Fault Level</h3>
+<h3><span class="wo">WO-23</span> Fault Level <span class="look classic">Classic look</span></h3>
 <p class="place">The State · Ironbridge substation, 20:00</p>
-<p class="brief">Two new 25 MW captive generators raise the fault level of the 33 kV industrial substation. A 3-phase fault will hit a feeder just outside its breaker: make every breaker able to break it, at the least cost, and keep the estate secure.</p>
+<h4>Goal</h4>
+<p class="brief">Two new 25 MW captive generators raise the fault level of the 33 kV industrial substation. A 3-phase fault will hit a feeder just outside its breaker: make every breaker able to break it, at the least cost, and keep the estate secure.</p><p class="lamps"><b>Budget:</b> $490,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $440,000; the third needs the same spend and n-1 secure (survives one transformer out), estate voltage at least 0.909 pu with one transformer out, prediction within 2 %.</p>
+<h4>If it fails</h4>
+<p>Breaker F1 was asked to break 30.2 kA (1726 MVA) but is rated 25 kA, so it failed to open. Breaker-failure protection opened its neighbours 0.5 s after the fault and the whole estate went dark for 3 hours (162 MWh not served).</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> A fault is a short circuit: nothing but the wires and machines behind it limits the current. Add a generator and you add a source.</li><li><b>VANCE</b> Those 25 kA breakers were bought for the old fault level. I will not pay for a bigger board than the fault needs.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Predict the fault current at the feeder: add up the impedances behind it and work out I_f in kA before you run.<span class="why">I_f = V / Z_th: the transformer paths are in series with the grid, and the sources are in parallel at the busbar.</span></li><li>Make the board able to break it: a bigger breaker, a split bus, a reactor, or a higher-impedance transformer.<span class="why">Every way down trades something: money, security of supply when a transformer trips, or voltage under load.</span></li><li>Run the fault.<span class="why">A breaker is only as good as the largest current it can interrupt.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Predict the fault current at the feeder: add up the impedances behind it and work out I_f in kA before you run.<span class="why">I_f = V / Z_th: the transformer paths are in series with the grid, and the sources are in parallel at the busbar.</span></li><li>Make the board able to break it: a bigger breaker, a split bus, a reactor, or a higher-impedance transformer.<span class="why">Every way down trades something: money, security of supply when a transformer trips, or voltage under load.</span></li><li>Run the fault.<span class="why">A breaker is only as good as the largest current it can interrupt.</span></li></ol></details>
 <p class="tags"><span>fault level</span><span>thevenin</span><span>breaking capacity</span><span>bus split</span></p>
 </article>
 <article class="level card" id="L24">
-<h3><span class="wo">WO-24</span> Coordination</h3>
+<h3><span class="wo">WO-24</span> Coordination <span class="look classic">Classic look</span></h3>
 <p class="place">The State · Hollin Road feeder, 20:00</p>
-<p class="brief">A 7 km 11 kV feeder has four overcurrent relays, R1 at the substation to R4 at the far end. Set curve, pickup and time multiplier so the relay nearest each of six faults clears it, every relay above waits at least 0.3 s longer, and nothing trips on load or burns the line.</p>
+<h4>Goal</h4>
+<p class="brief">A 7 km 11 kV feeder has four overcurrent relays, R1 at the substation to R4 at the far end. Set curve, pickup and time multiplier so the relay nearest each of six faults clears it, every relay above waits at least 0.3 s longer, and nothing trips on load or burns the line.</p><p class="lamps"><b>Lamps:</b> pass the job; the card says what the second and third ask for.</p>
+<h4>If it fails</h4>
+<p>Fault F2: relay R2 operates in 0.442 s but the relay above it, R1, in 0.506 s: only 0.064 s later, and the interval needs 0.3 s. Both opened and healthy customers upstream of the fault lost supply (59.4 MWh).</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Every relay on the feeder sees the same fault. Only the one closest to it should act; the rest are the second line of defence and must wait.</li><li><b>TOBI</b> Last winter the whole feeder went dark for a rabbit on a spur. Same settings everywhere, they said.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Set the pickup of each relay above 1.25 × its load current.<span class="why">A relay must ignore the evening load and still see the weakest fault in its zone.</span></li><li>Grade the time multiplier: smallest at the far end, larger toward the substation.<span class="why">Upstream relays are the backup: at the same fault current they must wait longer than the relay below by the 0.3 s coordination interval.</span></li><li>Run the six faults.<span class="why">Each fault is one test of the grading: the nearest relay must win by 0.3 s.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Set the pickup of each relay above 1.25 × its load current.<span class="why">A relay must ignore the evening load and still see the weakest fault in its zone.</span></li><li>Grade the time multiplier: smallest at the far end, larger toward the substation.<span class="why">Upstream relays are the backup: at the same fault current they must wait longer than the relay below by the 0.3 s coordination interval.</span></li><li>Run the six faults.<span class="why">Each fault is one test of the grading: the nearest relay must win by 0.3 s.</span></li></ol></details>
 <p class="tags"><span>idmt</span><span>grading</span><span>selectivity</span><span>conductor i2t</span></p>
 </article>
 <article class="level card" id="L25">
-<h3><span class="wo">WO-25</span> Clear It in Time</h3>
+<h3><span class="wo">WO-25</span> Clear It in Time <span class="look classic">Classic look</span></h3>
 <p class="place">The State · Highfell Falls, 20:00</p>
-<p class="brief">A fault on one circuit of the 400 kV line beside the Highfell Falls hydro plant makes the rotor speed up. Choose the relay and the breaker so the fault clears before the critical clearing time, at the least cost.</p>
+<h4>Goal</h4>
+<p class="brief">A fault on one circuit of the 400 kV line beside the Highfell Falls hydro plant makes the rotor speed up. Choose the relay and the breaker so the fault clears before the critical clearing time, at the least cost.</p><p class="lamps"><b>Budget:</b> $600,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $551,000; the third needs the same spend and clear at least 50 ms before the critical time.</p>
+<h4>If it fails</h4>
+<p>The fault cleared after 484 ms (384 ms relay and 100 ms breaker) but the critical clearing time is 164 ms. The rotor was already at 198° when the fault cleared, passed the unstable angle 130° at 0.48 s and slipped a pole: the plant tripped out of step.</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> While a fault holds, the generator cannot deliver its power. The rotor takes the difference as speed.</li><li><b>VANCE</b> A breaker that opens in two cycles costs twice the one that takes five. Show me the cycles that matter.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Write your prediction of the critical clearing angle, in degrees, in the box before you choose.<span class="why">Equal areas: the rotor gains speed while the fault holds and must lose it again before the angle passes delta_cr.</span></li><li>Pick the relay: zone-1 distance, zone-2 distance, or an inverse-time overcurrent setting.<span class="why">A distance relay trips a fault on the first 80 % of the line in 30 ms; an inverse-time relay takes longer the smaller the current is.</span></li><li>Pick the breaker's interrupting time: 2, 3 or 5 cycles.<span class="why">At 50 Hz a cycle is 20 ms, and every 20 ms is more speed for the rotor.</span></li><li>Run the fault.<span class="why">The critical clearing time is where the accelerating area equals the decelerating area.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Write your prediction of the critical clearing angle, in degrees, in the box before you choose.<span class="why">Equal areas: the rotor gains speed while the fault holds and must lose it again before the angle passes delta_cr.</span></li><li>Pick the relay: zone-1 distance, zone-2 distance, or an inverse-time overcurrent setting.<span class="why">A distance relay trips a fault on the first 80 % of the line in 30 ms; an inverse-time relay takes longer the smaller the current is.</span></li><li>Pick the breaker's interrupting time: 2, 3 or 5 cycles.<span class="why">At 50 Hz a cycle is 20 ms, and every 20 ms is more speed for the rotor.</span></li><li>Run the fault.<span class="why">The critical clearing time is where the accelerating area equals the decelerating area.</span></li></ol></details>
 <p class="tags"><span>swing equation</span><span>equal area</span><span>critical clearing time</span><span>breaker speed</span></p>
 </article>
 <article class="level card" id="L26">
-<h3><span class="wo">WO-26</span> Merit Order</h3>
+<h3><span class="wo">WO-26</span> Merit Order <span class="look classic">Classic look</span></h3>
 <p class="place">The State · Control centre, 00:00</p>
-<p class="brief">Run tomorrow's 24 hours for six plants across two areas joined by a 220 kV corridor. Commit the plants and choose how the day is dispatched, so the corridor never overloads and nobody is left in the dark, at the least cost.</p>
+<h4>Goal</h4>
+<p class="brief">Run tomorrow's 24 hours for six plants across two areas joined by a 220 kV corridor. Commit the plants and choose how the day is dispatched, so the corridor never overloads and nobody is left in the dark, at the least cost.</p><p class="lamps"><b>Lamps:</b> pass the job; the card says what the second and third ask for.</p>
+<h4>If it fails</h4>
+<p>At 16:30 the corridor carried 460 MW against a rating of 450 MW and tripped. Cheapest-first and equal-lambda dispatch both ignore the wire; the load area went dark (0 MWh not served).</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>TOBI</b> Coal is cheap and it sits in the north. The city is in the south. In between there is one wire.</li><li><b>ADA</b> When the wire is full the south pays a different price from the north. That difference is what the wire is worth.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Predict the price in the load area at 20:00 (per MWh, in the money of your region).<span class="why">When the corridor is full, the load area's marginal plant is the expensive one next to the city, not the cheap coal in the north.</span></li><li>Choose the dispatch rule: cheapest first, equal incremental cost, or equal incremental cost with the corridor.<span class="why">Only the third knows the wire has a limit.</span></li><li>Commit the plants: the hours each one is on.<span class="why">Coal takes hours to warm up and cannot run below its minimum; the peaker only has to be there for the evening.</span></li><li>Run the day.<span class="why">The evening peak is where the corridor is tested.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Predict the price in the load area at 20:00 (per MWh, in the money of your region).<span class="why">When the corridor is full, the load area's marginal plant is the expensive one next to the city, not the cheap coal in the north.</span></li><li>Choose the dispatch rule: cheapest first, equal incremental cost, or equal incremental cost with the corridor.<span class="why">Only the third knows the wire has a limit.</span></li><li>Commit the plants: the hours each one is on.<span class="why">Coal takes hours to warm up and cannot run below its minimum; the peaker only has to be there for the evening.</span></li><li>Run the day.<span class="why">The evening peak is where the corridor is tested.</span></li></ol></details>
 <p class="tags"><span>merit order</span><span>lambda dispatch</span><span>congestion</span><span>water value</span></p>
 </article>
 <article class="level card" id="L27">
-<h3><span class="wo">WO-27</span> Exam: Faults &amp; λ</h3>
+<h3><span class="wo">WO-27</span> Exam: Faults &amp; λ <span class="look classic">Classic look</span></h3>
 <p class="place">The State · The exam hall, 20:00</p>
-<p class="brief">Exam day. Predict five numbers by hand, then use what you know: the substation has grown, so rate its breakers for the fault level and set tonight's 3-unit dispatch at the least cost.</p>
+<h4>Goal</h4>
+<p class="brief">Exam day. Predict five numbers by hand, then use what you know: the substation has grown, so rate its breakers for the fault level and set tonight's 3-unit dispatch at the least cost.</p><p class="lamps"><b>Budget:</b> $1,200,000.</p>
+<h4>If it fails</h4>
+<p>Breaker F1 was asked to break 41.8 kA (2392 MVA) but is rated 25 kA, so it failed to open. Breaker-failure protection opened its neighbours 0.5 s after the fault and the whole estate went dark for 3 hours (162 MWh not served).</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>NIA</b> My exam is a week away, and these are the same questions. Show me how you would work them.</li><li><b>ADA</b> Same arithmetic as the field. Only the numbers change.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Predict the exam numbers first: 3-phase fault kA, SLG kA, the two lambdas, and the 60 Hz critical clearing time.<span class="why">Working them by hand first is how the method sticks; the engine will check you.</span></li><li>Rate the breakers of the grown board.<span class="why">Size the breaker for the larger of the 3-phase and the single line-to-ground fault.</span></li><li>Set tonight's dispatch of the three units.<span class="why">Equal incremental cost, unless a unit is held at a limit.</span></li><li>Run the exam.<span class="why">The engine answers every question the same way you do.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Predict the exam numbers first: 3-phase fault kA, SLG kA, the two lambdas, and the 60 Hz critical clearing time.<span class="why">Working them by hand first is how the method sticks; the engine will check you.</span></li><li>Rate the breakers of the grown board.<span class="why">Size the breaker for the larger of the 3-phase and the single line-to-ground fault.</span></li><li>Set tonight's dispatch of the three units.<span class="why">Equal incremental cost, unless a unit is held at a limit.</span></li><li>Run the exam.<span class="why">The engine answers every question the same way you do.</span></li></ol></details>
 <p class="tags"><span>fault level</span><span>sequence networks</span><span>lambda dispatch</span><span>equal area</span></p>
 </article>
-<nav class="pager"><a href="chapter-6.html">← Chapter 6 · Frequency and Renewables</a><a href="chapter-8.html">Chapter 8 · Distribution →</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="chapter-6.html"><small>Previous</small>Chapter 6 · Frequency and Renewables</a><a class="next" href="chapter-8.html"><small>Next</small>Chapter 8 · Distribution</a></nav>
 </main>
-<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
+<footer class="foot wrap"><p>Generated from the game's own text and data by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
 </body>
 </html>

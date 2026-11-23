@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Prologue · GRID wiki</title>
-<meta name="description" content="Prologue: Night shift: close one breaker and watch a cascading failure put the lights out. Then the first work order.">
+<meta name="description" content="Prologue: One breaker closes and a cascading failure puts the lights out. You watch how one trip loads the next line until it trips too.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -12,23 +12,27 @@
 <link rel="stylesheet" href="wiki.css">
 </head>
 <body class="wiki">
-<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<header class="nav"><a class="logo" href="../">GRID</a><nav aria-label="Primary"><a href="./">Wiki</a><a href="how.html">How a job goes</a><a href="controls.html">Controls</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
 <main class="wrap">
 <p class="crumbs"><a href="./">Wiki</a> / Prologue</p>
 <h1>Prologue</h1>
-<p class="lede">Night shift: close one breaker and watch a cascading failure put the lights out. Then the first work order.</p>
-<figure class="shot"><img src="../assets/shots/workorder.jpg" alt="A work order: the place, the radio, the goal and the three lamps" width="1600" height="900" loading="lazy"><figcaption>A work order: the place, the radio, the goal and the three lamps</figcaption></figure>
-<nav class="toc"><a href="#P0">The Night the Lights Went Out</a></nav>
+<p class="lede"><b>What it teaches.</b> One breaker closes and a cascading failure puts the lights out. You watch how one trip loads the next line until it trips too.</p>
+<p class="meta">One scene. All of its jobs are in the classic 2D look for now.</p>
+<figure class="shot"><img src="../assets/shots/workorder.jpg" alt="The paper work order every classic-look job opens with (here The River Line, from an older build). The prologue has no capture of its own on this wiki yet." width="1600" height="900" loading="lazy" decoding="async"><figcaption><b class="look classic">Classic look.</b> The paper work order every classic-look job opens with (here The River Line, from an older build). The prologue has no capture of its own on this wiki yet.</figcaption></figure>
+<nav class="toc" aria-label="Jobs in this chapter"><a href="#P0">The Night the Lights Went Out</a></nav>
 <article class="level card" id="P0">
-<h3><span class="wo">Prologue</span> The Night the Lights Went Out</h3>
+<h3><span class="wo">Prologue</span> The Night the Lights Went Out <span class="look classic">Classic look</span></h3>
 
+<h4>Goal</h4>
 <p class="brief">Night shift. Line 7 is back from maintenance: close its breaker. It is the only thing you can do.</p>
-
-<h4>Steps</h4><ol class="steps"><li>Line 7 is back from maintenance. Close the glowing breaker.<span class="why">Closing a line ties two parts of the grid together; power now flows where it did not before.</span></li><li>Watch the lines.<span class="why">A line carrying more than its rating heats up and trips on its timer; its flow lands on the next line.</span></li></ol>
+<h4>If it fails</h4>
+<p>This job is a scene: it has no pass or fail and awards no lamps.</p>
+<p class="board">On the job board this job is listed under "Chapter 1 · The Island".</p>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Line 7 is back from maintenance. Close the glowing breaker.<span class="why">Closing a line ties two parts of the grid together; power now flows where it did not before.</span></li><li>Watch the lines.<span class="why">A line carrying more than its rating heats up and trips on its timer; its flow lands on the next line.</span></li></ol></details>
 <p class="tags"><span>cascading failure</span></p>
 </article>
-<nav class="pager"><span></span><a href="chapter-1.html">Chapter 1 · The Island →</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="controls.html"><small>Previous</small>Controls</a><a class="next" href="chapter-1.html"><small>Next</small>Chapter 1 · The Island</a></nav>
 </main>
-<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
+<footer class="foot wrap"><p>Generated from the game's own text and data by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
 </body>
 </html>

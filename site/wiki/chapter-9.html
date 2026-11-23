@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Finale · Keep the Lights On · GRID wiki</title>
-<meta name="description" content="Finale · Keep the Lights On: The whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday of full sun and no factories.">
+<meta name="description" content="Finale · Keep the Lights On: Three days of the whole province: a heatwave, a storm that trips a line, a unit and a transformer, then a holiday of full sun and no factories. You spend one budget and decide during the run.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -12,23 +12,28 @@
 <link rel="stylesheet" href="wiki.css">
 </head>
 <body class="wiki">
-<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<header class="nav"><a class="logo" href="../">GRID</a><nav aria-label="Primary"><a href="./">Wiki</a><a href="how.html">How a job goes</a><a href="controls.html">Controls</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
 <main class="wrap">
 <p class="crumbs"><a href="./">Wiki</a> / Finale · Keep the Lights On</p>
 <h1>Finale · Keep the Lights On</h1>
-<p class="lede">The whole province for three days: a heatwave, a storm that trips a line, a unit and a transformer, and a holiday of full sun and no factories.</p>
-<figure class="shot"><img src="../assets/shots/towers-3d.jpg" alt="The finale in 3D: lattice towers carry the lines at dusk" width="1600" height="900" loading="lazy"><figcaption>The finale in 3D: lattice towers carry the lines at dusk</figcaption></figure>
-<nav class="toc"><a href="#L28">Keep the Lights On</a></nav>
+<p class="lede"><b>What it teaches.</b> Three days of the whole province: a heatwave, a storm that trips a line, a unit and a transformer, then a holiday of full sun and no factories. You spend one budget and decide during the run.</p>
+<p class="meta">1 job: WO-28. All of its jobs are drawn in the new 3D look.</p>
+<figure class="shot"><img src="img/finale.jpg" alt="WO-28 opens on the harbour and Saltmarsh Island, where the trouble comes" width="1600" height="900" loading="lazy" decoding="async"><figcaption><b class="look new">New look.</b> WO-28 opens on the harbour and Saltmarsh Island, where the trouble comes</figcaption></figure>
+<figure class="shot"><img src="../assets/shots/street-3d.jpg" alt="A town at street level at dusk in the finale" width="1600" height="900" loading="lazy" decoding="async"><figcaption><b class="look new">New look.</b> A town at street level at dusk in the finale</figcaption></figure>
+<nav class="toc" aria-label="Jobs in this chapter"><a href="#L28">Keep the Lights On</a></nav>
 <article class="level card" id="L28">
-<h3><span class="wo">WO-28</span> Keep the Lights On</h3>
+<h3><span class="wo">WO-28</span> Keep the Lights On <span class="look new">New look</span></h3>
 <p class="place">State control room, 26 buses, three days</p>
-<p class="brief">Three days on the whole state: a heatwave, a storm, a holiday. The reinforcement budget cannot buy every fix: choose the parts that keep the province lit and Saltmarsh Island bright through the night of Day 2.</p>
+<h4>Goal</h4>
+<p class="brief">Three days on the whole state: a heatwave, a storm, a holiday. The reinforcement budget cannot buy every fix: choose the parts that keep the province lit and Saltmarsh Island bright through the night of Day 2.</p><p class="lamps"><b>Budget:</b> $53,500,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $40,050,982; spend at most $30,030,814 and frequency never out of band and the island never dark (0 blocks allowed), line losses ≤ 3 %.</p>
+<h4>If it fails</h4>
+<p>At 11:15 bus B4 fell to 0.949 pu; the band is 0.95 to 1.05 pu, and by then it had been out of the band for 7 blocks in all.</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Day one is the record heat. Every air conditioner in the province is on, and the long lines sag the voltage at the far end.</li><li><b>TOBI</b> Day two is the storm. A 400 kV line, the biggest unit and a transformer will trip, and lightning will take the one feeder to Saltmarsh. Nia's exam is the morning after.</li><li><b>VANCE</b> Day three is the holiday: full sun, no factories. Too much voltage and too little inertia. Spend what you must, no more.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Day 1 is a heatwave: the 400 kV bus at Eastgate and the 132 kV tail to Harbour and the island sag towards 0.95 pu, and Day 3's empty holiday lifts them. The card at the top right shelves the voltage parts with their prices. Which of them holds the far end up?<span class="why">Reactive power cannot travel far: the voltage drop along a line is mostly X times the reactive flow, so the capacitor has to stand near the load.</span></li><li>Day 2 trips the biggest unit, 660 MW, and Day 3's sunset falls on a thin fleet. Only what is already spinning or stored answers in the first minutes; the rest is energy not served, and the three days allow at most 131 MWh of it. Buy headroom from the reserve shelf, or spin U4 later from the card during the run: then you pay fuel only for the hours left.<span class="why">When a unit trips, the units still running must pick up its output at once. Headroom you do not hold cannot be summoned.</span></li><li>Lightning opens the one causeway line to Saltmarsh Island at 23:30 on Day 2, and the crews close it at 06:00. In those six and a half hours the island draws about 92 MWh. The island shelf has lines and batteries at very different prices: pick a way to keep the school lit.<span class="why">N-1: after any single trip every load must still have a path. A battery is a path in time: its energy must cover every hour until the repair.</span></li><li>Run the three days. Watch the day indicator and the event ticker.<span class="why">The stars are earned over all 288 blocks, not at any one moment.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Day 1 is a heatwave: the 400 kV bus at Eastgate and the 132 kV tail to Harbour and the island sag towards 0.95 pu, and Day 3's empty holiday lifts them. The card at the top right shelves the voltage parts with their prices. Which of them holds the far end up?<span class="why">Reactive power cannot travel far: the voltage drop along a line is mostly X times the reactive flow, so the capacitor has to stand near the load.</span></li><li>Day 2 trips the biggest unit, 660 MW, and Day 3's sunset falls on a thin fleet. Only what is already spinning or stored answers in the first minutes; the rest is energy not served, and the three days allow at most 131 MWh of it. Buy headroom from the reserve shelf, or spin U4 later from the card during the run: then you pay fuel only for the hours left.<span class="why">When a unit trips, the units still running must pick up its output at once. Headroom you do not hold cannot be summoned.</span></li><li>Lightning opens the one causeway line to Saltmarsh Island at 23:30 on Day 2, and the crews close it at 06:00. In those six and a half hours the island draws about 92 MWh. The island shelf has lines and batteries at very different prices: pick a way to keep the school lit.<span class="why">N-1: after any single trip every load must still have a path. A battery is a path in time: its energy must cover every hour until the repair.</span></li><li>Run the three days. Watch the day indicator and the event ticker.<span class="why">The stars are earned over all 288 blocks, not at any one moment.</span></li></ol></details>
 <p class="tags"><span>n 1</span><span>voltage control</span><span>inertia</span><span>reserve</span></p>
 </article>
-<nav class="pager"><a href="chapter-8.html">← Chapter 8 · Distribution</a><a href="career.html">Career: The Utility →</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="chapter-8.html"><small>Previous</small>Chapter 8 · Distribution</a><a class="next" href="career.html"><small>Next</small>Career: The Utility</a></nav>
 </main>
-<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
+<footer class="foot wrap"><p>Generated from the game's own text and data by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
 </body>
 </html>

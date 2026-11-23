@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Chapter 3 · Phasors and Power Factor · GRID wiki</title>
-<meta name="description" content="Chapter 3 · Phasors and Power Factor: A mill full of motors: reactive power, capacitor banks and the harmonics they can ring with.">
+<meta name="description" content="Chapter 3 · Phasors and Power Factor: A mill full of motors: reactive power, power factor, capacitor banks and the harmonics they can ring with.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;600&display=swap">
@@ -12,39 +12,49 @@
 <link rel="stylesheet" href="wiki.css">
 </head>
 <body class="wiki">
-<header class="nav"><a class="logo" href="../">GRID</a><nav><a href="./">Wiki</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
+<header class="nav"><a class="logo" href="../">GRID</a><nav aria-label="Primary"><a href="./">Wiki</a><a href="how.html">How a job goes</a><a href="controls.html">Controls</a><a href="career.html">Career</a><a href="../#download" class="btn mini">Download</a></nav></header>
 <main class="wrap">
 <p class="crumbs"><a href="./">Wiki</a> / Chapter 3 · Phasors and Power Factor</p>
 <h1>Chapter 3 · Phasors and Power Factor</h1>
-<p class="lede">A mill full of motors: reactive power, capacitor banks and the harmonics they can ring with.</p>
-<figure class="shot"><img src="../assets/shots/harmonics.jpg" alt="L08 Resonance at the Fifth: the harmonic spectrum beside the map" width="1600" height="900" loading="lazy"><figcaption>L08 Resonance at the Fifth: the harmonic spectrum beside the map</figcaption></figure>
-<nav class="toc"><a href="#L07">The Lagging Mill</a><a href="#L08">Resonance at the Fifth</a><a href="#L09">The Hundred-Percent Trap</a></nav>
+<p class="lede"><b>What it teaches.</b> A mill full of motors: reactive power, power factor, capacitor banks and the harmonics they can ring with.</p>
+<p class="meta">3 jobs: WO-07 to WO-09. All of its jobs are drawn in the new 3D look.</p>
+<figure class="shot"><img src="img/mill.jpg" alt="The mill town in the evening: sheds, chimneys and a rail siding, with the harmonic card beside the map" width="1600" height="900" loading="lazy" decoding="async"><figcaption><b class="look new">New look.</b> The mill town in the evening: sheds, chimneys and a rail siding, with the harmonic card beside the map</figcaption></figure>
+<nav class="toc" aria-label="Jobs in this chapter"><a href="#L07">The Lagging Mill</a><a href="#L08">Resonance at the Fifth</a><a href="#L09">The Hundred-Percent Trap</a></nav>
 <article class="level card" id="L07">
-<h3><span class="wo">WO-07</span> The Lagging Mill</h3>
+<h3><span class="wo">WO-07</span> The Lagging Mill <span class="look new">New look</span></h3>
 <p class="place">Mill Town · Sarn rice mill, 06:00</p>
-<p class="brief">A rice mill (1.2 MW, power factor 0.70) and a village share a 4 km 11 kV feeder. Keep the feeder from tripping and the mill bus inside its voltage band all day.</p>
+<h4>Goal</h4>
+<p class="brief">A rice mill (1.2 MW, power factor 0.70) and a village share a 4 km 11 kV feeder. Keep the feeder from tripping and the mill bus inside its voltage band all day.</p><p class="lamps"><b>Budget:</b> $32,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $28,800; the third needs the same spend and power factor ≥ 0.95, line losses ≤ 6 %.</p>
+<h4>If it fails</h4>
+<p>Total blackout: every load lost supply.</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Year four. Mill Town grew up around one rice mill, and a mill is a field of motors.</li><li><b>TOBI</b> A motor is a coil. Building its magnetic field takes current that does no work, and the feeder carries every amp of it.</li><li><b>VANCE</b> The feeder is rated 115 amps. A fatter wire costs a fortune; a capacitor bank is pocket change. But a bank left on at night with the mill off pushes current back up the line.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Press Run and read the feeder current at the evening peak.<span class="why">The mill pulls current that carries no useful power, and the feeder is rated for 115 A.</span></li><li>Add a capacitor bank at the mill bus.<span class="why">A capacitor supplies the magnetising current the motors need close to where it is used.</span></li><li>Switch the bank in, or set it to switch itself.<span class="why">A bank left on at night with the mill off pushes current the other way; an automatic bank follows the voltage.</span></li><li>Run the whole day.<span class="why">The mill starts at 06:00, stops for lunch and stops at 22:00; the evening peak is the hard hour.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Press Run and read the feeder current at the evening peak.<span class="why">The mill pulls current that carries no useful power, and the feeder is rated for 115 A.</span></li><li>Add a capacitor bank at the mill bus.<span class="why">A capacitor supplies the magnetising current the motors need close to where it is used.</span></li><li>Switch the bank in, or set it to switch itself.<span class="why">A bank left on at night with the mill off pushes current the other way; an automatic bank follows the voltage.</span></li><li>Run the whole day.<span class="why">The mill starts at 06:00, stops for lunch and stops at 22:00; the evening peak is the hard hour.</span></li></ol></details>
 <p class="tags"><span>power factor</span><span>reactive power</span><span>phasors</span><span>capacitor compensation</span></p>
 </article>
 <article class="level card" id="L08">
-<h3><span class="wo">WO-08</span> Resonance at the Fifth</h3>
+<h3><span class="wo">WO-08</span> Resonance at the Fifth <span class="look new">New look</span></h3>
 <p class="place">Mill Town · Sarn Textiles, 06:00</p>
-<p class="brief">A textile factory with variable-speed drives joins the Mill Town feeder, and the capacitor bank starts to cook. Keep the bank's current under 1.3 times its rating, the voltage THD at the 11 kV bus under 5 %, and the power factor at the evening peak at 0.95 or better.</p>
+<h4>Goal</h4>
+<p class="brief">A textile factory with variable-speed drives joins the Mill Town feeder, and the capacitor bank starts to cook. Keep the bank's current under 1.3 times its rating, the voltage THD at the 11 kV bus under 5 %, and the power factor at the evening peak at 0.95 or better.</p><p class="lamps"><b>Budget:</b> $52,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $46,800; the third needs the same spend and voltage THD ≤ 3 %.</p>
+<h4>If it fails</h4>
+<p>At 08:00 the 900 kVAr bank blew its fuse. Its parallel resonance with the supply sat at h = 5.0, next to the 5th harmonic (250 Hz) the drives inject, so the capacitor carried 1.42 × its rated current (the limit is 1.3 ×, IEC 60871) and voltage THD had reached 21.0 %.</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Year five. Sarn Textiles put in variable-speed drives. A drive does not draw a sine wave: it draws a lump of current every sixth of a cycle.</li><li><b>TOBI</b> Those lumps are harmonics: 5 times 50 Hz, 7 times, 11 times. And the capacitor bank you gave the mill is a spring waiting for one of them.</li><li><b>VANCE</b> The council wants the power factor kept up and the neighbours' lights clean. A reactor in series costs less than a new bank, and a filter costs more than both.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Press Run and watch the capacitor bank and the voltage THD.<span class="why">The drives start at 08:00. A drive draws current in lumps, which is a 5th, 7th, 11th and 13th harmonic of 50 Hz.</span></li><li>Place a capacitor bank at the mill bus, as in the last job.<span class="why">The feeder still needs its power factor corrected: Q_c = P (tan φ₁ − tan φ₂).</span></li><li>Put a reactor in series with the bank: pick a detuned bank (7 %) or a filter (4.7).<span class="why">A plain bank with the supply is an LC circuit: parallel resonance at h = √(S_sc ÷ Q_c). A reactor of p of the capacitor's reactance moves it to √(1 ÷ (Q_c ÷ S_sc + p)).</span></li><li>Switch the bank in.<span class="why">An unswitched bank does nothing: no reactive power, no resonance.</span></li><li>Run the whole day.<span class="why">The factory starts at 08:00 and the evening peak is the hard hour for the power factor.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Press Run and watch the capacitor bank and the voltage THD.<span class="why">The drives start at 08:00. A drive draws current in lumps, which is a 5th, 7th, 11th and 13th harmonic of 50 Hz.</span></li><li>Place a capacitor bank at the mill bus, as in the last job.<span class="why">The feeder still needs its power factor corrected: Q_c = P (tan φ₁ − tan φ₂).</span></li><li>Put a reactor in series with the bank: pick a detuned bank (7 %) or a filter (4.7).<span class="why">A plain bank with the supply is an LC circuit: parallel resonance at h = √(S_sc ÷ Q_c). A reactor of p of the capacitor's reactance moves it to √(1 ÷ (Q_c ÷ S_sc + p)).</span></li><li>Switch the bank in.<span class="why">An unswitched bank does nothing: no reactive power, no resonance.</span></li><li>Run the whole day.<span class="why">The factory starts at 08:00 and the evening peak is the hard hour for the power factor.</span></li></ol></details>
 <p class="tags"><span>harmonics</span><span>resonance</span><span>detuned reactors</span><span>thd</span></p>
 </article>
 <article class="level card" id="L09">
-<h3><span class="wo">WO-09</span> The Hundred-Percent Trap</h3>
+<h3><span class="wo">WO-09</span> The Hundred-Percent Trap <span class="look new">New look</span></h3>
 <p class="place">The Hills · Redstone quarry, 14:00</p>
-<p class="brief">A 35 km 33 kV feeder carries the hill quarry's crushers and the far end sags at the peak. Add series capacitors to cancel part of the line's reactance, keep the far end at 0.95 pu or better, and survive a three-phase fault at the quarry at 21:00.</p>
+<h4>Goal</h4>
+<p class="brief">A 35 km 33 kV feeder carries the hill quarry's crushers and the far end sags at the peak. Add series capacitors to cancel part of the line's reactance, keep the far end at 0.95 pu or better, and survive a three-phase fault at the quarry at 21:00.</p><p class="lamps"><b>Budget:</b> $650,000.</p><p class="lamps"><b>Lamps:</b> pass the job; spend at most $513,214; the third needs the same spend and far end ≥ 0.97 pu all day.</p>
+<h4>If it fails</h4>
+<p>The far end of the feeder sagged to 0.928 pu, under the 0.95 pu the crushers need: the motors dropped out.</p><p class="fine-ink">That is the engine's own sentence for a first-try build that misses. Yours will name your numbers.</p>
 <h4>On the radio</h4><ul class="radio"><li><b>ADA</b> Year six. The quarry crushers are on the end of 35 kilometres of wire. Every kilometre has resistance and reactance, and the reactance drops voltage in proportion to the reactive power.</li><li><b>TOBI</b> A series capacitor cancels line reactance. Cancel half and the line looks half as long to the reactive current. Cancel all of it and the line is just a resistor.</li><li><b>VANCE</b> Our feeder breaker is the old oil one, rated 1.4 kiloamps. More compensation is not better compensation. Go carefully.</li></ul>
-<h4>Steps</h4><ol class="steps"><li>Press Run and read the far-end voltage at the quarry.<span class="why">The crushers run at power factor 0.70, so the feeder carries a lot of reactive current, and X_L · Q is the biggest part of the voltage drop.</span></li><li>Add a series capacitor to the feeder: pick how much of the line's reactance to cancel.<span class="why">A series capacitor puts X_C in the loop against X_L: the working reactance is X_L (1 − k). More compensation lifts the far-end voltage, but think about what a fault sees.</span></li><li>Run the afternoon and evening.<span class="why">At 21:00 a three-phase fault hits the quarry bus. The feeder breaker has to clear it.</span></li></ol>
+<details class="hints"><summary>Coach steps (hints that show how to build)</summary><ol class="steps"><li>Press Run and read the far-end voltage at the quarry.<span class="why">The crushers run at power factor 0.70, so the feeder carries a lot of reactive current, and X_L · Q is the biggest part of the voltage drop.</span></li><li>Add a series capacitor to the feeder: pick how much of the line's reactance to cancel.<span class="why">A series capacitor puts X_C in the loop against X_L: the working reactance is X_L (1 − k). More compensation lifts the far-end voltage, but think about what a fault sees.</span></li><li>Run the afternoon and evening.<span class="why">At 21:00 a three-phase fault hits the quarry bus. The feeder breaker has to clear it.</span></li></ol></details>
 <p class="tags"><span>series compensation</span><span>line reactance</span><span>fault current</span><span>resonance</span></p>
 </article>
-<nav class="pager"><a href="chapter-2.html">← Chapter 2 · Alternating Current, the Mainland</a><a href="chapter-4.html">Chapter 4 · Three-Phase and Machines →</a></nav>
+<nav class="pager" aria-label="Pages"><a class="prev" href="chapter-2.html"><small>Previous</small>Chapter 2 · Alternating Current, the Mainland</a><a class="next" href="chapter-4.html"><small>Next</small>Chapter 4 · Three-Phase and Machines</a></nav>
 </main>
-<footer class="foot wrap"><p>Generated from the game's own text by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
+<footer class="foot wrap"><p>Generated from the game's own text and data by <code>scripts/wiki.ts</code>. Places, people and companies are fictional; the physics is not. <a href="https://github.com/blackmetaltech/grid">Source</a></p></footer>
 </body>
 </html>
