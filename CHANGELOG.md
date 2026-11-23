@@ -9,16 +9,26 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **Chapter 2's map jobs in 3D.** The River Line (L05) and Salt Wind (L29) are drawn on the Mainland in 3D, with the yards at both ends. L04 and L06 are benches and keep the Classic chip.
 - **Key sounds.** A breaker closing, a town coming on (a warm chord, bigger for more homes), a trip, and a blackout (the hum and music drop, a thud, then silence before the radio). They are made in code. No human has listened to them.
 - **The Career is glass**, like the rest of the game.
+- **Homes on the island** have a porch, a picket fence, and some a washing line. The door glass and a porch lamp light up with the windows.
+- **The Mainland has farms** and a bridge where the road meets the river.
+- **The pad's Back button changes the run speed** (1x, 2x, 4x) from anywhere.
+- **The frequency dial shows a trip.** When a unit trips, the needle holds at the lowest frequency, in red, for 3 s, and says so.
 ### Changed
 - **The first job opens beside the hamlet.** The camera looks over the homes to the beach, so the homes are large and the hut sites run away behind them.
 - **Towns grow along their roads.** A main street bends with the road, side streets leave it at uneven gaps, some carry a back lane, and a street follows the river. The Mainland towns use the same streets.
 - **The finale starts in about 4 s** (was 14 to 22 s). The woods grow in a moment after the job is ready.
 - **The end of a shift:** a banner says the report is coming, and the report opens after 2.5 s (was 3.5 s with nothing on screen). Press A or click to open it at once.
+- **The finale opens on the harbour and Saltmarsh Island**, where the trouble comes. Its card is folded: while planning it shows only the parts shelf.
+- **Daylight on the Mainland** has less haze and more colour. The mill's roofs show their saw-teeth and lit skylights; its yard has bales and coal.
+- **Nights in the bay** are moonlit, so the island, the hut and the cable can be seen.
+- **The voltage loss text** says how many blocks the bus spent out of the band in all.
 - **Sound levels** are set from measurements: quiet cues are louder, the hum is lower, thumps play on small speakers, the wind is no longer a rumble.
 ### Fixed
 - The pale halo round every town. It was the haze lit by global illumination, plus an amber disc under each town; both are gone.
 - Street ends glowing like orange rods at dusk. Streets only glow far away now.
-- Rivers and shores on the Mainland stepped tile by tile; woods ended on straight lines at the map's edge.
+- Rivers and shores on the Mainland stepped tile by tile; woods ended on straight lines at the map's edge; a sheet of river water lay over the land at the river mouth.
+- Text overlapped in the meters, in chapter 2's parts tray and in chapter 1's prices at 1280 wide.
+- A bright disc of haze round the town in view (the sun lit the fog only inside its shadow range).
 
 ## [1.17.0] - "First Light" (LOOK2 phase C; review in docs/CRITIQUE-1.17.md)
 ### Added
