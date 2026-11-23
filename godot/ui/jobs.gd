@@ -27,10 +27,11 @@ static func lock_text(app: CbApp, id: String) -> String:
 	var ids := chain(app)
 	return T("JOBS_LOCKED") % str(ids[ids.find(id) - 1]).trim_prefix("L")
 
-## The chapter a job belongs to (DESIGN 2.5): chapter 2 holds the bench levels and the Mainland line jobs (L04 L05 L06 L29 L30); F is the finale.
+## The chapter a job belongs to (DESIGN 2.5): chapter 8 is the Distribution feeder jobs (L31-L36); chapter 2 holds the bench levels and the Mainland line jobs (L04 L05 L06 L29 L30); F is the finale.
 const CHAPTERS := {"P0": "1", "L01": "1", "L02": "1", "L03": "1", "L04": "2", "L05": "2", "L06": "2", "L29": "2", "L30": "2", "L07": "3", "L08": "3", "L09": "3",
 	"L10": "4", "L11": "4", "L12": "4", "L13": "4", "L14": "5", "L15": "5", "L16": "5", "L17": "5", "L18": "5", "L19": "6", "L20": "6", "L21": "6", "L22": "6",
-	"L23": "7", "L24": "7", "L25": "7", "L26": "7", "L27": "7", "L28": "F"}
+	"L23": "7", "L24": "7", "L25": "7", "L26": "7", "L27": "7", "L28": "F",
+	"L31": "8", "L32": "8", "L33": "8", "L34": "8", "L35": "8", "L36": "8"}
 static func chapter_of(id: String) -> String: return str(CHAPTERS.get(id, "X"))
 
 static func open(app: CbApp) -> void:

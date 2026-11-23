@@ -113,6 +113,14 @@ describe('wiki chapters and jobs', () => {
     expect(heading['P0']).toBeDefined();
     expect(html).toContain('On the job board this job is listed under');
   });
+  it('every job has a chapter heading on the job board (none falls under "Other jobs")', () => {
+    const heading = boardHeadings();
+    const ui = readFileSync(join(ROOT, 'godot/ui/grid_strings.gd'), 'utf8');
+    const missing = LEVEL_SPECS.filter((l) => l.id !== 'T00' && !heading[l.id]).map((l) => l.id);
+    expect(missing).toEqual([]);
+    for (const k of new Set(Object.values(heading))) expect(ui, `JOBS_CH_${k}`).toMatch(new RegExp(`"JOBS_CH_${k}":\\s*"[^"]+"`));
+    for (const l of LEVEL_SPECS.filter((x) => x.chapter === 8)) expect(heading[l.id], l.id).toBe('8');
+  });
   it('the controls page quotes the pad legend the game shows', () => {
     const ui = readFileSync(join(ROOT, 'godot/ui/grid_strings.gd'), 'utf8');
     const legend = /"PAD_LEGEND_GRID":\s*"([^"]+)"/.exec(ui)![1]!;
