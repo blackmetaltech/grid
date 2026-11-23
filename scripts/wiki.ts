@@ -383,9 +383,9 @@ function controlsPage(): string {
 // ---- the home page ------------------------------------------------------------------------------------------------------------
 /** Not built yet, written plainly. Review with each release: src/wiki.test.ts checks the counts and look lists around it, not this prose. */
 export const PLANNED: string[] = [
-  'The new 3D look for the prologue, the benches of chapter 2 and chapters 4 to 8. Those jobs still draw in the classic 2D look. The design for this is in docs/LOOK2.md; no date is set.',
+  'The new 3D look for chapters 4 to 8. Those jobs still draw in the classic 2D look. Chapter 4 is next.',
   'A Career screen laid over the district, with the board as a drawer. Today the Career has the glass panels of the new look on a flat map.',
-  'Woods and a landmark for the Mainland towns, and a busier first day in the finale. These are open items from the 1.18 review.',
+  'A busier first day in the finale. This is an open item from the 1.18 review.',
 ];
 export const NOT_CHECKED: string[] = [
   'Nobody has listened to the sound. Every cue is made in code and measured, not heard.',
