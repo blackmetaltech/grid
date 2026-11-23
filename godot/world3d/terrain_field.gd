@@ -92,6 +92,9 @@ func height(x: float, z: float) -> float:
 	var dx := absf(x - cx); var dz := absf(z - cz); var d := sqrt(dx * dx + dz * dz)
 	if d <= 0.0:
 		var h := _bilinear(x, z)
+		if h < 1.5 and h > -6.0:   # 1.18 (DECISIONS 25): the shore wanders instead of stepping tile by tile. It may only lower ground that is already
+			# at the water's edge, never raise it, so no support stands lower than the engine says and every clearance on screen is the engine's or more
+			h = minf(h, _bilinear(x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.55 * tm, z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.55 * tm))
 		var k := kind_at_tile(int(x / tm), int(z / tm))
 		var amp := 0.7
 		if k == K_ROCK: amp = 2.2
@@ -148,7 +151,9 @@ func splat(x: float, z: float, h: float) -> Array:
 func maybe_forest(_x: float, _z: float) -> bool: return true
 
 func is_forest(x: float, z: float, h: float) -> bool:
-	if inside(x, z): return kind_at_tile(int(x / tm), int(z / tm)) == K_FOREST
+	if inside(x, z):   # 1.18: read at the same warped point as the ground colour, so a wood has a ragged edge, not a tile rectangle
+		var wx := x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.5 * tm; var wz := z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.5 * tm
+		return kind_at_tile(int(wx / tm), int(wz / tm)) == K_FOREST
 	var s: Array = splat(x, z, h)
 	return (s[0] as Color).g > 0.6
 

@@ -159,9 +159,34 @@ func game_title(r: Control) -> bool:
 func game_end_screen() -> bool:
 	if OS.has_environment("CB_CLEAN"): return true   # QA captures: no report over the world
 	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible and not OS.has_environment("CB_SHOT"):   # LOOK2: let the player see the lights go out before the paper comes
-		get_tree().create_timer(3.5).timeout.connect(func(): ShiftReport.open(self))
+		_report_soon()
 		return true
 	return ShiftReport.open(self)
+
+const REPORT_WAIT := 2.5   # 1.18: was 3.5 s with nothing on screen (the 1.17 tester pressed Y and the D-pad in the gap)
+var _report_btn: Button = null
+## The shift is over in the 3D look: the world stays in view for REPORT_WAIT seconds so the player sees the lights, and a glass banner says the
+## report is coming, with a bar that fills. The banner is a focused button: A, Enter or a click opens the report at once.
+func _report_soon() -> void:
+	if is_instance_valid(_report_btn): return
+	var b := Button.new(); b.name = "ReportSoon"; b.text = tr("REP_COMING"); b.focus_mode = Control.FOCUS_ALL
+	b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(20))
+	for st in ["normal", "hover", "pressed", "focus"]: b.add_theme_stylebox_override(st, GridTheme.glass_sb(0.82, 6, 16.0))
+	b.add_theme_color_override("font_color", GridTheme.G_TEXT); b.add_theme_color_override("font_focus_color", GridTheme.G_TEXT); b.add_theme_color_override("font_hover_color", GridTheme.SODIUM)
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM); b.grow_horizontal = Control.GROW_DIRECTION_BOTH; b.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	b.offset_bottom = -170.0
+	var bar := ColorRect.new(); bar.color = GridTheme.SODIUM; bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bar.anchor_left = 0.0; bar.anchor_right = 0.0; bar.anchor_top = 1.0; bar.anchor_bottom = 1.0; bar.offset_top = -4.0; bar.offset_bottom = -1.0
+	b.add_child(bar)
+	root.add_child(b); _report_btn = b
+	b.grab_focus()
+	var open := func() -> void:
+		if not is_instance_valid(_report_btn): return
+		_report_btn.queue_free(); _report_btn = null
+		ShiftReport.open(self)
+	b.pressed.connect(open)
+	var tw := create_tween(); tw.tween_method(func(k: float) -> void: if is_instance_valid(bar): bar.offset_right = b.size.x * k, 0.0, 1.0, REPORT_WAIT)
+	tw.tween_callback(open)
 func game_menu() -> bool: return PauseMenu.toggle(self)
 
 ## A job starts (new game, level start, load): the work order slides in unless the job is already under way.
