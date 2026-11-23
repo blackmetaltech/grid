@@ -44,6 +44,7 @@
 - **The pause menu over the shift report** and a dead "next job" button after B, reported once by Ravi, not reproduced.
 - **Blackout GIF** not re-captured: the README keeps the 1.15 one. The town-lights GIF is new.
 - **Mouse drag in L01** can swing the camera away from the cable.
+- **Process: the first v1.18.0 tag failed the release test** (wiki/chapter-1.html stale after the L02 coach line changed; I had not re-run the full suite after that last text change). Nothing was published. The wiki was regenerated and the tag moved to the fix commit.
 - **Process:** two commits (8f3e11b, 89404c0) have their trailers inside the subject paragraph (no blank line). Pushed, not rewritten.
 
 ## Critics (once this layer)
