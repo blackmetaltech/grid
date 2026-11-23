@@ -124,5 +124,5 @@ func _input_pass(T: Truth) -> void:
 	bench._process(0.016)
 	T.check(not bench._has_point(stage), "3D: a press on the open stage goes to the world")
 	T.check(bench._has_point(knob), "3D: a press on a knob stays with the panel")
-	T.check(bench._has_point(bench.predict_btn.position + Vector2(4, 4)), "3D: the predict row stays with the panel")
+	T.check(bench._has_point(bench.predict_btn.position + Vector2(4, 4)), "3D: the predict row stays with the panel (button %s, panel %s, tag %.0f)" % [str(bench.predict_btn.position), str(bench.panel), bench._tag_w()])
 	bench.free(); bn.free(); wv.free()

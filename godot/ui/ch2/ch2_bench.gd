@@ -99,7 +99,7 @@ func _place_predict(row: Rect2) -> void:
 	predict_edit.visible = true; predict_btn.visible = true
 	var bw := 90.0
 	var tag_room := 0.0 if _tag_above() else 186.0
-	if _look3() and not _tag_above(): tag_room = _tag_w() + 22.0   # 3D: the tag grows with an over-budget figure; the row steps clear of it   # a narrow panel hangs the price tag above itself and gives the row to the prediction
+	if _look3() and not _tag_above(): tag_room = minf(_tag_w() + 22.0, row.size.x * 0.4)   # 3D: the tag grows with an over-budget figure; the row steps clear of it (never more than 40 % of the row)   # a narrow panel hangs the price tag above itself and gives the row to the prediction
 	predict_btn.position = row.position + Vector2(row.size.x - bw - tag_room, 4.0); predict_btn.size = Vector2(bw, 30.0)
 	predict_edit.position = predict_btn.position - Vector2(88.0, 0.0); predict_edit.size = Vector2(80.0, 30.0)
 
