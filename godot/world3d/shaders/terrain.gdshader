@@ -99,10 +99,16 @@ void fragment() {
 	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(vec3(0.40, 0.30, 0.20), tex2f(field_a, rp / 14.0, m, g_mid, g_far) * vec3(0.8, 0.66, 0.5), 0.5); }
 	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum);
 	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum);
-	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
+	// 1.19 (Sigrid: hard cut-out polygons, camouflage at night): a crop thins out toward its edge into a grass headland of uneven width,
+	// the hedge along the edge is broken into tufts and gaps, each plot has a little grain of its own, and the patchwork calms down at night.
+	float en = texture(macro_noise, wpos.xz / 55.0).r;
+	float edge = d2 - d1;
+	plot *= 0.9 + 0.22 * texture(macro_noise, wpos.xz / 23.0 + cell * 0.37).r;
+	plot = mix(g * grass_tint * 1.05, plot, smoothstep(0.015, 0.07 + 0.09 * en, edge));
 	vec3 hedge_c = vec3(0.17, 0.27, 0.11) * (0.8 + lum);   // 1.17: field edges are green hedges, not brown cracks
-	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.06, d2 - d1)) * 0.75);
-	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
+	float tuft = smoothstep(0.35, 0.65, texture(macro_noise, wpos.xz / 9.0).r);
+	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.035, edge)) * 0.8 * tuft);
+	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.45 * night));   // field colours calm down with distance and at night: no quilt from the air
 
 	vec3 col = grass * w.r
 		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g

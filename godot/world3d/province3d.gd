@@ -1026,7 +1026,7 @@ func _build_plant(u: Dictionary) -> void:
 	var n := Node3D.new(); n.name = "Plant_%s" % u.id; n.position = Vector3(p.x + off.x, ground(p.x + off.x, p.z + off.z) - 0.5, p.z + off.z); n.rotation.y = -atan2(away.y, away.x); _root_infra.add_child(n)
 	var conc := StandardMaterial3D.new(); conc.albedo_color = Color(0.74, 0.73, 0.7); conc.roughness = 0.95
 	var clad := StandardMaterial3D.new(); clad.albedo_color = Color(0.48, 0.52, 0.55) if big else Color(0.6, 0.62, 0.63); clad.roughness = 0.6; clad.metallic = 0.3
-	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.62, 0.6, 0.56); dark.roughness = 1.0; dark.albedo_texture = _tex("mud_albedo"); dark.uv1_triplanar = true; dark.uv1_scale = Vector3(0.03, 0.03, 0.03)
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.5, 0.49, 0.46); dark.roughness = 1.0
 	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.material_override = dark; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
 	var hall_l := 110.0 if big else 70.0
 	var hall := MeshInstance3D.new(); var hm := BoxMesh.new(); hm.size = Vector3(hall_l, 26, 34); hall.mesh = hm; hall.material_override = clad; hall.position = Vector3(0, 13, 0); n.add_child(hall)
@@ -1052,8 +1052,8 @@ func _build_plant(u: Dictionary) -> void:
 			var tw := MeshInstance3D.new(); tw.mesh = tower; tw.material_override = tconc; tw.position = Vector3(hall_l * 0.5 + 70.0 + 95.0 * k, 0, 40.0 - 20.0 * k); n.add_child(tw)
 			if quality != "low":
 				var steam := _smoke(Vector3(tw.position.x, 118.0, tw.position.z)); steam.name = "Steam%d" % k; steam.amount = 30
-				var sm2 := steam.process_material as ParticleProcessMaterial; sm2.scale_min = 18.0; sm2.scale_max = 26.0; sm2.initial_velocity_min = 3.0; sm2.initial_velocity_max = 5.0
-				var g := Gradient.new(); g.set_color(0, Color(0.85, 0.86, 0.88, 0.5)); g.set_color(1, Color(0.85, 0.86, 0.88, 0.0)); var gt := GradientTexture1D.new(); gt.gradient = g; sm2.color_ramp = gt
+				var sm2 := steam.process_material as ParticleProcessMaterial; sm2.scale_min = 40.0; sm2.scale_max = 60.0; sm2.initial_velocity_min = 3.0; sm2.initial_velocity_max = 5.0
+				var g := Gradient.new(); g.set_color(0, Color(0.8, 0.82, 0.86, 0.6)); g.set_color(1, Color(0.8, 0.82, 0.86, 0.0)); var gt := GradientTexture1D.new(); gt.gradient = g; sm2.color_ramp = gt
 				win.add_child(steam)   # the steam stops with the unit
 		var heap := MeshInstance3D.new(); var hc := CylinderMesh.new(); hc.top_radius = 6.0; hc.bottom_radius = 40.0; hc.height = 14.0; heap.mesh = hc
 		var coal := StandardMaterial3D.new(); coal.albedo_color = Color(0.08, 0.08, 0.09); coal.roughness = 1.0; heap.material_override = coal; heap.position = Vector3(-40, 7, -75); n.add_child(heap)
@@ -1079,7 +1079,7 @@ static func _cooling_tower_mesh() -> ArrayMesh:
 			var a0 := TAU * float(k) / seg; var a1 := TAU * float(k + 1) / seg
 			var p00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0); var p01 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
 			var p10 := Vector3(cos(a0) * r1, y1, sin(a0) * r1); var p11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
-			var c0 := Color(0.5, 0.5, 0.48).lerp(Color(0.8, 0.79, 0.76), y0 / H); var c1 := Color(0.5, 0.5, 0.48).lerp(Color(0.8, 0.79, 0.76), y1 / H)
+			var c0 := Color(0.34, 0.34, 0.33).lerp(Color(0.56, 0.55, 0.53), y0 / H); var c1 := Color(0.34, 0.34, 0.33).lerp(Color(0.56, 0.55, 0.53), y1 / H)   # weathered concrete, not porcelain (Sigrid)
 			if i == rings - 1: c1 = Color(0.42, 0.42, 0.42)   # the soot-dark lip
 			for q in [[p00, p10, p11], [p00, p11, p01]]:
 				for v in q:
@@ -1464,17 +1464,17 @@ func reset_camera() -> void:
 				var spread := 0.0
 				for q in pts: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
 				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 2.4, 2400.0, 9000.0); _g_pitch = deg_to_rad(30.0)
-	if str(model.get("level", "")) == "P0":   # 1.19: the prologue opens on the whole small grid: both plants, the city and the open Line 7 between them
-		var bb := Rect2(); var first := true
-		for arr in [model.get("units", []), model.get("towns", []), model.get("subs", [])]:
-			for o in arr:
-				var w := tile_to_world((o.pos as Vector2) + Vector2(0.5, 0.5))
-				var r := Rect2(Vector2(w.x, w.z), Vector2.ZERO)
-				bb = r if first else bb.merge(r); first = false
-		if not first:
-			var c := bb.get_center()
-			_g_target = Vector3(c.x, maxf(ground(c.x, c.y), 0.0), c.y)
-			_g_dist = clampf(maxf(bb.size.x * 0.95, bb.size.y * 1.6), 2400.0, dist_max); _g_pitch = deg_to_rad(36.0); _g_yaw = 0.0   # looking north: west plants on the left, the city on the right
+	if str(model.get("level", "")) == "P0":   # 1.19 (Sigrid): the prologue opens low behind the lit coal plant, looking east over Line 7 to the city's glow
+		var plant := Vector2(INF, INF); var city := Vector2(INF, INF)
+		for u in model.get("units", []):
+			if plant.x == INF or (u.pos as Vector2).x < plant.x: plant = u.pos
+		for t in model.get("towns", []): city = t.pos
+		if plant.x < INF and city.x < INF:
+			var pw := tile_to_world(plant + Vector2(0.5, 0.5)); var cw := tile_to_world(city + Vector2(0.5, 0.5))
+			var dir := Vector2(cw.x - pw.x, cw.z - pw.z).normalized()
+			var t := Vector2(pw.x, pw.z) + dir * 250.0
+			_g_target = Vector3(t.x, maxf(ground(t.x, t.y), 0.0), t.y)
+			_g_yaw = atan2(-dir.x, -dir.y); _g_pitch = deg_to_rad(15.0); _g_dist = 1150.0
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
