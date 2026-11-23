@@ -25,7 +25,8 @@ func game_build_world(parent: Node) -> Node:
 	GridSettings.load_all()
 	grid_world = WorldView.new(); grid_world.app = self; grid_world.cute = GridSettings.cute; parent.add_child(grid_world)
 	if DisplayServer.get_name() != "headless" and OS.get_environment("CB_LOOK") != "1" and not OS.has_environment("CB_SMOKE"):   # LOOK2: the 3D province under the 2D overlay (world3d/)
-		var p3 := Province3D.new(); p3.name = "Province3D"; p3.visible = false; add_child(p3); grid_world.look3d = p3
+		var p3 := Province3D.new(); p3.name = "Province3D"; p3.visible = false; add_child(p3); grid_world.look3d = p3; grid_world.prov3d = p3
+		var b3 := Bay3D.new(); b3.name = "Bay3D"; b3.visible = false; add_child(b3); grid_world.bay3d = b3   # DECISIONS 23: the island bay under the title and L01 to L03
 	return grid_world
 
 ## The prologue's cascade in bullet time: every new trip slows the clock 4x for 3.5 s and flashes the world, so the player watches each line go.
@@ -139,9 +140,8 @@ func game_coach(step: Dictionary, index: int, total: int) -> bool:
 	if str(step.get("id", "")) != "welcome": chrome.coach(step, index, total)
 	return true
 
-func game_title_demo() -> void:   # backdrop of the title: the first job, solved, late evening, every home lit
-	if b.act("startLevel", ["L01", 7, "learner"]).get("ok", false):
-		b.act("placeHut", [120]); b.act("layCable", ["main", 25]); b.act("tick", [14])
+func game_title_demo() -> void:   # backdrop of the title: the first job as it begins (dusk, the hamlet dark, nothing placed); the bay lights the lighthouse
+	b.act("startLevel", ["L01", 7, "learner"])
 	game_on_changed()
 
 # --- paper screens (ui/work_order.gd, shift_report.gd, title_screen.gd, pause_menu.gd) ---

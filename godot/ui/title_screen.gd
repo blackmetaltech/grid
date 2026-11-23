@@ -95,6 +95,7 @@ class Drift extends Node:
 	func _process(dt: float) -> void:
 		var w = app.get("grid_world")
 		if w == null or app.started or not PaperKit.animate() and t > 0.0: return
+		if w.look3d != null and w.look3d.visible and bool(w.look3d.get("drift")): return   # the 3D bay sways its own camera
 		t += dt
 		var m: Vector2 = w.model.map if w.model.has("map") else Vector2(36, 17)
 		w.set_camera("zoom=%f,tx=%f,ty=%f" % [1.12 + 0.03 * sin(t * 0.11), m.x * 0.5 + 2.4 + 2.0 * sin(t * 0.07), m.y * 0.5 + 0.4 * cos(t * 0.05)])
