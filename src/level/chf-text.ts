@@ -35,6 +35,7 @@ export function finaleLesson(s: GridState): string {
     const path = bats.length === 0 ? t('level.L28.lessonIslandLine') : shed > 0 ? t('level.L28.lessonIslandShed', { have, shed: fmt(shed, 1) }) : t('level.L28.lessonIslandBattery', { need: fmt(needMWh, 1), have });
     parts.push(t('level.L28.lessonIsland', { mwh: fmt(mwh, 1), path }));
   }
+  if (s.status === 'won' && (tr.islandShedMWh ?? 0) > 0 && (tr.unplannedEnsMWh ?? 0) <= 1e-9) parts.push(t('level.L28.lessonOrdered', { shed: fmt(tr.islandShedMWh ?? 0, 1) }));   // DECISIONS 24
   if (s.status === 'won') parts.push(t('level.L28.lessonC', { vmax: fmt(tr.vMaxPu ?? 0, 3), vmaxTime: hhmm(tr.vMaxBlock ?? 0), vmaxDay: (tr.vMaxDay ?? 0) + 1, loss: fmt(tr.lossPct ?? 0, 2), viol: tr.freqViolBlocks ?? 0, lo: fmt(tr.bandLoHz ?? 49.9, 2), hi: fmt(tr.bandHiHz ?? 50.05, 2) }));
   return parts.join(' ');
 }

@@ -126,6 +126,9 @@ static func run(app: CbApp) -> void:
 		var lit := _count(rep, func(n): return n is PaperKit.Lamp and n.lit)
 		var stamped := _count(rep, func(n): return n is PaperKit.Lamp and n.lit and n.stamp > 0.99)
 		ck.call(lit >= 1 and stamped == lit, "paper flow: at least one lamp lit and every lit lamp stamped (%d lit)" % lit)
+		var lamp_lines: Array = []; _find(rep, func(n): return n.name == "LampLine", lamp_lines)
+		ck.call(lamp_lines.size() == 1 and (lamp_lines[0] as Label).text.begins_with("%d of 3 lamps" % lit), "paper flow: the report's first line says how many lamps were earned (%d)" % lit)
+		ck.call(lit == 3 or (lamp_lines[0] as Label).text.contains("Next: "), "paper flow: short of three, the line says what the next lamp needs")
 		var rcq: Dictionary = app.b.q("resultCard")
 		var few := int(rcq.get("n", 0)) < ShiftReport.HIST_MIN_N
 		ck.call(_count(rep, func(n): return n is PaperKit.PaperHist) == (0 if few else 1) and (_count(rep, func(n): return n.name == "FewDesigns") == 1) == few, "paper flow: the histogram is on the shift report when n >= %d, else the one-line 'few designs' note (n=%d)" % [ShiftReport.HIST_MIN_N, int(rcq.get("n", 0))])

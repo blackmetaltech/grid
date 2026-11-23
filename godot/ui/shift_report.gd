@@ -280,6 +280,8 @@ static func _won(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary, 
 	col.add_child(PaperKit.rule())
 	var texts := WorkOrder.lamp_texts(li)
 	var lamps: Array = []
+	if bool(li.get("stars", false)) and lid != "P0":   # the first line: the lamps earned and what the next one asks (a tester never saw the lamp count)
+		var ll := PaperKit.lbl((T("REP_LAMPS_NEXT") % [stars, str(texts[stars])]) if stars < 3 and stars < texts.size() else (T("REP_LAMPS") % stars), 16 if compact else 20, "semi", PaperKit.INK, true); ll.name = "LampLine"; col.add_child(ll)
 	var lr := HBoxContainer.new(); lr.add_theme_constant_override("separation", 10); col.add_child(lr)
 	for i in 3:
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 0); lr.add_child(cell)

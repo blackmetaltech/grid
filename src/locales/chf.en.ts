@@ -33,6 +33,7 @@ export const EN_CHF: Record<string, string> = {
   'level.L28.lessonIslandBattery': 'a battery: {need} MWh of nameplate carries that night (80 % window, round trip 0.86 one way), and yours is {have} MWh',
   'level.L28.lessonIslandLine': 'a second feeder',
   'level.L28.lessonIslandShed': 'a {have} MWh battery with the north feeder open: {shed} MWh of the island\'s demand went unserved so the cells lasted to 06:00',
+  'level.L28.lessonOrdered': 'The {shed} MWh you left off by your own order do not count against the third lamp; only energy you did not order off does. Money does: the same build for less earns it.',
   'level.L28.lessonC': 'Day 3: highest voltage {vmax} pu at {vmaxTime} on Day {vmaxDay}; losses over the three days {loss} % of the energy generated; {viol} quarter-hours spent outside {lo} to {hi} Hz.',
   'level.L28.tryLow': 'A bus fell below 0.95 pu. The voltage drop along a line is mostly X times the reactive flow, so the reactive power has to be made near the far end, at Eastgate, and the 132 kV tail behind it needs its transformers to hold a higher voltage.',
   'level.L28.tryHigh': 'A bus rose above 1.05 pu on the light, sunny holiday: long lines charge like capacitors (about {mvar} MVAr for the 400 kV ring). Switched capacitors that go off on high voltage, a reactor at Redhill, or units kept spinning absorb it.',
