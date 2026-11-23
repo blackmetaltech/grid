@@ -109,15 +109,20 @@ func _slow_for_lightning(g: Dictionary) -> void:
 	var d := int(g.clock.day); var bl := int(g.clock.block); var lb := int(L.get("block", 0))
 	if not _slowed and d == int(L.get("day", -1)) and bl >= lb - 4 and bl < lb:
 		_slowed = true
-		if int(app.speed) > 1: app.set_speed(1)
-		app.toast(tx("CF_STORM_SLOW"), "warn")
+		if app.has_method("set_speed") and int(app.get("speed")) > 1: app.set_speed(1)
+		if app.has_method("toast"): app.toast(tx("CF_STORM_SLOW"), "warn")
 func _look_at_island(state: String) -> void:
-	var was := _island_was; _island_was = state
-	if was == "" or state == was or not GridTheme.look2 or state == tx("CF_ISLAND_LIT") or OS.has_environment("CB_CAM"): return
+	var lit_now := state == tx("CF_ISLAND_LIT")
+	var was := _island_was; _island_was = "lit" if lit_now else "off"
+	if was != "lit" or lit_now or not GridTheme.look2 or OS.has_environment("CB_SHOT") or OS.has_environment("CB_CLEAN"): return   # only the moment the island loses its feeder
 	if app == null or app.get("grid_world") == null: return
+	if app.has_method("set_speed") and int(app.get("speed")) > 0: app.set_speed(0)   # the run pauses at the lightning: the north-feeder call is the player's, not a reflex (1.16 hand play round 3)
+	if app.has_method("toast"): app.toast(tx("CF_LIGHTNING_CALL"), "warn")
+	if _live.has_node("cf_live_shed"):
+		var fb: Button = _live.get_node("cf_live_shed"); fb.add_theme_color_override("font_color", GridTheme.SODIUM); fb.call_deferred("grab_focus")
 	var w = app.grid_world
 	var ib := str((_g().rules.get("finale", {}) as Dictionary).get("islandBus", ""))
-	for s2 in (w.model.get("subs", []) as Array):
+	for s2 in (w.model.get("towns", []) as Array) + (w.model.get("subs", []) as Array):   # the island is a load bus: it is drawn as a town
 		if str(s2.id) == ib and s2.has("pos"):
 			var pp = s2.pos
 			var px: float = float(pp.x) if pp is Vector2 else float(pp[0]); var py: float = float(pp.y) if pp is Vector2 else float(pp[1])
