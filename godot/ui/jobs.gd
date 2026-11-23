@@ -59,7 +59,7 @@ static func open(app: CbApp) -> void:
 	var fin := PaperKit.btn(T("JOBS_SEE_FINALE"), true, func():   # LOOK2 (Priya, DECISIONS 15): the finale in the new look is one click away, open in every mode
 		host.queue_free()
 		if app.started: app._autosave()
-		app.start_level("L28", true), 18)
+		GridLoading.start(app, "L28"), 18)
 	fin.name = "SeeFinale"; fin.tooltip_text = T("JOBS_SEE_FINALE_TIP"); rows.add_child(fin)
 	var car := Career.jobs_row(app, host, compact); rows.add_child(car)   # the Career (DESIGN-1.1 Part C) sits above the chapters
 	for lv in list(app):
@@ -92,7 +92,7 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 	var b := PaperKit.btn("", false, func():
 		host.queue_free()
 		if app.started: app._autosave()   # picking a work order is the confirmation: no generic (cyan) dialog, the running job is autosaved first
-		app.start_level(id, true), 18)
+		GridLoading.start(app, id), 18)
 	b.name = "Job_" + id; b.custom_minimum_size = Vector2(0, 68 if compact else 92); b.size_flags_horizontal = Control.SIZE_EXPAND_FILL; b.clip_text = true
 	var hb := HBoxContainer.new(); hb.mouse_filter = Control.MOUSE_FILTER_IGNORE; hb.add_theme_constant_override("separation", 14); hb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hb.offset_left = 16; hb.offset_right = -14; hb.offset_top = 6; hb.offset_bottom = -6; b.add_child(hb)

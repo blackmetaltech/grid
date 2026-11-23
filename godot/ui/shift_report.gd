@@ -157,7 +157,7 @@ static func island_bounds(app: CbApp) -> Rect2:
 static func _next(app: CbApp, lid: String, next_id: String) -> void:
 	if lid == "L28": ChfEnd.open(app); return   # the finale: the game-end card, no next chapter
 	if CHAPTER_END.has(lid): chapter_end(app, next_id if next_id != "" else str(CHAPTER_END[lid]), lid)   # the finale shows its card whatever job the campaign lists next
-	else: app.start_level(next_id, true)
+	else: GridLoading.start(app, next_id)
 
 static func _look(app: CbApp, won: bool) -> void:
 	app.menus.end_look()

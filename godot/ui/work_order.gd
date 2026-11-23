@@ -242,7 +242,7 @@ static func _footer(app: CbApp, vb: VBoxContainer, li: Dictionary, fresh: bool) 
 		left.add_child(PaperKit.chip(opts, cur, func(id: String):
 			CbSettings.last_mode = id; CbSettings.save_all()
 			instant_next = true
-			app.start_level(str(li.id), true)))
+			GridLoading.start(app, str(li.id))))
 	var go := PaperKit.btn(T("WO_TAKE") if fresh else T("WO_BACK"), true, func(): close(app), 22)
 	go.name = "Take"; go.custom_minimum_size.x = 220; foot.add_child(go)
 	var chips: Array = left.find_children("Chip_*", "Button", true, false)

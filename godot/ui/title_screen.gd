@@ -60,7 +60,7 @@ static func new_night_shift(app: CbApp) -> void:
 	var id := "L01"
 	var ids: Array = Jobs.list(app).map(func(lv): return str(lv.id))
 	if not ids.has(id) and not ids.is_empty(): id = str(ids[0])
-	app.start_level(id, true)
+	GridLoading.start(app, id)
 
 static func _grad(from: Vector2, to: Vector2, alpha: float) -> TextureRect:
 	var g := Gradient.new(); g.colors = PackedColorArray([Color(GridTheme.NIGHT, alpha), Color(GridTheme.NIGHT, 0.0)]); g.offsets = PackedFloat32Array([0.0, 1.0])
