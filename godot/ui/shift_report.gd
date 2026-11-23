@@ -264,8 +264,8 @@ static func _copy_code(app: CbApp, btn: Button) -> void:
 	DisplayServer.clipboard_set(str(code))
 	var old := btn.text; btn.text = T("REP_COPIED")
 	app.toast(T("REP_CODE_TOAST"), "good")
-	if btn.is_inside_tree():
-		btn.get_tree().create_timer(2.0).timeout.connect(func(): if is_instance_valid(btn): btn.text = old)
+	if btn.is_inside_tree():   # a tween on the button, not a scene timer: a report closed inside the 2 s freed the button and the timer then called a lambda with a freed capture (engine ERROR)
+		var tw := btn.create_tween(); tw.tween_interval(2.0); tw.tween_callback(func(): btn.text = old)
 
 # ---- won ----------------------------------------------------------------------------------------------------------------------------
 static func _head(col: VBoxContainer, title: String, sub: String, ink: Color, compact := false) -> void:

@@ -51,8 +51,12 @@ static func build(app: CbApp, root: Control) -> bool:
 		cute.text = T("CUTE_ON") if GridSettings.cute else T("CUTE_OFF"))
 	vb.add_child(cute)
 	var drift := Drift.new(); drift.app = app; root.add_child(drift)
-	if first != null: first.call_deferred("grab_focus")
+	if first != null: _focus_first.call_deferred(first)
 	return true
+
+## The first line takes the pad focus a frame late; the title may have been rebuilt or closed by then (a freed or detached control cannot take focus: that logged an engine ERROR).
+static func _focus_first(c) -> void:
+	if is_instance_valid(c) and (c as Control).is_inside_tree(): (c as Control).grab_focus()
 
 ## A new game: the first job as a Learner (the work order opens over the dimmed island), or the player's last mode if they chose Engineer before.
 static func new_night_shift(app: CbApp) -> void:
