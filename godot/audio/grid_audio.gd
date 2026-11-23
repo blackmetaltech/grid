@@ -29,16 +29,20 @@ const MRATE := 16000       ## music rate
 const PEAK_N6 := 0.5012    ## -6 dBFS
 const BPM := 70.0
 const ONE_SHOTS := ["breaker_close", "breaker_open", "relay_tick", "radio", "plink", "cheer", "aww", "place", "reel", "stamp", "page", "tick",
-	"speed", "trip", "blackout", "coin", "spend", "quarter"]   ## 1.7: speed keys, a protection trip, a blackout, Career money in / out, the quarter closing
+	"speed", "trip", "blackout", "coin", "spend", "quarter", "town_on0", "town_on1", "town_on2"]   ## 1.7: speed keys, a protection trip, a blackout, Career money in / out, the quarter closing
 const PLINK_SEMIS := [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]
-const KIND_DB := {"breaker_close": -4.0, "breaker_open": -4.0, "relay_tick": -8.0, "radio": -8.0, "plink": -7.0, "cheer": -11.0, "aww": -9.0,
-	"place": -6.0, "reel": -9.0, "stamp": -5.0, "page": -10.0, "tick": -14.0,
-	"speed": -10.0, "trip": -5.0, "blackout": -6.0, "coin": -9.0, "spend": -9.0, "quarter": -8.0}
+const KIND_DB := {"breaker_close": 1.0, "breaker_open": -5.0, "relay_tick": -6.0, "radio": -3.0, "plink": -7.0, "cheer": -6.0, "aww": -7.0,
+	"place": -3.0, "reel": -9.0, "stamp": -2.0, "page": -7.0, "tick": -10.0,
+	"speed": -7.0, "trip": -5.0, "blackout": -3.0, "coin": -6.0, "spend": -9.0, "quarter": -8.0, "town_on": -8.0}
+## 1.18 levels (docs/audio/ANALYSIS.md): every cue is peak-normalised to -6 dBFS, so what the listener hears is set here. The 1.17 trims left the radio at
+## -34 and the cheer at -33 dBFS RMS (under a hum at -19); now key events sit near -22, interface sounds near -27, the DC tick near -35.
+## Cues longer than the 0.8 s one-shot rule: a town coming on swells, and the blackout rings out into silence.
+const LONG_CUES := {"town_on0": 1.3, "town_on1": 1.5, "town_on2": 1.8, "blackout": 1.4}
 
 var mode := "dc"
 var frequency := 50.0
 var load_level := 0.3
-var hum_db := -6.0
+var hum_db := -12.0
 var stress := 0.0
 var cute := false
 var muted := false
@@ -87,14 +91,18 @@ func hum_fundamental_hz() -> float:
 func cable_tick() -> void:
 	play("tick")
 
+## A town comes on: a warm chord that swells, bigger with the number of homes lit (3 or more: small, 6 or more: medium, 12 or more: large).
+func town_on(homes: int) -> void:
+	play("town_on%d" % (2 if homes >= 12 else (1 if homes >= 6 else 0)))
+
 func plink(i: int) -> void:
 	play("plink%d" % posmod(i, PLINK_SEMIS.size()))
 
 func play(kind: String) -> void:
 	if muted or headless or _voices.is_empty() or not is_inside_tree(): return
 	if kind == "plink": kind = "plink0"
-	var base := "plink" if kind.begins_with("plink") else kind
-	if not (base in ONE_SHOTS): return
+	var base := "plink" if kind.begins_with("plink") else ("town_on" if kind.begins_with("town_on") else kind)
+	if not (kind in ONE_SHOTS or base == "plink"): return
 	var t := Time.get_ticks_msec()
 	if t - int(_last_play.get(kind, -1000)) < 25: return
 	_last_play[kind] = t
@@ -151,7 +159,7 @@ func _ready() -> void:
 		_hum_player.play(); _hum_pb = _hum_player.get_stream_playback() as AudioStreamGeneratorPlayback
 	_hum.f = frequency; _hum.f_t = frequency; _hum.ac = mode == "ac"
 	var og := AudioStreamGenerator.new(); og.mix_rate = OutdoorSynth.RATE; og.buffer_length = 0.3
-	var op := AudioStreamPlayer.new(); op.stream = og; op.bus = "SFX"; op.volume_db = -10.0; add_child(op)
+	var op := AudioStreamPlayer.new(); op.stream = og; op.bus = "SFX"; op.volume_db = -6.0; add_child(op)
 	if not headless: op.play(); _out_pb = op.get_stream_playback() as AudioStreamGeneratorPlayback
 	apply_volumes()
 
@@ -314,6 +322,12 @@ static func _thump(f0: float, f1: float, glide: float, decay: float, amp: float,
 		b[i] = sin(TAU * ph) * amp * exp(-t * decay) * minf(1.0, t / 0.001)
 	return b
 
+## Soft saturation: gives a low thump odd harmonics (3x, 5x) so it is heard on small speakers that cannot reproduce 40 to 90 Hz. 1.18.
+static func _sat(x: PackedFloat32Array, drive: float) -> PackedFloat32Array:
+	var y := PackedFloat32Array(); y.resize(x.size()); var k := 1.0 / tanh(drive)
+	for i in x.size(): y[i] = tanh(x[i] * drive) * k
+	return y
+
 ## RBJ band-pass (0 dB peak), centre sweeps f0 -> f1 over the buffer.
 static func _bp(x: PackedFloat32Array, f0: float, f1: float, q: float, rate := RATE) -> PackedFloat32Array:
 	var y := PackedFloat32Array(); y.resize(x.size())
@@ -351,14 +365,14 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 	match kind:
 		"breaker_close":   # heavy clunk, then a smaller latch clack
 			b = _buf(0.42)
-			_add(b, _thump(95.0, 45.0, 30.0, 20.0, 0.9, 0.3), 0.0)
+			_add(b, _sat(_thump(140.0, 75.0, 30.0, 20.0, 0.45, 0.3), 2.0), 0.0)
 			_add(b, _bp(_nb(r, 0.06, 150.0, 1.0), 1800.0, 1800.0, 1.2), 0.0)
 			_add(b, _modal(870.0, 70.0, 0.35, 0.12), 0.0); _add(b, _modal(1340.0, 90.0, 0.25, 0.1), 0.0)
 			_add(b, _bp(_nb(r, 0.05, 170.0, 0.55), 2500.0, 2500.0, 1.3), 0.085)
 			_add(b, _modal(1620.0, 110.0, 0.2, 0.08), 0.085)
 		"breaker_open":    # lower thud, latch release, springy twang
 			b = _buf(0.62)
-			_add(b, _thump(62.0, 34.0, 18.0, 13.0, 0.8, 0.45), 0.0)
+			_add(b, _sat(_thump(110.0, 60.0, 18.0, 13.0, 0.4, 0.45), 2.0), 0.0)
 			_add(b, _bp(_nb(r, 0.1, 40.0, 0.5), 500.0, 300.0, 0.7), 0.0)
 			_add(b, _bp(_nb(r, 0.03, 220.0, 0.5), 1200.0, 1200.0, 1.0), 0.16)
 			var tw := _buf(0.4); var ph := 0.0; var mph := 0.0
@@ -453,22 +467,23 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 		"trip":            # a protection trip: relay chatter, then the breaker's heavy open and a falling whine as the line drops
 			b = _buf(0.75)
 			for k in 3: _add(b, _bp(_nb(r, 0.012, 300.0, 0.6), 3000.0, 3000.0, 2.5), 0.025 * k)
-			_add(b, _thump(70.0, 32.0, 16.0, 9.0, 1.0, 0.5), 0.09)
+			_add(b, _sat(_thump(120.0, 55.0, 16.0, 9.0, 0.5, 0.5), 2.0), 0.09)
 			_add(b, _bp(_nb(r, 0.06, 60.0, 0.6), 1600.0, 600.0, 1.0), 0.09)
 			var wh := _buf(0.6); var pw := 0.0
 			for i in wh.size():
 				var t := float(i) / RATE; pw += lerpf(400.0, 90.0, t / 0.6) / RATE
 				wh[i] = sin(TAU * pw) * 0.25 * exp(-t * 4.0) * minf(1.0, t / 0.01)
 			_add(b, wh, 0.12)
-		"blackout":        # everything spins down: a low chord gliding to nothing, the hum dying with it
-			b = _buf(0.78)
-			for fr in [100.0, 150.0, 200.0]:
-				var gl := _buf(0.78); var pg := 0.0
+		"blackout":        # the hum spins down (0.5 s), a low thud, then the tail dies into silence: the radio comes after
+			b = _buf(1.4)
+			for fr in [100.0, 200.0]:
+				var gl := _buf(0.55); var pg := 0.0
 				for i in gl.size():
-					var t := float(i) / RATE; pg += fr * pow(0.25, t / 0.78) / RATE
-					gl[i] = sin(TAU * pg) * 0.4 * minf(1.0, t / 0.01) * (1.0 - t / 0.78)
+					var t := float(i) / RATE; pg += fr * pow(0.3, t / 0.55) / RATE
+					gl[i] = sin(TAU * pg) * 0.3 * minf(1.0, t / 0.01) * pow(1.0 - t / 0.55, 1.5)
 				_add(b, gl, 0.0)
-			_add(b, _thump(55.0, 30.0, 8.0, 5.0, 0.8, 0.7), 0.0)
+			_add(b, _sat(_thump(85.0, 40.0, 10.0, 6.0, 0.6, 0.8), 2.5), 0.55); _add(b, _modal(180.0, 14.0, 0.35, 0.4), 0.55)
+			_add(b, _lp(_nb(r, 0.12, 30.0, 0.5), 400.0), 0.55)
 		"coin":            # money in: two bright coin rings, a fifth apart
 			b = _buf(0.5)
 			for c in [[1976.0, 0.0], [2960.0, 0.07]]:
@@ -482,6 +497,20 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 			b = _buf(0.7)
 			_add(b, _thump(140.0, 70.0, 30.0, 22.0, 0.9, 0.2), 0.0); _add(b, _bp(_nb(r, 0.05, 90.0, 0.6), 900.0, 900.0, 0.8), 0.0)
 			_add(b, _modal(587.3, 5.0, 0.6, 0.55), 0.12); _add(b, _modal(440.0, 5.0, 0.6, 0.45), 0.25)
+		"town_on0", "town_on1", "town_on2":   # people getting light: a warm chord that swells in note by note
+			var notes: Array = [[261.63, 392.0], [261.63, 329.63, 392.0, 523.25], [130.81, 261.63, 329.63, 392.0, 493.88, 587.33]][int(kind.substr(7))]
+			var dur: float = LONG_CUES[kind]; b = _buf(dur)
+			for ni in notes.size():
+				var fn := float(notes[ni]); var nb2 := _buf(dur - 0.08 * ni)
+				for dt in [-1.0, 1.0]:
+					var ph4 := r.randf()
+					for i in nb2.size():
+						var t := float(i) / RATE; ph4 += fn * (1.0 + 0.0015 * dt) / RATE
+						var a := TAU * ph4
+						var env := pow(sin(PI * 0.5 * minf(1.0, t / 0.4)), 2.0) * exp(-maxf(0.0, t - 0.4) * 2.6) * minf(1.0, (dur - 0.08 * ni - t) / 0.15)
+						nb2[i] += (sin(a) + 0.3 * sin(2.0 * a) + 0.08 * sin(3.0 * a)) * 0.5 * env
+				_add(b, nb2, 0.08 * ni)
+			b = _lp(b, 3000.0)
 		_:
 			if kind.begins_with("plink"):
 				var idx := int(kind.substr(5)) % PLINK_SEMIS.size()
@@ -490,6 +519,13 @@ static func render_oneshot(kind: String) -> PackedFloat32Array:
 				_add(b, _modal(f, 7.0, 1.0, 0.5), 0.0); _add(b, _modal(2.0 * f, 12.0, 0.4, 0.4), 0.0); _add(b, _modal(3.01 * f, 22.0, 0.15, 0.3), 0.0)
 			else:
 				b = _buf(0.05)
+	var mean := 0.0
+	for v in b: mean += v
+	mean /= maxf(1.0, b.size())
+	var tail := mini(b.size(), int(0.004 * RATE))   # 1.18: no DC, and the last 4 ms fade so no cue ends on a step
+	for i in b.size():
+		b[i] -= mean
+		if i >= b.size() - tail: b[i] *= float(b.size() - i) / tail
 	normalize(b, PEAK_N6)
 	return b
 
@@ -499,6 +535,11 @@ static func render_hum(hz: float, load_v: float, seconds: float, mode_ := "ac") 
 	var h := HumSynth.new(HUM_RATE)
 	h.f_t = hz; h.load_t = load_v; h.snap(mode_ == "ac")
 	return h.fill(int(seconds * HUM_RATE))
+
+## Render the outdoor bed (wind, crickets when night > 0.3) at full level for `seconds`, for analysis.
+static func render_outdoor(night: float, seconds: float) -> PackedFloat32Array:
+	var o := OutdoorSynth.new(); o.level = 1.0; o.level_t = 1.0; o.night = night; o.night_t = night
+	return o.fill(int(seconds * OutdoorSynth.RATE))
 
 ## Hum with a 1 Hz frequency dip (50 -> 49 -> 50) to hear pitch following f.
 static func render_hum_dip(seconds: float) -> PackedFloat32Array:
@@ -541,6 +582,7 @@ class OutdoorSynth:
 	var night_t := 0.0
 	var lp := 0.0
 	var lp2 := 0.0
+	var hp := 0.0
 	var gust := 0.0
 	var t := 0.0
 	var chirp_at := 1.0
@@ -556,13 +598,13 @@ class OutdoorSynth:
 			t += 1.0 / RATE
 			if level < 0.0005: out[i] = 0.0; continue
 			var w := rng.randf_range(-1.0, 1.0)
-			lp += (w - lp) * 0.02; lp2 += (lp - lp2) * 0.05
+			lp += (w - lp) * 0.10; lp2 += (lp - lp2) * 0.20; hp += (lp2 - hp) * 0.012   # 1.18: wind was 61 % under 60 Hz (a rumble); now 40 Hz to 700 Hz
 			gust = 0.55 + 0.45 * sin(t * 0.21) * sin(t * 0.077 + 1.3)
-			var s := lp2 * 2.2 * gust * (1.0 - 0.6 * night)
+			var s := (lp2 - hp) * 1.0 * gust * (1.0 - 0.6 * night)
 			if night > 0.3:   # crickets: a group of three short chirps, then a pause
 				if t >= chirp_at:
 					var k := fmod(t - chirp_at, 0.09)
-					if k < 0.035: ph += 4600.0 / RATE; s += sin(TAU * ph) * 0.05 * (night - 0.3) * sin(PI * k / 0.035)
+					if k < 0.035: ph += 4600.0 / RATE; s += sin(TAU * ph) * 0.15 * (night - 0.3) * sin(PI * k / 0.035)
 					if t - chirp_at > 0.27: chirp_at = t + 0.6 + rng.randf() * 1.4
 			out[i] = s * level
 		return out
