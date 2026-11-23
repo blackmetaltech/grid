@@ -116,6 +116,7 @@ func set_model(m: Dictionary) -> void:
 		elif prov3d != null: look3d = prov3d
 		bay3d.visible = bay_on; bay3d.view = self
 		if not bay_on and bay3d.cam != null: bay3d.cam.current = false
+	if bench_on: look3d = bench3d   # also when no bay was built (a test tree with only the bench)
 	if bench3d != null:
 		bench3d.visible = bench_on; bench3d.view = self
 		if not bench_on and bench3d.cam != null: bench3d.cam.current = false

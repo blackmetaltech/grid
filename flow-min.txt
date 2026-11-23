@@ -24,7 +24,7 @@ route_flow 85
 route_world_truth 93
 salt_flow 35
 tag_truth 1462
-text_flow 5295
+text_flow 5347
 ticker_flow 10
 town_lights_truth 339
 tray_flow 94

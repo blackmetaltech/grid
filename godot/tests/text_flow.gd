@@ -95,6 +95,28 @@ static func _size(app: CbApp, res: Vector2i, kind: String) -> void:
 	app.get_window().size = res
 	await _frames(app, 6)
 
+## The 3D bench screen of a chapter-2 bench job: Bench3D is built in this headless tree (as bench3d_truth does), the job restarts so WorldView
+## routes it there and the stage takes its glass path, the text is audited, and the scene is taken away again so later jobs see the classic path.
+static func bench3d_view(app: CbApp, id: String, at: String) -> void:
+	var wv = app.get("grid_world")
+	if wv == null: return
+	var made := false
+	if wv.bench3d == null:
+		var bn := Bench3D.new(); bn.name = "Bench3DAudit"; bn.visible = false; app.add_child(bn); wv.bench3d = bn; made = true
+	app.start_level(id, true); await _frames(app, 5)
+	if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 4)
+	var ch2 = app.get("chrome").get("ch2") if app.get("chrome") != null else null
+	if ch2 != null: ch2.refresh()
+	await _frames(app, 4)
+	checks += 1
+	if not (wv.look3d == wv.bench3d and wv.bench3d.visible): fails += 1; print("TEXT FAIL %s: the 3D bench is not showing for the audit" % id)
+	await audit(app, "%s 3D bench%s" % [id, at])
+	if made:
+		var bn2 = wv.bench3d; wv.bench3d = null; wv.look3d = wv.get("prov3d")
+		(bn2 as Node).queue_free()
+		app.start_level(id, true); await _frames(app, 4)
+		if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 2)
+
 static func run(app: CbApp) -> void:
 	floor_px = float(OS.get_environment("CB_TEXTAUDIT_MIN")) if OS.get_environment("CB_TEXTAUDIT_MIN") != "" else 16.0
 	if OS.get_environment("CB_TEXTAUDIT_ONLY") != "": only = OS.get_environment("CB_TEXTAUDIT_ONLY").split(",")
@@ -115,6 +137,8 @@ static func run(app: CbApp) -> void:
 			if WorkOrder.is_open(): await audit(app, "%s work order%s" % [id, at]); WorkOrder.close_now(); await _frames(app, 4)
 			await audit(app, "%s opening view%s" % [id, at])
 			await pad_strip(app, "%s pad strip%s" % [id, at])
+			if Bench3D.LEVELS.has(id):   # 1.19: the same job in its 3D bench (glass instruments and place chips), which a headless run never builds by itself
+				await bench3d_view(app, id, at)
 		if _want("menu"):
 			app.start_level("L07", true); await _frames(app, 4)
 			if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 2)
