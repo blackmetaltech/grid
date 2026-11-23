@@ -23,7 +23,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 ### Fixed
 - **The "dropped A" on the pad.** Starting the finale took about 14 s with nothing on screen, so players pressed again, and those presses landed in the work order. The card now shows at once, and pad presses are held until the job is ready.
 - The pad's A presses a focused button on the press.
-- The 30 fps idle cap now starts after 20 s without input (was 3 s).
+- The 30 fps idle cap waits 2 min without input in the 3D look, where water and clouds keep moving, and 20 s elsewhere (was 3 s). A decision pause stays at 60 fps.
 - Town labels move clear of the map scale note.
 - On the shift report the parts shelf steps aside; it cut through the report. The report histogram's axis numbers are light on the glass.
 - D-pad order on the parts tray follows the pegs left to right on screen.
