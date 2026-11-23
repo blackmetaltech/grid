@@ -18,7 +18,7 @@
 | Jobs list and tray in glass | **Met** for the jobs list and the work order. The tray was already glass. | r4-a, r4-b |
 | Next chapter in 3D, picked with Priya | **Met.** Chapter 3, because it is all grid levels whose towns light on the player's flow (DECISIONS 21). We argued against chapter 1 because its bench levels have no towns to light. That case is reopened for 1.17 (manager point 4). | DECISIONS 21, 22 |
 | Release workflow green | **Met.** macOS was dropped, and a manual run was green (run 45077979452). | DECISIONS 19 |
-| Hand play on a GPU window at real speed | **Met, three rounds.** A playtester played by virtual pad only at real speed. Round 1 found that the jobs list could not be walked and that live-call focus was lost. Round 2 passed L07 with 2 lamps. Round 3 bought the parts and spun U4, but the island went dark: the lightning call came unseen. All of these are fixed except the dropped-A item below. **No hand play has won the 1.16 finale yet.** | scripts/gpu-play.sh, DECISIONS 22 |
+| Hand play on a GPU window at real speed | **Met, four rounds.** A playtester played by virtual pad only at real speed. Round 1 found that the jobs list could not be walked and that live-call focus was lost. Round 2 passed L07 with 2 lamps. Round 3 bought the parts and spun U4, but the island went dark: the lightning call came unseen. All of these are fixed except the dropped-A item below. **Round 4 won the finale by pad** at $30.0M: the 2-hour battery, U4 spun at the call, and the north feeder opened when the lightning paused the run. The lamp count was not seen. | scripts/gpu-play.sh, DECISIONS 22 |
 | Tests and flows | **Met.** vitest 72 files / 1556 tests; Godot 26/26 suites; cobanana-scores 1608 tests with rules 1.16.0 vendored. | 2264c36 |
 | Low tier on the iGPU | **Met.** L28 low: GPU 12.6 ms at 1280x800. L07 low renders. | r4/i-*.png (local), FRAMETIME log |
 | Sound | **First pass.** An outdoor bed (wind by day, crickets at night) is made in code. No human has listened to it. | docs/ASSETS.md, 496087a |
@@ -42,7 +42,7 @@
     - cloud shadows;
     - the first impression (a 3D title and first job, or chapter 1 next).
 - **Dagny (fun):** not re-run this layer. Her three points from 1.15 were answered by Mateo's design (DECISIONS 20), which she has not judged.
-- **Playtester (second-year EE student, pad only, GPU, real speed), three rounds:** see the gate row. The student called L07 in 3D "lovely" and the incident reports "great teaching".
+- **Playtester (second-year EE student, pad only, GPU, real speed), four rounds:** see the gate row. In round 4 an A on the jobs list was dropped twice, about 3 s after the list opened; a third A 10 s later worked. The student called L07 in 3D "lovely" and the incident reports "great teaching".
 
 ## Owner-concerns audit (bible/05)
 | | Concern | 1.16 |
@@ -62,7 +62,7 @@
 | M | Sound | Outdoor bed, made in code. No human has listened. |
 | N | Saves and quitting | Unchanged. |
 | O | Release hygiene | The workflow is green without macOS. Privacy scan of the pushed text: no paths or emails. |
-| P | Visible status, honesty | Classic chips; this table; the hand play has not won the finale. |
+| P | Visible status, honesty | Classic chips; this table; the dropped A is named, not hidden. |
 | Q | Cost, machine, tidiness | One helper at a time; one Godot at a time; the GPU lock was honoured. |
 | R | Story and world | The radio's two calls are new lines. |
 | S | Cute that teaches | Not touched in 3D. |
@@ -70,7 +70,6 @@
 | V | Where effort goes | Hand-play fixes (most), design (Mateo), look (landmarks, palette, chapter 3). |
 
 ## What is still weak
-- **The finale has not been won by hand in 1.16.** The fixes from round 3 have not been replayed.
 - **Chapter 3 is a plain with a disc of town.** There is no mill.
 - **Landmarks are thin at the default distance.**
 - **A dropped A on the pad** is open and unexplained.
