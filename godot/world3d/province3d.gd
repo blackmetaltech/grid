@@ -236,7 +236,7 @@ func set_model(m: Dictionary) -> void:
 		else:   # no engine terrain (chapters 5-9): a generated province round the engine's buses, drawn at GEN_TILE_M per tile
 			var gf := GenField.new(m, clampf(30000.0 / maxf(1.0, float(m.map.x)), 200.0, 600.0))
 			_tp("genfield")
-			gf.cache_heights(Rect2(-1500, -1500, gf.size_m.x + 3000, gf.size_m.y + 3000), 40.0 if quality == "high" else 80.0)
+			gf.cache_heights(Rect2(-1500, -1500, gf.size_m.x + 3000, gf.size_m.y + 3000), 50.0 if quality == "high" else 80.0)   # 1.18: 50 m (was 40; finale load)
 			_tp("cache_heights")
 			field = gf
 		tm = field.tm; map_size = field.size_m
@@ -287,7 +287,7 @@ func _build_static() -> void:
 	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var step := 12.5 if quality == "high" else (20.0 if quality == "medium" else 30.0)
 	var margin := 900.0
-	if field is GenField: step = maxf(step * 3.2, map_size.x / 1000.0) if quality == "high" else maxf(step * 2.5, map_size.x / 700.0)   # 1.18: 40 m on high, the height cache's own step (25 m interpolated it and cost 4 s of the finale load)
+	if field is GenField: step = maxf(step * 4.0, map_size.x / 1000.0) if quality == "high" else maxf(step * 2.5, map_size.x / 700.0)   # 1.18: 40 m on high, the height cache's own step (25 m interpolated it and cost 4 s of the finale load)
 	var near := Rect2(-margin, -margin, map_size.x + 2.0 * margin, map_size.y + 2.0 * margin)
 	var mi := MeshInstance3D.new(); mi.name = "TerrainNear"; mi.mesh = field.grid_mesh(near, step); mi.material_override = _terrain_mat
 	_root_static.add_child(mi)
@@ -391,9 +391,42 @@ func _build_forests(near: Rect2) -> void:
 	var dens := 1.0 if quality == "high" else (0.55 if quality == "medium" else 0.12)
 	var cell := (9.0 if not field is GenField else 24.0) / sqrt(dens)
 	var nx := int(near.size.x / cell); var nz := int(near.size.y / cell)
+	if field is GenField and DisplayServer.get_name() != "headless" and (not OS.has_environment("CB_SHOT") or OS.has_environment("CB_ASYNC_FORESTS")) and not OS.has_environment("CB_SYNC_FORESTS"):
+		# 1.18 (finale load): the generated province's woods (2.5 s even in parallel rows) grow on worker threads while the job is already
+		# playable; they appear a moment later. Nothing in the game reads the trees. Screenshots build them at once (CB_SHOT).
+		# The job starts 20 frames after the build, once the loading card is gone: run beside the town and line builds, its threads slowed them.
+		_forest_gen += 1
+		_forest_job = {"id": -1, "wait": 20, "rows": [], "gen": _forest_gen, "mat": tmat, "con": con, "brd": brd, "near": near, "cell": cell, "nx": nx, "nz": nz}
+		return
 	for row in TerrainField.par_rows(nz, _forest_row.bind(near, cell, nx)):   # 1.18: rows in parallel (9 s single-threaded on the finale)
 		xc.append_array(row[0]); cc.append_array(row[1]); xb.append_array(row[2]); cb.append_array(row[3])
 	_tp("forest_rows")
+	_place_forests(xc, cc, xb, cb, tmat, con, brd)
+
+var _forest_gen := 0
+var _forest_job: Dictionary = {}
+## The background woods finished: add them, unless the world was rebuilt since (a newer generation).
+func _forest_poll() -> void:
+	if _forest_job.is_empty(): return
+	if int(_forest_job.id) < 0:
+		_forest_job.wait = int(_forest_job.wait) - 1
+		if int(_forest_job.wait) > 0: return
+		var j0 := _forest_job; var rows := []; rows.resize(int(j0.nz))
+		var near: Rect2 = j0.near; var cell: float = j0.cell; var nx: int = j0.nx
+		var task := func(j: int) -> void: rows[j] = _forest_row(j, near, cell, nx)
+		j0.rows = rows
+		j0.id = WorkerThreadPool.add_group_task(task, int(j0.nz), mini(6, OS.get_processor_count() - 2), false, "grid forests")
+		return
+	if not WorkerThreadPool.is_group_task_completed(int(_forest_job.id)): return
+	WorkerThreadPool.wait_for_group_task_completion(int(_forest_job.id))
+	var job := _forest_job; _forest_job = {}
+	if int(job.gen) != _forest_gen: return
+	var xc: Array = []; var cc: Array = []; var xb: Array = []; var cb: Array = []
+	for row in job.rows:
+		xc.append_array(row[0]); cc.append_array(row[1]); xb.append_array(row[2]); cb.append_array(row[3])
+	_place_forests(xc, cc, xb, cb, job.mat, job.con, job.brd)
+
+func _place_forests(xc: Array, cc: Array, xb: Array, cb: Array, tmat: Material, con: Mesh, brd: Mesh) -> void:
 	var ve := (7000.0 if quality == "high" else 4500.0) * (1.6 if field is GenField else 1.0)
 	_mm_chunked(con, xc, cc, tmat, 600.0, ve, "Conifers", quality != "low")
 	_mm_chunked(brd, xb, cb, tmat, 600.0, ve, "Broadleaf", quality != "low")
@@ -1166,6 +1199,7 @@ func _place_trawler(mn: float) -> void:
 	_trawler.rotation = Vector3(0, -atan2(0.5, 7.0), 0)
 
 func _process(dt: float) -> void:
+	if not _forest_job.is_empty(): _forest_poll()
 	if not visible or field == null: return
 	_t += dt
 	var k := 1.0 - exp(-dt * 9.0)

@@ -154,6 +154,7 @@ func game_title(r: Control) -> bool:
 	if OS.is_debug_build() and FileAccess.file_exists("user://qa_level.txt"):   # device QA (debug APK only): `adb shell run-as <app> sh -c 'echo L05 > files/qa_level.txt'` jumps to a job once, since a phone launch cannot pass CB_LEVEL
 		var lv := FileAccess.get_file_as_string("user://qa_level.txt").strip_edges(); DirAccess.remove_absolute("user://qa_level.txt")
 		if lv != "": get_tree().create_timer(0.3).timeout.connect(func(): new_game(_mode_pref()); start_level(lv, true))
+	if OS.has_environment("CB_LOAD_TIME"): get_tree().create_timer(2.0).timeout.connect(func(): new_game(_mode_pref()); GridLoading.start(self, OS.get_environment("CB_LOAD_TIME")))   # QA: start a job through the loading card, as the jobs list does; with CB_PADLOG the card prints its times
 	if OS.has_environment("CB_CAREER"): get_tree().create_timer(0.5).timeout.connect(func(): Career.qa(self, OS.get_environment("CB_CAREER")))   # desk QA: land on the Career (ui/career/career.gd)
 	return TitleScreen.build(self, r)
 func game_end_screen() -> bool:
