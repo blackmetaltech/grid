@@ -13,7 +13,11 @@ func set_data(data: Dictionary) -> void:
 
 ## 1.10: a wall planner on the paper strip: ten year columns, four quarter boxes each. Spent quarters are crossed through in ink, the
 ## current one is circled in red pen, the review box at the end of each year gets a tick (met) or a cross (missed).
-const INK := Color("#2A2418"); const PEN := Color("#B03A2E"); const OK := Color("#2F6B2A")
+const PAPER_INK := Color("#2A2418"); const PAPER_PEN := Color("#B03A2E"); const PAPER_OK := Color("#2F6B2A")
+## glass: light ticks, a warm red pen, the good green (same marks, light inks)
+func _ink() -> Color: return GridTheme.G_TICK if CareerKit.glass() else PAPER_INK
+func _pen() -> Color: return Color(1.0, 0.52, 0.45) if CareerKit.glass() else PAPER_PEN
+func _ok() -> Color: return GridTheme.GOOD if CareerKit.glass() else PAPER_OK
 
 func _geom() -> Dictionary:
 	var n := int(d.get("quarters", 40)); var years := maxi(1, n / 4)
@@ -36,19 +40,19 @@ func _draw() -> void:
 	var f := GridTheme.font("semi")
 	for y in int(g.years):
 		var x := float(g.x0) + y * float(g.col)
-		GridText.ds(self, f, Vector2(x + 4.0, 15.0), "Y%d" % (y + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13), Color(INK, 0.75))
-		if y > 0: draw_line(Vector2(x, 2.0), Vector2(x, size.y - 2.0), Color(INK, 0.25), 1.0)
+		GridText.ds(self, f, Vector2(x + 4.0, 15.0), "Y%d" % (y + 1), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13), Color(_ink(), 0.75))
+		if y > 0: draw_line(Vector2(x, 2.0), Vector2(x, size.y - 2.0), Color(_ink(), 0.25), 1.0)
 	for q in n:
 		var r := _box_r(q, g); var review := q % 4 == 3
 		var past := q < t or (ended and q <= t)
-		draw_rect(r, Color(INK, 0.06 if not review else 0.12)); draw_rect(r, Color(INK, 0.45), false, 1.0)
-		if past and not review: draw_line(r.position + Vector2(2, r.size.y - 2), r.end - Vector2(2, r.size.y - 2), Color(INK, 0.7), 1.5)
+		draw_rect(r, Color(_ink(), 0.06 if not review else 0.12)); draw_rect(r, GridTheme.HAIR if CareerKit.glass() else Color(_ink(), 0.45), false, 1.0)
+		if past and not review: draw_line(r.position + Vector2(2, r.size.y - 2), r.end - Vector2(2, r.size.y - 2), Color(_ink(), 0.7), 1.5)
 		if review:
 			var m := _met_of(q / 4 + 1)
-			if m == 1: draw_polyline(PackedVector2Array([r.position + r.size * Vector2(0.2, 0.55), r.position + r.size * Vector2(0.42, 0.8), r.position + r.size * Vector2(0.85, 0.2)]), OK, 2.5, true)
+			if m == 1: draw_polyline(PackedVector2Array([r.position + r.size * Vector2(0.2, 0.55), r.position + r.size * Vector2(0.42, 0.8), r.position + r.size * Vector2(0.85, 0.2)]), _ok(), 2.5, true)
 			elif m == 0:
-				draw_line(r.position + r.size * 0.2, r.position + r.size * 0.8, PEN, 2.5); draw_line(r.position + r.size * Vector2(0.8, 0.2), r.position + r.size * Vector2(0.2, 0.8), PEN, 2.5)
-		if q == t and not ended: draw_arc(r.get_center(), r.size.x * 0.72, 0, TAU, 24, PEN, 2.5, true)
+				draw_line(r.position + r.size * 0.2, r.position + r.size * 0.8, _pen(), 2.5); draw_line(r.position + r.size * Vector2(0.8, 0.2), r.position + r.size * Vector2(0.2, 0.8), _pen(), 2.5)
+		if q == t and not ended: draw_arc(r.get_center(), r.size.x * 0.72, 0, TAU, 24, _pen(), 2.5, true)
 
 func _get_tooltip(at: Vector2) -> String:
 	if d.is_empty(): return ""

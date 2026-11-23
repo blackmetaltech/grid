@@ -11,8 +11,11 @@ const KIND_TARGET := {"reconductor": "section", "harden": "feeder", "remoteSwitc
 ## 1.13: text straight on the brown drawer (not on a paper card) in light ink; dark ink there was unreadable
 const DRAWER_INK := Color("#E8D9A8", 0.85)
 
+func _ink() -> Color: return GridTheme.G_TEXT if CareerKit.glass() else GridTheme.PAPER_INK
+func _bad() -> Color: return GridTheme.BAD if CareerKit.glass() else CareerKit.INK_BAD
+
 func _dlbl(text: String, size: int, kind := "sans") -> Label:   # bypasses CareerKit.ink, which turns every colour to paper ink
-	var l := GridTheme.label(text, size, DRAWER_INK, kind)
+	var l := GridTheme.label(text, size, Color(GridTheme.G_TEXT, 0.85) if CareerKit.glass() else DRAWER_INK, kind)
 	if kind == "sans": l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 var app: CbApp
@@ -84,9 +87,9 @@ func build() -> void:
 	tool_row = _build_tools(); left.add_child(tool_row)
 	map = CareerMap.new(); map.compact = compact; map.size_flags_vertical = Control.SIZE_EXPAND_FILL; map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	map.picked.connect(_on_pick); left.add_child(map)
-	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", CareerKit.sb(GridTheme.PAPER, Color(GridTheme.PAPER_INK, 0.35), 1, 4, 14.0, 8.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
+	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.72, 4, 14.0) if CareerKit.glass() else CareerKit.sb(GridTheme.PAPER, Color(GridTheme.PAPER_INK, 0.35), 1, 4, 14.0, 8.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
 	info_box = VBoxContainer.new(); info_box.add_theme_constant_override("separation", 2); ip.add_child(info_box)
-	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", CareerKit.sb(Color("#4A3524"), Color("#2C1E12"), 3, 10, 10.0, 10.0))   # 1.9: a clipboard of paper cards
+	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.72, 4, 10.0) if CareerKit.glass() else CareerKit.sb(Color("#4A3524"), Color("#2C1E12"), 3, 10, 10.0, 10.0))   # 1.9: a clipboard of paper cards
 	drawer.custom_minimum_size.x = clampf(app.vw() * 0.34, 380.0, 420.0) if compact else clampf(app.vw() * 0.29, 480.0, 600.0)
 	body.add_child(drawer)
 	var dv := VBoxContainer.new(); dv.add_theme_constant_override("separation", 6); drawer.add_child(dv)
@@ -99,18 +102,20 @@ func build() -> void:
 ## cash as a ledger line, the two reliability targets as gauges with their plain names, the rest small. The alarm is a pinned note.
 func _build_strip() -> Control:
 	var pc := PanelContainer.new(); pc.name = "Strip"
+	var gl := CareerKit.glass()
 	var st := CareerKit.sb(GridTheme.PAPER, Color("#6B4A2A"), 2, 4, 14.0, 4.0 if compact else 8.0); st.shadow_color = Color(0, 0, 0, 0.4); st.shadow_size = 5; st.shadow_offset = Vector2(0, 3)
+	if gl: st = GridTheme.glass_sb(0.72, 4, 14.0); st.content_margin_top = 4.0 if compact else 8.0; st.content_margin_bottom = st.content_margin_top
 	pc.add_theme_stylebox_override("panel", st)
-	var ink := GridTheme.PAPER_INK
+	var ink := GridTheme.G_TEXT if gl else GridTheme.PAPER_INK
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2 if compact else 6); pc.add_child(v)
 	var r1 := HBoxContainer.new(); r1.add_theme_constant_override("separation", 14); v.add_child(r1)
 	var yv := VBoxContainer.new(); yv.add_theme_constant_override("separation", 0); yv.alignment = BoxContainer.ALIGNMENT_CENTER; r1.add_child(yv)
-	year_lbl = GridTheme.label("", 24 if compact else 32, Color("#8A3A1E"), "title")
+	year_lbl = GridTheme.label("", 24 if compact else 32, GridTheme.SODIUM if gl else Color("#8A3A1E"), "title")
 	year_lbl.name = "YearLabel"; year_lbl.custom_minimum_size.x = 190 if compact or app.vw() < 1500.0 else 280; yv.add_child(year_lbl)
 	charter_lbl = GridTheme.label("", 16, Color(ink, 0.75), "semi")
 	charter_lbl.name = "CharterLabel"; yv.add_child(charter_lbl)
 	timeline = CareerTimeline.new(); timeline.compact = compact; timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL; timeline.custom_minimum_size.y = 44 if compact else 54; r1.add_child(timeline)
-	end_btn = PaperKit.btn(T("CAR_END_Q"), true, _on_end, 18 if compact else 21); end_btn.name = "EndQuarter"; r1.add_child(end_btn)
+	end_btn = CareerKit.btn(T("CAR_END_Q"), true, _on_end, 18 if compact else 21) if gl else PaperKit.btn(T("CAR_END_Q"), true, _on_end, 18 if compact else 21); end_btn.name = "EndQuarter"; r1.add_child(end_btn)
 	var narrow := compact or app.vw() < 1500.0   # 1280 wide: the ledger row must fit beside nothing (End quarter was pushed off the edge)
 	stat_box = HBoxContainer.new(); stat_box.add_theme_constant_override("separation", 12 if narrow else 28); v.add_child(stat_box)
 	stats["cash"] = _stat(T("CAR_CASH"), 150 if narrow else 220, true)
@@ -127,16 +132,17 @@ func _build_strip() -> Control:
 	# the pinned note: one line, what to do; the long explanation is its tooltip
 	alarm_note = PanelContainer.new(); alarm_note.name = "AlarmNote"; alarm_note.visible = false; alarm_note.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var ns := CareerKit.sb(Color("#FFF1A8"), Color("#B03A2E"), 2, 2, 14.0, 6.0); ns.shadow_color = Color(0, 0, 0, 0.35); ns.shadow_size = 3; ns.shadow_offset = Vector2(1, 2)
+	if gl: ns = CareerKit.sb(Color(GridTheme.BAD, 0.14), GridTheme.BAD, 1, 4, 14.0, 6.0)
 	alarm_note.add_theme_stylebox_override("panel", ns); alarm_note.mouse_filter = Control.MOUSE_FILTER_PASS
-	alarm_lbl = GridTheme.label("", 18 if not compact else 16, Color("#8A1F12"), "semi")
+	alarm_lbl = GridTheme.label("", 18 if not compact else 16, GridTheme.G_TEXT if gl else Color("#8A1F12"), "semi")
 	alarm_lbl.name = "StrikeAlarm"; alarm_lbl.mouse_filter = Control.MOUSE_FILTER_PASS
 	alarm_note.add_child(alarm_lbl); v.add_child(alarm_note)
 	return pc
 
 func _stat(cap: String, minw: float, big := false) -> Label:
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 0); v.custom_minimum_size.x = minw; stat_box.add_child(v)
-	v.add_child(GridTheme.label(cap, 16, Color(GridTheme.PAPER_INK, 0.62), "mono"))
-	var l := GridTheme.label("", (24 if big else 18) if compact else (30 if big else 20), GridTheme.PAPER_INK, "semi"); v.add_child(l)
+	v.add_child(GridTheme.label(cap, 16, Color(_ink(), 0.62), "mono"))
+	var l := GridTheme.label("", (24 if big else 18) if compact else (30 if big else 20), _ink(), "semi"); v.add_child(l)
 	return l
 
 func _build_tools() -> HBoxContainer:
@@ -220,16 +226,16 @@ func refresh() -> void:
 	timeline.set_data(d)
 	var inc := str(d.phase) == "incident"
 	end_btn.text = T("CAR_END_Q_INC") if inc else T("CAR_END_Q"); end_btn.disabled = ended
-	(stats.cash as Label).text = str(d.cashText); (stats.cash as Label).add_theme_color_override("font_color", GridTheme.PAPER_INK if float(d.cash) >= 0.0 else CareerKit.INK_BAD)
+	(stats.cash as Label).text = str(d.cashText); (stats.cash as Label).add_theme_color_override("font_color", _ink() if float(d.cash) >= 0.0 else _bad())
 	(stats.cash as Label).tooltip_text = T("CAR_CASH_LIM") % str(d.creditText)
 	if bool(d.get("borrowing", false)): (stats.cash as Label).text = T("CAR_CASH_DEBT") % str(d.cashText)
 	(stats.owed as Label).text = T("CAR_CASH_OWED") % [str(d.get("owedText", "")), str(d.get("cashAfterText", ""))] if str(d.get("owedText", "")) != "" and float(d.get("committedQ", 0.0)) > 0.0 else ""
 	(stats.standing as Label).text = "\n".join([str(d.get("standingText", "")), str(d.get("ownersDueText", ""))].filter(func(x): return x != "")); (stats.standing as Label).visible = not compact   # a phone has no room for a third line: there it is the cash tooltip
 	if compact and (stats.standing as Label).text != "": (stats.cash as Label).tooltip_text += "\n" + (stats.standing as Label).text
-	(stats.owed as Label).add_theme_color_override("font_color", Color(GridTheme.PAPER_INK, 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else CareerKit.INK_BAD)
+	(stats.owed as Label).add_theme_color_override("font_color", Color(_ink(), 0.62) if not str(d.get("cashAfterText", "")).begins_with("-") else _bad())
 	bar_saidi.set_vals(T("CAR_SAIDI"), float(d.ytd.saidi), float(d.targets.saidi), float(d.expected.saidi), 1)
 	var al := str(d.get("alarmDo", "")); alarm_lbl.text = al; alarm_note.visible = al != ""; alarm_note.tooltip_text = str(d.get("alarmText", "")); alarm_lbl.tooltip_text = alarm_note.tooltip_text
-	alarm_lbl.add_theme_color_override("font_color", Color("#8A1F12") if bool(d.get("alarmStrike", false)) else CareerKit.INK_WARN)
+	alarm_lbl.add_theme_color_override("font_color", (GridTheme.G_TEXT if CareerKit.glass() else Color("#8A1F12")) if bool(d.get("alarmStrike", false)) else (GridTheme.WARN if CareerKit.glass() else CareerKit.INK_WARN))
 	bar_saifi.set_vals(T("CAR_SAIFI"), float(d.ytd.saifi), float(d.targets.saifi), float(d.expected.saifi), 2)
 	(stats.health as Label).text = T("CAR_HEALTH_VAL") % [CareerKit.num(float(d.health), 1), CareerKit.num(float(d.startHealth), 1)]
 	(stats.crews as Label).text = T("CAR_CREWS_VAL") % [int(d.crewsFree), int(d.crews)]
@@ -416,6 +422,7 @@ func _worst_card(sz: int) -> void:
 		var chosen: bool = (str(sel.get("type", "")) == "section" and str(sel.get("id", "")) == id) or (str(sel.get("type", "")) == "primary" and (str(sel.get("asset", "")) == id or (not sel.has("asset") and id.begins_with(str(sel.get("id", "")) + "-"))))
 		var pc := PanelContainer.new(); pc.name = "AssetCard_" + id
 		var stb := CareerKit.sb(Color("#E6DCC2"), GridTheme.SODIUM if chosen else Color(CareerKit.INK_AMBER, 0.35), 3 if chosen else 1, 6, 8.0, 6.0)
+		if CareerKit.glass(): stb = CareerKit.glass_card_sb(chosen, 8.0, 6.0)
 		pc.add_theme_stylebox_override("panel", stb); v.add_child(pc)
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 8); pc.add_child(row)
 		var icon := CareerAssetIcon.new(); icon.col = CareerKit.health_col(health)
@@ -459,9 +466,10 @@ func _guide_card(sz: int, gq: int, hidden: int) -> void:
 	# 1.9: the quarter's job is a pinned work order, the most readable thing on screen (title 26 px, body 20 px; the rest of the board is 16)
 	var pc := PanelContainer.new(); pc.name = "GuideCard"; pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var st := CareerKit.sb(GridTheme.PAPER, CareerKit.INK_AMBER, 3, 3, 18.0, 14.0); st.shadow_color = Color(0, 0, 0, 0.45); st.shadow_size = 6; st.shadow_offset = Vector2(2, 4)
+	if CareerKit.glass(): st = CareerKit.glass_card_sb(true, 18.0, 14.0)
 	pc.add_theme_stylebox_override("panel", st); drawer_body.add_child(pc)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 8); pc.add_child(v)
-	var tape := ColorRect.new(); tape.color = Color("#E8D9A8", 0.85); tape.custom_minimum_size = Vector2(90, 14); tape.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; tape.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(tape)
+	var tape := ColorRect.new(); tape.visible = not CareerKit.glass(); tape.color = Color("#E8D9A8", 0.85); tape.custom_minimum_size = Vector2(90, 14); tape.size_flags_horizontal = Control.SIZE_SHRINK_CENTER; tape.mouse_filter = Control.MOUSE_FILTER_IGNORE; v.add_child(tape)
 	v.add_child(CareerKit.lbl(T("CAR_GUIDE_T") % (gq + 1), 26 if not compact else 22, GridTheme.SODIUM, "title", true))
 	var body := ""
 	if gq == 0:

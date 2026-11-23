@@ -13,7 +13,7 @@ class Cells extends Control:
 		for k in 10:
 			var r := Rect2(Vector2(k * (w + 2.0), 0), Vector2(w, size.y))
 			var fill := clampf(health - float(k), 0.0, 1.0)
-			draw_rect(r, Color("#2A2418", 0.18))
+			draw_rect(r, Color(1, 1, 1, 0.12) if CareerKit.glass() else Color("#2A2418", 0.18))
 			if fill > 0.0: draw_rect(Rect2(r.position, Vector2(w * fill, size.y)), CareerKit.health_col(health))
 
 func _ready() -> void:

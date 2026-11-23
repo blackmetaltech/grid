@@ -11,17 +11,19 @@ func _init() -> void:
 
 func _draw() -> void:
 	var s := size; var c := s * 0.5
-	var ink := Color("#2A2418")
-	draw_rect(Rect2(Vector2(2, 2), s - Vector2(4, 4)), Color("#DCD2B8")); draw_rect(Rect2(Vector2(2, 2), s - Vector2(4, 4)), Color(ink, 0.4), false, 1.0)
+	var gl := CareerKit.glass()
+	var ink := GridTheme.G_TICK if gl else Color("#2A2418")
+	var tile := Color(1, 1, 1, 0.06) if gl else Color("#DCD2B8")
+	draw_rect(Rect2(Vector2(2, 2), s - Vector2(4, 4)), tile); draw_rect(Rect2(Vector2(2, 2), s - Vector2(4, 4)), GridTheme.HAIR if gl else Color(ink, 0.4), false, 1.0)
 	match kind:
 		"pole":
-			draw_line(Vector2(c.x, 10), Vector2(c.x, s.y - 6), Color("#7A5A36"), 4.0)
-			draw_line(Vector2(c.x - 15, 15), Vector2(c.x + 15, 15), Color("#7A5A36"), 3.0)
+			draw_line(Vector2(c.x, 10), Vector2(c.x, s.y - 6), Color("#B08A5C") if gl else Color("#7A5A36"), 4.0)
+			draw_line(Vector2(c.x - 15, 15), Vector2(c.x + 15, 15), Color("#B08A5C") if gl else Color("#7A5A36"), 3.0)
 			for dx in [-12.0, 0.0, 12.0]: draw_circle(Vector2(c.x + dx, 13), 2.5, ink)
 			draw_polyline(PackedVector2Array([Vector2(4, 18), Vector2(c.x - 12, 13)]), col, 2.0, true)
 			draw_polyline(PackedVector2Array([Vector2(c.x + 12, 13), Vector2(s.x - 4, 18)]), col, 2.0, true)
 		"joint":
-			draw_rect(Rect2(Vector2(4, c.y - 2), Vector2(s.x - 8, s.y * 0.5 - 4)), Color("#8A7A5E"))   # the trench in section
+			draw_rect(Rect2(Vector2(4, c.y - 2), Vector2(s.x - 8, s.y * 0.5 - 4)), Color("#5A5446") if gl else Color("#8A7A5E"))   # the trench in section
 			draw_line(Vector2(4, c.y + 8), Vector2(s.x - 4, c.y + 8), col, 4.0)
 			draw_rect(Rect2(Vector2(c.x - 9, c.y + 3), Vector2(18, 10)), ink)   # the joint shell
 			draw_line(Vector2(4, c.y - 2), Vector2(s.x - 4, c.y - 2), Color("#4A4A4A"), 3.0)   # the road above

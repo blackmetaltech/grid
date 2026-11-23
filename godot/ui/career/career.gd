@@ -37,6 +37,9 @@ static func forget() -> void:   # the running career only: the weekly bests stay
 ## The shared leaderboard client, created on first use under /root/Scores. Only with a scores host: GRID ships none (there is no
 ## public server yet), so CB_SCORES_URL (a local or private server) turns the weekly board on; without it this returns null and
 ## nothing is shown or sent. The addon keeps its identity, queue and cache under user://cobanana_scores.
+## Ink of the Career sheets: light on glass, print ink on paper.
+static func _ink() -> Color: return GridTheme.G_TEXT if CareerKit.glass() else PaperKit.INK
+
 static func scores(app: CbApp) -> CbScoresClient:
 	var url := OS.get_environment("CB_SCORES_URL")
 	if url == "" or OS.get_environment("CB_SCORES_OFF") == "1": return null
@@ -54,12 +57,12 @@ static func board_rows(app: CbApp, vb: VBoxContainer, level: String, compact: bo
 	if cl == null: return
 	var fs := 13 if compact else 15
 	if cl.needs_first_run_notice():
-		vb.add_child(PaperKit.lbl(cl.notice_text(), fs, "sans", Color(PaperKit.INK, 0.8), true))
+		vb.add_child(PaperKit.lbl(cl.notice_text(), fs, "sans", Color(_ink(), 0.8), true))
 		var hb := HBoxContainer.new(); hb.add_theme_constant_override("separation", 8); vb.add_child(hb)
 		var ok := PaperKit.btn(T("CAR_SC_OK"), false, func(): cl.acknowledge_notice(); app.toast(T("CAR_SC_ON"), "good"), 16)
 		ok.name = "ScoresOk"; hb.add_child(ok)
 		var off := PaperKit.btn(T("CAR_SC_OFF"), false, func(): cl.set_enabled(false); cl.acknowledge_notice(), 16); off.name = "ScoresOff"; hb.add_child(off)
-	var top := PaperKit.lbl(T("CAR_SC_LOADING"), fs, "mono", Color(PaperKit.INK, 0.72), true); top.name = "WeeklyTop"; vb.add_child(top)
+	var top := PaperKit.lbl(T("CAR_SC_LOADING"), fs, "mono", Color(_ink(), 0.72), true); top.name = "WeeklyTop"; vb.add_child(top)
 	cl.top_ready.connect(func(lv: String, _m: String, data: Dictionary, _c: bool):
 		if lv != level or not is_instance_valid(top): return
 		var rows: Array = data.get("rows", [])
@@ -69,7 +72,7 @@ static func board_rows(app: CbApp, vb: VBoxContainer, level: String, compact: bo
 		top.text = T("CAR_SC_TOP") % [", ".join(parts), int(data.get("total", rows.size()))])
 	cl.request_top(level, "score", 3)
 	var hb2 := HBoxContainer.new(); hb2.add_theme_constant_override("separation", 8); vb.add_child(hb2)
-	var tg := CheckButton.new(); tg.name = "ScoresToggle"; tg.text = T("CAR_SC_TOGGLE"); tg.button_pressed = cl.is_enabled(); tg.add_theme_color_override("font_color", PaperKit.INK); tg.add_theme_color_override("font_pressed_color", PaperKit.INK)
+	var tg := CheckButton.new(); tg.name = "ScoresToggle"; tg.text = T("CAR_SC_TOGGLE"); tg.button_pressed = cl.is_enabled(); tg.add_theme_color_override("font_color", _ink()); tg.add_theme_color_override("font_pressed_color", _ink())
 	tg.toggled.connect(func(on: bool): cl.set_enabled(on)); hb2.add_child(tg)
 	var del := PaperKit.btn(T("CAR_SC_DELETE"), false, func(): cl.delete_my_data(); app.toast(T("CAR_SC_DELETED"), "warn"), 14)
 	del.name = "ScoresDelete"; hb2.add_child(del)
@@ -145,22 +148,24 @@ static func choose(app: CbApp) -> void:
 	var compact := PaperKit.compact(app)
 	var ch = app.b.q("careerCharters", [0, 0])
 	if not (ch is Dictionary): return
-	var d := PaperKit.sheet(app, "career_charters", minf(900.0, app.vw() - 24.0), 0.0, 0.72, 16.0 if compact else 26.0)
+	PaperKit.glass = CareerKit.glass()   # LOOK2: glass over the 3D look; reset at the end of the build
+	var d := PaperKit.sheet(app, "career_charters", minf(900.0, app.vw() - 24.0), 0.0, 0.45 if PaperKit.glass else 0.72, 16.0 if compact else 26.0)
 	var host: Control = d.host; var vb: VBoxContainer = d.vb
 	vb.add_theme_constant_override("separation", 6 if compact else 10)
 	vb.add_child(PaperKit.lbl(T("CAR_CHOOSE_TITLE"), 28 if compact else 40, "title", PaperKit.INK))
-	vb.add_child(PaperKit.lbl(T("CAR_CHOOSE_SUB"), 14 if compact else 17, "sans", Color(PaperKit.INK, 0.8), true))
+	vb.add_child(PaperKit.lbl(T("CAR_CHOOSE_SUB"), 14 if compact else 17, "sans", Color(_ink(), 0.8), true))
 	var first: Button = null
 	var grid := GridContainer.new(); grid.columns = 2; grid.add_theme_constant_override("h_separation", 12); grid.add_theme_constant_override("v_separation", 6 if compact else 10); vb.add_child(grid)   # two columns: seven charters fit a phone screen
 	for row in ch.charters:
 		var id := str(row.id)
 		var cell := VBoxContainer.new(); cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL; cell.add_theme_constant_override("separation", 2); grid.add_child(cell)
 		var b := PaperKit.btn(str(row.name), id == "standard", func(): host.queue_free(); start(app, null, id), 17 if compact else 20); b.name = "Charter_" + id; cell.add_child(b)
-		var tl := PaperKit.lbl(str(row.text), 12 if compact else 14, "sans", Color(PaperKit.INK, 0.72), true); tl.custom_minimum_size.x = 200; cell.add_child(tl)
+		var tl := PaperKit.lbl(str(row.text), 12 if compact else 14, "sans", Color(_ink(), 0.72), true); tl.custom_minimum_size.x = 200; cell.add_child(tl)
 		if first == null: first = b
 	var cl := PaperKit.btn(T("CAR_CLOSE"), false, func(): host.queue_free(), 18); cl.name = "Close"; vb.add_child(cl)
 	(host as PaperHost).closer = func(): host.queue_free()
 	(host as PaperHost).primary = first
+	PaperKit.glass = false
 	PaperKit.slide_in(d, 50.0)
 	app.focus_dialog()
 	CareerKit.focus_later(first)
@@ -186,11 +191,12 @@ static func open(app: CbApp) -> void:
 	GridUi.load_strings()
 	var compact := PaperKit.compact(app)
 	var sv := saved()
-	var d := PaperKit.sheet(app, "career_entry", minf(700.0, app.vw() - 24.0), 0.0, 0.72, 16.0 if compact else 30.0)
+	PaperKit.glass = CareerKit.glass()   # LOOK2: glass over the 3D look; reset at the end of the build
+	var d := PaperKit.sheet(app, "career_entry", minf(700.0, app.vw() - 24.0), 0.0, 0.45 if PaperKit.glass else 0.72, 16.0 if compact else 30.0)
 	var host: Control = d.host; var vb: VBoxContainer = d.vb
 	vb.add_theme_constant_override("separation", 8 if compact else 12)
 	vb.add_child(PaperKit.lbl(T("CAR_TITLE").to_upper(), 36 if compact else 54, "title", PaperKit.INK))
-	vb.add_child(PaperKit.lbl(T("CAR_ENTRY_SUB"), 15 if compact else 19, "sans", Color(PaperKit.INK, 0.8), true))
+	vb.add_child(PaperKit.lbl(T("CAR_ENTRY_SUB"), 15 if compact else 19, "sans", Color(_ink(), 0.8), true))
 	vb.add_child(PaperKit.rule())
 	var go: Button = null
 	if not sv.is_empty():
@@ -202,12 +208,13 @@ static func open(app: CbApp) -> void:
 		var wk: Dictionary = wq.weekly; var best := weekly_best(str(wk.key))
 		var wl := (T("CAR_WEEKLY_BTN") % [str(wk.name), str(wk.key)]) + ((T("CAR_WEEKLY_BEST") % best) if best >= 0 else "")
 		var wb := PaperKit.btn(wl, false, func(): host.queue_free(); weekly(app), 18 if compact else 21); wb.name = "Weekly"; vb.add_child(wb)
-		vb.add_child(PaperKit.lbl(str(wk.text), 13 if compact else 15, "sans", Color(PaperKit.INK, 0.72), true))
+		vb.add_child(PaperKit.lbl(str(wk.text), 13 if compact else 15, "sans", Color(_ink(), 0.72), true))
 		board_rows(app, vb, "career." + str(wk.key), compact)
 	var chb := PaperKit.btn(T("CAR_CHOOSE"), false, func(): host.queue_free(); choose(app), 18 if compact else 21); chb.name = "Choose"; vb.add_child(chb)
 	var cl := PaperKit.btn(T("CAR_CLOSE"), false, func(): host.queue_free(), 18); cl.name = "Close"; vb.add_child(cl)
 	(host as PaperHost).closer = func(): host.queue_free()
 	(host as PaperHost).primary = go if go != null else nw
+	PaperKit.glass = false
 	PaperKit.slide_in(d, 50.0)
 	app.focus_dialog()
 	CareerKit.focus_later(go if go != null else nw)
@@ -221,7 +228,7 @@ static func jobs_row(app: CbApp, host: Control, compact: bool) -> Button:
 	hb.offset_left = 16; hb.offset_right = -14; hb.offset_top = 6; hb.offset_bottom = -6; b.add_child(hb)
 	var mid := VBoxContainer.new(); mid.mouse_filter = Control.MOUSE_FILTER_IGNORE; mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL; mid.alignment = BoxContainer.ALIGNMENT_CENTER; mid.add_theme_constant_override("separation", 0); hb.add_child(mid)
 	mid.add_child(PaperKit.lbl(T("CAR_TITLE"), 26, "title", PaperKit.INK))
-	var br := PaperKit.lbl(T("CAR_JOBS_SAVED") % [int(sv.year), int(sv.quarter)] if not sv.is_empty() else T("CAR_JOBS_BRIEF"), 15, "sans", Color(PaperKit.INK, 0.72), true)
+	var br := PaperKit.lbl(T("CAR_JOBS_SAVED") % [int(sv.year), int(sv.quarter)] if not sv.is_empty() else T("CAR_JOBS_BRIEF"), 15, "sans", Color(_ink(), 0.72), true)
 	br.max_lines_visible = 1 if compact else 2; br.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; mid.add_child(br)
 	hb.add_child(Jobs.classic_chip())   # the Career keeps its classic look for now
 	return b

@@ -12,7 +12,15 @@ const CARD := Color(1, 1, 1, 0.055)
 static var paper := false
 const INK_GOOD := Color("#2F6B2A"); const INK_WARN := Color("#9A5A08"); const INK_BAD := Color("#A8321F"); const INK_AMBER := Color("#8A5208")
 
+## Glass (the 3D look, GridTheme.look2): the Career is dark glass with hairline edges and light text, the same as the jobs list and the work order.
+static func glass() -> bool:
+	if GridTheme.look2: return true
+	var a = CbKit.app   # the same test the jobs list uses: the 3D look is in the game (the title and the menus too, not only while the province shows)
+	return a != null and is_instance_valid(a) and a.get("grid_world") != null and a.grid_world.look3d != null
+
 static func ink(col: Color) -> Color:
+	if glass():   # light inks stay light; the paper TEXT tone becomes the glass text tone
+		return Color(GridTheme.G_TEXT, col.a) if Color(col, 1.0).is_equal_approx(GridTheme.TEXT) else col
 	if not paper: return col
 	var a := col.a
 	var base: Color
@@ -35,6 +43,7 @@ static func sb(bg: Color, edge: Color, bw := 1, r := 6, padx := 12.0, pady := 6.
 
 ## A button on the dark chrome: `primary` = sodium fill (the one action), otherwise an outlined ghost.
 static func btn(text: String, primary: bool, cb: Callable, size := 16) -> Button:
+	if glass(): return _glass_btn(text, primary, cb, size)
 	if paper:   # paper buttons on the paper drawer (PaperKit: sodium for the one action, ink outline otherwise)
 		var pb := PaperKit.btn(text, primary, cb, maxi(size, 16)); pb.custom_minimum_size.y = maxf(36.0, CbLayout.tap()); return pb
 	var b := Button.new(); b.text = text; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -56,17 +65,42 @@ static func btn(text: String, primary: bool, cb: Callable, size := 16) -> Button
 	b.pressed.connect(cb)
 	return b
 
+## A button in glass: hairline ghost (sodium edge on hover and focus), the one action filled sodium.
+static func _glass_btn(text: String, primary: bool, cb: Callable, size: int) -> Button:
+	var b := Button.new(); b.text = text; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(size))
+	var fc: Color = GridTheme.NIGHT if primary else GridTheme.G_TEXT
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, fc)
+	b.add_theme_color_override("font_disabled_color", Color(GridTheme.G_TEXT, 0.4))
+	var px := 14.0 if size >= 16 else 9.0
+	var fills := [GridTheme.SODIUM, GridTheme.SODIUM.lightened(0.18), GridTheme.SODIUM.darkened(0.1)] if primary else [Color(1, 1, 1, 0.04), Color(1, 1, 1, 0.1), Color(GridTheme.SODIUM, 0.2)]
+	var edges := [GridTheme.SODIUM, GridTheme.SODIUM, GridTheme.SODIUM] if primary else [GridTheme.HAIR, GridTheme.SODIUM, GridTheme.SODIUM]
+	for i in 3: b.add_theme_stylebox_override(["normal", "hover", "pressed"][i], sb(fills[i], edges[i], 1, 4, px, 6.0))
+	b.add_theme_stylebox_override("focus", GridTheme.focus_sb())
+	b.add_theme_stylebox_override("disabled", sb(Color(1, 1, 1, 0.02), Color(GridTheme.HAIR, 0.5), 1, 4, px, 6.0))
+	b.custom_minimum_size = Vector2(0, maxf(34.0, CbLayout.tap()))
+	b.pressed.connect(cb)
+	return b
+
 ## A segmented chip: the chosen one is filled sodium. `cb` runs when an unchosen chip is pressed.
 static func chip(text: String, on: bool, cb: Callable, size := 15) -> Button:
 	var b := btn(text, on, cb, size)
 	b.set_meta("selected", on)
-	b.add_theme_stylebox_override("normal", sb(GridTheme.SODIUM if on else Color(1, 1, 1, 0.04), GridTheme.SODIUM if on else Color(GridTheme.SODIUM_DIM, 0.6), 1, 15, 14.0, 3.0))
+	b.add_theme_stylebox_override("normal", sb(GridTheme.SODIUM if on else Color(1, 1, 1, 0.04), GridTheme.SODIUM if on else (GridTheme.HAIR if glass() else Color(GridTheme.SODIUM_DIM, 0.6)), 1, 15, 14.0, 3.0))
 	b.custom_minimum_size.y = maxf(32.0, CbLayout.tap() * 0.8)
 	return b
 
+## A card on glass: a faint fill, hairline edge, sodium when it is the live one.
+static func glass_card_sb(lit: bool, padx := 12.0, pady := 8.0) -> StyleBoxFlat:
+	var s := GridTheme.glass_cell_sb(Color(1, 1, 1, 0.05), lit)
+	if lit: s.set_border_width_all(2)   # the live one reads at a glance
+	s.content_margin_left = padx; s.content_margin_right = padx; s.content_margin_top = pady; s.content_margin_bottom = pady
+	return s
+
 static func card(parent: Control, edge := Color(0, 0, 0, 0)) -> VBoxContainer:
 	var pc := PanelContainer.new()
-	if paper: pc.add_theme_stylebox_override("panel", sb(GridTheme.PAPER, INK_AMBER if edge.a > 0.0 else Color(GridTheme.PAPER_INK, 0.3), 2 if edge.a > 0.0 else 1, 4, 14.0, 10.0))
+	if glass(): pc.add_theme_stylebox_override("panel", glass_card_sb(edge.a > 0.0))
+	elif paper: pc.add_theme_stylebox_override("panel", sb(GridTheme.PAPER, INK_AMBER if edge.a > 0.0 else Color(GridTheme.PAPER_INK, 0.3), 2 if edge.a > 0.0 else 1, 4, 14.0, 10.0))
 	else: pc.add_theme_stylebox_override("panel", sb(CARD, edge if edge.a > 0.0 else Color(GridTheme.SODIUM_DIM, 0.35), 1, 8, 12.0, 8.0))
 	pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL; parent.add_child(pc)
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 4); pc.add_child(v)

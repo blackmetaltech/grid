@@ -165,6 +165,10 @@ func _conductor_w(c: String) -> float:
 const RIVER := Color("#2B5E86"); const ROAD := Color("#3A3F4A")
 const ROOF := Color("#4A5068"); const WALL := Color("#6A7290"); const WIN_LIT := Color("#FFC46B"); const WIN_DARK := Color("#1A1F30")
 const PAPER_LBL := Color("#EFE6CF"); const INK_LBL := Color("#2A2418")
+## glass: name plates are dark glass with a hairline and light text (the paper plates stay when the 3D look is off)
+func _lbl_fill() -> Color: return Color(GridTheme.GLASS, 0.9) if CareerKit.glass() else PAPER_LBL
+func _lbl_edge() -> Color: return GridTheme.HAIR if CareerKit.glass() else Color(INK_LBL, 0.5)
+func _lbl_ink() -> Color: return GridTheme.G_TEXT if CareerKit.glass() else INK_LBL
 
 ## 1.10: the district as a place (coordinator: "a letter about F1 points at something you can see"). Ground by district: Home Counties
 ## patchwork fields, Harbour City streets and a harbour, High Moor hills with snow in winter. Each feeder runs down a road through its
@@ -222,8 +226,8 @@ func _draw_ground() -> void:
 			draw_dashed_line(Vector2(0, hy + 9.0), Vector2(size.x, hy + 9.0), Color("#E07B39"), 2.5, 10.0)
 			var fz := GridTheme.fs(14); var fnt := GridTheme.font("semi"); var tw := fnt.get_string_size(str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, fz)).x
 			var lr := Rect2(Vector2(size.x * 0.62, hy + 14.0), Vector2(tw + 16.0, GridText.floor_size(self, fz) + 8.0))
-			draw_rect(lr, PAPER_LBL); draw_rect(lr, Color(INK_LBL, 0.5), false, 1.0)
-			GridText.ds(self, fnt, lr.position + Vector2(8.0, lr.size.y - 6.0), str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
+			draw_rect(lr, _lbl_fill()); draw_rect(lr, _lbl_edge(), false, 1.0)
+			GridText.ds(self, fnt, lr.position + Vector2(8.0, lr.size.y - 6.0), str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, fz, _lbl_ink())
 		return
 	if g == "moor":
 		draw_rect(Rect2(Vector2.ZERO, size), Color("#22281F"))
@@ -349,6 +353,7 @@ func _draw() -> void:
 	if d.is_empty() or _pts.is_empty(): draw_rect(Rect2(Vector2.ZERO, size), Color("#0F1A22")); return
 	_late.clear(); _obst.clear(); _segs.clear(); _req.clear()
 	_draw_place(d.get("feeders", []))
+	if CareerKit.glass(): draw_rect(Rect2(Vector2.ZERO, size), Color(GridTheme.GLASS, 0.6))   # glass: the ground sits back, dark, so the lines and light labels carry
 	var f_bold := GridTheme.font("semi"); var f_mono := GridTheme.font("mono")
 	var fs_l := GridTheme.fs(13 if compact else 15)
 	var feeders: Array = d.get("feeders", [])
@@ -428,12 +433,13 @@ func _draw() -> void:
 		var yard := Rect2(c + Vector2(-60.0, -6.0) * _sc(), Vector2(120.0, 40.0) * _sc() + Vector2(0, fs_l + 4.0))   # the substation yard behind its name plate: fence, two transformers
 		draw_rect(yard, Color("#1E2A2A")); draw_rect(yard, Color("#6E7A86", 0.8), false, 1.5)
 		for tx in [-28.0, 28.0]: draw_rect(Rect2(c + Vector2(tx - 10.0, 14.0) * _sc() + Vector2(0, fs_l + 4.0), Vector2(20.0, 14.0) * _sc()), Color("#55606E"))
-		draw_rect(rect, Color("#1C2547")); draw_rect(rect, GridTheme.SODIUM if chosen else Color(GridTheme.SODIUM_DIM, 0.8), false, 3.0 if chosen else 2.0)
+		draw_rect(rect, Color(GridTheme.GLASS, 0.92) if CareerKit.glass() else Color("#1C2547")); draw_rect(rect, GridTheme.SODIUM if chosen else (GridTheme.HAIR if CareerKit.glass() else Color(GridTheme.SODIUM_DIM, 0.8)), false, 3.0 if chosen else (1.0 if CareerKit.glass() else 2.0))
 		GridText.ds(self, f_bold, Vector2(rect.position.x + 12.0, rect.position.y + 17.0 * _sc() + fs_l * 0.35), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs_l, GridTheme.SODIUM if chosen else GridTheme.TEXT)
 		if pi >= 0 and not compact:
 			var mp := float(d.primaries[pi].firmMarginPct)
 			var s2 := T("CAR_FIRM_TAG") % CareerKit.num(0.0 if absf(mp) < 0.5 else mp, 0)
 			GridText.ds(self, f_mono, Vector2(rect.position.x + 12.0, rect.end.y - 8.0), s2, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13), CareerKit.load_col(100.0 - mp) if mp < 100.0 else GridTheme.GOOD)
+	if CareerKit.glass(): draw_rect(Rect2(Vector2.ZERO, size), GridTheme.HAIR, false, 1.0)   # the hairline frame
 
 ## 1.14 the primary's name plate, where _draw puts it (labels keep clear of it)
 func _prim_rect(pid: String) -> Rect2:
@@ -487,17 +493,17 @@ func _resolve_labels() -> void:
 		(rq.draw as Callable).call(best)
 
 func _chip(r: Rect2, txt: String, font: Font, fz: int) -> void:
-	draw_rect(r, PAPER_LBL); draw_rect(r, Color(INK_LBL, 0.5), false, 1.0)
-	GridText.ds(self, font, Vector2(r.position.x + 6.0 + (r.size.x - 12.0 - font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x) * 0.5, r.end.y - 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
+	draw_rect(r, _lbl_fill()); draw_rect(r, _lbl_edge(), false, 1.0)
+	GridText.ds(self, font, Vector2(r.position.x + 6.0 + (r.size.x - 12.0 - font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x) * 0.5, r.end.y - 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, _lbl_ink())
 
 func _feeder_chip(r: Rect2, txt: String, col: Color, badges: Array, font: Font, fz: int) -> void:
-	draw_rect(r, PAPER_LBL); draw_rect(r, Color(INK_LBL, 0.5), false, 1.0)
+	draw_rect(r, _lbl_fill()); draw_rect(r, _lbl_edge(), false, 1.0)
 	draw_rect(Rect2(r.position + Vector2(3, 3), Vector2(6.0, r.size.y - 6.0)), col)   # the loading colour as a swatch (text on paper stays ink)
-	GridText.ds(self, font, Vector2(r.position.x + 14.0, r.end.y - 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, INK_LBL)
+	GridText.ds(self, font, Vector2(r.position.x + 14.0, r.end.y - 6.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, _lbl_ink())
 	var bw := 19.0 * _sc()
 	var bx := r.end.x - badges.size() * bw - 2.0
 	for bd in badges:
-		_badge(Vector2(bx + bw * 0.5, r.get_center().y), str(bd[0]), (bd[1] as Color).darkened(0.45), font)
+		_badge(Vector2(bx + bw * 0.5, r.get_center().y), str(bd[0]), (bd[1] as Color) if CareerKit.glass() else (bd[1] as Color).darkened(0.45), font)
 		bx += bw
 
 func _badges(f: Dictionary) -> Array:
