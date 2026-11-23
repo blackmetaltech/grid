@@ -51,6 +51,7 @@ var _town_lit := PackedFloat32Array()   # per town index: the lit share shown, e
 var _wave := {}                  # town id -> {t0, sig}: when the town's energies last changed (the wave runs out from the centre)
 var _warn: Array = []            # red warning lights on the yard gantries: blink at night
 var _warn_l: Array = []          # red warning lights on the tower tops
+var _night_lights: Array = []    # 1.19: works floodlights: on at night
 var dist_max := DIST_MAX
 const WAVE_S := 3.2              # seconds for a wave to cross a town
 
@@ -292,6 +293,7 @@ func _build_static() -> void:
 	var fn := FastNoiseLite.new(); fn.frequency = 0.008; fn.fractal_octaves = 4; mn.noise = fn
 	_terrain_mat.set_shader_parameter("macro_noise", mn)
 	if field is GenField: _terrain_mat.set_shader_parameter("grass_tint", Vector3(0.66, 0.92, 0.5))
+	else: _terrain_mat.set_shader_parameter("grass_tint", Vector3(0.74, 0.95, 0.56))   # 1.19 (CRITIQUE-1.18: the Mainland read pale): greener pasture, the same family as the province
 	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var step := 12.5 if quality == "high" else (20.0 if quality == "medium" else 30.0)
 	var margin := 900.0
@@ -536,6 +538,9 @@ func _forest_row(j: int, near: Rect2, cell: float, nx: int) -> Array:
 		var h := field.height(x, z)
 		if h < 2.5: continue
 		var forest := field.is_forest(x, z, h)
+		if not forest and inside and field is TerrainField and not field is GenField and _h(i, j, 313) > 0.8:   # 1.19: a fringe of scattered trees round a wood
+			var fr0: float = field.forest_raw(x, z)
+			forest = fr0 > 0.14 and fr0 < 0.45
 		var lone := not forest and inside and lone_roll and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS   # a lone field tree
 		var hedge := false
 		if not forest and not lone and inside and hedge_line and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS:
@@ -595,7 +600,7 @@ func _nearest_town(p_tiles: Vector2) -> Dictionary:
 func _build_layout() -> void:
 	for c in _root_infra.get_children(): c.queue_free()
 	_house_mm.clear(); _house_map.clear(); _town_lamps.clear(); _yard_lights.clear(); _battery = {}; _lighthouse = {}; _unit_lights.clear()
-	_town_inst.clear(); _town_lampmm.clear(); _wave.clear(); _warn.clear()
+	_town_inst.clear(); _town_lampmm.clear(); _wave.clear(); _warn.clear(); _night_lights.clear()
 	var hmat := ShaderMaterial.new(); hmat.shader = load("res://world3d/shaders/house.gdshader"); _hmat = hmat
 	var house := Props3D.house(); var block := Props3D.block()
 	var walls := [Color(0.86, 0.82, 0.74), Color(0.78, 0.72, 0.62), Color(0.9, 0.88, 0.84), Color(0.72, 0.62, 0.52), Color(0.82, 0.8, 0.76), Color(0.66, 0.6, 0.55)]
@@ -641,6 +646,9 @@ func _build_layout() -> void:
 		_core_mat = ShaderMaterial.new(); _core_mat.shader = load("res://world3d/shaders/town_core.gdshader")
 		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
 		for k in places.size(): if _h(k, 1, 615) > 0.78: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
+		for cc in area_tg.centres:   # 1.19 (CRITIQUE-1.18: the Mainland town had no landmark): the church and its spire on the square, a water tower at the edge
+			_build_hall(cc[0], cc[2], 0)
+			_build_water_tower(cc[0] + Vector2(cos(cc[2] + 2.2), sin(cc[2] + 2.2)) * 150.0)
 	var plot_areas: Array = areas if area_tg.is_empty() else small_areas
 	for ai in plot_areas.size():
 		var tiles: Array = plot_areas[ai]
@@ -810,7 +818,7 @@ func _build_town_lamps(lamp_list: Array) -> void:
 func _build_hall(c: Vector2, rot: float, count := 1) -> void:
 	var n := Node3D.new(); n.position = Vector3(c.x, ground(c.x, c.y) - 0.3, c.y); n.rotation.y = -rot; _root_infra.add_child(n)
 	var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.8, 0.75, 0.66); hm.roughness = 0.9
-	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(2.6, 6.5, 2.6); var sm := StandardMaterial3D.new(); sm.albedo_color = Color(0.36, 0.33, 0.33); sm.roughness = 0.9; tower.material_override = sm;   # 1.16 (Sigrid): a dark spire that breaks the skyline
+	var tower := MeshInstance3D.new(); tower.mesh = Props3D.lighthouse(); tower.scale = Vector3(2.6, 6.5, 2.6) if count > 0 else Vector3(1.7, 3.2, 1.7);   # count 0: a market town's church (1.19), a spire to scale with two-storey homes var sm := StandardMaterial3D.new(); sm.albedo_color = Color(0.36, 0.33, 0.33); sm.roughness = 0.9; tower.material_override = sm;   # 1.16 (Sigrid): a dark spire that breaks the skyline
 	tower.position = Vector3(-14, 0, 0); n.add_child(tower)
 	var nave := MeshInstance3D.new(); var nb := BoxMesh.new(); nb.size = Vector3(28, 11, 13); nave.mesh = nb; nave.material_override = hm; nave.position = Vector3(4, 5.5, 0); n.add_child(nave)
 	var roof := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.size = Vector3(13.5, 5.5, 29); roof.mesh = pr; roof.rotation.y = PI * 0.5
@@ -825,6 +833,22 @@ func _build_hall(c: Vector2, rot: float, count := 1) -> void:
 	var sq := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(60, 0.3, 60); sq.mesh = sb
 	var sqm := StandardMaterial3D.new(); sqm.albedo_color = Color(0.55, 0.52, 0.47); sqm.roughness = 0.95; sq.material_override = sqm; sq.position = Vector3(0, 0.35, 0); n.add_child(sq)
 
+## A steel water tower on four legs (about 32 m): a landmark that reads above roofs and trees from play height.
+func _build_water_tower(c: Vector2) -> void:
+	var n := Node3D.new(); n.name = "WaterTower"; n.position = Vector3(c.x, ground(c.x, c.y) - 0.3, c.y); _root_infra.add_child(n)
+	var steel := StandardMaterial3D.new(); steel.albedo_color = Color(0.72, 0.74, 0.72); steel.metallic = 0.4; steel.roughness = 0.5
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for k in 4:
+		var a := TAU * float(k) / 4.0 + PI * 0.25
+		Props3D._cyl(st, Vector3(cos(a) * 7.0, 0, sin(a) * 7.0), Vector3(cos(a) * 4.0, 24.0, sin(a) * 4.0), 0.5, 0.4, 6, Color(0.6, 0.62, 0.6))
+		var b := TAU * float(k + 1) / 4.0 + PI * 0.25
+		Props3D._cyl(st, Vector3(cos(a) * 5.5, 12.0, sin(a) * 5.5), Vector3(cos(b) * 5.5, 12.0, sin(b) * 5.5), 0.25, 0.25, 5, Color(0.6, 0.62, 0.6))
+	st.generate_normals()
+	var legs := MeshInstance3D.new(); legs.mesh = st.commit(); var lm := StandardMaterial3D.new(); lm.vertex_color_use_as_albedo = true; lm.metallic = 0.4; lm.roughness = 0.55; legs.material_override = lm; n.add_child(legs)
+	var tank := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 6.5; cy.bottom_radius = 6.5; cy.height = 7.0; tank.mesh = cy; tank.material_override = steel; tank.position = Vector3(0, 27.5, 0); n.add_child(tank)
+	var cap := MeshInstance3D.new(); var cn := CylinderMesh.new(); cn.top_radius = 0.6; cn.bottom_radius = 6.8; cn.height = 3.0; cap.mesh = cn; cap.material_override = steel; cap.position = Vector3(0, 32.5, 0); n.add_child(cap)
+	var bk := MeshInstance3D.new(); var bs := SphereMesh.new(); bs.radius = 0.8; bs.height = 1.6; bk.mesh = bs; bk.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 6.0); bk.position = Vector3(0, 34.4, 0); n.add_child(bk); _warn.append(bk)
+
 ## 1.17 (manager, Sigrid): the mill as a place. Beyond the mill town's edge, along its main street: three weaving sheds with saw-tooth roofs,
 ## an engine house with two brick chimneys, a yard of bales, and a rail siding running out across the fields. Presentation only; the engine's
 ## mill is the load on its bus.
@@ -832,11 +856,12 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 	var ax := Vector2(cos(rot), sin(rot)); var ay := Vector2(-ax.y, ax.x)
 	var o := c + ax * (edge + 140.0)
 	var n := Node3D.new(); n.name = "Works"; n.position = Vector3(o.x, ground(o.x, o.y) - 0.4, o.y); n.rotation.y = -rot; _root_infra.add_child(n)
+	if OS.has_environment("CB_WORKS_AT"): print("WORKS tile=%.1f,%.1f" % [o.x / tm - 0.5, o.y / tm - 0.5])   # QA: where to point CB_CAM
 	var brick := StandardMaterial3D.new(); brick.albedo_color = Color(0.5, 0.28, 0.22); brick.roughness = 0.95
-	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.36, 0.34, 0.36); slate.roughness = 0.8   # 1.18 (manager review): lighter, so each tooth's lit slope reads from above
+	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.46, 0.44, 0.45); slate.roughness = 0.8   # 1.18 (manager review): lighter, so each tooth's lit slope reads from above
 	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.78, 0.45); lit.emission_energy_multiplier = 1.6   # the mill runs 06:00-22:00: its windows are lit
 	var roof_lit: StandardMaterial3D = lit.duplicate(); roof_lit.emission_energy_multiplier = 1.1   # panes between bars, so bright skylights no longer read as rods
-	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.42, 0.4, 0.37); yard.roughness = 1.0
+	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.58, 0.56, 0.52); yard.roughness = 1.0   # 1.19 (CRITIQUE-1.18: a dark slab from above): a pale concrete yard (it was 0.42, near black at night), lit by floodlights
 	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(230, 0.5, 170); pad.mesh = pb; pad.material_override = yard; pad.position = Vector3(10, 0.2, 0); n.add_child(pad)
 	for k in 3:   # weaving sheds: long and low, a saw-tooth of north lights
 		var z := -55.0 + 42.0 * k
@@ -850,6 +875,12 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 		for sd in [-1.0, 1.0]:   # a row of lit windows down each long wall, one per bay
 			for q in 18:
 				var wr := MeshInstance3D.new(); var wb2 := BoxMesh.new(); wb2.size = Vector3(3.6, 2.2, 0.3); wr.mesh = wb2; wr.material_override = lit; wr.position = Vector3(-62.0 + 6.1 * q, 5.0, z + sd * 17.1); n.add_child(wr)
+	for k in 6:   # 1.19: sodium floodlights round the yard, so the works reads as a lit place at night, not a slab
+		var lp := Vector3(-70.0 + 34.0 * k, 0.0, 78.0 if k % 2 == 0 else -80.0)
+		var post := MeshInstance3D.new(); var pc := CylinderMesh.new(); pc.top_radius = 0.25; pc.bottom_radius = 0.35; pc.height = 14.0; post.mesh = pc; post.material_override = slate; post.position = lp + Vector3(0, 7, 0); n.add_child(post)
+		var head := MeshInstance3D.new(); var hb := BoxMesh.new(); hb.size = Vector3(2.2, 0.6, 1.2); head.mesh = hb; head.material_override = _glow_mat(Color(1.0, 0.7, 0.35), 3.0); head.position = lp + Vector3(0, 14.2, 0); n.add_child(head)
+		var ol := OmniLight3D.new(); ol.light_color = Color(1.0, 0.72, 0.4); ol.omni_range = 70.0; ol.light_energy = 5.0; ol.omni_attenuation = 1.0; ol.position = lp + Vector3(0, 12.5, 0); n.add_child(ol)
+		_night_lights.append(head); _night_lights.append(ol)
 	var eng := MeshInstance3D.new(); var eb := BoxMesh.new(); eb.size = Vector3(30, 22, 26); eng.mesh = eb; eng.material_override = brick; eng.position = Vector3(75, 11, -20); n.add_child(eng)
 	var er := MeshInstance3D.new(); var epr := PrismMesh.new(); epr.size = Vector3(31, 7, 27); er.mesh = epr; er.material_override = slate; er.position = Vector3(75, 25.5, -20); n.add_child(er)
 	for k in 2:   # two chimneys: the works reads from across the valley
@@ -1274,6 +1305,7 @@ func _update_dynamic() -> void:
 			node.visible = on
 			if node is OmniLight3D: node.light_energy = 2.2 * bright * n
 		if _town_lampmm.has(id): (_town_lampmm[id][3] as Node3D).visible = n > 0.25
+	for nl in _night_lights: (nl as Node3D).visible = n > 0.25
 	for s in model.subs:
 		var ls: Array = _yard_lights.get(str(s.id), [])
 		for node in ls: node.visible = bool(s.get("energised", false)) and n > 0.2

@@ -138,6 +138,14 @@ func splat(x: float, z: float, h: float) -> Array:
 			if kk == K_SEA or kk == K_RIVER: kk = K_SAND if h > -1.5 else K_MUD
 			if kk == K_TOWN: w[K_GRASS] += float(c[2]) * 0.55; w[K_PAVED] += float(c[2]) * 0.45
 			else: w[kk] += float(c[2])
+		var f0 := w[K_FOREST]
+		if f0 > 0.0 or _near_forest(wx, wz):   # 1.19: the wood's edge is the shaped share (forest_share), not the tile's bilinear ramp
+			var f1 := forest_share(x, z)
+			var rest := 1.0 - f0
+			if rest > 0.001:
+				for k in w.size(): if k != K_FOREST: w[k] *= (1.0 - f1) / rest
+			else: w[K_GRASS] = 1.0 - f1
+			w[K_FOREST] = f1
 	else:
 		if h < 2.2: w[K_SAND] = 1.0
 		else:
@@ -157,10 +165,48 @@ func maybe_forest(_x: float, _z: float) -> bool: return true
 
 func is_forest(x: float, z: float, h: float) -> bool:
 	if inside(x, z):   # 1.18: read at the same warped point as the ground colour, so a wood has a ragged edge, not a tile rectangle
-		var wx := x + _warp_x(x, z) + n_detail.get_noise_2d(x * 1.3, z * 1.3) * 0.6 * tm; var wz := z + _warp_z(x, z) + n_detail.get_noise_2d(x * 1.3 - 51.0, z * 1.3 + 77.0) * 0.6 * tm   # and a fine ragged fringe
-		return kind_at_tile(int(wx / tm), int(wz / tm)) == K_FOREST
+		return forest_share(x, z) > 0.5   # 1.19: the same shaped share the ground colour uses, so trees stand on the wood's own floor
 	var s: Array = splat(x, z, h)
 	return (s[0] as Color).g > 0.6
+
+## 1.19 (CRITIQUE-1.18: the Mainland woods read as blocks). How much of a wood a point is (0..1): the engine's forest tiles, read at the
+## warped point and blurred over a disc of about one tile (five bilinear reads), then pushed through a narrow step with a soft noise. Square
+## corners round off and straight edges wander in bays and tongues; deep inside a wood it is 1, far from one 0. The engine's tiles do not move:
+## the drawn edge strays up to about three tiles in bays and tongues, and a glade can open deep inside.
+func forest_share(x: float, z: float) -> float:
+	var v := forest_raw(x, z)
+	return smoothstep(0.42, 0.58, v)
+
+## The unshaped value forest_share steps through 0.5: the blurred tile share plus noise. Between about 0.15 and 0.42 a wood's fringe of
+## scattered trees stands (Province3D._forest_row).
+func forest_raw(x: float, z: float) -> float:
+	var wx := x + _warp_x(x, z); var wz := z + _warp_z(x, z)
+	if not _near_forest(wx, wz): return 0.0
+	var r := 2.0 * tm
+	var b := _forest_bil(wx, wz) * 2.0
+	for k in 8:
+		var a := TAU * float(k) / 8.0
+		b += _forest_bil(wx + cos(a) * r, wz + sin(a) * r)
+	b /= 10.0
+	return b + n_detail.get_noise_2d(x * 0.2 + 131.0, z * 0.2 - 77.0) * 1.0 + n_detail.get_noise_2d(x * 0.9 - 41.0, z * 0.9 + 19.0) * 0.15   # bays of a few hundred metres, a ragged fringe
+
+func _forest_bil(x: float, z: float) -> float:
+	var u := x / tm - 0.5; var v := z / tm - 0.5
+	var i := floori(u); var j := floori(v); var fu := u - i; var fv := v - j
+	var f := 0.0
+	if kind_at_tile(i, j) == K_FOREST: f += (1 - fu) * (1 - fv)
+	if kind_at_tile(i + 1, j) == K_FOREST: f += fu * (1 - fv)
+	if kind_at_tile(i, j + 1) == K_FOREST: f += (1 - fu) * fv
+	if kind_at_tile(i + 1, j + 1) == K_FOREST: f += fu * fv
+	return f
+
+## Any forest tile within about two tiles of a (warped) point: the cheap gate before forest_share.
+func _near_forest(wx: float, wz: float) -> bool:
+	var i := int(wx / tm); var j := int(wz / tm)
+	for dj in range(-3, 4):
+		for di in range(-3, 4):
+			if kind_at_tile(i + di, j + dj) == K_FOREST: return true
+	return false
 
 ## A rectangular grid mesh of the field: step metres, with a skirt that drops 40 m at the border (hides the seam to the far mesh). `hole` (Rect2,
 ## metres) skips the quads fully inside it (the far mesh leaves the near area to the near mesh).
