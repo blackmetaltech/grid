@@ -67,7 +67,7 @@ func _initialize() -> void:
 	var n := 0
 	while str(T.b.g.get("status", "playing")) == "playing" and n < 300: T.b.act("tick", [1]); n += 1
 	p.refresh(); T.check(str(p._day_lbl.text) == "THREE DAYS DONE", "after the end the card says the three days are done (%s)" % p._day_lbl.text)
-	T.check(str(T.b.g.get("status", "")) == "won" and int(T.b.g.get("stars", 0)) == 3, "taps, capacitor, the 4-hour battery and U4 spun at the call win three lamps (%s, %s stars, %s)" % [str(T.b.g.get("status", "")), str(T.b.g.get("stars", 0)), str(T.b.g.get("statusReason", ""))])
+	T.check(str(T.b.g.get("status", "")) == "won" and int(T.b.g.get("stars", 0)) == 1, "taps, capacitor, the 4-hour battery and U4 spun at the call win, with one lamp: safety bought at US$53.5M, over both cost targets (DECISIONS 24) (%s, %s stars, %s)" % [str(T.b.g.get("status", "")), str(T.b.g.get("stars", 0)), str(T.b.g.get("statusReason", ""))])
 	# the cheaper island answer: the 2-hour battery with the north feeder opened from the card when the lightning comes
 	T.level("L28"); p.refresh()
 	for id in ["tap", "cap", "spin", "batt2"]:
