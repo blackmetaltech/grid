@@ -16,6 +16,13 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **The mill yard is lit concrete** with floodlights, not a dark slab.
 - **The work order fits its text** on short screens instead of leaving empty space.
 - Chapters 1 to 3 and the prologue no longer carry the Classic chip.
+- **The benches work with a pad.** The D-pad moves between the panel's rows, left and right turn a knob or pick a chip, A opens the number pad. B gives the pad back to the radio and the menu.
+- **The answer hides until you predict.** WO-04 and WO-06 show "?" for the numbers you are asked to predict.
+- **The parts drawer no longer offers a Place button that does nothing.** Settings that live on the panel say so.
+### Fixed
+- The harbour yard on WO-29 keeps its name in the tags.
+- The frequency dial's dip no longer overlaps the reading.
+- In the prologue, the camera turns to the city at the first trip.
 
 ## [1.18.1] - "Bay and Mainland" (patch)
 ### Fixed
