@@ -1,7 +1,7 @@
 {
   "name": "grid",
   "private": true,
-  "version": "1.16.0",
+  "version": "1.17.0",
   "type": "module",
   "scripts": {
     "bridge": "vite build -c vite.bridge.config.ts",
