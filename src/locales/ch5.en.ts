@@ -85,7 +85,7 @@ export const EN_CH5: Record<string, string> = {
   'coach.L17.run.why': 'The trip comes at 15:00; the hours after it show whether the margin holds.',
   'place.L18.slack': 'B1 slack', 'place.L18.load': 'B2 load', 'place.L18.pv': 'B3 PV',
   'level.L18.title': 'Exam Bridge: Gauss-Seidel',
-  'level.L18.brief': 'The textbook three-bus system, on the province's grid. Predict three answers if you dare, then a new load joins bus 2 tonight: keep its voltage at 1.00 pu or more and every line within its rating, at the least cost.',
+  'level.L18.brief': 'The textbook three-bus system, on the province grid. Predict three answers if you dare, then a new load joins bus 2 tonight: keep its voltage at 1.00 pu or more and every line within its rating, at the least cost.',
   'level.L18.place': 'The State Ring · The exam hall, 20:00',
   'level.L18.story1': 'NIA: This is the paper I sat. Iteration one of Gauss-Seidel, by hand, with a calculator that eats my batteries.',
   'level.L18.story2': 'ADA: Predict first. A prediction that lands within half a percent earns you a Called It badge; a miss costs nothing but teaches everything.',
