@@ -63,7 +63,7 @@ func refresh() -> void:
 
 func layout() -> void:
 	if app == null: return
-	_h = {"pf": 316.0, "harm": 412.0, "series": 232.0}.get(mode, 0.0)
+	_h = {"pf": 316.0, "harm": 436.0, "series": 232.0}.get(mode, 0.0)
 	if CbLayout.kind == "phone":   # wholly inside the viewport: right edge 8 px in, below the HUD, above the spent/budget tag; the drawing scales to fit
 		var avail := app.vs_h() - 185.0 - 70.0
 		var sc := clampf(avail / maxf(_h, 1.0), 0.4, 1.0)
@@ -107,8 +107,9 @@ func _draw_harm() -> void:
 	_txt(tx("C3_P_SPEC"), Vector2(14, 22), 12, _ink(0.7))
 	if not bool(d.get("ready", false)):
 		_txt(tx("C3_P_WAIT"), Vector2(14, 60), 13, _ink(0.8)); return
-	_txt(tx("C3_P_SPEC_ASIF") if bool(d.get("asIf", false)) else tx("C3_P_SPEC_NOW"), Vector2(14, 36), 11, _ink(0.55))
-	_txt(tx("C3_P_THD_WHAT"), Vector2(14, 49), 10, _ink(0.55))
+	_txt(tx("C3_P_SPEC_ASIF") if bool(d.get("asIf", false)) else tx("C3_P_SPEC_NOW"), Vector2(14, 40), 11, _ink(0.55))
+	_txt(tx("C3_P_THD_WHAT"), Vector2(14, 58), 10, _ink(0.55))
+	draw_set_transform(Vector2(0, 24))   # 1.16: the three header lines at the 16 px floor overlapped at 13 px spacing; the rest of the card moves down 24
 	_txt(tx("C3_P_UNIT"), Vector2(14, 66), 11, _ink(0.75))
 	var bars: Array = d.get("bars", [])
 	var base := 138.0; var top := 74.0; var vmax := 12.0

@@ -20,6 +20,10 @@ func _init(model: Dictionary, tile_vis_m: float) -> void:
 	super({"cols": int(model.map.x), "rows": int(model.map.y), "tile_m": tile_vis_m, "kinds": PackedStringArray(), "elev": PackedFloat32Array()}, model.map, Vector2(-999, -999))
 	n_gen.seed = hash(str(model.level)) & 0xffff; n_gen.frequency = 1.0 / 9000.0; n_gen.fractal_octaves = 5
 	coast_x = (W - 6.5) * tm
+	if str(model.level) != "L28":   # 1.16: only the finale has an island town; elsewhere the coast stays east of every town and substation (L07's mill sat on a disc in the sea)
+		for t in (model.get("towns", []) as Array) + (model.get("subs", []) as Array):
+			var tp = t.pos; var tx: float = float(tp.x) if tp is Vector2 else float(tp[0])
+			coast_x = maxf(coast_x, (tx + 6.0) * tm)
 	# the river: from the north-western hills, past the towns in the middle, out to the eastern sea
 	for p in [Vector2(4, 2), Vector2(18, 9), Vector2(36, 17), Vector2(50, 29), Vector2(66, 33), Vector2(80, 33), Vector2(W, 31)]: river.append(p * tm)
 	for t in model.towns:

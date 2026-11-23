@@ -45,6 +45,8 @@ var _town_inst := {}             # town id -> [[multimesh index, instance, energ
 var _town_lampmm := {}           # town id -> [MultiMesh, PackedFloat32Array distances, Array[Transform3D]]
 var _street_mat: ShaderMaterial   # streets glow at night by town, widened far away (street.gdshader)
 var _core_mat: ShaderMaterial     # the town cores (town_core.gdshader)
+var _cam_fresh := false
+var _big_centre := Vector2(INF, INF)   # the largest town's centre (world x, z): the opening camera looks at it when it is far from the map's middle (chapter 3 maps)
 var _town_lit := PackedFloat32Array()   # per town index: the lit share shown, eased toward the engine's over one wave
 var _wave := {}                  # town id -> {t0, sig}: when the town's energies last changed (the wave runs out from the centre)
 var _warn: Array = []            # red warning lights on the yard gantries: blink at night
@@ -224,10 +226,12 @@ func set_model(m: Dictionary) -> void:
 		dist_max = maxf(DIST_MAX, maxf(map_size.x, map_size.y) * 0.8)
 		env.fog_depth_begin = maxf(5000.0, map_size.x * 0.3); env.fog_depth_end = maxf(42000.0, map_size.x * 2.6)   # haze in layers: depth fog by the province's size
 		_build_static()
-		reset_camera()
+		reset_camera(); _cam_fresh = true
 	var lsig := JSON.stringify([m.level, m.towns.map(func(t): return [t.id, t.pos]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos]), m.get("batteries", []).map(func(b): return b.id)])
 	if lsig != _layout_sig:
 		_layout_sig = lsig; _build_layout()
+		if _cam_fresh and _big_centre.x < INF and not ("tx=" in OS.get_environment("CB_CAM") or "dist=" in OS.get_environment("CB_CAM")): reset_camera()   # the towns now exist: open on the largest one
+	_cam_fresh = false
 	var rsig := JSON.stringify([m.routes.map(func(r): return [r.id, r.supports.size(), r.spans.map(func(s): return s.sag_m)]), m.lines.map(func(l): return [l.id, l.kind, l.pts])])
 	if rsig != _routes_sig:
 		_routes_sig = rsig; _build_lines()
@@ -461,7 +465,10 @@ func _build_layout() -> void:
 		for k in places.size(): if _h(k, 1, 615) > 0.8: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
 		var counts := {}
 		for t in model.towns: counts[str(t.id)] = int(t.get("count", 1))
-		for cc in tg.centres: _build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
+		_big_centre = Vector2(INF, INF); var best := -1
+		for cc in tg.centres:
+			_build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
+			if int(counts.get(str(cc[1]), 1)) > best: best = int(counts.get(str(cc[1]), 1)); _big_centre = cc[0]
 	for ai in areas.size():
 		var tiles: Array = areas[ai]
 		var c := Vector2.ZERO
@@ -1075,6 +1082,9 @@ func reset_camera() -> void:
 	if field is GenField:   # the generated province opens on its capital at play zoom: whole streets readable, the next towns on the horizon
 		_g_target = Vector3(map_size.x * 0.5, 0.0, map_size.y * 0.56); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 		_g_yaw = deg_to_rad(205.0); _g_pitch = deg_to_rad(22.0); _g_dist = 5200.0
+		if _big_centre.x < INF and Vector2(_g_target.x, _g_target.z).distance_to(_big_centre) > maxf(map_size.x, map_size.y) * 0.2:   # 1.16: L07 and L09 opened on empty hills
+			_g_target = Vector3(_big_centre.x, 0.0, _big_centre.y); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
+			_g_dist = 2400.0; _g_pitch = deg_to_rad(26.0)
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
