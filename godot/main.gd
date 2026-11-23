@@ -247,7 +247,7 @@ func _process(dt: float) -> void:
 	if GridTheme.look2 and chrome != null and chrome.pin != null:   # LOOK2: the docked glass report covers the job card's corner; the card steps aside while it is open
 		var rp = ShiftReport._d.get("panel")
 		var open_rep := is_instance_valid(rp) and (rp as Control).is_visible_in_tree()
-		for c in [chrome.pin, chrome.radio, chrome.rtray, chrome.gtray]:   # the job card, the radio log (it ghosted through the glass) and the parts tray (the report cut through it)
+		for c in [chrome.pin, chrome.radio, chrome.rtray, chrome.gtray, chrome.tray]:   # the job card, the radio log (it ghosted through the glass) and the parts tray (the report cut through it)
 			if c == null: continue
 			if open_rep:
 				if c.visible: c.visible = false; c.set_meta("rep_hid", true)

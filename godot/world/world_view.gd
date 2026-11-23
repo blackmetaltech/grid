@@ -1088,7 +1088,7 @@ func _paint_top() -> void:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
 	if OS.has_environment("CB_CLEAN"): return   # QA captures for the README and site: the world only, no labels
 	if title_mode and _l3(): return   # the title's bay carries no chips: the menu is the only text
-	if _l3() and sld_on and not bool(look3d.get("own_lines")): _draw_line_overlay()
+	if _l3() and sld_on and look3d.get("own_lines") != true: _draw_line_overlay()
 	_draw_labels()
 	_draw_pegs()
 	_draw_hand()

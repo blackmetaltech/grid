@@ -296,6 +296,7 @@ class Lamp extends Control:
 
 ## The histogram of the result card in print ink (same data as HistView, drawn with the paper palette). Never shown on a failure.
 class PaperHist extends HistView:
+	var _ink := PaperKit.ink(PaperKit.INK)   # captured when built: light on glass (1.17, Sigrid: the axis labels were dark on near-black)
 	func _x2(v: float, lo: float, hi: float, x0: float, w: float) -> float: return x0 + w * clampf((v - lo) / maxf(hi - lo, 1e-9), 0.0, 1.0)
 	func _draw() -> void:
 		var bins: Array = r.get("bins", [])
@@ -309,10 +310,10 @@ class PaperHist extends HistView:
 		for i in bins.size():
 			var h := (base - top) * float(int(bins[i].count)) / mx
 			draw_rect(Rect2(x0 + i * bw + 1.0, base - h, bw - 2.0, h), Color(GridTheme.COPPER, 0.8))
-			draw_rect(Rect2(x0 + i * bw + 1.0, base - h, bw - 2.0, h), Color(INK, 0.5), false, 1.0)
-		draw_line(Vector2(x0, base), Vector2(x0 + w, base), Color(INK, 0.8), 2.0)
-		GridText.ds(self, f, Vector2(x0, size.y - 5.0), CbKit.num(lo, 0), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.75))
-		GridText.ds(self, f, Vector2(x0 + w - 70.0, size.y - 5.0), CbKit.num(hi, 0), HORIZONTAL_ALIGNMENT_RIGHT, 70.0, fs, Color(INK, 0.75))
+			draw_rect(Rect2(x0 + i * bw + 1.0, base - h, bw - 2.0, h), Color(_ink, 0.5), false, 1.0)
+		draw_line(Vector2(x0, base), Vector2(x0 + w, base), Color(_ink, 0.8), 2.0)
+		GridText.ds(self, f, Vector2(x0, size.y - 5.0), CbKit.num(lo, 0), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(_ink, 0.9))
+		GridText.ds(self, f, Vector2(x0 + w - 70.0, size.y - 5.0), CbKit.num(hi, 0), HORIZONTAL_ALIGNMENT_RIGHT, 70.0, fs, Color(_ink, 0.9))
 		if r.get("mine") != null:
 			var mx_ := _x2(float(r.mine), lo, hi, x0, w)
 			draw_line(Vector2(mx_, top), Vector2(mx_, base), PaperKit.RED, 3.0)
