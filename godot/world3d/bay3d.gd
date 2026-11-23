@@ -392,6 +392,9 @@ static func house_mesh(w: float, d: float, h: float, rh: float, wall: Color, roo
 	st.set_color(wall)
 	Props3D._tri(st, Vector3(-w * 0.5, h, -d * 0.5), Vector3(-w * 0.5, h, d * 0.5), Vector3(-w * 0.5, h + rh * 0.9, 0))
 	Props3D._tri(st, Vector3(w * 0.5, h, d * 0.5), Vector3(w * 0.5, h, -d * 0.5), Vector3(w * 0.5, h + rh * 0.9, 0))
+	# 1.17 (Sigrid): a door and a chimney, so a home reads as a home before its lamp is lit
+	Props3D._box(st, Vector3(w * 0.18, h * 0.32, d * 0.5 + 0.04), Vector3(0.9, h * 0.64, 0.08), Color(0.32, 0.2, 0.13))
+	Props3D._box(st, Vector3(-w * 0.28, h + rh * 0.75, -d * 0.18), Vector3(0.7, rh * 1.1, 0.7), Color(0.45, 0.3, 0.25))
 	return Props3D._commit(st)
 
 static func _quad(st: SurfaceTool, c: Vector3, ex: Vector3, ey: Vector3, n: Vector3) -> void:
@@ -437,7 +440,7 @@ func _build_places(objs: Array) -> void:
 			n.position = Vector3(x, y - 0.1, z); n.rotation.y = (v - 0.5) * 0.35; n.scale = Vector3.ONE * _bs(); _root_places.add_child(n)
 			var bi := MeshInstance3D.new(); bi.mesh = house_mesh(w, d, h, rh, wall, roof); bi.material_override = body_mat; n.add_child(bi)
 			var wi := MeshInstance3D.new(); wi.mesh = windows_mesh(w, d, h)
-			var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.04, 0.05, 0.08); wm.emission_enabled = true; wm.emission = WARM; wm.emission_energy_multiplier = 0.0
+			var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.13, 0.17, 0.25); wm.metallic = 0.3; wm.roughness = 0.2; wm.emission_enabled = true; wm.emission = WARM; wm.emission_energy_multiplier = 0.0
 			wi.material_override = wm; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(wi)
 			var lt := OmniLight3D.new(); lt.omni_range = (16.0 if role == "" else 22.0); lt.omni_attenuation = 1.3; lt.light_specular = 0.2; lt.position = Vector3(0, h * 0.6, d * 0.5 + 1.6); n.add_child(lt)
 			if role == "health":   # a red cross on the front

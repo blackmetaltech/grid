@@ -667,16 +667,19 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 	var o := c + ax * (edge + 140.0)
 	var n := Node3D.new(); n.name = "Works"; n.position = Vector3(o.x, ground(o.x, o.y) - 0.4, o.y); n.rotation.y = -rot; _root_infra.add_child(n)
 	var brick := StandardMaterial3D.new(); brick.albedo_color = Color(0.5, 0.28, 0.22); brick.roughness = 0.95
-	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.27, 0.28, 0.31); slate.roughness = 0.85
-	var glass := StandardMaterial3D.new(); glass.albedo_color = Color(0.55, 0.62, 0.66); glass.roughness = 0.3
+	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.22, 0.2, 0.21); slate.roughness = 0.9
+	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.78, 0.45); lit.emission_energy_multiplier = 1.6   # the mill runs 06:00-22:00: its windows are lit
 	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.42, 0.4, 0.37); yard.roughness = 1.0
 	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(230, 0.5, 170); pad.mesh = pb; pad.material_override = yard; pad.position = Vector3(10, 0.2, 0); n.add_child(pad)
 	for k in 3:   # weaving sheds: long and low, a saw-tooth of north lights
 		var z := -55.0 + 42.0 * k
 		var shed := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(120, 9, 34); shed.mesh = sb; shed.material_override = brick; shed.position = Vector3(-10, 4.5, z); n.add_child(shed)
-		for t in 8:
+		for t in 8:   # 1.17 (Sigrid): slate saw-teeth, the glazing only on each tooth's steep north face (it read as solar panels)
 			var tooth := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.left_to_right = 0.0; pr.size = Vector3(15, 5, 34); tooth.mesh = pr
-			tooth.material_override = slate if t % 2 == 0 else glass; tooth.position = Vector3(-62.5 + 15.0 * t + 7.5, 11.5, z); n.add_child(tooth)
+			tooth.material_override = slate; tooth.position = Vector3(-62.5 + 15.0 * t + 7.5, 11.5, z); n.add_child(tooth)
+			var gl := MeshInstance3D.new(); var gb := BoxMesh.new(); gb.size = Vector3(0.3, 3.6, 32); gl.mesh = gb; gl.material_override = lit; gl.position = Vector3(-62.5 + 15.0 * t + 0.3, 11.6, z); n.add_child(gl)
+		for sd in [-1.0, 1.0]:   # a row of lit windows down each long wall
+			var wr := MeshInstance3D.new(); var wb2 := BoxMesh.new(); wb2.size = Vector3(110, 2.2, 0.3); wr.mesh = wb2; wr.material_override = lit; wr.position = Vector3(-10, 5.0, z + sd * 17.1); n.add_child(wr)
 	var eng := MeshInstance3D.new(); var eb := BoxMesh.new(); eb.size = Vector3(30, 22, 26); eng.mesh = eb; eng.material_override = brick; eng.position = Vector3(75, 11, -20); n.add_child(eng)
 	var er := MeshInstance3D.new(); var epr := PrismMesh.new(); epr.size = Vector3(31, 7, 27); er.mesh = epr; er.material_override = slate; er.position = Vector3(75, 25.5, -20); n.add_child(er)
 	for k in 2:   # two chimneys: the works reads from across the valley
@@ -685,6 +688,7 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 		ch.material_override = brick; ch.position = Vector3(96 + 14 * k, h * 0.5, -36 + 30 * k); n.add_child(ch)
 		var cap := MeshInstance3D.new(); var cc2 := CylinderMesh.new(); cc2.top_radius = 3.0; cc2.bottom_radius = 2.6; cc2.height = 3.0; cap.mesh = cc2
 		cap.material_override = slate; cap.position = Vector3(96 + 14 * k, h + 1.5, -36 + 30 * k); n.add_child(cap)
+		if quality != "low": n.add_child(_smoke(Vector3(96 + 14 * k, h + 3.0, -36 + 30 * k)))
 	for b in 14:   # bales in the yard
 		var bale := MeshInstance3D.new(); var bb := BoxMesh.new(); bb.size = Vector3(4, 3, 4); bale.mesh = bb; bale.material_override = slate if b % 3 == 0 else yard
 		bale.position = Vector3(60 + 5.5 * (b % 7), 1.5 + 3.0 * float(b / 7), 50); n.add_child(bale)
@@ -697,9 +701,36 @@ func _build_works(c: Vector2, rot: float, edge: float) -> void:
 		var bl := MeshInstance3D.new(); var blm := BoxMesh.new(); blm.size = Vector3(30, 0.6, 4.5); bl.mesh = blm; bl.material_override = bed; bl.position = Vector3(x0, gy + 0.3, 70); n.add_child(bl)
 		for sd in [-0.75, 0.75]:
 			var r := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(30, 0.25, 0.2); r.mesh = rm; r.material_override = rail; r.position = Vector3(x0, gy + 0.75, 70 + sd); n.add_child(r)
+	var slm := MultiMesh.new(); slm.transform_format = MultiMesh.TRANSFORM_3D; var sbm := BoxMesh.new(); sbm.size = Vector3(0.5, 0.25, 2.6); slm.mesh = sbm
+	slm.instance_count = 300
+	for k in 300:   # sleepers every 3 m: it reads as track
+		var x1 := 120.0 + 3.0 * k; var wp1 := o + ax * x1 + ay * 70.0
+		slm.set_instance_transform(k, Transform3D(Basis(), Vector3(x1, ground(wp1.x, wp1.y) - n.position.y + 0.65, 70)))
+	var sli := MultiMeshInstance3D.new(); sli.multimesh = slm; var slmat := StandardMaterial3D.new(); slmat.albedo_color = Color(0.3, 0.22, 0.16); sli.material_override = slmat; n.add_child(sli)
 	for w in 3:   # three wagons waiting at the yard end
 		var wg := MeshInstance3D.new(); var wb := BoxMesh.new(); wb.size = Vector3(12, 3.6, 3.0); wg.mesh = wb; wg.material_override = brick; wg.position = Vector3(135 + 13.5 * w, 2.6, 70); n.add_child(wg)
 
+
+## Chimney smoke: a slow grey plume of soft billboards, drifting with the wind.
+func _smoke(at: Vector3) -> GPUParticles3D:
+	var p := GPUParticles3D.new(); p.amount = 24; p.lifetime = 9.0; p.position = at; p.visibility_aabb = AABB(Vector3(-80, -5, -80), Vector3(160, 120, 160))
+	var pm := ParticleProcessMaterial.new(); pm.direction = Vector3(0.35, 1.0, 0.1); pm.spread = 8.0; pm.initial_velocity_min = 4.0; pm.initial_velocity_max = 6.0
+	pm.gravity = Vector3(0.6, 0.4, 0.0); pm.scale_min = 6.0; pm.scale_max = 9.0
+	var sc := Curve.new(); sc.add_point(Vector2(0, 0.5)); sc.add_point(Vector2(1, 2.6)); var ct := CurveTexture.new(); ct.curve = sc; pm.scale_curve = ct
+	var gr := Gradient.new(); gr.set_color(0, Color(0.62, 0.6, 0.58, 0.55)); gr.set_color(1, Color(0.62, 0.6, 0.58, 0.0)); var gt := GradientTexture1D.new(); gt.gradient = gr; pm.color_ramp = gt
+	p.process_material = pm
+	var q := QuadMesh.new(); q.size = Vector2(1, 1)
+	var m := StandardMaterial3D.new(); m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; m.vertex_color_use_as_albedo = true
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES; m.albedo_texture = _soft_dot(); q.material = m
+	p.draw_pass_1 = q
+	return p
+
+var _dot: Texture2D
+func _soft_dot() -> Texture2D:
+	if _dot != null: return _dot
+	var g := Gradient.new(); g.set_color(0, Color(1, 1, 1, 1)); g.set_color(1, Color(1, 1, 1, 0))
+	var t := GradientTexture2D.new(); t.gradient = g; t.fill = GradientTexture2D.FILL_RADIAL; t.fill_from = Vector2(0.5, 0.5); t.fill_to = Vector2(1.0, 0.5); t.width = 64; t.height = 64
+	_dot = t; return t
 
 func _build_yard(s: Dictionary) -> void:
 	var p := tile_to_world(s.pos as Vector2 + Vector2(0.5, 0.5))
