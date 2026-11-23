@@ -117,6 +117,15 @@ func _initialize() -> void:
 	var cm: Dictionary = T.b.q("benchStatus").bench.cableMm2
 	T.check(cm.main == 16.0 and cm.b == 16.0, "engine state has both runs at 16 mm2 (%s)" % str(cm))
 	T.check(tray.cancel() and tray.mode == "", "cancel disarms")
+	# 1.18 (hand play): with a reel armed, moving the pad ring to another reel and pressing A picks that reel; it does not lay the old one
+	tray.activate(tray.item_index("reel", 10.0)); sync.call()
+	tray.engaged = true; tray.focus = tray.item_index("reel", 16.0)
+	T.check(tray.pad_button(JOY_BUTTON_A) and tray.mode == "reel" and is_equal_approx(tray.armed_mm2, 16.0), "pad A on another reel arms it (armed %s)" % str(tray.armed_mm2))
+	var cm2: Dictionary = T.b.q("benchStatus").bench.cableMm2
+	T.check(cm2.main == 16.0 and cm2.b == 16.0, "nothing was laid by that A (%s)" % str(cm2))
+	T.check(tray.pad_button(JOY_BUTTON_A) and tray.mode == "reel", "the next A goes to the runs"); sync.call()
+	T.check(tray.cancel() and tray.mode == "", "cancel disarms again")
+	tray.engaged = false; tray.focus = -1
 	# ---- L03 ----
 	T.level("L03"); sync.call()
 	kinds = tray.items.map(func(i): return i.kind)

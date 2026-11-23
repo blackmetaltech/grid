@@ -420,6 +420,9 @@ func pad_button(idx: int) -> bool:
 			focus = (0 if d > 0 else items.size() - 1) if focus < 0 else posmod(focus + d, items.size())
 			_ensure_visible(focus); _update_preview(); queue_redraw(); return true
 		JOY_BUTTON_A:
+			# 1.18 (hand play, Ravi on L02): the ring moved to another reel while a reel was armed; A went to the runs and laid the old reel.
+			# A on a part other than the armed one picks that part first.
+			if engaged and focus >= 0 and _focus_not_armed(): activate(focus); return true
 			if not targets.is_empty() and target_hi >= 0: place_target(target_hi); return true
 			if not targets.is_empty(): set_target_hi(0); return true
 			if engaged and focus >= 0: activate(focus); return true
@@ -436,6 +439,14 @@ func pad_button(idx: int) -> bool:
 			var k := order.find(target_hi)
 			set_target_hi(order[(0 if d2 > 0 else order.size() - 1) if k < 0 else posmod(k + d2, order.size())]); return true
 	return false
+
+## True when the pad's ring sits on a part that is not the armed one (another reel, or anything while nothing is armed).
+func _focus_not_armed() -> bool:
+	var it: Dictionary = items[focus]
+	match str(it.kind):
+		"reel": return not (mode == "reel" and is_equal_approx(armed_mm2, float(it.mm2)))
+		"hut": return mode != "hut"
+	return true
 
 func _process(dt: float) -> void:
 	if not visible: return
