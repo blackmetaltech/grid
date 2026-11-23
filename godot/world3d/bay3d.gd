@@ -58,7 +58,7 @@ var _porch: Dictionary = {}       # {light, mat}
 var _lh: Dictionary = {}          # lighthouse {lamp_mat, light}
 var _lh_pos := Vector2(-1e9, 0.0) # where it stands (metres, x / z)
 var _water_mats: Array[ShaderMaterial] = []
-var _terrain_mat: StandardMaterial3D
+var _terrain_mat: ShaderMaterial
 var _t := 0.0
 var _minute := -1.0
 var _measuring := false
@@ -144,7 +144,8 @@ func _update_sky(mn: float) -> void:
 	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.05, 0.08, 0.15), n * 0.6)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.5, n)
-	for wm in _water_mats: wm.set_shader_parameter("night", n)
+	for wm in _water_mats:
+		wm.set_shader_parameter("night", n); wm.set_shader_parameter("use_sky_col", true); wm.set_shader_parameter("sky_col", hor.lerp(zen, 0.25))
 
 # --------------------------------------------------------------------------------------------------------------------
 # Model in: WorldView hands over its own tiles, heights and objects after it rebuilt them
@@ -162,10 +163,19 @@ func set_model(m: Dictionary, tiles: Array, zgrid: Dictionary, objs: Array) -> v
 		_h.resize(_W * _H)
 		for t in tiles: _h[int(t.j) * _W + int(t.i)] = float(zgrid.get(Vector2i(int(t.i), int(t.j)), 0.0)) / PXM
 		_smooth_heights(2)
+		_kind_of = {}
+		for t in tiles: _kind_of[Vector2i(int(t.i), int(t.j))] = str(t.kind)
+		_lh_pos = _pick_lighthouse(tiles)
+		_hf_nx = 0
+		_build_mask(objs)
+		_build_heights()
+		var jetty := _pick_jetty()
+		_plan_paths(jetty[0])
 		_build_terrain(tiles)
 		_build_props(objs)
 		field = self
-		_build_lighthouse(tiles)
+		_build_lighthouse()
+		_build_coast(jetty)
 		reset_camera()
 	var pkey := JSON.stringify([m.level, m.towns.map(func(t): return [t.id, t.pos, t.count]), m.units.map(func(u): return [u.id, u.pos]), m.subs.map(func(s): return [s.id, s.pos, s.get("energised", true)])])
 	if pkey != _places_key: _places_key = pkey; _build_places(objs)
@@ -211,8 +221,19 @@ func _bs() -> float: return clampf(tm / 10.0, 1.0, 2.5)
 # --------------------------------------------------------------------------------------------------------------------
 # Land and sea
 # --------------------------------------------------------------------------------------------------------------------
-## Ground height (m): bilinear between tile centres, clamped at the map's rim (which is sea).
+## Ground height (m). 1.18: the shaped island (warped coast, dunes, hills, the headland) baked on a 1/4-tile grid by _build_heights; the hut, the
+## cable, the homes and the mouse picking all read this one function, so what is drawn is what is picked.
 func ground(x: float, z: float) -> float:
+	if _hf_nx < 2: return _base(x, z)
+	var fx := (x - _hf_o.x) / _hf_cell; var fz := (z - _hf_o.y) / _hf_cell
+	if fx < 0.0 or fz < 0.0 or fx >= float(_hf_nx) or fz >= float(_hf_nz): return _base(x, z)
+	var i := int(fx); var j := int(fz); var u := fx - float(i); var v := fz - float(j)
+	var r := _hf_nx + 1
+	var a := lerpf(_hf[j * r + i], _hf[j * r + i + 1], u); var b := lerpf(_hf[(j + 1) * r + i], _hf[(j + 1) * r + i + 1], u)
+	return lerpf(a, b, v)
+
+## The 2D island's own heights: bilinear between tile centres, clamped at the map's rim (which is sea).
+func _base(x: float, z: float) -> float:
 	if _W < 2: return 0.0
 	var fx := clampf(x / tm - 0.5, 0.0, float(_W) - 1.001); var fz := clampf(z / tm - 0.5, 0.0, float(_H) - 1.001)
 	var i := int(fx); var j := int(fz); var u := fx - float(i); var v := fz - float(j)
@@ -245,45 +266,210 @@ func _smooth_heights(passes: int) -> void:
 		for k in _h.size():   # land stays land: a blurred rim must not sink the homes into the sea
 			if land[k] > 0.0: _h[k] = maxf(_h[k], minf(land[k], 0.5))
 
-func _build_terrain(tiles: Array) -> void:
-	_clear(_root_static)
-	_water_mats.clear()
-	var kind_of := {}
-	for t in tiles: kind_of[Vector2i(int(t.i), int(t.j))] = str(t.kind)
-	var cell := tm / 4.0
-	var mg := 14   # tiles of sea bed round the map
+# 1.18 (lead's art review): the island was a flat slab with a ruler-straight beach. The coast is now warped by noise, the land has dunes and low
+# hills, the far point is a rocky headland under the lighthouse, and paths run from the hamlet to a jetty and along the island. All of it is render
+# only and stays off the engine's things: a mask (0 at the hut sites, the routes, the homes; 1 well away) scales every change, and near them the
+# warp may only add land, never take it. tests/bay_relief_truth.gd checks that every route point and home stays dry and that the picking still lands.
+const WARP_TILES := 1.7          # how far the coast may wander (tiles)
+const HILL_M := 9.0              # inland relief (m, times _bs())
+const DUNE_M := 1.3              # dune height on the sand (m)
+const HEAD_M := 13.0             # the headland's rise under the lighthouse (m)
+
+var _hf := PackedFloat32Array()
+var _hf_nx := 0
+var _hf_nz := 0
+var _hf_o := Vector2.ZERO
+var _hf_cell := 2.5
+var _mask := PackedFloat32Array()  # per tile: 0 at the engine's things, 1 far from them
+var _paths: Array = []             # polylines in metres (PackedVector2Array): footpaths, drawn as bare earth
+var _kind_of := {}
+var _nz_warp: FastNoiseLite
+var _nz_hill: FastNoiseLite
+var _nz_dune: FastNoiseLite
+var _boats: Array = []             # [{node, y, ph}] floating boats bob in _process
+var _bld_pts: Array = []           # homes, the hut, boxes (metres): boats keep clear of them
+
+func _protect_pts(objs: Array) -> Array:
+	var pts: Array = []   # [Vector2 tile point, radius tiles]
+	for o in objs:
+		var t := str(o.t)
+		if t == "bld" or t == "unit" or t == "sub" or t == "flag": pts.append([o.p as Vector2, 1.6])
+	for tw in model.towns: pts.append([(tw.pos as Vector2) + Vector2(0.5, 0.5), 2.6])
+	return pts
+
+func _protect_segs() -> Array:
+	var segs: Array = []
+	var polys: Array = []
+	for r in model.get("island", {}).get("routes", []): polys.append(r)
+	for l in model.lines: polys.append(l.pts)
+	for g in model.get("ghosts", []): polys.append(g)
+	for poly in polys:
+		for k in range((poly as Array).size() - 1): segs.append([(poly[k] as Vector2) + Vector2(0.5, 0.5), (poly[k + 1] as Vector2) + Vector2(0.5, 0.5)])
+	if model.get("level", "") == "L01":   # every hut site on the beach, not only the one in use
+		for d in [120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0]:
+			var hp: Vector2 = WorldModel.l01_hut_pos(d) + Vector2(0.5, 0.5); segs.append([hp, hp])
+	return segs
+
+static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a; var l2 := ab.length_squared()
+	if l2 < 1e-6: return p.distance_to(a)
+	return p.distance_to(a + ab * clampf((p - a).dot(ab) / l2, 0.0, 1.0))
+
+func _build_mask(objs: Array) -> void:
+	var pts := _protect_pts(objs); var segs := _protect_segs()
+	_bld_pts.clear()
+	for o in objs:
+		if str(o.t) == "bld" or str(o.t) == "unit" or str(o.t) == "sub": _bld_pts.append((o.p as Vector2) * tm)
+	_mask.resize(_W * _H)
+	for j in _H:
+		for i in _W:
+			var q := Vector2(i + 0.5, j + 0.5); var m := 1.0
+			for pr in pts: m = minf(m, smoothstep(float(pr[1]), float(pr[1]) + 2.5, q.distance_to(pr[0])))
+			for s in segs: m = minf(m, smoothstep(0.9, 3.0, _seg_dist(q, s[0], s[1])))
+			_mask[j * _W + i] = m
+
+## The mask at a point in metres (bilinear between tile centres; 1 off the map).
+func mask_at(x: float, z: float) -> float:
+	var fx := x / tm - 0.5; var fz := z / tm - 0.5
+	if fx < -0.5 or fz < -0.5 or fx > float(_W) - 0.5 or fz > float(_H) - 0.5: return 1.0
+	fx = clampf(fx, 0.0, float(_W) - 1.001); fz = clampf(fz, 0.0, float(_H) - 1.001)
+	var i := int(fx); var j := int(fz); var u := fx - float(i); var v := fz - float(j)
+	return lerpf(lerpf(_mask[j * _W + i], _mask[j * _W + i + 1], u), lerpf(_mask[(j + 1) * _W + i], _mask[(j + 1) * _W + i + 1], u), v)
+
+func _noises() -> void:
+	var sd := hash(str(model.get("level", "bay")))
+	_nz_warp = FastNoiseLite.new(); _nz_warp.seed = sd; _nz_warp.frequency = 0.9 / (tm * 6.0); _nz_warp.fractal_octaves = 3
+	_nz_hill = FastNoiseLite.new(); _nz_hill.seed = sd + 1; _nz_hill.frequency = 1.0 / (tm * 9.0); _nz_hill.fractal_octaves = 4
+	_nz_dune = FastNoiseLite.new(); _nz_dune.seed = sd + 2; _nz_dune.frequency = 1.0 / 26.0; _nz_dune.fractal_octaves = 2
+	_nz_dune.fractal_type = FastNoiseLite.FRACTAL_RIDGED
+
+## The shaped height at (x, z): the 2D island's heights at a warped point, then dunes, hills and the headland, all scaled by the mask.
+func _shaped(x: float, z: float) -> float:
+	var m := mask_at(x, z)
+	var wa := WARP_TILES * tm
+	var wm := maxf(m, 0.6)
+	var hw := _base(x + _nz_warp.get_noise_2d(x, z) * wa * wm, z + _nz_warp.get_noise_2d(x + 917.0, z - 433.0) * wa * wm)
+	var hb := _base(x, z)
+	var h := lerpf(maxf(hw, hb), hw, m)   # near the engine's things the warp only adds land (sand spits, never a cove)
+	var land := smoothstep(0.2, 2.5, h)
+	var marsh: float = _kind_w(x, z)[0].g   # the mangrove stays a flat marsh
+	var hill := pow(clampf(_nz_hill.get_noise_2d(x, z) * 0.5 + 0.55, 0.0, 1.0), 1.6) * HILL_M * _bs() * smoothstep(1.2, 5.0, h) * (1.0 - marsh)
+	var dune := _nz_dune.get_noise_2d(x, z) * DUNE_M * land * (1.0 - smoothstep(3.0, 7.0, h))
+	h += (hill + dune) * m
+	var dh := 1e9   # every home, the hut and each box stands on a dry shelf of its own, not at the water's edge
+	for q in _bld_pts: dh = minf(dh, Vector2(x, z).distance_to(q))
+	h = maxf(h, 0.8 - 3.0 * smoothstep(7.0 * _bs(), 17.0 * _bs(), dh))
+	if _lh_pos.x > -1e8:   # the headland: a rise under the lighthouse, rock on its seaward faces
+		var d := Vector2(x, z).distance_to(_lh_pos) / (3.2 * tm)
+		h = maxf(h, h + HEAD_M * _bs() * exp(-d * d) * smoothstep(-6.0, 0.5, h) * maxf(m, 0.4))   # it only adds height: near the hut it may still rise a little
+	return h
+
+func _build_heights() -> void:
+	_noises()
+	var mg := 14
+	_hf_cell = tm / 4.0; _hf_o = Vector2(-mg * tm, -mg * tm)
 	var nx := (_W + 2 * mg) * 4; var nz := (_H + 2 * mg) * 4
-	var verts := PackedVector3Array(); var norms := PackedVector3Array(); var cols := PackedColorArray(); var idx := PackedInt32Array()
-	verts.resize((nx + 1) * (nz + 1)); norms.resize(verts.size()); cols.resize(verts.size())
+	var hf := PackedFloat32Array(); hf.resize((nx + 1) * (nz + 1))
 	for jz in nz + 1:
 		for ix in nx + 1:
-			var x := float(ix) * cell - float(mg) * tm; var z := float(jz) * cell - float(mg) * tm
-			var y := ground(x, z)
-			var k := jz * (nx + 1) + ix
+			hf[jz * (nx + 1) + ix] = _shaped(_hf_o.x + float(ix) * _hf_cell, _hf_o.y + float(jz) * _hf_cell)
+	_hf = hf; _hf_nx = nx; _hf_nz = nz
+
+## Tile kind weights at a point (bilinear): COLOR = (grass, forest floor, rock, sand), UV2 = (mud, paved) as terrain.gdshader reads them.
+func _kind_w(x: float, z: float) -> Array:
+	var fx := clampf(x / tm - 0.5, 0.0, float(_W) - 1.001); var fz := clampf(z / tm - 0.5, 0.0, float(_H) - 1.001)
+	var i0 := int(fx); var j0 := int(fz); var u := fx - float(i0); var v := fz - float(j0)
+	var c := Color(0, 0, 0, 0); var mud := 0.0
+	for dj in 2:
+		for di in 2:
+			var wgt := (u if di == 1 else 1.0 - u) * (v if dj == 1 else 1.0 - v)
+			match str(_kind_of.get(Vector2i(i0 + di, j0 + dj), "water")):
+				"grass": c.r += wgt
+				"mangrove": c.g += wgt; mud += wgt * 0.6
+				_: c.a += wgt
+	return [c, mud]
+
+## The footpaths: hamlet to the jetty, hamlet to the lighthouse, each one stepped round water and mangrove.
+func _plan_paths(jetty_root: Vector2) -> void:
+	_paths.clear()
+	var homes := []
+	for tw in model.towns: homes.append(((tw.pos as Vector2) + Vector2(0.5, 0.5)) * tm)
+	if homes.is_empty(): return
+	if jetty_root.x > -1e8: _paths.append(_walk(homes[0], jetty_root))
+	if _lh_pos.x > -1e8: _paths.append(_walk(homes[0], _lh_pos))
+	for k in range(1, homes.size()): _paths.append(_walk(homes[0], homes[k]))
+
+func _walk(a: Vector2, b: Vector2) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var n := maxi(2, int(a.distance_to(b) / 12.0))
+	var side := (b - a).normalized().orthogonal()
+	for k in n + 1:
+		var t := float(k) / float(n); var p := a.lerp(b, t)
+		var best := p; var bo := 1e9
+		for s in 13:   # 0, +1, -1, +2, -2 ... tiles sideways: the nearest dry, open ground
+			var off := float((s + 1) / 2) * (1.0 if s % 2 == 1 else -1.0) * tm
+			var q := p + side * (off + sin(t * 9.0 + a.x) * tm * 0.6 * sin(t * PI))
+			var kk := str(_kind_of.get(Vector2i(int(floorf(q.x / tm)), int(floorf(q.y / tm))), "water"))
+			if ground(q.x, q.y) > 0.6 and kk != "mangrove" and kk != "water": best = q; bo = off; break
+		if bo < 1e8 or k == 0 or k == n: out.append(best if k > 0 and k < n else p)
+	return out
+
+func _path_d(p: Vector2) -> float:
+	var d := 1e9
+	for poly in _paths:
+		for k in range((poly as PackedVector2Array).size() - 1): d = minf(d, _seg_dist(p, poly[k], poly[k + 1]))
+	return d
+
+func _build_terrain(tiles: Array) -> void:
+	_clear(_root_static)
+	_water_mats.clear(); _boats.clear()
+	var nx := _hf_nx; var nz := _hf_nz; var r := nx + 1
+	var verts := PackedVector3Array(); var norms := PackedVector3Array(); var cols := PackedColorArray(); var uv2 := PackedVector2Array(); var idx := PackedInt32Array()
+	verts.resize(r * (nz + 1)); norms.resize(verts.size()); cols.resize(verts.size()); uv2.resize(verts.size())
+	var wa := WARP_TILES * tm
+	for jz in nz + 1:
+		for ix in nx + 1:
+			var x := _hf_o.x + float(ix) * _hf_cell; var z := _hf_o.y + float(jz) * _hf_cell
+			var k := jz * r + ix
+			var y := _hf[k]
 			verts[k] = Vector3(x, y, z)
-			var e := cell * 0.5
-			norms[k] = Vector3(ground(x - e, z) - ground(x + e, z), 2.0 * e, ground(x, z - e) - ground(x, z + e)).normalized()
-			# colour: bilinear between the tile centres' kinds, a little noise, darker under water
-			var fx := clampf(x / tm - 0.5, 0.0, float(_W) - 1.001); var fz := clampf(z / tm - 0.5, 0.0, float(_H) - 1.001)
-			var i0 := int(fx); var j0 := int(fz); var u := fx - float(i0); var v := fz - float(j0)
-			var c00 := _kind_colour(kind_of.get(Vector2i(i0, j0), "water")); var c10 := _kind_colour(kind_of.get(Vector2i(i0 + 1, j0), "water"))
-			var c01 := _kind_colour(kind_of.get(Vector2i(i0, j0 + 1), "water")); var c11 := _kind_colour(kind_of.get(Vector2i(i0 + 1, j0 + 1), "water"))
-			var c := c00.lerp(c10, u).lerp(c01.lerp(c11, u), v)
-			c = c * (0.9 + 0.2 * _noise(ix, jz, 3))
-			if y < 0.0: c = c.lerp(Color(0.22, 0.28, 0.27), clampf(-y / 3.0, 0.0, 0.8))
-			cols[k] = Color(c.r, c.g, c.b, 1.0)
+			var hl := _hf[jz * r + maxi(ix - 1, 0)]; var hr := _hf[jz * r + mini(ix + 1, nx)]
+			var hd := _hf[maxi(jz - 1, 0) * r + ix]; var hu := _hf[mini(jz + 1, nz) * r + ix]
+			norms[k] = Vector3(hl - hr, 2.0 * _hf_cell, hd - hu).normalized()
+			var m := mask_at(x, z)
+			var wm := maxf(m, 0.6)
+			var kw := _kind_w(x + _nz_warp.get_noise_2d(x, z) * wa * wm, z + _nz_warp.get_noise_2d(x + 917.0, z - 433.0) * wa * wm)
+			var c: Color = kw[0]; var mud: float = kw[1]
+			if y < 0.5: c = Color(0, 0, 0, 1)                                   # the shore and the sea bed are sand
+			elif y > 2.6 and c.a > 0.0: var g := smoothstep(2.6, 5.0, y) * c.a; c.a -= g; c.r += g   # grass takes the dune tops
+			if _lh_pos.x > -1e8:   # the headland: bare rock where it rises
+				var hk := smoothstep(4.0 * tm, 1.5 * tm, Vector2(x, z).distance_to(_lh_pos)) * smoothstep(2.0, 6.0, y)
+				c = c * (1.0 - hk); c.b += hk
+			var pd := _path_d(Vector2(x, z))
+			var pw := (1.0 - smoothstep(0.9, 2.0, pd + _noise(ix, jz, 41) * 0.8)) * smoothstep(0.3, 0.8, y)
+			uv2[k] = Vector2(clampf(mud + pw * 1.6, 0.0, 2.0), 0.0)
+			cols[k] = c
 	for jz in nz:
 		for ix in nx:
-			var a := jz * (nx + 1) + ix; var b := a + 1; var c := a + nx + 1; var d := c + 1
+			var a := jz * r + ix; var b := a + 1; var c := a + r; var d := c + 1
 			idx.append_array([a, b, c, b, d, c])   # clockwise seen from above (front faces in Godot)
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
-	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_INDEX] = idx
+	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_TEX_UV2] = uv2; arr[Mesh.ARRAY_INDEX] = idx
 	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	_terrain_mat = StandardMaterial3D.new(); _terrain_mat.vertex_color_use_as_albedo = true; _terrain_mat.roughness = 0.95
-	var gn := NoiseTexture2D.new(); gn.seamless = true; gn.width = 256; gn.height = 256
-	var fn := FastNoiseLite.new(); fn.frequency = 0.045; fn.fractal_octaves = 4; gn.noise = fn
-	var cr := Gradient.new(); cr.colors = PackedColorArray([Color(0.62, 0.62, 0.62), Color(1.12, 1.12, 1.12)]); gn.color_ramp = cr
-	_terrain_mat.albedo_texture = gn; _terrain_mat.uv1_triplanar = true; _terrain_mat.uv1_scale = Vector3(0.05, 0.05, 0.05)
+	_terrain_mat = ShaderMaterial.new(); _terrain_mat.shader = load("res://world3d/shaders/terrain.gdshader")
+	for n in ["grass", "forest", "rock", "sand"]:
+		_terrain_mat.set_shader_parameter(n + "_a", _tex(n + "_albedo")); _terrain_mat.set_shader_parameter(n + "_n", _tex(n + "_normal"))
+	_terrain_mat.set_shader_parameter("mud_a", _tex("mud_albedo")); _terrain_mat.set_shader_parameter("field_a", _tex("field_albedo"))
+	var mn := NoiseTexture2D.new(); mn.seamless = true; mn.width = 512; mn.height = 512
+	var fn := FastNoiseLite.new(); fn.frequency = 0.008; fn.fractal_octaves = 4; mn.noise = fn
+	_terrain_mat.set_shader_parameter("macro_noise", mn)
+	_terrain_mat.set_shader_parameter("tile_m", 7.0 * _bs())
+	_terrain_mat.set_shader_parameter("fields", 0.0)
+	_terrain_mat.set_shader_parameter("wet_top", 1.2)
+	_terrain_mat.set_shader_parameter("cloud_scale", 0.15)
+	_terrain_mat.set_shader_parameter("sand_tint", Vector3(1.55, 1.5, 1.42))
+	_terrain_mat.set_shader_parameter("grass_tint", Vector3(0.82, 0.95, 0.66))
+	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var mi := MeshInstance3D.new(); mi.name = "Land"; mi.mesh = mesh; mi.material_override = _terrain_mat; _root_static.add_child(mi)
 	# the sea
 	var sea := MeshInstance3D.new(); sea.name = "Sea"
@@ -292,6 +478,9 @@ func _build_terrain(tiles: Array) -> void:
 	sea.material_override = _water_mat(); sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_root_static.add_child(sea)
 
+func _tex(n: String) -> Texture2D:
+	var p := "res://world3d/tex/%s.jpg" % n
+	return load(p) if ResourceLoader.exists(p) else null
 func _water_mat() -> ShaderMaterial:
 	var wm := ShaderMaterial.new(); wm.shader = load("res://world3d/shaders/water.gdshader")
 	for k in ["wave_a", "wave_b"]:
@@ -299,6 +488,8 @@ func _water_mat() -> ShaderMaterial:
 		var fn := FastNoiseLite.new(); fn.frequency = 0.02 if k == "wave_a" else 0.035; fn.fractal_octaves = 3; fn.seed = 7 if k == "wave_a" else 11
 		nt.noise = fn; wm.set_shader_parameter(k, nt)
 	wm.set_shader_parameter("scale", 0.35)   # a bay: small ripples
+	wm.set_shader_parameter("ssr_steps", 28 if quality == "high" else (16 if quality == "medium" else 0))
+	wm.set_shader_parameter("surf", 1.0)
 	_water_mats.append(wm)
 	return wm
 
@@ -333,6 +524,7 @@ func _build_props(objs: Array) -> void:
 		if not (t == "tree" or t == "mangrove" or t == "palm"): continue
 		var p: Vector2 = o.p; var v := float(o.get("v", 0.5))
 		var x := p.x * tm; var z := p.y * tm; var y := ground(x, z) - 0.15
+		if y < 0.25: continue   # 1.18: the warped coast put this spot in the sea
 		var rot := Basis(Vector3.UP, v * TAU)
 		var g := 1.0 + (_bs() - 1.0) * 0.6
 		if t == "palm":
@@ -348,24 +540,25 @@ func _build_props(objs: Array) -> void:
 	_mm(palm_mesh(), px, pc, "Palms", true)
 
 ## A headland: sand next to the sea, as far as possible from the hamlets (the same rule as WorldView's cute lighthouse, which is not drawn in 3D).
-func _build_lighthouse(tiles: Array) -> void:
-	var kind_of := {}
-	for t in tiles: kind_of[Vector2i(int(t.i), int(t.j))] = str(t.kind)
+func _pick_lighthouse(tiles: Array) -> Vector2:
 	var towns: Array = []
 	for tw in model.towns: towns.append((tw.pos as Vector2) + Vector2(0.5, 0.5))
 	var best := Vector2i(-1, -1); var bs := -1e9
 	for t in tiles:
 		if str(t.kind) != "sand": continue
 		var i := int(t.i); var j := int(t.j)
-		if kind_of.get(Vector2i(i - 1, j), "water") != "water" and kind_of.get(Vector2i(i, j - 1), "water") != "water": continue
+		if _kind_of.get(Vector2i(i - 1, j), "water") != "water" and _kind_of.get(Vector2i(i, j - 1), "water") != "water": continue
 		var sc := 99.0
 		for q in towns: sc = minf(sc, Vector2(i + 0.5, j + 0.5).distance_to(q))
 		if sc > bs: bs = sc; best = Vector2i(i, j)
-	_lh = {}; _lh_pos = Vector2(-1e9, 0.0)
-	if best.x < 0: return
+	if best.x < 0: return Vector2(-1e9, 0.0)
+	return (Vector2(best) + Vector2(0.5, 0.5)) * tm
+
+func _build_lighthouse() -> void:
+	_lh = {}
+	if _lh_pos.x < -1e8: return
+	var x := _lh_pos.x; var z := _lh_pos.y
 	var n := Node3D.new(); n.name = "Lighthouse"
-	var x := (float(best.x) + 0.5) * tm; var z := (float(best.y) + 0.5) * tm
-	_lh_pos = Vector2(x, z)
 	n.position = Vector3(x, maxf(ground(x, z), 0.0) - 0.3, z); _root_static.add_child(n)
 	var mi := MeshInstance3D.new(); mi.mesh = Props3D.lighthouse()
 	var mat := StandardMaterial3D.new(); mat.vertex_color_use_as_albedo = true; mat.roughness = 0.7; mi.material_override = mat; n.add_child(mi)
@@ -377,6 +570,129 @@ func _build_lighthouse(tiles: Array) -> void:
 	var hmat := ShaderMaterial.new(); hmat.shader = load("res://world3d/shaders/glow.gdshader"); hmat.set_shader_parameter("tint", Color(1.0, 0.85, 0.55, 0.05)); hmat.set_shader_parameter("power", 1.0)
 	halo.material_override = hmat; halo.position = Vector3(0, 16.4, 0); halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(halo)
 	_lh = {"light": o, "lamp": lm, "halo": hmat}
+
+# --------------------------------------------------------------------------------------------------------------------
+# The coast (1.18): a jetty below the hamlet, boats at it and on the beach, rocks on the headland and along wild shore
+# --------------------------------------------------------------------------------------------------------------------
+## [shore root on land (m), direction out to sea, length (m)]; root.x = -1e9 when no shore is near the hamlet.
+func _pick_jetty() -> Array:
+	if model.towns.is_empty(): return [Vector2(-1e9, 0), Vector2.ZERO, 0.0]
+	var c: Vector2 = ((model.towns[0].pos as Vector2) + Vector2(0.5, 0.5)) * tm
+	var best := [Vector2(-1e9, 0), Vector2.ZERO, 0.0]; var bs := 1e9
+	for a in 48:
+		var d := Vector2.from_angle(TAU * float(a) / 48.0)
+		var shore := -1.0; var deep := -1.0; var pen := 0.0
+		var t := 0.0
+		while t < 34.0 * tm:
+			t += 2.0
+			var p := c + d * t; var h := ground(p.x, p.y)
+			if shore < 0.0 and t > 2.5 * tm and mask_at(p.x, p.y) < 0.45: pen += 3.0
+			if shore < 0.0 and h < 0.0: shore = t
+			if shore > 0.0 and h < -2.2: deep = t; break
+		if shore < 0.0 or deep < 0.0: continue
+		for k in 8:   # the deck must pass clear of the homes
+			if _near_home(c + d * (shore - 5.0 + float(k) * 4.0), 6.0): pen += 2.0
+		var sc := shore + 0.6 * (deep - shore) + pen * tm
+		if sc < bs: bs = sc; best = [c + d * (shore - 5.0), d, clampf(deep - shore + 9.0, 18.0, 42.0)]
+	return best
+
+static func boat_mesh(hull: Color) -> ArrayMesh:   # a small open fishing boat, bow along +X, about 6 m
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var L := 2.4; var B := 1.0; var H := 0.75
+	var ring := [Vector3(-L, H, -B * 0.85), Vector3(L * 0.55, H, -B), Vector3(L * 1.25, H + 0.25, 0.0), Vector3(L * 0.55, H, B), Vector3(-L, H, B * 0.85)]
+	var keel := [Vector3(-L * 0.95, 0.05, -B * 0.55), Vector3(L * 0.5, 0.0, -B * 0.4), Vector3(L * 1.1, 0.35, 0.0), Vector3(L * 0.5, 0.0, B * 0.4), Vector3(-L * 0.95, 0.05, B * 0.55)]
+	st.set_color(hull)
+	for k in 4:
+		Props3D._tri(st, ring[k], keel[k], ring[k + 1]); Props3D._tri(st, ring[k + 1], keel[k], keel[k + 1])
+	Props3D._tri(st, ring[4], keel[4], ring[0]); Props3D._tri(st, ring[0], keel[4], keel[0])   # transom
+	st.set_color(Color(0.12, 0.10, 0.09))
+	Props3D._tri(st, keel[0], keel[1], keel[4]); Props3D._tri(st, keel[1], keel[3], keel[4]); Props3D._tri(st, keel[1], keel[2], keel[3])
+	st.set_color(Color(0.58, 0.46, 0.32))   # the floor boards and two thwarts, inside
+	Props3D._box(st, Vector3(0.0, 0.3, 0.0), Vector3(L * 1.5, 0.06, B * 1.1), Color(0.50, 0.40, 0.28))
+	Props3D._box(st, Vector3(-0.6, 0.55, 0.0), Vector3(0.28, 0.06, B * 1.7), Color(0.62, 0.50, 0.34))
+	Props3D._box(st, Vector3(1.0, 0.55, 0.0), Vector3(0.28, 0.06, B * 1.6), Color(0.62, 0.50, 0.34))
+	Props3D._box(st, Vector3(0.0, H + 0.02, 0.0), Vector3(L * 2.0, 0.05, 0.05), hull.lightened(0.5))   # a gunwale stripe reads from afar
+	st.generate_normals()
+	return st.commit()
+
+func _build_coast(jetty: Array) -> void:
+	var body := StandardMaterial3D.new(); body.vertex_color_use_as_albedo = true; body.roughness = 0.85; body.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var hulls := [Color(0.86, 0.85, 0.80), Color(0.18, 0.34, 0.55), Color(0.62, 0.18, 0.14), Color(0.22, 0.42, 0.32), Color(0.85, 0.62, 0.20)]
+	var root: Vector2 = jetty[0]
+	if root.x > -1e8:
+		var d: Vector2 = jetty[1]; var L: float = jetty[2]; var side := d.orthogonal()
+		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var deck := 1.35
+		var ang := -d.angle()
+		var basis := Basis(Vector3.UP, ang)
+		var n := int(L / 0.6)
+		for k in n:   # planks across the deck, each a slightly different grey-brown
+			var p := root + d * (float(k) * 0.6 + 0.3)
+			var y := maxf(deck, ground(p.x, p.y) + 0.35)
+			var c := Color(0.42, 0.34, 0.26).lerp(Color(0.56, 0.50, 0.42), _noise(k, 3, 17))
+			var xf := Transform3D(basis, Vector3(p.x, y, p.y))
+			_box_xf(st, xf, Vector3(0.52, 0.09, 2.2), c)
+		for k in int(L / 3.0) + 1:   # posts down to the sea bed, pairs either side
+			for s: float in [-1.0, 1.0]:
+				var p := root + d * (float(k) * 3.0 + 0.3) + side * s * 1.0
+				var gb := ground(p.x, p.y)
+				Props3D._cyl(st, Vector3(p.x, gb - 0.5, p.y), Vector3(p.x, deck + 0.65, p.y), 0.13, 0.12, 6, Color(0.30, 0.25, 0.20))
+		var mi := MeshInstance3D.new(); mi.name = "Jetty"; mi.mesh = Props3D._commit(st); mi.material_override = body; _root_static.add_child(mi)
+		var tip := root + d * L
+		for k in 3:   # moored along the jetty's lee side, bows out to sea
+			var p := tip - d * (4.0 + 6.5 * float(k)) + side * (2.6 if k % 2 == 0 else -2.6)
+			if ground(p.x, p.y) > -0.35 or _near_home(p, 4.0): continue
+			_boat(p, -d.angle() + (0.08 * float(k) - 0.05), hulls[k % hulls.size()], body, true)
+		var far := tip + d * 38.0 + side * 22.0   # one out at the moorings
+		if ground(far.x, far.y) < -1.0: _boat(far, -d.angle() + 0.9, hulls[3], body, true)
+		for k in 2:   # two drawn up on the sand beside the jetty, bows inland
+			var b := root + side * (7.0 + 5.0 * float(k)) * (1.0 if k == 0 else -1.0) - d * 1.5
+			var g := ground(b.x, b.y)
+			if g > 0.15 and g < 2.5 and not _near_home(b, 7.0): _boat(b, -(-d).angle() + 0.25 * float(k), hulls[(k + 2) % hulls.size()], body, false)
+	# rocks: the headland's foot and some wild stretches of shore
+	var rx := []; var rc := []
+	var step := 3
+	for jz in range(0, _hf_nz, step):
+		for ix in range(0, _hf_nx, step):
+			var x := _hf_o.x + (float(ix) + _noise(ix, jz, 51) * step) * _hf_cell; var z := _hf_o.y + (float(jz) + _noise(ix, jz, 52) * step) * _hf_cell
+			var h := ground(x, z)
+			if h < -1.6 or h > 3.5: continue
+			var head := 0.0
+			if _lh_pos.x > -1e8: head = smoothstep(5.0 * tm, 1.5 * tm, Vector2(x, z).distance_to(_lh_pos))
+			var wild := clampf(_nz_hill.get_noise_2d(x * 3.0, z * 3.0) * 1.8, 0.0, 1.0) * 0.35
+			if _noise(ix, jz, 53) > 0.12 + 0.75 * maxf(head, wild): continue
+			if mask_at(x, z) < 0.8: continue
+			var s := (0.8 + 2.6 * _noise(ix, jz, 54)) * (1.0 + head)
+			rx.append(Transform3D(Basis(Vector3.UP, _noise(ix, jz, 55) * TAU).scaled(Vector3(s, s * (0.6 + 0.5 * _noise(ix, jz, 56)), s * 1.2)), Vector3(x, h - 0.25 * s, z)))
+			rc.append(Color(0.75 + 0.3 * _noise(ix, jz, 57), 0.75 + 0.25 * _noise(ix, jz, 57), 0.72 + 0.2 * _noise(ix, jz, 58)))
+	_mm(Props3D.boulder(), rx, rc, "Rocks")
+
+func _near_home(p: Vector2, r: float) -> bool:
+	for q in _bld_pts:
+		if p.distance_to(q) < r * _bs(): return true
+	return false
+
+func _boat(p: Vector2, ang: float, hull: Color, mat: Material, floating: bool) -> void:
+	var n := MeshInstance3D.new(); n.name = "Boat"; n.mesh = boat_mesh(hull); n.material_override = mat
+	var y := 0.0 if floating else ground(p.x, p.y) - 0.1
+	n.position = Vector3(p.x, y - (0.32 if floating else 0.0), p.y); n.rotation.y = ang
+	if not floating: n.rotation.z = 0.12
+	n.scale = Vector3.ONE * _bs()
+	_root_static.add_child(n)
+	if floating: _boats.append({"node": n, "y": n.position.y, "ph": p.x * 0.13 + p.y * 0.07})
+
+static func _box_xf(st: SurfaceTool, xf: Transform3D, s: Vector3, col: Color) -> void:
+	var tmp := SurfaceTool.new(); tmp.begin(Mesh.PRIMITIVE_TRIANGLES)
+	Props3D._box(tmp, Vector3.ZERO, s, col)
+	var arr := tmp.commit_to_arrays()
+	var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL] if arr[Mesh.ARRAY_NORMAL] != null else PackedVector3Array()
+	var ix = arr[Mesh.ARRAY_INDEX]
+	st.set_color(col)
+	var order: Array = range(vs.size()) if ix == null else Array(ix)
+	for k in order:
+		if ns.size() > 0: st.set_normal(xf.basis * ns[k])
+		st.add_vertex(xf * vs[k])
 
 # --------------------------------------------------------------------------------------------------------------------
 # Places: homes, the school, the hut with its porch bulb, junction boxes and converters
@@ -563,8 +879,18 @@ func _map_m() -> Vector2: return Vector2(float(_W), float(_H)) * tm
 
 func reset_camera() -> void:
 	var mm := _map_m()
-	_dist_default = maxf(mm.x * 0.66, mm.y * 1.25)   # 1.17: closer, so the hamlet's lamps read at play distance
+	_dist_default = maxf(mm.x * 0.66, mm.y * 1.25)
 	_g_target = Vector3(mm.x * 0.5, 0.0, mm.y * 0.44); _g_yaw = deg_to_rad(8.0); _g_pitch = deg_to_rad(36.0); _g_dist = _dist_default
+	var play := _play_box()
+	if play.size.x > 0.0:   # 1.18 (lead's review): look along the work from beside the first hamlet, so its homes are big in the foreground and the
+		# routes and hut sites run away behind them; the box of everything the player places or lights stays in view
+		var hm: Vector2 = ((model.towns[0].pos as Vector2) + Vector2(0.5, 0.5)) * tm
+		var c := play.get_center()
+		var tg := hm.lerp(c, 0.62)
+		var away := (c - hm); var yaw0 := atan2(-away.x, -away.y) if away.length() > tm else deg_to_rad(30.0)   # the camera stands behind the hamlet, looking over it to the work
+		_g_yaw = yaw0 - deg_to_rad(52.0); _g_pitch = deg_to_rad(29.0)
+		_dist_default = clampf(maxf(play.size.x, play.size.y) * 0.62 + 60.0 * _bs(), 120.0, mm.x * 0.8)
+		_g_dist = _dist_default; _g_target = Vector3(tg.x, 0.0, tg.y)
 	if title:   # from the east along the island: the hamlet in the foreground, the lighthouse at the far end, the last of the sun behind it; the menu sits over the quiet left
 		var hamlet := Vector2(mm.x * 0.8, mm.y * 0.3)
 		for tw in model.get("towns", []): hamlet = ((tw.pos as Vector2) + Vector2(0.5, 0.5)) * tm; break
@@ -572,6 +898,18 @@ func reset_camera() -> void:
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
+
+## Everything the player works with, in metres: the homes, the hut and every route any design may take.
+func _play_box() -> Rect2:
+	var pts: Array = []
+	for tw in model.get("towns", []): pts.append((tw.pos as Vector2) + Vector2(0.5, 0.5))
+	for u in model.get("units", []): pts.append((u.pos as Vector2) + Vector2(0.5, 0.5))
+	for r in model.get("island", {}).get("routes", []):
+		for p in r: pts.append((p as Vector2) + Vector2(0.5, 0.5))
+	if pts.size() < 2: return Rect2()
+	var b := Rect2(pts[0] * tm, Vector2.ZERO)
+	for p in pts: b = b.expand(p * tm)
+	return b
 
 func _clamp_goal() -> void:
 	var mm := _map_m()
@@ -633,6 +971,9 @@ func _process(dt: float) -> void:
 	var k := 1.0 - exp(-dt * 9.0)
 	target = target.lerp(_g_target, k); yaw = lerp_angle(yaw, _g_yaw, k); pitch = lerpf(pitch, _g_pitch, k); dist = lerpf(dist, _g_dist, k)
 	_apply_camera()
+	for b in _boats:   # moored boats ride the swell
+		var bn: Node3D = b.node
+		bn.position.y = float(b.y) + 0.09 * sin(_t * 1.1 + float(b.ph)); bn.rotation.z = 0.035 * sin(_t * 0.9 + float(b.ph) * 1.7); bn.rotation.x = 0.02 * sin(_t * 0.7 + float(b.ph))
 	_ft_frames += 1; _ft_ms += dt * 1000.0
 	if OS.has_environment("CB_FRAMETIME"):   # render time of the viewport as the RenderingServer measures it, independent of vsync
 		var vp := get_viewport().get_viewport_rid()

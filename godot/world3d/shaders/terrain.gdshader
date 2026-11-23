@@ -18,8 +18,13 @@ uniform sampler2D macro_noise : filter_linear_mipmap, repeat_enable;
 uniform float tile_m = 22.0;
 uniform float night = 0.0;
 uniform vec3 grass_tint = vec3(1.0);
+uniform vec3 sand_tint = vec3(1.0);   // 1.18: the bay's beach is pale coral sand, not the province's grey shore
+uniform float fields = 1.0;    // 1.18: the island bay has no farm plots (0)
+uniform float wet_top = 2.2;   // 1.18: height (m) where wet sand ends; the bay's beach sits at 1 m
 uniform float clouds = 1.0;   // 1.17: cloud shadows drift over the land by day (0 turns them off)
+uniform float cloud_scale = 1.0;   // 1.18: the bay is 400 m across, so its clouds are drawn at a tenth of the province's size
 float cloud_shade(vec2 xz) {   // a soft shadow from slow clouds: two octaves of the macro noise, drifting west to east at about 9 m/s
+	xz /= cloud_scale;
 	float c = texture(macro_noise, xz / 7000.0 + TIME * vec2(0.0013, 0.0004)).r * 0.65 + texture(macro_noise, xz / 2600.0 + TIME * vec2(0.0031, 0.0011)).r * 0.35;
 	return 1.0 - 0.34 * smoothstep(0.52, 0.7, c) * (1.0 - night) * clouds;
 }
@@ -70,9 +75,9 @@ void fragment() {
 
 	if (cheap) {
 		vec3 cc = texture(grass_a, p).rgb * grass_tint * w.r + texture(forest_a, p * 1.3).rgb * vec3(0.55, 0.62, 0.45) * w.g + texture(rock_a, p * 0.6).rgb * w.b
-			+ texture(sand_a, p * 1.5).rgb * w.a + texture(mud_a, p).rgb * mud + vec3(0.26, 0.29, 0.20) * paved;
+			+ texture(sand_a, p * 1.5).rgb * sand_tint * w.a + texture(mud_a, p).rgb * mud + vec3(0.26, 0.29, 0.20) * paved;
 		cc *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
-		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)) * cloud_shade(wpos.xz); ROUGHNESS = 0.92; SPECULAR = 0.25;
+		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, wet_top, wpos.y)) * cloud_shade(wpos.xz); ROUGHNESS = 0.92; SPECULAR = 0.25;
 	} else {
 	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
 	vec2 fq = wpos.xz / 170.0 + 0.32 * vec2(sin(wpos.z / 97.0 + sin(wpos.x / 233.0) * 2.0), cos(wpos.x / 113.0 + sin(wpos.z / 251.0) * 2.0));   // 1.16: warped, so plots are not a hex board
@@ -97,18 +102,18 @@ void fragment() {
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
 	vec3 hedge_c = vec3(0.17, 0.27, 0.11) * (0.8 + lum);   // 1.17: field edges are green hedges, not brown cracks
 	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.06, d2 - d1)) * 0.75);
-	vec3 grass = mix(g * grass_tint, plot, 0.55 * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
+	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
 
 	vec3 col = grass * w.r
 		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g
 		+ tex2f(rock_a, p * 0.6, m, g_mid, g_far) * w.b
-		+ tex2f(sand_a, p * 1.5, m, g_mid, g_far) * w.a
+		+ tex2f(sand_a, p * 1.5, m, g_mid, g_far) * sand_tint * w.a
 		+ tex2f(mud_a, p, m, g_mid, g_far) * vec3(0.85, 0.9, 0.8) * mud
 		+ mix(vec3(0.22, 0.27, 0.16), vec3(0.33, 0.32, 0.29), m2 * 0.6) * paved;   // gardens and yards between the houses: a town reads darker than the fields around it, not as a pale disc
 	// macro colour drift: some hillsides drier, some lusher
 	col *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
 	// wet sand / mud darkens near the waterline
-	col *= mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y));
+	col *= mix(0.62, 1.0, smoothstep(0.2, wet_top, wpos.y));
 
 	vec3 n = nrm2(grass_n, p) * (w.r + paved) + nrm2(forest_n, p * 1.3) * (w.g + mud) + nrm2(rock_n, p * 0.6) * w.b + nrm2(sand_n, p * 1.5) * w.a;
 	NORMAL_MAP = n;
