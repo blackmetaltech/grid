@@ -94,6 +94,8 @@ func _draw() -> void:
 	if not l2: draw_rect(face.grow(-5.0), Color(GridTheme.SODIUM, 0.05 + 0.1 * g), true)
 	var c := Vector2(w * 0.5, h * 0.72)
 	var r := minf(w * 0.5 * 0.80 / sin(deg_to_rad(SWEEP * 0.5)) * 0.62, h * 0.50)
+	# 1.18 (Sigrid r7-f): the scale numbers stay below the caption line instead of printing over it
+	r = maxf(18.0, minf(r, c.y - (8.0 + GridTheme.fs(11) * 1.2) - 16.0 - GridTheme.fs(11)))
 	var a0 := -SWEEP * 0.5; var a1 := SWEEP * 0.5
 	# zones sit just inside the ticks
 	for z in zones:
@@ -103,11 +105,15 @@ func _draw() -> void:
 	_arc(c, r, a0, a1, ink, 1.0 if l2 else 1.5)
 	var f := GridTheme.font("mono"); var fsz := GridTheme.fs(11)
 	var nmin := int(round((vmax - vmin) / minor))
+	# label every major tick if they have room on the arc, else every other one (from the first), so numbers never touch
+	var nmaj := maxi(1, int(round((vmax - vmin) / major)))
+	var lw := f.get_string_size(str(int(round(vmax))), HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
+	var lab_every := 1 if deg_to_rad(SWEEP) * (r + 16.0) / float(nmaj) >= lw * 1.25 else 2
 	for i in nmin + 1:
 		var v := vmin + i * minor; var a := angle_deg(v)
 		var is_major := absf(fmod(v - vmin + 1e-6, major)) < 1e-4 or absf(fmod(v - vmin + 1e-6, major) - major) < 1e-4
 		draw_line(_pt(c, r, a), _pt(c, r + (8.0 if is_major else 4.0), a), ink, (1.5 if is_major else 1.0) if l2 else (2.0 if is_major else 1.0), true)
-		if is_major:
+		if is_major and int(round((v - vmin) / major)) % lab_every == 0:
 			var s := str(int(round(v))); var tw := f.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz)
 			var p := _pt(c, r + 8.0 + 8.0 + tw.x * 0.35, a)
 			GridText.ds(self, f, p + Vector2(-tw.x * 0.5, fsz * 0.35), s, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, ink)

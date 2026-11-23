@@ -138,7 +138,11 @@ func _layout_items() -> void:
 		else: n_big += 1
 	var reel_w := 78.0
 	var fit := (avail - n_big * (BIG_W + GAP)) / maxf(n_reel, 1) - GAP
-	reel_w = clampf(fit, maxf(54.0, hit_min()), 78.0)
+	# 1.18 (Sigrid r7-i): a reel is never narrower than its price at the 16 px floor, so prices never run together; the strip scrolls instead
+	var price_w := 54.0; var mono := GridTheme.font("mono")
+	for it in items:
+		if it.kind == "reel": price_w = maxf(price_w, mono.get_string_size(tx("TRAY_PER_M") % str(it.price).trim_suffix(".00"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x + 8.0)
+	reel_w = clampf(fit, maxf(price_w, hit_min()), maxf(78.0, price_w))
 	var x := PAD - _scroll
 	var total := 0.0
 	for it in items:

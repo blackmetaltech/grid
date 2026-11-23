@@ -1153,8 +1153,19 @@ func _draw() -> void:
 		var wide_sub: String = str(cap[1]) if cap.size() < 3 or str(cap[1]).length() >= str(cap[2]).length() else str(cap[2])   # both sub lines share one size: the longer one decides
 		while use_s > 7 and mono.get_string_size(wide_sub, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: use_s -= 1
 		var two: bool = cap.size() > 2
-		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + (72.0 if two else 76.0) + dy1), str(cap[1]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
-		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, r.position.y + 84.0 + dy2), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
+		# 1.18 (Sigrid r7-f): the sub lines stack by their font size below the name, shrinking until both fit in the cell, so no line prints over another
+		# (fonts have a 16 px floor, so when two sub lines cannot fit under the name they join into one compact line: "9m ≤70m")
+		var lh := float(GridTheme.fs(use_s))
+		var sub1 := str(cap[1])
+		if two and r.position.y + 62.0 + lh * 2.0 + 1.0 > r.end.y - 1.0:
+			two = false; sub1 = str(cap[1]).replace(" ", "") + " " + str(cap[2]).replace(" ", "")
+			use_s = 11
+			while use_s > 7 and mono.get_string_size(sub1, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: use_s -= 1
+			if mono.get_string_size(sub1, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(use_s)).x > tw: sub1 = str(cap[2])   # still too wide: the limit is the line that decides a choice
+			lh = float(GridTheme.fs(use_s))
+		var y1 := r.position.y + 62.0 + lh * 0.95 + 1.0
+		_text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, y1 + dy1), sub1, GridTheme.SODIUM if sel else GridTheme.DIM, tw)
+		if two: _text(mono, GridTheme.fs(use_s), Vector2(r.position.x + 2.0, y1 + lh + dy2), str(cap[2]), GridTheme.SODIUM if sel else GridTheme.DIM, tw)
 	if _max_scroll > 0.0:
 		if _scroll > 1.0: GridText.ds(self, semi, Vector2(2.0, H * 0.5 + 6.0), "‹", HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(22), GridTheme.SODIUM)
 		if _scroll < _max_scroll - 1.0: GridTray.draw_more_tab(self, items, _avail_right(), PAD, H)   # the more-parts tab with its count
