@@ -72,6 +72,10 @@ func _init(T: Dictionary, map: Vector2, ic: Vector2) -> void:
 		if kind[k] == K_SEA: base[k] = -minf(32.0, 1.2 + 4.5 * float(dist[k]))
 		elif kind[k] == K_RIVER: base[k] = RIVER_LEVEL - 2.6
 
+## 1.18: how far a kind lookup wanders (metres): two octaves, typically about a tile, at most about three, so woods, shores and marsh meet along ragged lines.
+func _warp_x(x: float, z: float) -> float: return (n_coast.get_noise_2d(x * 3.0, z * 3.0) * 2.4 + n_detail.get_noise_2d(x * 0.35, z * 0.35) * 0.8) * tm
+func _warp_z(x: float, z: float) -> float: return (n_coast.get_noise_2d(x * 3.0 + 711.0, z * 3.0 - 293.0) * 2.4 + n_detail.get_noise_2d(x * 0.35 + 91.0, z * 0.35 - 57.0) * 0.8) * tm
+
 func _at(i: int, j: int) -> float:
 	return base[clampi(j, 0, H2 - 1) * W + clampi(i, 0, W - 1)]
 
@@ -94,7 +98,7 @@ func height(x: float, z: float) -> float:
 		var h := _bilinear(x, z)
 		if h < 1.5 and h > -6.0:   # 1.18 (DECISIONS 25): the shore wanders instead of stepping tile by tile. It may only lower ground that is already
 			# at the water's edge, never raise it, so no support stands lower than the engine says and every clearance on screen is the engine's or more
-			h = minf(h, _bilinear(x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.55 * tm, z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.55 * tm))
+			h = minf(h, _bilinear(x + _warp_x(x, z) * 1.1, z + _warp_z(x, z) * 1.1))
 		var k := kind_at_tile(int(x / tm), int(z / tm))
 		var amp := 0.7
 		if k == K_ROCK: amp = 2.2
@@ -126,7 +130,7 @@ func splat(x: float, z: float, h: float) -> Array:
 	if inside(x, z):
 		# bilinear blend of the four nearest tiles' one-hot kinds: soft borders, not tile squares. 1.18 (DECISIONS 25): read at a point warped by up
 		# to half a tile, so kinds meet along wandering lines, not stairs. Only the colour moves; heights stay the engine's (clearance is honest).
-		var wx := x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.5 * tm; var wz := z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.5 * tm
+		var wx := x + _warp_x(x, z); var wz := z + _warp_z(x, z)
 		var u := wx / tm - 0.5; var v := wz / tm - 0.5
 		var i := floori(u); var j := floori(v); var fu := u - i; var fv := v - j
 		for c in [[0, 0, (1 - fu) * (1 - fv)], [1, 0, fu * (1 - fv)], [0, 1, (1 - fu) * fv], [1, 1, fu * fv]]:
@@ -137,7 +141,8 @@ func splat(x: float, z: float, h: float) -> Array:
 	else:
 		if h < 2.2: w[K_SAND] = 1.0
 		else:
-			var fo := n_hills.get_noise_2d(x * 3.1, z * 3.1)
+			var dout := Vector2(maxf(maxf(-x, x - size_m.x), 0.0), maxf(maxf(-z, z - size_m.y), 0.0)).length()
+			var fo := n_hills.get_noise_2d(x * 3.1, z * 3.1) - 0.45 * (1.0 - smoothstep(0.0, 700.0, dout + n_coast.get_noise_2d(x * 2.0, z * 2.0) * 400.0))   # 1.18: woods thin out towards the map's edge instead of starting on a ruler line
 			var forest := 0.0
 			if z < 0.0: forest = smoothstep(-0.25, 0.15, fo)
 			elif x < 0.0: forest = smoothstep(-0.1, 0.3, fo)
@@ -152,7 +157,7 @@ func maybe_forest(_x: float, _z: float) -> bool: return true
 
 func is_forest(x: float, z: float, h: float) -> bool:
 	if inside(x, z):   # 1.18: read at the same warped point as the ground colour, so a wood has a ragged edge, not a tile rectangle
-		var wx := x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.5 * tm; var wz := z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.5 * tm
+		var wx := x + _warp_x(x, z) + n_detail.get_noise_2d(x * 1.3, z * 1.3) * 0.6 * tm; var wz := z + _warp_z(x, z) + n_detail.get_noise_2d(x * 1.3 - 51.0, z * 1.3 + 77.0) * 0.6 * tm   # and a fine ragged fringe
 		return kind_at_tile(int(wx / tm), int(wz / tm)) == K_FOREST
 	var s: Array = splat(x, z, h)
 	return (s[0] as Color).g > 0.6

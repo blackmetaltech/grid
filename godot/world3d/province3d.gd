@@ -328,12 +328,20 @@ func _build_water() -> void:
 	# the river: one quad per river tile at the river's water level (the bed is carved 2.6 m below it)
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var any := false
+	# 1.18 (DECISIONS 25): the water also covers the tiles round the river, edge to edge with no overlap; the ground hides it where it stands above
+	# the water, so the bank follows the land's own contour instead of stepping tile by tile
+	var wet := {}
 	for j in field.H:
 		for i in field.W:
 			if field.kind_at_tile(i, j) != TerrainField.K_RIVER: continue
+			for dj in [-1, 0, 1]:
+				for di in [-1, 0, 1]: wet[Vector2i(i + di, j + dj)] = true
+	for key in wet:
+		var i: int = key.x; var j: int = key.y
+		if true:
 			any = true
 			var y := TerrainField.RIVER_LEVEL * VEX
-			var x0 := i * tm - 6.0; var x1 := (i + 1) * tm + 6.0; var z0 := j * tm - 6.0; var z1 := (j + 1) * tm + 6.0
+			var x0 := i * tm; var x1 := (i + 1) * tm; var z0 := j * tm; var z1 := (j + 1) * tm
 			st.set_normal(Vector3.UP)
 			for p in [Vector3(x0, y, z0), Vector3(x1, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z1)]: st.add_vertex(p)
 	if field is GenField:
@@ -443,6 +451,9 @@ func _forest_row(j: int, near: Rect2, cell: float, nx: int) -> Array:
 		var lone_roll := _h(i, j, 303) > 0.993
 		if not hedge_line and not lone_roll and not field.maybe_forest(x, z): continue
 		var inside := field.inside(x, z)
+		if not inside:   # 1.18: the trees thin out towards the rim of the near area, so no wood ends on a straight line
+			var rim := minf(minf(x - near.position.x, near.end.x - x), minf(z - near.position.y, near.end.y - z))
+			if _h(i, j, 312) > smoothstep(0.0, near.size.x * 0.12, rim): continue
 		var h := field.height(x, z)
 		if h < 2.5: continue
 		var forest := field.is_forest(x, z, h)
@@ -540,8 +551,10 @@ func _build_layout() -> void:
 			_build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
 			if int(counts.get(str(cc[1]), 1)) > best: best = int(counts.get(str(cc[1]), 1)); _big_centre = cc[0]
 	var area_tg: Dictionary = {}
-	if not gen and not areas.is_empty():   # 1.18 (DECISIONS 25): the engine's town tiles get TownGen's grown streets, not four plots a tile
-		area_tg = TownGen.build(AreaTowns.new(field, model, areas), model, quality, ground)
+	var big_areas: Array = areas.filter(func(a): return (a as Array).size() >= 8)
+	var small_areas: Array = areas.filter(func(a): return (a as Array).size() < 8)   # a hamlet of a few tiles keeps four plots a tile: grown streets left it near empty
+	if not gen and not big_areas.is_empty():   # 1.18 (DECISIONS 25): the engine's town tiles get TownGen's grown streets, not four plots a tile
+		area_tg = TownGen.build(AreaTowns.new(field, model, big_areas), model, quality, ground)
 		places = area_tg.places
 		var sm2 := MeshInstance3D.new(); sm2.name = "Streets"; sm2.mesh = TownGen.street_mesh(area_tg.streets, ground)
 		_street_mat = ShaderMaterial.new(); _street_mat.shader = load("res://world3d/shaders/street.gdshader"); sm2.material_override = _street_mat
@@ -549,8 +562,9 @@ func _build_layout() -> void:
 		_core_mat = ShaderMaterial.new(); _core_mat.shader = load("res://world3d/shaders/town_core.gdshader")
 		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
 		for k in places.size(): if _h(k, 1, 615) > 0.78: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
-	for ai in (areas.size() if area_tg.is_empty() else 0):
-		var tiles: Array = areas[ai]
+	var plot_areas: Array = areas if area_tg.is_empty() else small_areas
+	for ai in plot_areas.size():
+		var tiles: Array = plot_areas[ai]
 		var c := Vector2.ZERO
 		for t in tiles: c += Vector2(t) + Vector2(0.5, 0.5)
 		c /= float(tiles.size())
