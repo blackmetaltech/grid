@@ -76,10 +76,10 @@ jobs:
           unzip -q godot.zip && sudo mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
       - name: UI smoke test (every screen)
         run: |
-          godot --headless --path godot --import || true
-          CB_SMOKE=1 timeout 180 godot --headless --path godot 2>&1 | tee smoke.log
-          grep -q "SMOKE OK" smoke.log
-          ! grep -E "SCRIPT ERROR|Parse Error" smoke.log
+          godot --headless --path godot --import >/dev/null 2>&1 || true
+          godot --headless --path godot --import >/dev/null 2>&1 || true   # second pass: generated translations now exist
+          # the shared runner (core/qa/run-flow.sh) fails the smoke on SMOKE OK missing, a timeout, or a script error in the log (SCRIPT ERROR, Parse Error, Error calling ...)
+          CB_FLOW_TAIL=80 CB_SMOKE=1 core/qa/run-flow.sh -k smoke -T 180 -o "$RUNNER_TEMP/flows" --
 
   export:
     needs: [test, smoke]
