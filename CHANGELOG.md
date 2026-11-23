@@ -27,6 +27,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - The pale halo round every town. It was the haze lit by global illumination, plus an amber disc under each town; both are gone.
 - Street ends glowing like orange rods at dusk. Streets only glow far away now.
 - Rivers and shores on the Mainland stepped tile by tile; woods ended on straight lines at the map's edge; a sheet of river water lay over the land at the river mouth.
+- With a pad in chapter 1, moving to another cable reel and pressing A laid the reel picked before. A now picks the reel under the ring.
 - Text overlapped in the meters, in chapter 2's parts tray and in chapter 1's prices at 1280 wide.
 - A bright disc of haze round the town in view (the sun lit the fog only inside its shadow range).
 
