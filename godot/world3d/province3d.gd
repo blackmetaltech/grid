@@ -955,6 +955,7 @@ func _yard_kit(y: Node3D, steel: Material) -> void:
 	warn.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 6.0); warn.position = Vector3(5, 8.6, -2); y.add_child(warn); _warn.append(warn)
 
 func _build_unit(u: Dictionary) -> void:
+	if str(u.kind) in ["coal", "gas", "biomass", "nuclear", "diesel"]: _build_plant(u); return
 	if str(u.kind) != "hydro" and not str(u.kind).contains("hydro"): return
 	var p := tile_to_world(u.pos as Vector2 + Vector2(0.5, 0.5))
 	var n := Node3D.new(); n.name = "Hydro_%s" % u.id; n.position = p; _root_infra.add_child(n)
@@ -976,6 +977,85 @@ func _build_unit(u: Dictionary) -> void:
 	var win := MeshInstance3D.new(); var wm := BoxMesh.new(); wm.size = Vector3(14, 2.0, 0.2); win.mesh = wm; win.material_override = _glow_mat(Color(1.0, 0.78, 0.5), 2.5)
 	win.position = Vector3(0, 5.0, 5.6); n.add_child(win)
 	_unit_lights.append([str(u.id), win])
+
+## 1.19: a thermal station where the engine has one (the prologue's two pockets, the finale's plants). Coal and nuclear: a boiler or reactor
+## house, a long turbine hall, a tall chimney and two cooling towers; gas, diesel and biomass: a turbine hall with short stacks. Windows and
+## the towers' steam follow the unit's `online`; the chimney carries red warning lights.
+func _build_plant(u: Dictionary) -> void:
+	var p := tile_to_world(u.pos as Vector2 + Vector2(0.5, 0.5))
+	var big := str(u.kind) == "coal" or str(u.kind) == "nuclear"
+	var away := Vector2.ZERO   # behind the yard, away from the lines that leave it, so no conductor runs into a tower
+	for l in model.lines:
+		var pts: Array = l.pts
+		if pts.size() < 2: continue
+		if (pts[0] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[1] as Vector2) - (pts[0] as Vector2)).normalized()
+		elif (pts[pts.size() - 1] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[pts.size() - 2] as Vector2) - (pts[pts.size() - 1] as Vector2)).normalized()
+	away = away.normalized() if away.length() > 0.01 else Vector2(-0.8, -0.6)
+	var off := Vector3(away.x, 0.0, away.y) * 260.0
+	var n := Node3D.new(); n.name = "Plant_%s" % u.id; n.position = Vector3(p.x + off.x, ground(p.x + off.x, p.z + off.z) - 0.5, p.z + off.z); n.rotation.y = -atan2(away.y, away.x); _root_infra.add_child(n)
+	var conc := StandardMaterial3D.new(); conc.albedo_color = Color(0.74, 0.73, 0.7); conc.roughness = 0.95
+	var clad := StandardMaterial3D.new(); clad.albedo_color = Color(0.48, 0.52, 0.55) if big else Color(0.6, 0.62, 0.63); clad.roughness = 0.6; clad.metallic = 0.3
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.62, 0.6, 0.56); dark.roughness = 1.0; dark.albedo_texture = _tex("mud_albedo"); dark.uv1_triplanar = true; dark.uv1_scale = Vector3(0.03, 0.03, 0.03)
+	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.material_override = dark; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
+	var hall_l := 110.0 if big else 70.0
+	var hall := MeshInstance3D.new(); var hm := BoxMesh.new(); hm.size = Vector3(hall_l, 26, 34); hall.mesh = hm; hall.material_override = clad; hall.position = Vector3(0, 13, 0); n.add_child(hall)
+	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.8, 0.5); lit.emission_energy_multiplier = 2.2
+	var win := Node3D.new(); win.name = "Windows"; n.add_child(win)
+	for sd in [-1.0, 1.0]:
+		for row in 2:
+			var band := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(hall_l - 8.0, 1.6, 0.3); band.mesh = bm; band.material_override = lit
+			band.position = Vector3(0, 7.0 + 9.0 * row, sd * 17.1); win.add_child(band)
+	if big:
+		var boiler := MeshInstance3D.new(); var bx := BoxMesh.new(); bx.size = Vector3(44, 68, 40); boiler.mesh = bx; boiler.material_override = clad; boiler.position = Vector3(-hall_l * 0.5 - 22.0, 34, 0); n.add_child(boiler)
+		var bl := MeshInstance3D.new(); var blm := BoxMesh.new(); blm.size = Vector3(0.3, 50, 1.4); bl.mesh = blm; bl.material_override = lit; bl.position = Vector3(-hall_l * 0.5 - 44.2, 34, 0); win.add_child(bl)
+		var h := 165.0
+		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 4.5; cy.bottom_radius = 8.0; cy.height = h; ch.mesh = cy; ch.material_override = conc
+		ch.position = Vector3(-hall_l * 0.5 - 70.0, h * 0.5, 30); n.add_child(ch)
+		for k in 2:   # red aviation lights near the top and half way
+			var wl := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 2.2; sm.height = 4.4; wl.mesh = sm; wl.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 4.0)
+			wl.position = Vector3(-hall_l * 0.5 - 70.0 + 5.0, h * (1.0 - 0.45 * k) - 3.0, 30); n.add_child(wl); _warn.append(wl)
+		if quality != "low": n.add_child(_smoke(Vector3(-hall_l * 0.5 - 70.0, h + 2.0, 30)))
+		var tower := _cooling_tower_mesh()
+		var tconc: StandardMaterial3D = conc.duplicate(); tconc.cull_mode = BaseMaterial3D.CULL_DISABLED; tconc.vertex_color_use_as_albedo = true; tconc.albedo_color = Color.WHITE   # the lathe's winding is not checked: both faces; weathered darker toward the foot
+		for k in 2:
+			var tw := MeshInstance3D.new(); tw.mesh = tower; tw.material_override = tconc; tw.position = Vector3(hall_l * 0.5 + 70.0 + 95.0 * k, 0, 40.0 - 20.0 * k); n.add_child(tw)
+			if quality != "low":
+				var steam := _smoke(Vector3(tw.position.x, 118.0, tw.position.z)); steam.name = "Steam%d" % k; steam.amount = 30
+				var sm2 := steam.process_material as ParticleProcessMaterial; sm2.scale_min = 18.0; sm2.scale_max = 26.0; sm2.initial_velocity_min = 3.0; sm2.initial_velocity_max = 5.0
+				var g := Gradient.new(); g.set_color(0, Color(0.85, 0.86, 0.88, 0.5)); g.set_color(1, Color(0.85, 0.86, 0.88, 0.0)); var gt := GradientTexture1D.new(); gt.gradient = g; sm2.color_ramp = gt
+				win.add_child(steam)   # the steam stops with the unit
+		var heap := MeshInstance3D.new(); var hc := CylinderMesh.new(); hc.top_radius = 6.0; hc.bottom_radius = 40.0; hc.height = 14.0; heap.mesh = hc
+		var coal := StandardMaterial3D.new(); coal.albedo_color = Color(0.08, 0.08, 0.09); coal.roughness = 1.0; heap.material_override = coal; heap.position = Vector3(-40, 7, -75); n.add_child(heap)
+	else:
+		for k in 2:   # heat-recovery boilers and their stacks
+			var hr := MeshInstance3D.new(); var hb := BoxMesh.new(); hb.size = Vector3(18, 30, 26); hr.mesh = hb; hr.material_override = clad; hr.position = Vector3(hall_l * 0.5 + 14.0, 15, -18.0 + 36.0 * k); n.add_child(hr)
+			var st := MeshInstance3D.new(); var sc := CylinderMesh.new(); sc.top_radius = 3.2; sc.bottom_radius = 3.6; sc.height = 62.0; st.mesh = sc; st.material_override = conc
+			st.position = Vector3(hall_l * 0.5 + 30.0, 31, -18.0 + 36.0 * k); n.add_child(st)
+			if quality != "low": win.add_child(_smoke(Vector3(hall_l * 0.5 + 30.0, 63.0, -18.0 + 36.0 * k)))
+	_unit_lights.append([str(u.id), win])
+
+static var _ct_mesh: ArrayMesh
+## A hyperbolic cooling tower, 115 m tall, as a lathe: r(y) = r_throat * sqrt(1 + ((y - y_throat) / c)^2).
+static func _cooling_tower_mesh() -> ArrayMesh:
+	if _ct_mesh != null: return _ct_mesh
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rings := 14; var seg := 28; var H := 115.0; var yt := 0.78 * H; var rt := 26.0; var c := 50.0
+	var r := func(y: float) -> float: return rt * sqrt(1.0 + pow((y - yt) / c, 2.0))
+	for i in rings:
+		var y0 := H * float(i) / rings; var y1 := H * float(i + 1) / rings
+		var r0: float = r.call(y0); var r1: float = r.call(y1)
+		for k in seg:
+			var a0 := TAU * float(k) / seg; var a1 := TAU * float(k + 1) / seg
+			var p00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0); var p01 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
+			var p10 := Vector3(cos(a0) * r1, y1, sin(a0) * r1); var p11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
+			var c0 := Color(0.5, 0.5, 0.48).lerp(Color(0.8, 0.79, 0.76), y0 / H); var c1 := Color(0.5, 0.5, 0.48).lerp(Color(0.8, 0.79, 0.76), y1 / H)
+			if i == rings - 1: c1 = Color(0.42, 0.42, 0.42)   # the soot-dark lip
+			for q in [[p00, p10, p11], [p00, p11, p01]]:
+				for v in q:
+					st.set_color(c1 if v.y > (y0 + y1) * 0.5 else c0); st.add_vertex(v)
+	st.generate_normals()
+	var m := st.commit()
+	_ct_mesh = m; return m
 
 func _build_battery(b: Dictionary) -> void:
 	var p := tile_to_world(b.pos as Vector2 + Vector2(1.3, 1.1))
@@ -1352,6 +1432,17 @@ func reset_camera() -> void:
 				var spread := 0.0
 				for q in pts: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
 				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 2.4, 2400.0, 9000.0); _g_pitch = deg_to_rad(30.0)
+	if str(model.get("level", "")) == "P0":   # 1.19: the prologue opens on the whole small grid: both plants, the city and the open Line 7 between them
+		var bb := Rect2(); var first := true
+		for arr in [model.get("units", []), model.get("towns", []), model.get("subs", [])]:
+			for o in arr:
+				var w := tile_to_world((o.pos as Vector2) + Vector2(0.5, 0.5))
+				var r := Rect2(Vector2(w.x, w.z), Vector2.ZERO)
+				bb = r if first else bb.merge(r); first = false
+		if not first:
+			var c := bb.get_center()
+			_g_target = Vector3(c.x, maxf(ground(c.x, c.y), 0.0), c.y)
+			_g_dist = clampf(maxf(bb.size.x * 0.95, bb.size.y * 1.6), 2400.0, dist_max); _g_pitch = deg_to_rad(36.0); _g_yaw = 0.0   # looking north: west plants on the left, the city on the right
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 

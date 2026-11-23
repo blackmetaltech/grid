@@ -20,7 +20,8 @@ func _initialize() -> void:
 	bay.free()
 	# the Classic chip: only the levels the bay draws lose it
 	for id in Bay3D.LEVELS: T.check(WorldView.LOOK2_LEVELS.has(id), "%s is in LOOK2_LEVELS (no Classic chip)" % id)
-	for id in ["L04", "L06", "P0"]: T.check(not WorldView.LOOK2_LEVELS.has(id), "%s keeps the Classic chip" % id)   # 1.18: L05 and L29 are drawn in 3D (DECISIONS 25)
+	for id in ["L04", "L06"]: T.check(not WorldView.LOOK2_LEVELS.has(id), "%s is not a province level" % id)   # 1.18: L05 and L29 are drawn in 3D (DECISIONS 25)
+	T.check(WorldView.LOOK2_LEVELS.has("P0"), "P0, the prologue, is drawn by the 3D province (1.19, DECISIONS 27)")
 	for id in ["L05", "L29", "L30"]: T.check(WorldView.LOOK2_LEVELS.has(id), "%s, a chapter 2 map level, is in the 3D look" % id)
 	T.check(Bay3D.LEVELS.has("L01"), "L01 is drawn in 3D")
 	T.finish("BAY-LIGHTS-TRUTH", self)

@@ -81,6 +81,7 @@ static func _grid(m: Dictionary, w: Dictionary, b) -> void:
 	for bus in w.buses:
 		var p := Vector2(float(bus.x), float(bus.y)); pos[bus.id] = p; kvs[bus.id] = float(bus.kv); live[bus.id] = bool(bus.get("energised", true))
 		var v: float = float(vv[bus.id]) if vv.has(bus.id) else 0.0
+		if not vv.has(bus.id) and str(m.level) == "P0" and not bool(m.solved): v = 1.0   # 1.19: the prologue opens on a running grid at 02:00; the engine solves at the first block. Until then the city shows lit (labels give names only, as on any unsolved grid)
 		if float(bus.demandMW) > 0.0 or float(bus.peakMW) > 0.0 or bus.kind == "load":
 			var n := clampi(6 + int((float(bus.peakMW) if float(bus.peakMW) > 0.0 else float(bus.demandMW)) / 4.0), 6, 40) if not has_terrain else 14   # 1.8: from the stable peak, not live demand (a heatwave above the peak changed the house count every tick, and every change rebuilt the whole map)   # a market town on the 50 m map: more roofs
 			m.towns.append(_town(str(bus.id), str(bus.name), p, n, v, float(bus.shed), "town", 0))

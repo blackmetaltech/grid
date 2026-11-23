@@ -17,7 +17,7 @@ var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 ## LOOK2: the levels drawn by the 3D province (world3d/province3d.gd) when it is present; every other level keeps this 2D diorama.
-const LOOK2_LEVELS := ["L30", "L28", "L07", "L08", "L09", "L01", "L02", "L03", "L05", "L29"]   # 1.18: chapter 2's map levels (DECISIONS 25)   # 1.16: chapter 3 (Mill Town) in the new look (DECISIONS 21)   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
+const LOOK2_LEVELS := ["P0", "L30", "L28", "L07", "L08", "L09", "L01", "L02", "L03", "L05", "L29"]   # 1.19: the prologue (DECISIONS 27)   # 1.18: chapter 2's map levels (DECISIONS 25)   # 1.16: chapter 3 (Mill Town) in the new look (DECISIONS 21)   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
 var look3d = null              # the 3D layer in use: Province3D (grid levels), Bay3D (bench levels L01 to L03) or null (tests, CI, levels not yet rebuilt)
 var prov3d = null              # the province layer (look3d points at it unless a bay level is shown)
 var bay3d = null               # Bay3D: the island bay, the title backdrop and the bench levels (DECISIONS 23)
