@@ -6,9 +6,10 @@ All notable changes to GRID. The release workflow publishes the section whose he
 ### Added
 - **The game opens in 3D.** The title is a small island bay at dusk: the hamlet is dark and the lighthouse is lit.
 - **Chapter 1 in 3D.** L01 to L03 are drawn in the bay. The homes' lamps follow the engine's voltage at the homes. With a thin cable they glow dim amber next to the white porch bulb at the hut.
-- **The mill is a place.** In chapter 3 the mill town has a works: weaving sheds, an engine house, two chimneys, a yard and a rail siding.
+- **The mill is a place.** In chapter 3 the mill town has a works: weaving sheds with slate saw-tooth roofs and lit windows, an engine house, two smoking chimneys, a yard and a rail siding on sleepers.
 - **Cloud shadows** drift over the land by day. The sky shows in the water.
 - **A loading card** shows while a job starts.
+- **Bay homes have doors, chimneys and windows on every wall.** In the dark title bay they read as homes before the first lamp.
 ### Changed
 - **The finale's lamps reward understanding.**
   - The third lamp no longer counts the shed you order, only unplanned shed.
@@ -24,6 +25,8 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - The pad's A presses a focused button on the press.
 - The 30 fps idle cap now starts after 20 s without input (was 3 s).
 - Town labels move clear of the map scale note.
+- On the shift report the parts shelf steps aside; it cut through the report. The report histogram's axis numbers are light on the glass.
+- D-pad order on the parts tray follows the pegs left to right on screen.
 
 ## [1.16.0] - "Mill Town" (tag v1.16.0; LOOK2 phase C; review in docs/CRITIQUE-1.16.md)
 ### Added
