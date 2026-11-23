@@ -347,7 +347,7 @@ func _update_preview() -> void:
 ## Anchor of the chip, tray-local: above the reel, or above the peg on the map (follows the camera).
 func _chip_anchor() -> void:
 	if mode != "" and target_hi >= 0 and world != null and is_inside_tree() and world.is_inside_tree():
-		var wp: Vector2 = world.world_to_screen((targets[target_hi] as Dictionary).tile, 70.0)
+		var wp: Vector2 = world.world_to_screen((targets[target_hi] as Dictionary).tile, 14.0 if world.get("look3d") != null else 70.0)   # 1.17: in 3D the height is metres; 70 put the tag in the sky
 		chip_at = world.get_global_rect().position + wp - global_position
 	else:
 		var i := preview_item()
@@ -425,7 +425,12 @@ func pad_button(idx: int) -> bool:
 		JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_DOWN:
 			if targets.is_empty(): return false
 			var d2 := -1 if idx == JOY_BUTTON_DPAD_LEFT or idx == JOY_BUTTON_DPAD_UP else 1
-			set_target_hi((0 if d2 > 0 else targets.size() - 1) if target_hi < 0 else posmod(target_hi + d2, targets.size())); return true
+			# 1.17 (hand play): walk the pegs in screen order, left to right, so RIGHT moves right whatever way the 3D camera faces
+			var order: Array = range(targets.size())
+			if world != null and world.has_method("world_to_screen"):
+				order.sort_custom(func(a, b2): return world.world_to_screen(targets[a].tile, 10.0).x < world.world_to_screen(targets[b2].tile, 10.0).x)
+			var k := order.find(target_hi)
+			set_target_hi(order[(0 if d2 > 0 else order.size() - 1) if k < 0 else posmod(k + d2, order.size())]); return true
 	return false
 
 func _process(dt: float) -> void:

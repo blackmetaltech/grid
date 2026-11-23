@@ -4,10 +4,18 @@ All notable changes to GRID. The release workflow publishes the section whose he
 
 ## [1.17.0] - "First Light" (LOOK2 phase C; review in docs/CRITIQUE-1.17.md)
 ### Added
+- **The game opens in 3D.** The title is a small island bay at dusk: the hamlet is dark and the lighthouse is lit.
+- **Chapter 1 in 3D.** L01 to L03 are drawn in the bay. The homes' lamps follow the engine's voltage at the homes. With a thin cable they glow dim amber next to the white porch bulb at the hut.
 - **The mill is a place.** In chapter 3 the mill town has a works: weaving sheds, an engine house, two chimneys, a yard and a rail siding.
 - **Cloud shadows** drift over the land by day. The sky shows in the water.
 - **A loading card** shows while a job starts.
 ### Changed
+- **The finale's lamps reward understanding.**
+  - The third lamp no longer counts the shed you order, only unplanned shed.
+  - The cost targets are now $40.1M and $30.0M.
+  - The 2-hour battery, with U4 spun when the radio calls and the north feeder opened, earns three lamps at $29.9M.
+  - The 4-hour battery earns one.
+  - The shift report's first line shows your lamps and what the next lamp needs.
 - **Towns are not circles.** Their edges wander, and they run out along the main street.
 - **Field edges are hedges.**
 - **Text:** the site, README and game no longer sell with "real" anything. A test checks it.

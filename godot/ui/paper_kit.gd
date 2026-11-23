@@ -74,12 +74,12 @@ static func chip(options: Array, selected: String, on_pick: Callable) -> HBoxCon
 		var b := Button.new(); b.text = str(o[1]); b.name = "Chip_" + id; b.toggle_mode = false; b.focus_mode = Control.FOCUS_ALL; b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		b.set_meta("selected", on)
 		b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(16))
-		var fc: Color = GridTheme.NIGHT if on else Color(INK, 0.8)
+		var fc: Color = GridTheme.NIGHT if on else Color(ink(INK), 0.8)
 		for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]: b.add_theme_color_override(k, fc)
-		var sb := _btn_sb(GridTheme.SODIUM if on else Color(INK, 0.0), INK if on else Color(INK, 0.55), 3 if on else 2); sb.set_corner_radius_all(16)
+		var sb := _btn_sb(GridTheme.SODIUM if on else Color(ink(INK), 0.0), ink(INK) if on else Color(ink(INK), 0.55), 3 if on else 2); sb.set_corner_radius_all(16)
 		sb.content_margin_top = 4; sb.content_margin_bottom = 4; sb.content_margin_left = 40 if on else 18; sb.content_margin_right = 18
 		for k in ["normal", "pressed"]: b.add_theme_stylebox_override(k, sb)
-		var hv := sb.duplicate() as StyleBoxFlat; hv.bg_color = GridTheme.SODIUM.lightened(0.15) if on else Color(INK, 0.1); b.add_theme_stylebox_override("hover", hv)
+		var hv := sb.duplicate() as StyleBoxFlat; hv.bg_color = GridTheme.SODIUM.lightened(0.15) if on else Color(ink(INK), 0.1); b.add_theme_stylebox_override("hover", hv)
 		b.add_theme_stylebox_override("focus", _focus_sb())
 		b.custom_minimum_size.y = maxf(38.0, CbLayout.tap() * 0.8)
 		if on:

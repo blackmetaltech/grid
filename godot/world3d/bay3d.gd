@@ -452,7 +452,8 @@ func _build_places(objs: Array) -> void:
 			pole.position = Vector3(x, y + 4.5, z); _root_places.add_child(pole)
 
 func _build_hut(pos: Vector3, _online: bool) -> void:
-	var n := Node3D.new(); n.name = "Hut"; n.position = pos - Vector3(0, 0.1, 0); n.scale = Vector3.ONE * _bs(); _root_places.add_child(n)
+	var n := Node3D.new(); n.name = "Hut"; n.position = pos - Vector3(0, 0.1, 0); n.scale = Vector3.ONE * _bs() * 1.7;   # 1.17 hand play: the hut was too small to find once placed
+	_root_places.add_child(n)
 	var body := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(4.2, 2.6, 3.0); body.mesh = bm; body.material_override = _flat_mat(Color(0.40, 0.50, 0.46), 0.6); body.position = Vector3(0, 1.3, 0); n.add_child(body)
 	var roof := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(4.6, 0.2, 3.4); roof.mesh = rm; roof.material_override = _flat_mat(Color(0.22, 0.24, 0.26), 0.5); roof.position = Vector3(0, 2.7, 0); n.add_child(roof)
 	var panel := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(3.4, 0.08, 1.8); panel.mesh = pm; panel.material_override = _flat_mat(Color(0.08, 0.12, 0.28), 0.2)
