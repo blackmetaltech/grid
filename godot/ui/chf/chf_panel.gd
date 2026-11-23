@@ -93,7 +93,23 @@ func refresh() -> void:
 	if sig != _sig: _sig = sig; _rebuild_ticker(g)
 	_rebuild_kit(g)
 	_rebuild_live(g)
+	_look_at_island(lamp[0] as String)
 	_layout()
+
+## When the island loses its feeder (on its battery, or dark), the 3D camera turns to it once, so the player sees the call and the lights (1.16 hand play:
+## the camera stayed over the capital and the player never saw the island). Not in QA captures (CB_CAM).
+var _island_was := ""
+func _look_at_island(state: String) -> void:
+	var was := _island_was; _island_was = state
+	if was == "" or state == was or not GridTheme.look2 or state == tx("CF_ISLAND_LIT") or OS.has_environment("CB_CAM"): return
+	if app == null or app.get("grid_world") == null: return
+	var w = app.grid_world
+	var ib := str((_g().rules.get("finale", {}) as Dictionary).get("islandBus", ""))
+	for s2 in (w.model.get("subs", []) as Array):
+		if str(s2.id) == ib and s2.has("pos"):
+			var pp = s2.pos
+			var px: float = float(pp.x) if pp is Vector2 else float(pp[0]); var py: float = float(pp.y) if pp is Vector2 else float(pp[1])
+			w.set_camera("tx=%.1f,ty=%.1f,dist=3000,pitch=24,yaw=20" % [px, py]); return
 
 func _island_text(g: Dictionary) -> Array:
 	var f: Dictionary = g.rules.get("finale", {})
@@ -284,19 +300,18 @@ func _rebuild_live(g: Dictionary) -> void:
 	var sig := "%s%s%d%d" % [spun, open, int(round(cost / 1000.0)), int(round(left / 1000.0))]
 	if sig == _live_sig: return
 	_live_sig = sig
-	for c in _live.get_children(): _live.remove_child(c); c.queue_free()
-	_live.add_child(_wrap_ink(tx("CF_LIVE_HEAD"), 12, 0.75))
-	var sb := _live_btn("cf_live_spin")
+	if _live.get_child_count() == 0:   # built once and updated in place: a rebuild every block took the pad's focus away (1.16 hand play)
+		_live.add_child(_wrap_ink(tx("CF_LIVE_HEAD"), 12, 0.75))
+		var b1 := _live_btn("cf_live_spin"); b1.pressed.connect(func(): if not bought(_g(), "spin"): _do("spinUnit", ["U4"]); _live_sig = ""; refresh())
+		var b2 := _live_btn("cf_live_shed"); b2.pressed.connect(func(): var l2 := island_load(_g()); if l2 != "": _do("shedLoad", [l2, 0.0 if north_open(_g()) else NORTH_FEEDER]); _live_sig = ""; refresh())
+	var sb: Button = _live.get_node("cf_live_spin")
 	if spun: sb.text = tx("CF_LIVE_SPUN"); sb.disabled = true
 	else:
 		sb.text = tx("CF_LIVE_SPIN") % [CbRegion.money(maxf(cost, 0.0), true, 2), CbRegion.money(maxf(left, 0.0), true, 2)]
 		sb.disabled = cost < 0.0 or cost > left + 1e-6
-		sb.pressed.connect(func(): _do("spinUnit", ["U4"]); _live_sig = ""; refresh())
-	var fb := _live_btn("cf_live_shed")
+	var fb: Button = _live.get_node("cf_live_shed")
 	fb.text = tx("CF_LIVE_SHED_OFF") if open else tx("CF_LIVE_SHED")
-	var lid := island_load(g)
-	fb.disabled = lid == ""
-	fb.pressed.connect(func(): _do("shedLoad", [lid, 0.0 if north_open(_g()) else NORTH_FEEDER]); _live_sig = ""; refresh())
+	fb.disabled = island_load(g) == ""
 
 func _live_btn(n: String) -> Button:
 	var b := Button.new(); b.name = n; b.custom_minimum_size = Vector2(W - 24.0, 30); b.focus_mode = CbKit.focus_mode()

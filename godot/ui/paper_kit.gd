@@ -102,6 +102,7 @@ static func bleed(app: CbApp, host: Control) -> void:
 ## A vertically scrolling column with a visible cue: when more content is hidden below, the bottom edge fades into the paper and a "more" tab with an
 ## arrow shows; it vanishes at the end. Returns the box (expands to the room the sheet gives it).
 static func scroll_box(content: Control, fade: Color = GridTheme.PAPER) -> Control:
+	if glass and fade == GridTheme.PAPER: fade = Color(GridTheme.GLASS, 1.0)   # LOOK2: the "more" cue fades into glass, not cream
 	var box := CueBox.new(content, fade)
 	return box
 
@@ -191,6 +192,7 @@ class CueBox extends Control:
 		fade_col = fade; name = "CueBox"; size_flags_vertical = Control.SIZE_EXPAND_FILL; size_flags_horizontal = Control.SIZE_EXPAND_FILL; clip_contents = true
 		mouse_filter = Control.MOUSE_FILTER_PASS
 		sc = ScrollContainer.new(); sc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		sc.follow_focus = true   # a pad moving down a long list scrolls with it (1.16 hand play)
 		add_child(sc); content.size_flags_horizontal = Control.SIZE_EXPAND_FILL; sc.add_child(content)
 		ov = Control.new(); ov.name = "Cue"; ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ov.mouse_filter = Control.MOUSE_FILTER_IGNORE; ov.draw.connect(_paint); add_child(ov)
 	## True while content is hidden below the visible part.
@@ -207,7 +209,7 @@ class CueBox extends Control:
 		var f := GridTheme.font("mono"); var fs := GridTheme.fs(15); var txt := TranslationServer.translate("UI_MORE")
 		var ts := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var cx := sz.x * 0.5; var by := sz.y - 8.0
-		GridText.ds(ov, f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, 0.85))
+		GridText.ds(ov, f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK if fade_col.get_luminance() > 0.5 else GridTheme.G_TEXT, 0.85))
 		var ax := cx + ts.x * 0.5 + 6.0
 		ov.draw_colored_polygon(PackedVector2Array([Vector2(ax, by - 14.0), Vector2(ax + 14.0, by - 14.0), Vector2(ax + 7.0, by - 4.0)]), Color(INK, 0.85))
 

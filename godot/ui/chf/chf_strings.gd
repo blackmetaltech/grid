@@ -18,7 +18,7 @@ const S := {
 	"CF_P_LINE": "Second causeway line from Harbour, 132 kV", "CF_P_FEEDER": "New 132 kV line from Eastgate", "CF_P_BATT2": "Island battery 50 MW, 100 MWh (2 h)", "CF_P_BATT4": "Island battery 50 MW, 200 MWh (4 h)",
 	"CF_LIVE_HEAD": "Calls during the run",
 	"CF_LIVE_SPIN": "Spin U4 now · %s, fuel for the hours left (%s left in the budget)", "CF_LIVE_SPUN": "✓ U4 spinning · fuel committed",
-	"CF_LIVE_SHED": "Open the island's north feeder (a third of its homes, not the school)", "CF_LIVE_SHED_OFF": "✓ North feeder open · press to close it",
+	"CF_LIVE_SHED": "Open the island's north feeder: a third of its homes go dark so the battery lasts longer (the school stays on)", "CF_LIVE_SHED_OFF": "✓ North feeder open · press to close it",
 	"CF_P_FREE": "no cost", "CF_P_BACK": "press to take back", "CF_P_SPUN": "fuel committed",
 	"CF_TITLE": "Keep the lights on", "CF_DAY": "DAY %d of 3", "CF_DONE": "THREE DAYS DONE", "CF_CLOCK": "%02d:%02d",
 	"CF_DAY1": "Heatwave: record demand, the voltage sags at the far ends",

@@ -74,6 +74,13 @@ static func open(app: CbApp) -> void:
 	var close := PaperKit.btn(T("JOBS_CLOSE"), false, func(): host.queue_free(), 18); close.name = "Close"
 	sv.add_child(close)
 	ph.closer = func(): host.queue_free()
+	var chain: Array = []   # explicit pad order down the list (1.16 hand play: DOWN from "See the finale" jumped straight to Close)
+	for c in rows.get_children(): if c is Button and not (c as Button).disabled: chain.append(c)
+	chain.append(close)
+	for i in chain.size():
+		var b: Control = chain[i]
+		if i > 0: b.focus_neighbor_top = b.get_path_to(chain[i - 1]); b.focus_previous = b.focus_neighbor_top
+		if i < chain.size() - 1: b.focus_neighbor_bottom = b.get_path_to(chain[i + 1]); b.focus_next = b.focus_neighbor_bottom
 	PaperKit.glass = false
 	PaperKit.slide_in(d, 50.0)
 	ph.primary = first
