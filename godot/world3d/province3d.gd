@@ -141,6 +141,12 @@ func _make_env() -> void:
 		env.ssr_enabled = true; env.ssr_max_steps = 48
 		env.volumetric_fog_enabled = true; env.volumetric_fog_density = 0.00012; env.volumetric_fog_length = 2200.0
 		env.volumetric_fog_anisotropy = 0.6; env.volumetric_fog_ambient_inject = 0.35
+		env.volumetric_fog_gi_inject = 0.0   # 1.18: SDFGI lit the haze over every town into a pale disc (the "halo", lead's art review); proven by switching each effect off
+	var off := OS.get_environment("CB_FX_OFF").split(",")   # QA: switch single effects off to find what draws an artefact
+	if off.has("sdfgi"): env.sdfgi_enabled = false
+	if off.has("ssr"): env.ssr_enabled = false
+	if off.has("vfog"): env.volumetric_fog_enabled = false
+	if off.has("ssao"): env.ssao_enabled = false
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	sun = DirectionalLight3D.new(); sun.name = "Sun"; sun.shadow_enabled = quality != "low"
 	sun.directional_shadow_max_distance = 9000.0 if quality == "high" else 5000.0
@@ -627,15 +633,10 @@ func _build_town_lamps(lamp_list: Array) -> void:
 		for k in n_pool:   # warm pools of light on the streets (they also light the volumetric haze over the town)
 			var l: Vector3 = ls[(k * ls.size()) / n_pool][0]
 			var o := OmniLight3D.new(); o.position = l + Vector3(0, 14, 0); o.omni_range = 160.0; o.light_color = Color(1.0, 0.7, 0.42)
-			o.light_energy = 2.0; o.omni_attenuation = 1.4; o.shadow_enabled = false; o.light_volumetric_fog_energy = 2.5
+			o.light_energy = 2.0; o.omni_attenuation = 1.4; o.shadow_enabled = false; o.light_volumetric_fog_energy = 0.0   # 1.18: lit haze read as a pale halo (lead's review)
 			_root_infra.add_child(o); nodes.append(o)
-		var spread := 0.0
-		for l in ls: spread = maxf(spread, (l[0] as Vector3).distance_to(c))
-		var pool := MeshInstance3D.new(); var pd := CylinderMesh.new(); var rad := clampf(spread * 1.15, 60.0, 1400.0)
-		pd.top_radius = rad; pd.bottom_radius = rad; pd.height = 0.2; pd.radial_segments = 40; pool.mesh = pd
-		var pg := _glow_mat(Color(1.0, 0.6, 0.25, 0.07 if field is GenField else 0.2), 1.0); pg.set_shader_parameter("radial", rad); pool.material_override = pg
-		pool.position = c - Vector3(0, 6.0, 0); pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_root_infra.add_child(pool); nodes.append(pool)   # an amber haze over a lit town, readable from the whole province
+		# 1.18 (lead's art review): the amber disc under each town read as a pale halo by day and dusk; it is gone. A lit town reads by its
+		# windows, its lamps and its street lines far away.
 		_town_lamps[id] = nodes
 
 ## A town centre: a hall with a tower on the square, the nave along the main street.

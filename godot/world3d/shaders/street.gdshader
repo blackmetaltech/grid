@@ -21,5 +21,7 @@ void fragment() {
 	float nn = smoothstep(0.35, 0.9, night);
 	ALBEDO = vec3(0.17, 0.17, 0.18) * (1.0 - 0.6 * far * nn);
 	ROUGHNESS = 0.92;
-	EMISSION = lamp * nn * lit * (0.04 + 0.4 * far) * mix(0.3, 1.0, UV.y);   // arteries bright, side streets a faint mesh
+	// 1.18 (lead's review: orange stubs like glowing rods at dusk): up close the street is asphalt lit by its own lamps; only far away, where a
+	// street is a pixel wide, does it carry a sodium line, so a town reads from the horizon
+	EMISSION = lamp * nn * lit * 0.4 * smoothstep(0.35, 1.0, far) * mix(0.3, 1.0, UV.y);
 }

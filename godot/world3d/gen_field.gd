@@ -139,8 +139,8 @@ func splat(x: float, z: float, h: float) -> Array:
 		var fo := n_hills.get_noise_2d(x * 2.4, z * 2.4)
 		var forest := smoothstep(0.05, 0.25, fo) * (1.0 - town) * _flat_k(x, z)
 		var rock := smoothstep(440.0, 720.0, h)
-		w[K_FOREST] = forest * (1.0 - rock); w[K_ROCK] = rock; w[K_GRASS] = (1.0 - forest) * (1.0 - rock) * (1.0 - town * 0.5)
-		w[K_PAVED] = town * 0.5
+		w[K_FOREST] = forest * (1.0 - rock); w[K_ROCK] = rock; w[K_GRASS] = (1.0 - forest) * (1.0 - rock) * (1.0 - town * 0.2)
+		w[K_PAVED] = town * 0.2   # 1.18: gardens, not a pale disc round the town (lead's art review)
 		if _river_dist(x, z) < 120.0: w[K_MUD] = 0.6
 	return [Color(w[K_GRASS], w[K_FOREST], w[K_ROCK], w[K_SAND]), Vector2(w[K_MUD], w[K_PAVED])]
 
