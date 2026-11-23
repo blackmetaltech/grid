@@ -189,6 +189,10 @@ export const shedAtLightning: Action[] = [wait(LIGHTNING_AT), act('shedLoad', IS
 export const LIVE = [{ id: 'none', actions: [] as Action[] }, { id: 'spin-at-call', actions: spinAtCall }, { id: 'north-feeder', actions: shedAtLightning },
   { id: 'spin+north-feeder', actions: [...spinAtCall, wait(LIGHTNING_AT - SPIN_CALL), act('shedLoad', ISLAND_LOAD, NORTH_FEEDER)] }];
 
+/** DECISIONS 24: the cheap plan that understands usable energy: the 2-hour battery, U4 spun at the radio's call (not at the plan), the north feeder opened at the lightning. Three stars. */
+export const referenceCall: Action[] = [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-2h-50'), ...spinAtCall, wait(LIGHTNING_AT - SPIN_CALL), act('shedLoad', ISLAND_LOAD, NORTH_FEEDER)];
+/** The 4-hour battery with U4 spun at the call: nothing shed, safe, and dear (it was the reference until DECISIONS 24). */
+export const reference4h: Action[] = [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50'), ...spinAtCall];
 /** A second path onto Saltmarsh (a feeder other than the causeway T20) or storage on the island. */
 const islandFixed = (s: { branches: { from: string; to: string; id: string }[]; storage: { bus: string }[] }): boolean => s.branches.some((b) => (b.to === 'B18' || b.from === 'B18') && b.id !== 'T20') || s.storage.some((b) => b.bus === 'B18');
 
@@ -200,24 +204,25 @@ export const L28: GridLevelSpec = {
   sites: [{ id: 'reactive', options: REACTIVE }, { id: 'reserve', options: RESERVE }, { id: 'island', options: ISLAND }, { id: 'live', options: LIVE }],   // 'live' last: its waits run the clock
   thresholds: { freqViolMax: 0, lossMaxPct: 3 },
   decisive: null,
-  // ensPct <= 0 is the engine's own third-star rule (no energy shed) written where the bot population can see it: without it the population counted the lesson's
-  // 131 MWh-shed pass as a three-star design and star B fell under the reference (DECISIONS 14)
-  star3: [{ key: 'freqViolBlocks', max: 'freqViolMax' }, { key: 'islandDarkBlocks', max: 'freqViolMax' }, { key: 'lossPct', max: 'lossMaxPct' }, { key: 'ensPct', max: 'freqViolMax' }],
+  // unplannedEnsPct <= 0 is the engine's own third-star rule (no energy shed that the operator did not order) written where the bot population can see it. Total ENS was
+  // the rule until DECISIONS 24: it kept every design that opens the north feeder out of the third star, so star B sat on the dearest passes (US$53.5M) and money below that was worth nothing
+  star3: [{ key: 'freqViolBlocks', max: 'freqViolMax' }, { key: 'islandDarkBlocks', max: 'freqViolMax' }, { key: 'lossPct', max: 'lossMaxPct' }, { key: 'unplannedEnsPct', max: 'freqViolMax' }],
   brownoutLoses: false, blackoutLoses: true, stars: true, histogram: 'capex',
   story: { placeKey: 'level.L28.place', lineKeys: ['level.L28.story1', 'level.L28.story2', 'level.L28.story3'], lessonKey: 'level.L28.lesson', lessonKind: 'finale' },
   extraRules: () => ({ finale: FINALE, vWatch: { lo: 0.95, hi: 1.05, kv: [400, 220, 132], graceBlocks: 6 }, maxEnsMWh: 0.001 * ENERGY_MWH, freqTrack: false }),
   // lesson (DECISIONS 20): taps and capacitors, U4 spun for the three days, the 2-hour battery, and the north feeder opened at the lightning: the cells last to 06:00 with a third of the
-  // island off, 29 MWh not served (two stars). Reference: taps, capacitors, the 4-hour battery, and U4 spun at the radio's call on Day 2 (fuel for the hours left): nothing shed, three stars.
+  // island off, 29 MWh not served by the operator's own order (not unplanned, so it does not cost the third star: it costs US$30.08M, just over B = US$30.03M, so two stars; with U4 spun at the radio's call instead of at the plan the same build costs US$29.90M and earns three, DECISIONS 24). Reference (DECISIONS 24): the same build with U4 spun at the radio's call on Day 2 (fuel for the hours left) instead of at the plan: US$29.90M, three stars. The 4-hour battery plans (US$53.5M, nothing shed) still pass and set the budget, with one lamp.
   // The budget is the reference rounded up to three figures (US$53.5M), so the 4-hour battery with U4 spun from the start (US$53.68M) does not fit
   naive: { actions: [], failKind: 'brownout' },
-  lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50'), ...shedAtLightning], reference: [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50'), ...spinAtCall],
+  lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50'), ...shedAtLightning], reference: referenceCall,
+  budgetAnchors: [reference4h],   // the 4-hour plan still sets the budget (US$53.5M): it passes, with one lamp (DECISIONS 24)
   // frozen from the bot population (300 designs per region, the live calls included; budget = the dearer of lesson and reference, and >= 1.1 x the cheapest pass, rounded up to 3 significant figures; A = median passing cost; B = 15th percentile of the passing
   // designs with no shed energy, no frequency block out of range, the island always lit and losses <= 3 %): chf.test.ts regenerates them and fails on drift > 2 %
   // in the `in` pack the national tie supplies the reserve and the battery is 14 times dearer than the second line: the reference is the cheapest pass there (no spun unit, a second feeder); the lesson is the global one
   byRegion: { in: { lesson: [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...secondCauseway], reference: [...tapsEastgate, ...capsEastgate, ...secondCauseway] } },
   budgetOverCheapest: 1.1,
   budgetHeadroom: 1.0, budgetFigures: 3,   // DECISIONS 20: the reference holds U4 only from the call; 10 % more, rounded to two figures, would let the 4-hour battery and three days of U4 fit together   // DECISIONS 14: the finale's budget forces a choice (DESIGN 9.4's 1.3 x the cheapest pass left room for a reactor, a second fix and the spare unit together)
-  frozen: { global: { budget: 53500000, starA: 53495308.83158127, starB: 53495308.83158127 }, in: { budget: 496000000, starA: 477464068.5035861, starB: 434944618.63220847 } },
+  frozen: { global: { budget: 53500000, starA: 40050982.13053003, starB: 30030813.80579284 }, in: { budget: 496000000, starA: 477464068.5035861, starB: 401525969.7332689 } },
   coach: [
     { id: 'volt', textKey: 'coach.L28.volt', whyKey: 'coach.L28.volt.why', done: (s) => s.actionLog.some((a) => a.name === 'setTapAuto') && s.shunts.length > 0 },
     // reserve is a judgment, not a must (the lesson passes without it): the step closes on a reserve bought, or once the player has moved on to the island

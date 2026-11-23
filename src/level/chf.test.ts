@@ -9,7 +9,7 @@ import { specOf } from './index';
 import { runDesign } from './run';
 import { botPopulation } from './population';
 import { designs } from './spec';
-import { islandBattery, secondCauseway, eastgateFeeder, tapsEastgate, capsEastgate, reactorsCapital, statcomEastgate, spinCcgt, gfm, FINALE, BUS, LINE_ID, ISLAND_LOAD, NORTH_FEEDER, SPIN_CALL, LIGHTNING_AT, spinAtCall, shedAtLightning } from './levels/l28';
+import { islandBattery, secondCauseway, eastgateFeeder, tapsEastgate, capsEastgate, reactorsCapital, statcomEastgate, spinCcgt, gfm, FINALE, BUS, LINE_ID, ISLAND_LOAD, NORTH_FEEDER, SPIN_CALL, LIGHTNING_AT, spinAtCall, shedAtLightning, LIVE, reference4h } from './levels/l28';
 import { solvedOf } from '../sim/solved';
 import type { GridState } from '../types';
 
@@ -31,7 +31,7 @@ describe('L28 three-day gate', () => {
       const r = runDesign(spec, region, spec.reference);
       expect(r.status, r.reason).toBe('won');
       if (region === 'global') {
-        expect(l.stars).toBe(2); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.track.islandDarkBlocks).toBe(0); expect(r.track.freqViolBlocks).toBe(0); expect(r.track.lossPct!).toBeLessThanOrEqual(3);
+        expect(l.stars).toBe(2); expect(r.stars).toBe(3); expect(r.track.unplannedEnsMWh).toBe(0); expect(r.track.islandDarkBlocks).toBe(0); expect(r.track.freqViolBlocks).toBe(0); expect(r.track.lossPct!).toBeLessThanOrEqual(3);
       } else {
         // the national tie holds the frequency in the in pack (nadir well above the 49.4 Hz first UFLS stage): the reference is the cheapest pass there (no spun unit)
         expect(l.stars).toBeLessThan(3); expect(r.stars).toBe(3); expect(r.ensMWh).toBe(0); expect(r.state.metrics.nadirHz).toBeGreaterThan(49.8); expect(r.track.islandDarkBlocks).toBe(0);
@@ -91,9 +91,9 @@ describe('the live calls (DECISIONS 20)', () => {
   const priced = (acts: Action[]): ReturnType<typeof runDesign> => runDesign(spec, 'global', acts);
   const plan4 = [...tapsEastgate, ...capsEastgate, ...islandBattery('bess-4h-50')], plan2 = [...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')];
   const at = (k: number, ...a: Action[]): Action[] => [{ name: 'tick', args: [k] }, ...a];
-  it('the 4-hour battery with U4 spun for three days does not fit; U4 spun at the radio call does, and earns three stars', () => {
+  it('the 4-hour battery with U4 spun for three days does not fit; U4 spun at the radio call does, and earns one lamp (the safe plan is dear, DECISIONS 24)', () => {
     const safe = priced([...plan4, ...spinCcgt]); expect(safe.failKind).toBe('budget'); expect(safe.capex).toBeGreaterThan(spec.frozen!.global!.budget);
-    const ref = priced([...plan4, ...spinAtCall]); expect(ref.status).toBe('won'); expect(ref.stars).toBe(3); expect(ref.ensMWh).toBe(0);
+    const ref = priced([...plan4, ...spinAtCall]); expect(ref.status).toBe('won'); expect(ref.stars).toBe(1); expect(ref.ensMWh).toBe(0);   // nothing shed, but US$53.5M is over star A (DECISIONS 24)
     expect(SPIN_CALL).toBe(96 + 12);   // Day 2 03:00, the radio's call (log.finale.spinCall)
   });
   it('unplanned energy not served leaves out the shed the operator holds (DECISIONS 24)', () => {
@@ -104,9 +104,17 @@ describe('the live calls (DECISIONS 20)', () => {
     expect(none.track.unplannedEnsMWh!).toBeCloseTo(none.ensMWh, 6);   // a relay shed nobody ordered counts in full
     expect(none.track.unplannedEnsPct!).toBeCloseTo(100 * none.ensMWh / FINALE.energyMWh, 6);
   });
+  it('call 1 is a decision: the same cheap build with U4 at the radio call costs less than with U4 at the plan and clears star B (DECISIONS 24)', () => {
+    const f = spec.frozen!.global!;
+    const plan = priced(plan2.concat(shedAtLightning)), call = priced([...tapsEastgate, ...capsEastgate, ...islandBattery('bess-2h-50'), ...LIVE.find((l) => l.id === 'spin+north-feeder')!.actions]);
+    expect(plan.status).toBe('won'); expect(call.status).toBe('won');
+    expect(call.capex).toBeLessThan(plan.capex); expect(call.capex).toBeLessThanOrEqual(f.starB); expect(plan.capex).toBeGreaterThan(f.starB);
+    expect(plan.stars).toBe(2); expect(call.stars).toBe(3);   // the order to shed was the operator's, so only the price separates them
+    expect(priced(plan4).stars).toBe(1);   // the 4-hour battery costs more than star A (US$40M) and sheds by relay with no reserve: it passes with one lamp
+  });
   it('no reserve at all passes on the last few MWh; U4 spun after the morning of Day 2 is too late for Day 3', () => {
-    const none = priced(plan4); expect(none.status).toBe('won'); expect(none.stars).toBe(2); expect(none.ensMWh).toBeGreaterThan(0.99 * 0.001 * FINALE.energyMWh);
-    const late = priced([...plan4, ...at(144, ...spinCcgt)]); expect(late.status).toBe('won'); expect(late.stars).toBe(2); expect(late.ensMWh).toBeGreaterThan(10);   // Day 2 12:00: a cold CCGT is not back before the Day 3 trip
+    const none = priced(plan4); expect(none.status).toBe('won'); expect(none.stars).toBe(1); expect(none.ensMWh).toBeGreaterThan(0.99 * 0.001 * FINALE.energyMWh);
+    const late = priced([...plan4, ...at(144, ...spinCcgt)]); expect(late.status).toBe('won'); expect(late.stars).toBe(1); expect(late.ensMWh).toBeGreaterThan(10);   // Day 2 12:00: a cold CCGT is not back before the Day 3 trip
   });
   it('the 2-hour battery lasts the night with the north feeder open at the lightning: a third of the island off, the school lit, the energy counted as not served', () => {
     const o = priced(plan2.concat(shedAtLightning)); expect(o.status, o.reason).toBe('won'); expect(o.stars).toBe(2);
@@ -147,14 +155,14 @@ describe('the island through the lightning', () => {
     expect(runDesign(spec, 'global', [...base, ...islandBattery('bess-4h-50')], { frozen: null }).track.islandNightMWh!).toBeGreaterThan(80);
   });
   it('the energy the island drew while its feeder was open is the oracle number (within 1 %)', () => {
-    const r = runDesign(spec, 'global', spec.reference);
+    const r = runDesign(spec, 'global', reference4h);
     near(r.track.islandNightMWh!, EXP['F-3'].delivered_MWh, 0.01);
   });
 });
 
 describe('oracles', () => {
   it('F-1 demand energy of the three days and the ENS limit', () => {
-    const r = runDesign(spec, 'global', spec.reference);
+    const r = runDesign(spec, 'global', reference4h);
     near(r.track.demandMWh!, EXP['F-1'].energy_MWh, 1e-4); near(FINALE.energyMWh, EXP['F-1'].energy_MWh, 1e-12);
     near(r.track.peakDemandMW!, EXP['F-1'].peak_MW, 1e-3);
     expect(r.state.rules.maxEnsMWh).toBeCloseTo(EXP['F-1'].ens_limit_MWh, 6);
@@ -178,19 +186,19 @@ describe('the scenario', () => {
   it('Day 2 queues the storm, three trips and a Day 3 trip; the lightning is a protection-cleared branch opening (no event window), the crews repair at 06:00', () => {
     const q = (fresh().state as GridState).events.queue.map((e) => e.kind);
     expect(q.filter((k) => k === 'trip-branch').length).toBe(2); expect(q).toContain('storm'); expect(q.filter((k) => k === 'trip-unit').length).toBe(2);
-    const e = play(spec.reference); run(e);
+    const e = play(reference4h); run(e);
     expect(e.state.metrics.track.lightning).toBe(1);
     expect(e.state.events.log.some((x) => x.causeKey === 'finale.repaired' && x.element === LINE_ID.causeway && x.day === 2 && x.block === 24)).toBe(true);
   });
   it('the frequency star counts excursions of 15 minutes or more, never the 60 s event dips (reported as dips)', () => {
-    const r = runDesign(spec, 'global', spec.reference);
+    const r = runDesign(spec, 'global', reference4h);
     expect(r.track.freqViolBlocks).toBe(0); expect(r.track.freqDips!).toBeGreaterThanOrEqual(3);
   });
 });
 
 describe('lesson, hint, coach, determinism, speed', () => {
   it('the lesson prints the three days in the player\'s numbers; the try hint names the lost day', () => {
-    const e = run(play(spec.reference)); const li = info(e).lesson as string;
+    const e = run(play(reference4h)); const li = info(e).lesson as string;
     expect(li).toMatch(/Day 1: demand peaked at (\d+) MW and the lowest voltage was ([\d.]+) pu/);
     expect(Number(li.match(/peaked at (\d+) MW/)![1])).toBe(Math.round(e.state.metrics.track.peakDemandMW!));
     expect(li).toMatch(/Saltmarsh Island stayed lit: from 23:30 to 06:00 it drew [\d.]+ MWh through a battery: 124\.\d MWh of nameplate/);
@@ -201,6 +209,11 @@ describe('lesson, hint, coach, determinism, speed', () => {
     const isl = run(play([...tapsEastgate, ...capsEastgate, ...spinCcgt, ...islandBattery('bess-2h-50')])); const th = info(isl).tryHint as string;
     expect(th).toContain(`draws ${FINALE.nightMWh.toFixed(0)} MWh`); expect(th).toMatch(/middle 80 % of its rated energy \(10 to 90 % charge\)/); expect(th).toContain(`about ${Math.round(100 * (1 - Math.sqrt(0.86)))} % is lost`);
     expect(th).not.toMatch(/at least|125|holds only|2-hour|4-hour/);
+  });
+  it('a shed the operator ordered is named in the lesson as not counting against the third lamp (DECISIONS 24)', () => {
+    const e = run(play(spec.lesson)); const li = info(e).lesson as string;
+    expect(li).toMatch(/^.*The \d+\.\d MWh you left off by your own order do not count against the third lamp/);
+    expect(info(run(play(reference4h))).lesson as string).not.toContain('by your own order');
   });
   it('a dark bus is not a voltage reading: with the island dark, the lesson prints the lowest live voltage and the day it happened', () => {
     // taps and capacitors, no reserve and no island fix: Saltmarsh goes dark at 23:30 on Day 2. The oracle walks the run block by block and takes the minimum
@@ -230,7 +243,7 @@ describe('lesson, hint, coach, determinism, speed', () => {
     expect(spec.coach.map((c) => c.id)).toEqual(['volt', 'reserve', 'island', 'run']);
     const e = fresh(); const q = (): string | null => (e.engine.q('coach') as any).id;
     expect(q()).toBe('volt');
-    for (const a of spec.reference.filter((x) => x.name !== 'tick' && x.name !== 'spinUnit')) e.step(a);   // the plan; the reference's spin waits for the radio's call
+    for (const a of reference4h.filter((x) => x.name !== 'tick' && x.name !== 'spinUnit')) e.step(a);   // the plan; the reference's spin waits for the radio's call
     expect(q()).toBe('run');
   });
   it('same actions, same hash; a full three-day run (288 blocks, 26 buses, five events) under 2.5 s', () => {

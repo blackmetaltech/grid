@@ -112,6 +112,8 @@ export interface GridLevelSpec {
    *  L28 sets 1.0 and 3 (DECISIONS 20): the reference already holds its reserve only for the hours of risk, so 10 % more, rounded to two figures, would buy that reserve for all three days.
    *  Never under 1.0 (level.test.ts): the reference always fits. */
   budgetHeadroom?: number;
+  /** Further designs whose cost sets the budget like the lesson and the reference do (L28: the 4-hour plans must keep fitting while the reference is the cheap three-star plan, DECISIONS 24). */
+  budgetAnchors?: GridLevelSpec['lesson'][];
   budgetFigures?: number;
   /** Targets frozen per region id (null: none, e.g. the prologue). */
   frozen: Record<string, Frozen> | null;
