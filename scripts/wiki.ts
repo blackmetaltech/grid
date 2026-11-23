@@ -390,7 +390,7 @@ export const PLANNED: string[] = [
 export const NOT_CHECKED: string[] = [
   'Nobody has listened to the sound. Every cue is made in code and measured, not heard.',
   'The Windows build is made and started on Linux for every release, and has not been played by a person.',
-  'The two Mainland map jobs in 3D (WO-05 and WO-29) have been checked by tests and screenshots, not played by hand at full speed.',
+  'The two Mainland map jobs (WO-05 and WO-29) were played by hand with a pad, but no line was finished that way: the survey cursor steps too far. No one has played them with a mouse at full speed.',
 ];
 
 function nowSection(): string {
