@@ -1,24 +1,28 @@
 # ⚡ GRID — keep the lights on with real physics
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.15.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.16.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
 **Build a power grid one job at a time. Then run the day and watch it hold, or fail.** Demand climbs at dusk. A storm opens a line. Towns go dark street by street, because the windows are lit by your own power flow.
 
 The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript engine**: an AC load flow, the swing equation, harmonics, relay curves. The same inputs always give the same day.
 
-> **Alpha, 1.15.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The finale is now drawn in a new 3D look.** The other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
+> **Alpha, 1.16.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The finale and chapter 3 are drawn in the new 3D look.** The other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
 
 ![The finale in the new look: a town at street level at dusk](docs/readme/new115/street.jpg)
 
-### What's new in 1.15: the finale in 3D
+### What's new in 1.16: real choices, and chapter 3 in 3D
 
-| Towers carry the lines at dusk | Lightning takes the island's only feeder, and the island goes dark |
+| The capital at dusk, with the two calls you can make during the run | Chapter 3: the mill town at 18:30, power factor 0.95 after the bank |
 |---|---|
-| ![towers at dusk](docs/readme/new115/towers.jpg) | ![blackout](docs/readme/new115/blackout.gif) |
-| **The capital lights up street by street on the first solve** | **The incident report docks at the side, so you can still see the dark island** |
-| ![town lights up](docs/readme/new115/town-lights.gif) | ![incident](docs/readme/new115/incident.jpg) |
+| ![capital at dusk](docs/readme/new116/run.jpg) | ![chapter 3](docs/readme/new116/c3.jpg) |
+| **The report gives you the sum, not the answer** | **Lightning takes the island's only feeder, and the island goes dark** |
+| ![incident](docs/readme/new116/report.jpg) | ![blackout](docs/readme/new115/blackout.gif) |
 
-The finale is drawn in 3D. The lights follow the engine: shed load or lose a bus, and the houses go dark street by street. The map is compressed so towns can be read, and the screen says so. The parts shelf no longer names the answer.
+- The finale's budget is $53.5M. The safest set no longer fits.
+- During the run the radio asks you to spin a gas unit, and at the lightning you can open the island's north feeder.
+- The report gives the island's draw and the battery's window. You do the sum.
+- Towns have spires and works chimneys. Day has fields of pasture, crop and plough.
+- Wind and crickets in the 3D look. No human has listened to them yet.
 
 Older releases: see the [CHANGELOG](CHANGELOG.md).
 
@@ -47,7 +51,7 @@ Older releases: see the [CHANGELOG](CHANGELOG.md).
 
 *Recorded in the game.*
 
-## Classic look (chapters 1 to 8 and the Career)
+## Classic look (chapters 1, 2, 4 to 8 and the Career)
 
 These chapters still use the 2D look.
 
@@ -134,4 +138,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.15.md](docs/CRITIQUE-1.15.md) for the harsh version.
+See [docs/CRITIQUE-1.16.md](docs/CRITIQUE-1.16.md) for the harsh version.

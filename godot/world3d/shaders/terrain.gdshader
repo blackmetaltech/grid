@@ -91,7 +91,7 @@ void fragment() {
 	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum);
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
 	plot = mix(g, plot, smoothstep(0.0, 0.12, d2 - d1));   // soft field edges: crops fade into the hedge line
-	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.4);
+	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.22);
 	vec3 grass = mix(g * grass_tint, plot, 0.55 * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
 
 	vec3 col = grass * w.r
