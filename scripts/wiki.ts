@@ -195,7 +195,7 @@ function lampsHtml(spec: GridLevelSpec, th: Record<string, number>): string {
   return `<p class="lamps"><b>Lamps:</b> pass the job; spend at most ${esc(levelMoney(fz.starA))}${e2.length ? ` and ${esc(e2.join(', '))}` : ''}; spend at most ${esc(levelMoney(fz.starB))}${e3.length ? ` and ${esc(e3.join(', '))}` : ''}.</p>`;
 }
 
-function levelHtml(id: string, look: Look, heading: Record<string, string>, here: string): string {
+function levelHtml(id: string, look: 'new' | 'classic', heading: Record<string, string>, here: string): string {
   const spec = specOf(id)!;
   const lv = LEVELS.find((l) => l.id === id)!;
   const params = simParamsOf(REGIONS.get('global').data);
