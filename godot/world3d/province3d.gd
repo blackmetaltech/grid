@@ -458,7 +458,7 @@ func _build_layout() -> void:
 		sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(sm)
 		var radii: Array = []
 		for ti in tg.centres.size(): radii.append(float((field as GenField).towns[ti].r))
-		var cm := MeshInstance3D.new(); cm.name = "TownCores"; cm.mesh = TownGen.core_mesh(tg.centres, radii, ground)   # the warm lit core seen from play height
+		var cm := MeshInstance3D.new(); cm.name = "TownCores"; cm.mesh = TownGen.core_mesh(tg.centres, radii, ground, field as GenField)   # the warm lit core seen from play height
 		_core_mat = ShaderMaterial.new(); _core_mat.shader = load("res://world3d/shaders/town_core.gdshader"); cm.material_override = _core_mat
 		cm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(cm)
 		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
@@ -466,6 +466,10 @@ func _build_layout() -> void:
 		var counts := {}
 		for t in model.towns: counts[str(t.id)] = int(t.get("count", 1))
 		_big_centre = Vector2(INF, INF); var best := -1
+		var names := {}
+		for t in model.towns: names[str(t.id)] = str(t.get("name", ""))
+		for cc in tg.centres:
+			if "Mill" in str(names.get(str(cc[1]), "")): _build_works(cc[0], cc[2], (field as GenField).town_edge(tg.centres.find(cc), cc[2]))
 		for cc in tg.centres:
 			_build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
 			if int(counts.get(str(cc[1]), 1)) > best: best = int(counts.get(str(cc[1]), 1)); _big_centre = cc[0]
@@ -654,6 +658,48 @@ func _build_hall(c: Vector2, rot: float, count := 1) -> void:
 		bk.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 8.0); bk.position = Vector3(70, 142.0, 55); n.add_child(bk); _warn.append(bk)
 	var sq := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(60, 0.3, 60); sq.mesh = sb
 	var sqm := StandardMaterial3D.new(); sqm.albedo_color = Color(0.55, 0.52, 0.47); sqm.roughness = 0.95; sq.material_override = sqm; sq.position = Vector3(0, 0.35, 0); n.add_child(sq)
+
+## 1.17 (manager, Sigrid): the mill as a place. Beyond the mill town's edge, along its main street: three weaving sheds with saw-tooth roofs,
+## an engine house with two brick chimneys, a yard of bales, and a rail siding running out across the fields. Presentation only; the engine's
+## mill is the load on its bus.
+func _build_works(c: Vector2, rot: float, edge: float) -> void:
+	var ax := Vector2(cos(rot), sin(rot)); var ay := Vector2(-ax.y, ax.x)
+	var o := c + ax * (edge + 140.0)
+	var n := Node3D.new(); n.name = "Works"; n.position = Vector3(o.x, ground(o.x, o.y) - 0.4, o.y); n.rotation.y = -rot; _root_infra.add_child(n)
+	var brick := StandardMaterial3D.new(); brick.albedo_color = Color(0.5, 0.28, 0.22); brick.roughness = 0.95
+	var slate := StandardMaterial3D.new(); slate.albedo_color = Color(0.27, 0.28, 0.31); slate.roughness = 0.85
+	var glass := StandardMaterial3D.new(); glass.albedo_color = Color(0.55, 0.62, 0.66); glass.roughness = 0.3
+	var yard := StandardMaterial3D.new(); yard.albedo_color = Color(0.42, 0.4, 0.37); yard.roughness = 1.0
+	var pad := MeshInstance3D.new(); var pb := BoxMesh.new(); pb.size = Vector3(230, 0.5, 170); pad.mesh = pb; pad.material_override = yard; pad.position = Vector3(10, 0.2, 0); n.add_child(pad)
+	for k in 3:   # weaving sheds: long and low, a saw-tooth of north lights
+		var z := -55.0 + 42.0 * k
+		var shed := MeshInstance3D.new(); var sb := BoxMesh.new(); sb.size = Vector3(120, 9, 34); shed.mesh = sb; shed.material_override = brick; shed.position = Vector3(-10, 4.5, z); n.add_child(shed)
+		for t in 8:
+			var tooth := MeshInstance3D.new(); var pr := PrismMesh.new(); pr.left_to_right = 0.0; pr.size = Vector3(15, 5, 34); tooth.mesh = pr
+			tooth.material_override = slate if t % 2 == 0 else glass; tooth.position = Vector3(-62.5 + 15.0 * t + 7.5, 11.5, z); n.add_child(tooth)
+	var eng := MeshInstance3D.new(); var eb := BoxMesh.new(); eb.size = Vector3(30, 22, 26); eng.mesh = eb; eng.material_override = brick; eng.position = Vector3(75, 11, -20); n.add_child(eng)
+	var er := MeshInstance3D.new(); var epr := PrismMesh.new(); epr.size = Vector3(31, 7, 27); er.mesh = epr; er.material_override = slate; er.position = Vector3(75, 25.5, -20); n.add_child(er)
+	for k in 2:   # two chimneys: the works reads from across the valley
+		var h := 78.0 - 16.0 * k
+		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 2.4; cy.bottom_radius = 4.6; cy.height = h; ch.mesh = cy
+		ch.material_override = brick; ch.position = Vector3(96 + 14 * k, h * 0.5, -36 + 30 * k); n.add_child(ch)
+		var cap := MeshInstance3D.new(); var cc2 := CylinderMesh.new(); cc2.top_radius = 3.0; cc2.bottom_radius = 2.6; cc2.height = 3.0; cap.mesh = cc2
+		cap.material_override = slate; cap.position = Vector3(96 + 14 * k, h + 1.5, -36 + 30 * k); n.add_child(cap)
+	for b in 14:   # bales in the yard
+		var bale := MeshInstance3D.new(); var bb := BoxMesh.new(); bb.size = Vector3(4, 3, 4); bale.mesh = bb; bale.material_override = slate if b % 3 == 0 else yard
+		bale.position = Vector3(60 + 5.5 * (b % 7), 1.5 + 3.0 * float(b / 7), 50); n.add_child(bale)
+	var rail := StandardMaterial3D.new(); rail.albedo_color = Color(0.22, 0.2, 0.19); rail.roughness = 0.6; rail.metallic = 0.5
+	var bed := StandardMaterial3D.new(); bed.albedo_color = Color(0.38, 0.34, 0.3); bed.roughness = 1.0
+	for seg in 30:   # the siding: ballast and two rails, 900 m out across the fields, following the ground
+		var x0 := 120.0 + 30.0 * seg
+		var wp := o + ax * x0 + ay * 70.0
+		var gy := ground(wp.x, wp.y) - (n.position.y)
+		var bl := MeshInstance3D.new(); var blm := BoxMesh.new(); blm.size = Vector3(30, 0.6, 4.5); bl.mesh = blm; bl.material_override = bed; bl.position = Vector3(x0, gy + 0.3, 70); n.add_child(bl)
+		for sd in [-0.75, 0.75]:
+			var r := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(30, 0.25, 0.2); r.mesh = rm; r.material_override = rail; r.position = Vector3(x0, gy + 0.75, 70 + sd); n.add_child(r)
+	for w in 3:   # three wagons waiting at the yard end
+		var wg := MeshInstance3D.new(); var wb := BoxMesh.new(); wb.size = Vector3(12, 3.6, 3.0); wg.mesh = wb; wg.material_override = brick; wg.position = Vector3(135 + 13.5 * w, 2.6, 70); n.add_child(wg)
+
 
 func _build_yard(s: Dictionary) -> void:
 	var p := tile_to_world(s.pos as Vector2 + Vector2(0.5, 0.5))

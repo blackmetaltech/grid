@@ -31,7 +31,7 @@ func _init(model: Dictionary, tile_vis_m: float) -> void:
 		towns.append({"c": (Vector2(t.pos) + Vector2(0.5, 0.5)) * tm, "r": r})
 	for s in model.subs: flats.append({"c": (Vector2(s.pos) + Vector2(0.5, 0.5)) * tm, "r": 120.0})
 	for u in model.units: flats.append({"c": (Vector2(u.pos) + Vector2(0.5, 0.5)) * tm, "r": 450.0})
-	for ti in towns.size(): _bucket(towns[ti].c, towns[ti].r * 2.4, 0, ti)
+	for ti in towns.size(): _bucket(towns[ti].c, towns[ti].r * 2.4 * 1.45, 0, ti)   # the ribbon reaches 1.45 r
 	for fi in flats.size(): _bucket(flats[fi].c, flats[fi].r * 3.0, 1, fi)
 	kinds_str.resize(W * H2); kind.resize(W * H2); base.resize(W * H2)
 	for j in H2:
@@ -40,8 +40,8 @@ func _init(model: Dictionary, tile_vis_m: float) -> void:
 			var k := K_GRASS
 			if _sea_depth(c.x, c.y) > 0.0: k = K_SEA
 			else:
-				for t in towns:
-					if c.distance_to(t.c) < t.r: k = K_TOWN
+				for ti in towns.size():
+					if town_dn(ti, c) < 1.0: k = K_TOWN
 			kind[j * W + i] = k; kinds_str[j * W + i] = "town" if k == K_TOWN else "field"
 
 func _bucket(c: Vector2, r: float, which: int, idx: int) -> void:
@@ -81,9 +81,21 @@ func _river_dist(x: float, z: float) -> float:
 		best = minf(best, p.distance_to(a + ab * t))
 	return best + n_detail.get_noise_2d(x * 0.05, z * 0.05) * 60.0
 
+## 1.17 (manager): towns are not circles. A town's edge wanders (three low harmonics, each town its own phases) and runs out along its main
+## street, the way a village grows along its road. `town_dn` is the distance from the centre over that edge (1.0 on the edge). TownGen uses the
+## same main-street angle (hash 901), so the ribbon follows the town's own road.
+func town_edge(ti: int, ang: float) -> float:
+	var rot := TAU * WorldMath.hash2(ti, 7, 901)
+	var f := 0.8 + 0.14 * sin(2.0 * ang + TAU * WorldMath.hash2(ti, 1, 931)) + 0.09 * sin(3.0 * ang + TAU * WorldMath.hash2(ti, 2, 932)) + 0.06 * sin(5.0 * ang + TAU * WorldMath.hash2(ti, 3, 933))
+	var ribbon := 1.0 + 0.45 * pow(absf(cos(ang - rot)), 8.0)
+	return float(towns[ti].r) * f * ribbon
+func town_dn(ti: int, p: Vector2) -> float:
+	var d := p - (towns[ti].c as Vector2)
+	return d.length() / town_edge(ti, atan2(d.y, d.x))
+
 func _flat_k(x: float, z: float) -> float:
 	var k := 1.0; var p := Vector2(x, z); var nb := _near(x, z)
-	for ti in nb[0]: k = minf(k, smoothstep(towns[ti].r * 0.9, towns[ti].r * 2.2, p.distance_to(towns[ti].c)))
+	for ti in nb[0]: k = minf(k, smoothstep(0.9, 2.2, town_dn(ti, p)))
 	for fi in nb[1]: k = minf(k, smoothstep(flats[fi].r, flats[fi].r * 3.0, p.distance_to(flats[fi].c)))
 	return k
 
@@ -123,7 +135,7 @@ func splat(x: float, z: float, h: float) -> Array:
 	else:
 		var p := Vector2(x, z)
 		var town := 0.0
-		for ti in _near(x, z)[0]: town = maxf(town, 1.0 - smoothstep(towns[ti].r * 0.7, towns[ti].r * 1.05, p.distance_to(towns[ti].c)))
+		for ti in _near(x, z)[0]: town = maxf(town, 1.0 - smoothstep(0.7, 1.05, town_dn(ti, p)))
 		var fo := n_hills.get_noise_2d(x * 2.4, z * 2.4)
 		var forest := smoothstep(0.05, 0.25, fo) * (1.0 - town) * _flat_k(x, z)
 		var rock := smoothstep(440.0, 720.0, h)
@@ -135,7 +147,7 @@ func splat(x: float, z: float, h: float) -> Array:
 func is_forest(x: float, z: float, h: float) -> bool:
 	if h < 3.0 or h > 380.0: return false
 	var p := Vector2(x, z)
-	for ti in _near(x, z)[0]: if p.distance_to(towns[ti].c) < towns[ti].r * 1.2: return false
+	for ti in _near(x, z)[0]: if town_dn(ti, p) < 1.2: return false
 	return smoothstep(0.05, 0.25, n_hills.get_noise_2d(x * 2.4, z * 2.4)) * _flat_k(x, z) > 0.5
 
 ## The river as a ribbon of water quads along its polyline, 110 m wide.

@@ -32,6 +32,8 @@ void fragment() {
 	float foam = (1.0 - smoothstep(0.0, 1.6, thick)) * (0.55 + 0.45 * texture(wave_b, uv * 9.0 + TIME * 0.05).r);
 	col = mix(col, vec3(0.85, 0.9, 0.92), foam * 0.5 * (1.0 - night * 0.7));
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
+	vec3 sky = mix(vec3(0.52, 0.68, 0.86), vec3(0.03, 0.05, 0.09), night);   // 1.17: the sky in the water at grazing angles (blue by day)
+	col = mix(col, sky, clamp(fres * 1.6, 0.0, 0.7));
 	ALBEDO = col;
 	ALPHA = clamp(0.55 + 0.45 * k + fres * 0.3, 0.0, 1.0);
 	ROUGHNESS = mix(0.06, 0.42, night);   // a rougher sea at night: the moon path was a hard white slab (art review 1.15)

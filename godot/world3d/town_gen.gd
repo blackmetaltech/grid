@@ -14,7 +14,7 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 	var keep_k := 1.0 if quality == "high" else (0.8 if quality == "medium" else 0.5)
 	for ti in model.towns.size():
 		var tw: Dictionary = model.towns[ti]
-		var c: Vector2 = gf.towns[ti].c; var r: float = gf.towns[ti].r
+		var c: Vector2 = gf.towns[ti].c; var r: float = gf.towns[ti].r * 1.45   # the grid covers the ribbon; houses keep inside the wandering edge (gf.town_dn)
 		var id := str(tw.id); var count := maxi(1, int(tw.count))
 		var rot := TAU * WorldMath.hash2(ti, 7, 901)
 		var ax := Vector2(cos(rot), sin(rot)); var ay := Vector2(-ax.y, ax.x)
@@ -25,9 +25,14 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 			for k in range(-n, n + 1):
 				var off := k * block
 				var half := sqrt(maxf(0.0, r * r - off * off)) * (0.8 + 0.25 * WorldMath.hash2(ti, k + 50 * dir, 902))
-				if half < block * 0.6: continue
 				var main := k == 0
-				var a := c + across * off - along * half; var b := c + across * off + along * half
+				var lim := 1.25 if main else 0.95   # streets end at the town's edge, each end on its own; the main street runs on a little
+				var ha := half; var hb := half
+				while ha > 0.0 and gf.town_dn(ti, c + across * off - along * ha) > lim: ha -= 10.0
+				while hb > 0.0 and gf.town_dn(ti, c + across * off + along * hb) > lim: hb -= 10.0
+				if ha + hb < block * 1.2: continue
+				half = maxf(ha, hb)
+				var a := c + across * off - along * ha; var b := c + across * off + along * hb
 				streets.append([a, b, 11.0 if main else 7.0, ti])
 				# houses on both sides, every 12-15 m, set back from the kerb; lamps every 34 m
 				var s := -half + 8.0
@@ -40,7 +45,7 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 						var side: float = sd2
 						var hh := WorldMath.hash2(ti * 131 + k * 7 + q, int(side) + 3 * dir, 904)
 						var p := c + across * off + along * mid + across * side * (9.0 + 3.0 * hh)
-						var dn := p.distance_to(c) / r
+						var dn := gf.town_dn(ti, p)
 						if dn > 1.0: continue
 						if p.distance_to(c) < 34.0: continue   # the square
 						var in_yard := false
@@ -61,20 +66,22 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 				while ls < half - 10.0:
 					var side2 := 1.0 if lq % 2 == 0 else -1.0
 					var lp := c + across * off + along * ls + across * side2 * 4.5
-					lamps.append([Vector3(lp.x, ground.call(lp.x, lp.y) + 7.0, lp.y), id, lp.distance_to(c) / r])
+					if gf.town_dn(ti, lp) < 1.05: lamps.append([Vector3(lp.x, ground.call(lp.x, lp.y) + 7.0, lp.y), id, gf.town_dn(ti, lp)])
 					ls += 34.0; lq += 1
 	return {"places": places, "streets": streets, "lamps": lamps, "centres": centres}
 
 ## Road surfaces: a ribbon a little above the ground, sampled every 20 m so it follows the land.
 ## A warm disc per town (the lit core seen from far away): a fan, COLOR.a = town index, UV.x = 0 at the centre and 1 at the rim.
-static func core_mesh(centres: Array, radii: Array, ground: Callable) -> ArrayMesh:
+static func core_mesh(centres: Array, radii: Array, ground: Callable, gf: GenField = null) -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); st.set_normal(Vector3.UP)
 	for k in centres.size():
 		var c: Vector2 = centres[k][0]; var r: float = radii[k] * 1.1; var ti: int = k
 		var y: float = float(ground.call(c.x, c.y)) + 3.0
-		for s in 24:
-			var a0 := TAU * s / 24.0; var a1 := TAU * (s + 1) / 24.0
-			for pt: Array in [[c, 0.0], [c + Vector2(cos(a0), sin(a0)) * r, 1.0], [c + Vector2(cos(a1), sin(a1)) * r, 1.0]]:
+		for s in 48:
+			var a0 := TAU * s / 48.0; var a1 := TAU * (s + 1) / 48.0
+			var r0 := r; var r1 := r
+			if gf != null: r0 = gf.town_edge(ti, a0) * 1.05; r1 = gf.town_edge(ti, a1) * 1.05   # the glow follows the town's own edge
+			for pt: Array in [[c, 0.0], [c + Vector2(cos(a0), sin(a0)) * r0, 1.0], [c + Vector2(cos(a1), sin(a1)) * r1, 1.0]]:
 				st.set_color(Color(0, 0, 0, float(ti) / 63.0)); st.set_uv(Vector2(pt[1], 0)); st.add_vertex(Vector3(pt[0].x, y, pt[0].y))
 	return st.commit()
 

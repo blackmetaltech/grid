@@ -18,6 +18,11 @@ uniform sampler2D macro_noise : filter_linear_mipmap, repeat_enable;
 uniform float tile_m = 22.0;
 uniform float night = 0.0;
 uniform vec3 grass_tint = vec3(1.0);
+uniform float clouds = 1.0;   // 1.17: cloud shadows drift over the land by day (0 turns them off)
+float cloud_shade(vec2 xz) {   // a soft shadow from slow clouds: two octaves of the macro noise, drifting west to east at about 9 m/s
+	float c = texture(macro_noise, xz / 7000.0 + TIME * vec2(0.0013, 0.0004)).r * 0.65 + texture(macro_noise, xz / 2600.0 + TIME * vec2(0.0031, 0.0011)).r * 0.35;
+	return 1.0 - 0.34 * smoothstep(0.52, 0.7, c) * (1.0 - night) * clouds;
+}
 uniform bool cheap = false;   // low tier: one sample per kind, no field plots, no normal maps   // the generated province: greener farmland
 
 varying vec3 wpos;
@@ -67,7 +72,7 @@ void fragment() {
 		vec3 cc = texture(grass_a, p).rgb * grass_tint * w.r + texture(forest_a, p * 1.3).rgb * vec3(0.55, 0.62, 0.45) * w.g + texture(rock_a, p * 0.6).rgb * w.b
 			+ texture(sand_a, p * 1.5).rgb * w.a + texture(mud_a, p).rgb * mud + vec3(0.26, 0.29, 0.20) * paved;
 		cc *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
-		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)); ROUGHNESS = 0.92; SPECULAR = 0.25;
+		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, 2.2, wpos.y)) * cloud_shade(wpos.xz); ROUGHNESS = 0.92; SPECULAR = 0.25;
 	} else {
 	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
 	vec2 fq = wpos.xz / 170.0 + 0.32 * vec2(sin(wpos.z / 97.0 + sin(wpos.x / 233.0) * 2.0), cos(wpos.x / 113.0 + sin(wpos.z / 251.0) * 2.0));   // 1.16: warped, so plots are not a hex board
@@ -90,8 +95,8 @@ void fragment() {
 	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum);
 	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum);
 	float hedge = 1.0 - smoothstep(0.012, 0.03, d2 - d1);
-	plot = mix(g, plot, smoothstep(0.0, 0.12, d2 - d1));   // soft field edges: crops fade into the hedge line
-	plot = mix(plot, vec3(0.12, 0.17, 0.08), hedge * 0.22);
+	vec3 hedge_c = vec3(0.17, 0.27, 0.11) * (0.8 + lum);   // 1.17: field edges are green hedges, not brown cracks
+	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.06, d2 - d1)) * 0.75);
 	vec3 grass = mix(g * grass_tint, plot, 0.55 * (1.0 - 0.6 * g_far));   // field colours calm down with distance: no quilt from the air
 
 	vec3 col = grass * w.r
@@ -108,7 +113,7 @@ void fragment() {
 	vec3 n = nrm2(grass_n, p) * (w.r + paved) + nrm2(forest_n, p * 1.3) * (w.g + mud) + nrm2(rock_n, p * 0.6) * w.b + nrm2(sand_n, p * 1.5) * w.a;
 	NORMAL_MAP = n;
 	NORMAL_MAP_DEPTH = 0.9 * (1.0 - smoothstep(150.0, 1500.0, vd));   // normal detail only up close: no specular sparkle far away
-	ALBEDO = col;
+	ALBEDO = col * cloud_shade(wpos.xz);
 	ROUGHNESS = max(mix(0.95, 0.75, w.b) * mix(1.0, 0.5, mud), mix(0.0, 0.97, smoothstep(300.0, 2500.0, vd)));
 	SPECULAR = 0.3;
 	}
