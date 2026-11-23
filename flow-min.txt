@@ -1,6 +1,7 @@
 # minimum check count per flow (core/qa/run-flow.sh fails a flow that prints fewer). Raise only: RAISE=1 node scripts/test-godot.mjs after a green run.
 bay_lights_truth 131
 bay_relief_truth 49
+bench3d_truth 132
 bench_geometry_truth 487
 career_map_truth 5483
 ch2_flow 37
