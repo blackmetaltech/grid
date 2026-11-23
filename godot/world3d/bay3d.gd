@@ -13,8 +13,8 @@ extends Node3D
 
 const LEVELS := ["L01", "L02", "L03"]
 const PXM := 0.9                  # WorldView's z px per metre (RouteDraw.PX_PER_M)
-const HOME_LIGHT_E := 2.4         # OmniLight3D energy of a home at brightness 1
-const PORCH_LIGHT_E := 3.2
+const HOME_LIGHT_E := 5.0         # OmniLight3D energy of a home at brightness 1
+const PORCH_LIGHT_E := 6.0
 const WARM := Color(1.0, 0.84, 0.54)      # at or above the limit
 const AMBER := Color(1.0, 0.42, 0.06)     # below it
 const WHITE := Color(1.0, 0.97, 0.90)     # the porch bulb, on the source
@@ -137,10 +137,10 @@ func _update_sky(mn: float) -> void:
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.0, lowk)
 	var mdir := Vector3(0.40, 0.55, 0.75).normalized()   # behind the camera, high: the bay is lit from the front and the sea's glint stays out of the frame
 	if moon.is_inside_tree(): moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 1.0 * smoothstep(0.35, 0.85, n); moon.visible = moon.light_energy > 0.01
+	moon.light_energy = 0.5 * smoothstep(0.35, 0.85, n); moon.visible = moon.light_energy > 0.01
 	sky_mat.set_shader_parameter("moon_dir", mdir)
 	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.20, 0.28, 0.46), n * 0.8)
-	env.ambient_light_energy = lerpf(0.9, 1.5, n)
+	env.ambient_light_energy = lerpf(0.9, 0.55, n)   # 1.17: a dark night, so the first lamps carry the scene
 	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.05, 0.08, 0.15), n * 0.6)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.5, n)
@@ -439,7 +439,7 @@ func _build_places(objs: Array) -> void:
 			var wi := MeshInstance3D.new(); wi.mesh = windows_mesh(w, d, h)
 			var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.04, 0.05, 0.08); wm.emission_enabled = true; wm.emission = WARM; wm.emission_energy_multiplier = 0.0
 			wi.material_override = wm; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(wi)
-			var lt := OmniLight3D.new(); lt.omni_range = (11.0 if role == "" else 18.0); lt.omni_attenuation = 1.4; lt.light_specular = 0.2; lt.position = Vector3(0, h * 0.6, d * 0.5 + 1.6); n.add_child(lt)
+			var lt := OmniLight3D.new(); lt.omni_range = (16.0 if role == "" else 22.0); lt.omni_attenuation = 1.3; lt.light_specular = 0.2; lt.position = Vector3(0, h * 0.6, d * 0.5 + 1.6); n.add_child(lt)
 			if role == "health":   # a red cross on the front
 				var cm := _flat_mat(Color(0.8, 0.1, 0.1)); var cb := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.5, 2.0, 0.1); cb.mesh = bm; cb.material_override = cm; cb.position = Vector3(0, h * 0.62, d * 0.5 + 0.06); n.add_child(cb)
 				var cb2 := MeshInstance3D.new(); var bm2 := BoxMesh.new(); bm2.size = Vector3(2.0, 0.5, 0.1); cb2.mesh = bm2; cb2.material_override = cm; cb2.position = cb.position; n.add_child(cb2)
@@ -522,8 +522,8 @@ func _update_lights() -> void:
 		var col := WARM if home_warm(model, int(h.ti)) else AMBER
 		var lt: OmniLight3D = h.light; var mat: StandardMaterial3D = h.mat
 		lt.light_energy = b * HOME_LIGHT_E; lt.light_color = col; lt.visible = b > 0.003
-		mat.emission = col; mat.emission_energy_multiplier = b * 5.0
-		var pm: ShaderMaterial = h.pool; pm.set_shader_parameter("tint", Color(col, 1.0)); pm.set_shader_parameter("power", b * 0.9)
+		mat.emission = col; mat.emission_energy_multiplier = b * 9.0
+		var pm: ShaderMaterial = h.pool; pm.set_shader_parameter("tint", Color(col, 1.0)); pm.set_shader_parameter("power", b * 1.5)
 	if not _porch.is_empty():
 		var b := porch_brightness(model)
 		var lt: OmniLight3D = _porch.light; var mat: StandardMaterial3D = _porch.mat
@@ -555,7 +555,7 @@ func _map_m() -> Vector2: return Vector2(float(_W), float(_H)) * tm
 
 func reset_camera() -> void:
 	var mm := _map_m()
-	_dist_default = maxf(mm.x * 0.82, mm.y * 1.5)
+	_dist_default = maxf(mm.x * 0.66, mm.y * 1.25)   # 1.17: closer, so the hamlet's lamps read at play distance
 	_g_target = Vector3(mm.x * 0.5, 0.0, mm.y * 0.44); _g_yaw = deg_to_rad(8.0); _g_pitch = deg_to_rad(36.0); _g_dist = _dist_default
 	if title:   # from the east along the island: the hamlet in the foreground, the lighthouse at the far end, the last of the sun behind it; the menu sits over the quiet left
 		var hamlet := Vector2(mm.x * 0.8, mm.y * 0.3)
