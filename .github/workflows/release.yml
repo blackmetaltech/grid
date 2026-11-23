@@ -17,16 +17,19 @@ on:
   workflow_dispatch:
     inputs:
       version: { description: 'version label (no publish on manual runs)', default: 'dev' }
+      tag: { description: 'backfill: build this tag''s game with this commit''s packaging (artifacts only, no publish)', default: '' }
 
 env:
   GODOT_VERSION: 4.7.2
   NODE_VERSION: 22.23.4
+  REL_VER: ${{ inputs.tag || (github.ref_type == 'tag' && github.ref_name) || inputs.version || 'dev' }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+        with: { ref: "${{ inputs.tag || github.ref }}" }   # a backfill builds the tag's game
       - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
         env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
         run: |
@@ -50,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+        with: { ref: "${{ inputs.tag || github.ref }}" }   # a backfill builds the tag's game
       - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
         env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
         run: |
@@ -82,6 +86,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+        with: { ref: "${{ inputs.tag || github.ref }}" }   # a backfill builds the tag's game
       - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
         env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
         run: |
@@ -90,6 +95,14 @@ jobs:
           git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
           git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
           git submodule update --init --recursive
+      - name: Backfill only, packaging from this commit (presets + core/ci), everything else from the tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        run: |
+          git fetch -q --no-tags origin "$GITHUB_SHA"
+          git checkout -q "$GITHUB_SHA" -- godot/export_presets.cfg
+          c=$(git ls-tree "$GITHUB_SHA" core | awk '{print $3}')
+          git -C core fetch -q origin "$c" && git -C core checkout -q "$c" -- ci
+          git status --short
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
@@ -107,10 +120,10 @@ jobs:
           mkdir -p $d && unzip -q templates.tpz -d /tmp/tpl && mv /tmp/tpl/templates/* $d/
       - name: Export
         run: |
-          mkdir -p godot/build/linux godot/build/windows
+          mkdir -p godot/build/linux godot/build/windows godot/build/macos
+          core/ci/prep-export.sh godot "$REL_VER"   # stamps the macOS version; fails on a missing icon (that was the macOS failure)
           godot --headless --path godot --import || true
-          for p in Linux Windows; do   # macOS dropped (DECISIONS 19): the template archive has no universal binary for the preset, and no one has played a Mac build
-           godot --headless --path godot --export-release "$p" || exit 1; done
+          for p in Linux Windows macOS; do godot --headless --path godot --export-release "$p" || exit 1; done
           ls -R godot/build
       - uses: actions/upload-artifact@v4
         with:
@@ -125,11 +138,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { target: linux,       os: ubuntu-latest, node: linux-x64,     ext: tar.xz }
-          - { target: windows,     os: ubuntu-latest, node: win-x64,       ext: zip }
+          - { target: linux,   os: ubuntu-latest }
+          - { target: windows, os: ubuntu-latest }
+          - { target: macos,   os: macos-latest }    # universal (arm64 + x86_64); signed ad hoc and smoke-run on the Mac runner
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4          # the game repo, with this repo's token (no submodules yet)
+        with: { ref: "${{ inputs.tag || github.ref }}" }   # a backfill builds the tag's game
       - name: Core submodule over SSH (deploy key CORE_SSH_KEY)
         env: { CORE_SSH_KEY: "${{ secrets.CORE_SSH_KEY }}" }
         run: |
@@ -138,21 +153,28 @@ jobs:
           git config --global core.sshCommand "ssh -i ~/.ssh/core_key -o IdentitiesOnly=yes"
           git config --global url."git@github.com:${{ github.repository_owner }}/cobanana-core".insteadOf "https://github.com/${{ github.repository_owner }}/cobanana-core"
           git submodule update --init --recursive
+      - name: Backfill only, packaging from this commit (presets + core/ci), everything else from the tag
+        if: github.event_name == 'workflow_dispatch' && inputs.tag != ''
+        run: |
+          git fetch -q --no-tags origin "$GITHUB_SHA"
+          git checkout -q "$GITHUB_SHA" -- godot/export_presets.cfg
+          c=$(git ls-tree "$GITHUB_SHA" core | awk '{print $3}')
+          git -C core fetch -q origin "$c" && git -C core checkout -q "$c" -- ci
+          git status --short
       # the artifact holds build/<os>/... and sidecar/bridge.mjs (common ancestor godot/ is stripped)
       - uses: actions/download-artifact@v4
         with: { name: godot-export, path: ex }
       - name: Put the sidecar where package.sh expects it
         run: mkdir -p godot/sidecar && cp ex/sidecar/bridge.mjs godot/sidecar/bridge.mjs
-      - name: Node runtime
-        run: |
-          f=node-v${NODE_VERSION}-${{ matrix.node }}
-          curl -fsSL -o node.${{ matrix.ext }} https://nodejs.org/dist/v${NODE_VERSION}/$f.${{ matrix.ext }}
-          mkdir node && if [ "${{ matrix.ext }}" = zip ]; then unzip -q node.zip -d node; else tar xf node.tar.xz -C node; fi
-          mv node/$f nodedist
+      - name: Node runtime (pinned, checksum-checked; universal for macOS)
+        run: core/ci/node-runtime.sh ${{ matrix.target }} "$NODE_VERSION" nodedist
       - name: Package
         run: |
-          ver=${GITHUB_REF_NAME}; [ "${GITHUB_REF_TYPE}" = tag ] || ver=${{ github.event.inputs.version || 'dev' }}
-          core/ci/package.sh ${{ matrix.target }} ex/build/$(echo ${{ matrix.target }} | sed 's/-.*//') nodedist dist "$ver" GRID grid
+          core/ci/package.sh ${{ matrix.target }} ex/build/$(echo ${{ matrix.target }} | sed 's/-.*//') nodedist dist "$REL_VER" GRID grid
+      - name: Verify the macOS app (layout, Info.plist, both architectures, signature, packaged headless smoke)
+        if: matrix.target == 'macos'
+        run: |
+          core/ci/verify-macos.sh dist/*-macos.zip GRID "$REL_VER"
       - uses: actions/upload-artifact@v4
         with:
           name: dist-${{ matrix.target }}
@@ -182,7 +204,7 @@ jobs:
         run: |
           ver=${GITHUB_REF_NAME#v}
           awk -v v="$ver" '/^## \[/{p=index($0,"["v"]")>0; next} p' CHANGELOG.md > notes.md
-          printf '\n---\nDownload the archive for your OS, extract, and run. Node.js is bundled; nothing else to install.\n- **Windows**: unzip, run `GRID\\GRID.exe` (SmartScreen: More info, Run anyway; builds are unsigned).\n- **Linux (x86_64)**: `tar xf`, run `GRID/grid.sh`. Needs a Vulkan-capable GPU/driver.\n' > tail.md
+          printf '\n---\nDownload the archive for your OS, extract, and run. Node.js is bundled; nothing else to install.\n- **Windows**: unzip, run `GRID\\GRID.exe` (SmartScreen: More info, Run anyway; builds are unsigned).\n- **Linux (x86_64)**: `tar xf`, run `GRID/grid.sh`. Needs a Vulkan-capable GPU/driver.\n- **macOS (untested)**: unzip, then right-click `GRID.app` and choose Open (not signed by Apple; on macOS 15 and later use System Settings > Privacy & Security > Open Anyway).\n' > tail.md
           [ -s notes.md ] || { echo "no CHANGELOG entry for $ver"; exit 1; }
           cat tail.md >> notes.md
       - run: cd dist && sha256sum * > SHA256SUMS.txt && ls -la
