@@ -291,6 +291,7 @@ static func yard_name(w: Dictionary, bus_id: String) -> String:
 	for x in buses: if str(x.id) == bus_id: me = x
 	if me.is_empty(): return TranslationServer.translate("RT_YARD_OTHER") % bus_id
 	if bool(me.get("offshore", false)) and str(me.get("name", "")) != "": return str(me.name)   # L30: the island's own yards carry their names
+	if str(me.get("kind", "")) == "junction" and str(me.get("name", "")) != "" and not str(me.name).begins_with("B"): return str(me.name)   # 1.19 (Ravi): L29's harbour yard said "Village yard" like the town's
 	var hydro := str(me.kind) == "gen"
 	if not hydro and float(me.kv) >= 1.0:   # the high-voltage yard nearest to the generator bus
 		var gen := {}

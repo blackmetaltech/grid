@@ -43,6 +43,7 @@ func _bullet_check() -> void:
 		_bullet_until = Time.get_ticks_msec() + 3500
 		cfg.tick_seconds = TICKS_NORMAL.map(func(x): return x * 4.0)
 		if grid_world != null: grid_world.flash_trip()
+		if _trips_seen == 0 and grid_world != null and grid_world.look3d is Province3D and grid_world.look3d.visible and not OS.has_environment("CB_CAM"): grid_world.look3d.turn_to_city()   # 1.19 (Ravi): the first trip turns the camera to the city, so its lights are seen going out
 		sfx("breaker_open")   # the relay lets go
 	_trips_seen = out
 

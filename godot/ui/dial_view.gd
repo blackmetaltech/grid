@@ -89,7 +89,8 @@ func _draw() -> void:
 	var rw := mf.get_string_size(rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz)
 	var plate := Rect2(Vector2((w - rw.x) * 0.5 - 8.0, c.y + 14.0), Vector2(rw.x + 16.0, rsz + 8.0))
 	if not l2: draw_rect(plate, GridTheme.NIGHT, true)
-	GridText.ds(self, mf, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, [GridTheme.SODIUM, GridTheme.WARN, GridTheme.BAD][DialMath.zone(self.f, q)])
+	if _dip_t <= 0.0:   # 1.19 (Ravi): while the needle holds the dip, its "lowest" line is the reading; the two overlapped in glass
+		GridText.ds(self, mf, plate.position + Vector2(8.0, rsz + 2.0), rs, HORIZONTAL_ALIGNMENT_LEFT, -1, rsz, [GridTheme.SODIUM, GridTheme.WARN, GridTheme.BAD][DialMath.zone(self.f, q)])
 	if not l2: draw_line(c + Vector2(2, 2), _pt(c, r - 5.0, needle_deg) + Vector2(2, 2), Color(0, 0, 0, 0.25), 3.0, true)
 	var dipping := _dip_t > 0.0
 	draw_line(c, _pt(c, r - 5.0, needle_deg), GridTheme.BAD if dipping else (GridTheme.SODIUM if l2 else Color("#B3261E")), (3.0 if dipping else 1.8) if l2 else 3.0, true)

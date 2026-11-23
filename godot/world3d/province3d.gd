@@ -1478,6 +1478,17 @@ func reset_camera() -> void:
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
+## The prologue's cascade: the camera eases round to the largest town, close enough to see its streets go dark.
+func turn_to_city() -> void:
+	var best := {}
+	for t in model.get("towns", []): if best.is_empty() or int(t.get("count", 0)) > int(best.get("count", 0)): best = t
+	if best.is_empty(): return
+	var c := tile_to_world((best.pos as Vector2) + Vector2(0.5, 0.5))
+	var from := Vector2(c.x - _g_target.x, c.z - _g_target.z)
+	if from.length() > 1.0: _g_yaw = atan2(-from.x, -from.y)   # keep looking the way we were looking, from this side of the city
+	_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = 2600.0; _g_pitch = deg_to_rad(24.0)
+	_clamp_goal()
+
 func _clamp_goal() -> void:
 	_g_target.x = clampf(_g_target.x, -1200.0, map_size.x + 1200.0)
 	_g_target.z = clampf(_g_target.z, -1200.0, map_size.y + 900.0)
