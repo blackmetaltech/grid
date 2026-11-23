@@ -18,6 +18,8 @@ The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript 
 | **Chapter 2: The River Line on the Mainland, with farms and a bridge** | **The finale opens on the harbour and Saltmarsh Island, and starts in about 4 s** |
 | ![chapter 2](docs/readme/new118/l05.jpg) | ![finale](docs/readme/new118/finale.jpg) |
 
+![The first cable is laid and the hamlet lights up at the voltage it gets](docs/readme/new118/lights.gif)
+
 - The island has relief, rocks, surf, paths, a jetty and boats. The water shows the land and the lamps.
 - Towns grow streets along their roads and rivers. The pale halo round towns is gone.
 - Chapter 2's map jobs, The River Line and Salt Wind, are in 3D. Wood and concrete poles, no lattice towers at 11 kV.
