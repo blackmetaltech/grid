@@ -2,6 +2,21 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.17.0] - "First Light" (LOOK2 phase C; review in docs/CRITIQUE-1.17.md)
+### Added
+- **The mill is a place.** In chapter 3 the mill town has a works: weaving sheds, an engine house, two chimneys, a yard and a rail siding.
+- **Cloud shadows** drift over the land by day. The sky shows in the water.
+- **A loading card** shows while a job starts.
+### Changed
+- **Towns are not circles.** Their edges wander, and they run out along the main street.
+- **Field edges are hedges.**
+- **Text:** the site, README and game no longer sell with "real" anything. A test checks it.
+### Fixed
+- **The "dropped A" on the pad.** Starting the finale took about 14 s with nothing on screen, so players pressed again, and those presses landed in the work order. The card now shows at once, and pad presses are held until the job is ready.
+- The pad's A presses a focused button on the press.
+- The 30 fps idle cap now starts after 20 s without input (was 3 s).
+- Town labels move clear of the map scale note.
+
 ## [1.16.0] - "Mill Town" (tag v1.16.0; LOOK2 phase C; review in docs/CRITIQUE-1.16.md)
 ### Added
 - **Chapter 3 in the new look.** L07 to L09 (Mill Town) now draw in 3D. The phasor and spectrum card is glass.
