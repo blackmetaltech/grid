@@ -2,6 +2,24 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.18.0] - "Bay and Mainland" (LOOK2 phase C; review in docs/CRITIQUE-1.18.md)
+### Added
+- **The island has a shape.** Dunes, low hills, a rocky headland under the lighthouse, and a coast that wanders. Paths run from the hamlet to a jetty and to the lighthouse. Boats ride at the jetty and lie on the sand.
+- **The water shows the world.** Homes, lamps and the lighthouse reflect in the sea. Surf runs in over the shallows.
+- **Chapter 2's map jobs in 3D.** The River Line (L05) and Salt Wind (L29) are drawn on the Mainland in 3D, with the yards at both ends. L04 and L06 are benches and keep the Classic chip.
+- **Key sounds.** A breaker closing, a town coming on (a warm chord, bigger for more homes), a trip, and a blackout (the hum and music drop, a thud, then silence before the radio). They are made in code. No human has listened to them.
+- **The Career is glass**, like the rest of the game.
+### Changed
+- **The first job opens beside the hamlet.** The camera looks over the homes to the beach, so the homes are large and the hut sites run away behind them.
+- **Towns grow along their roads.** A main street bends with the road, side streets leave it at uneven gaps, some carry a back lane, and a street follows the river. The Mainland towns use the same streets.
+- **The finale starts in about 4 s** (was 14 to 22 s). The woods grow in a moment after the job is ready.
+- **The end of a shift:** a banner says the report is coming, and the report opens after 2.5 s (was 3.5 s with nothing on screen). Press A or click to open it at once.
+- **Sound levels** are set from measurements: quiet cues are louder, the hum is lower, thumps play on small speakers, the wind is no longer a rumble.
+### Fixed
+- The pale halo round every town. It was the haze lit by global illumination, plus an amber disc under each town; both are gone.
+- Street ends glowing like orange rods at dusk. Streets only glow far away now.
+- Rivers and shores on the Mainland stepped tile by tile; woods ended on straight lines at the map's edge.
+
 ## [1.17.0] - "First Light" (LOOK2 phase C; review in docs/CRITIQUE-1.17.md)
 ### Added
 - **The game opens in 3D.** The title is a small island bay at dusk: the hamlet is dark and the lighthouse is lit.
