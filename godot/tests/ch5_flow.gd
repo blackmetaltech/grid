@@ -20,6 +20,7 @@ func _initialize() -> void:
 	CbRegion.refresh(T.b); GridUi.load_strings()
 	var fake := CbApp.new(); fake.b = T.b; fake.started = true
 	var p := Ch5Panel.new(); p.app = fake; root.add_child(p)
+	await process_frame   # a script's _initialize runs before the root is in the tree: nodes added now are outside it until a frame has passed (get_viewport_rect then errors)
 	T.level("L07"); p.refresh()
 	T.check(not p.visible, "no chapter 5 card on L07")
 	T.level("L14"); T.b.act("tick", [4]); p.refresh()

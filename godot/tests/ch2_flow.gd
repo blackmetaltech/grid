@@ -17,6 +17,7 @@ func _initialize() -> void:
 	CbRegion.refresh(T.b); GridUi.load_strings(); TrayStrings.load_strings()
 	var app := Fake.new(); app.b = T.b; app.started = true
 	var bench := Ch2Bench.new(); bench.app = app; root.add_child(bench); bench.size = Vector2(1366, 768)
+	await process_frame   # a script's _initialize runs before the root is in the tree: nodes added now are outside it until a frame has passed (release_focus then errors)
 	app.hook = func(): bench.refresh()   # what the real shell does after every action
 	# ---- free play and a chapter-1 bench: nothing of ours shows ----
 	T.level("L03"); bench.refresh()

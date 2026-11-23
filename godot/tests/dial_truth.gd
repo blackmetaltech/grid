@@ -5,6 +5,7 @@ extends SceneTree
 func _initialize() -> void:
 	var T := Truth.new()
 	if not T.start(root): print("DIAL-TRUTH FAILED engine"); quit(1); return
+	GridUi.load_strings()   # the dial's frequency and dip text are translated: without the table "HUD_HZ" has no %s and _draw logs a format error
 	# 1. the scale: knees, ends, half the arc in the centre
 	T.near(DialMath.angle_deg(47.5, 50.0), -120.0, 1e-9, "47.5 Hz is the left end")
 	T.near(DialMath.angle_deg(52.5, 50.0), 120.0, 1e-9, "52.5 Hz is the right end")
