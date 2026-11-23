@@ -1,16 +1,31 @@
 # ⚡ GRID — build a power grid, keep the lights on
 
-**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.17.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
+**[Site](https://grid.blackmetal.tech)** · **[Wiki](https://grid.blackmetal.tech/wiki/)** · **[Releases](https://github.com/blackmetaltech/grid/releases)** · **[Changelog](CHANGELOG.md)** · **[Critique](docs/CRITIQUE-1.18.md)** · **[Issues](https://github.com/blackmetaltech/grid/issues)**
 
 **Build a power grid one job at a time. Then run the day and watch it hold, or fail.** Demand climbs at dusk. A storm opens a line. Towns go dark street by street, because the windows are lit by your own power flow.
 
 The game runs in **Godot 4.7**. Every rule runs in a **deterministic TypeScript engine**: an AC load flow, the swing equation, harmonics, relay curves. The same inputs always give the same day.
 
-> **Alpha, 1.17.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The title, chapter 1, chapter 3 and the finale are drawn in the new 3D look.** The prologue, the other chapters and the Career keep the classic 2D look for now; their job cards say "Classic".
+> **Alpha, 1.18.** The whole campaign, eight chapters and a finale, is playable and has been played to a win at every chapter. **The title, chapter 1, chapter 2's map jobs, chapter 3 and the finale are drawn in the new 3D look.** The prologue, the benches and the other chapters keep the classic 2D look for now; their job cards say "Classic". The Career uses the glass panels of the new look.
 
 ![The finale in the new look: a town at street level at dusk](docs/readme/new115/street.jpg)
 
-### What's new in 1.17: the game opens on a dark bay, and chapter 1 is in 3D
+### What's new in 1.18: the island has a shape, and chapter 2 goes 3D
+
+| The title: dunes, a headland under the lighthouse, a jetty and homes with porches | Chapter 1 at night: the hut, the cable and the lit hamlet under the moon |
+|---|---|
+| ![title](docs/readme/new118/title.jpg) | ![chapter 1](docs/readme/new118/l01.jpg) |
+| **Chapter 2: The River Line on the Mainland, with farms and a bridge** | **The finale opens on the harbour and Saltmarsh Island, and starts in about 4 s** |
+| ![chapter 2](docs/readme/new118/l05.jpg) | ![finale](docs/readme/new118/finale.jpg) |
+
+- The island has relief, rocks, surf, paths, a jetty and boats. The water shows the land and the lamps.
+- Towns grow streets along their roads and rivers. The pale halo round towns is gone.
+- Chapter 2's map jobs, The River Line and Salt Wind, are in 3D. Wood and concrete poles, no lattice towers at 11 kV.
+- The finale loads in about 4 s (was 14 to 22 s). A banner says the report is coming.
+- The pad's Back button changes the speed. The frequency dial holds a trip's dip in red.
+- Four new sounds: a breaker closing, a town coming on, a trip and a blackout. They are made in code. No human has listened to them yet.
+
+### 1.17: the game opens on a dark bay, and chapter 1 is in 3D
 
 | The title: the island at dusk, the lighthouse, a hamlet waiting for power | Chapter 1: the first cable, and the hamlet lights up at the voltage it gets |
 |---|---|
@@ -152,4 +167,4 @@ core/                    cobanana-core (submodule): engine kit, Godot app shell,
 - The weekly board needs a cobanana-scores host. None is public yet, so it has only been tested against a local development server.
 - Not yet in the game: substation bus schemes, earth faults, multi-machine stability, a week of unit commitment.
 
-See [docs/CRITIQUE-1.17.md](docs/CRITIQUE-1.17.md) for the harsh version.
+See [docs/CRITIQUE-1.18.md](docs/CRITIQUE-1.18.md) for the harsh version.
