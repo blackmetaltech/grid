@@ -39,8 +39,8 @@ for (const w of WEEKLY_BOARD_WEEKS) levels[weeklyLevelId(w.year, w.week)] = { me
 
 export const verifier = {
   game: 'grid',
-  rulesVersion: '1.15.0',
-  gameVersions: ['1.15.0'],   // 1.15, 1.14 and 1.13 same outcomes as 1.12 (epoch 5), each its own bundle: only the screens changed; 1.12 owners' dividends, overload shedding, cable rules and the moor trunk change outcomes (epoch 5); 1.11 same outcomes as 1.10 (epoch 4), its own bundle so the shipped 1.11.0 is scorable; 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
+  rulesVersion: '1.16.0',
+  gameVersions: ['1.16.0'],   // 1.16, 1.15, 1.14 and 1.13 same outcomes as 1.12 (epoch 5), each its own bundle: only the screens changed; 1.12 owners' dividends, overload shedding, cable rules and the moor trunk change outcomes (epoch 5); 1.11 same outcomes as 1.10 (epoch 4), its own bundle so the shipped 1.11.0 is scorable; 1.9 the story's answers changed outcomes (epoch 3); 1.10 district beats and flag follow-ups change them again (epoch 4); older bundles keep serving older clients
   regionRulesets: ['global'],
   levels: { global: levels },
   maxSolutionBytes: 65536,

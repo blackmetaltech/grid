@@ -2,6 +2,24 @@
 
 All notable changes to GRID. The release workflow publishes the section whose heading contains `[x.y.z]`.
 
+## [1.16.0] - "Mill Town" (tag v1.16.0; LOOK2 phase C; review in docs/CRITIQUE-1.16.md)
+### Added
+- **Chapter 3 in the new look.** L07 to L09 (Mill Town) now draw in 3D. The phasor and spectrum card is glass.
+- **Two calls during the finale's run.** The radio asks you to spin a gas unit, priced for the hours left. At the lightning you can open the island's north feeder; the school stays on.
+- **Landmarks.** Each town has a tall spire. Big towns have a works chimney with a red beacon.
+- **Wind and crickets.** The 3D look has an outdoor sound bed: wind by day, crickets at night. It is made in code. No human has listened to it yet.
+### Changed
+- **The finale makes you trade.** The budget is $53.5M. The safest set (the 4-hour battery and a gas unit spinning for three days) no longer fits. The 2-hour battery works if you open the north feeder in time.
+- **The incident report no longer names the answer.** It gives the island's draw and the battery's usable window. You do the sum.
+- **The work order and the jobs list are glass** in the new look.
+- **Towns by day.** Windows no longer glow by day, far roofs read warmer, and gardens sit between the houses. Small maps get low hills, not peaks.
+- **Site and README.** "How it plays" shows the new look. Classic shots sit under a labelled heading. The text is shorter.
+### Fixed
+- The finale closed an operator's shed again within a block, so a shed could not be held. It now holds until the crews repair the feeder.
+- The release workflow went green: macOS is no longer exported (it was never played).
+### Notes
+- `scripts/gpu-play.sh` runs a hand play at real speed on the GPU, driven only by the virtual pad.
+
 ## [1.15.0] - "Into the Light" (tag v1.15.0; LOOK2 phase B; review in docs/CRITIQUE-1.15.md)
 ### Added
 - **The finale in a new 3D look.** L28 "Keep the Lights On" now draws the province in 3D: hills, a river, a coast with cliffs and the island, fields and forests. Towns have streets, a square, a skyline and street lamps. Lattice towers carry the lines, and conductors glow in a voltage colour at night. Yards have busbars, breakers, a fence and red warning lights.
