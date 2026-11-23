@@ -32,7 +32,10 @@ export const L06: GridLevelSpec = {
   coach: [
     { id: 'predict', textKey: 'coach.L06.predict', whyKey: 'coach.L06.predict.why', done: (s) => s.metrics.predictions.some((p) => p.id === TOWN.predictId) },
     { id: 'ratio', textKey: 'coach.L06.ratio', whyKey: 'coach.L06.ratio.why', done: (s) => (s.bench?.town?.ratio ?? 1) > 1 },
-    { id: 'loss', textKey: 'coach.L06.loss', whyKey: 'coach.L06.loss.why', done: (s) => (s.bench?.town ? townNumbers(s.bench.town).ok : false) },
+    // 1.19 (Dagny): 'loss' showed for an undersized pair too ("raise the line voltage" at 1.53 %). It now waits while the pair is overloaded, and the rating
+    // step (added after it, so an old save's coach carry still means the same steps) names the rating first.
+    { id: 'loss', textKey: 'coach.L06.loss', whyKey: 'coach.L06.loss.why', done: (s) => (s.bench?.town ? townNumbers(s.bench.town).lossPct <= s.bench.town.lossMaxPct || townNumbers(s.bench.town).overload : false) },
+    { id: 'rating', textKey: 'coach.L06.rating', whyKey: 'coach.L06.rating.why', done: (s) => (s.bench?.town ? !townNumbers(s.bench.town).overload : false) },
     { id: 'run', textKey: 'coach.L06.run', whyKey: 'coach.L06.run.why', done: run },
   ],
   place: (s, sc) => {

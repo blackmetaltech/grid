@@ -39,6 +39,8 @@ export const EN_CH2: Record<string, string> = {
   'coach.L06.ratio.why': 'V₁ ÷ V₂ = N₁ ÷ N₂. Ideal transformers keep the power, so raising the voltage lowers the current by the same ratio.',
   'coach.L06.loss': 'Still over 2 %. The loss goes with the square of the current: raise the line voltage further, but every extra volt costs insulation.',
   'coach.L06.loss.why': 'Loss = (P ÷ V)² × R. Doubling the voltage quarters the loss.',
+  'coach.L06.rating': 'The step-up carries all 800 kW, and this one is too small: pick a rating above 800 kVA.',
+  'coach.L06.rating.why': 'An ideal transformer passes all the power. Run past its rating it overheats, whatever the ratio.',
   'level.ch2.predicted': 'You predicted {p} {unit}, it was {a} {unit}.',
   'level.ch2.predictedOther': 'Your prediction was for another design, so it earned no lamp.',
   'coach.L06.run': 'Switch on and run the evening.',

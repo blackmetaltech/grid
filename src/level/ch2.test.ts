@@ -222,3 +222,25 @@ describe('the prediction binds (predictOnce)', () => {
   });
 });
 
+describe('L06 coach names the check that failed', () => {
+  it('an undersized transformer pair: the coach asks for a bigger rating, not a higher voltage', () => {
+    const e = fresh('L06'); act(e, 'predict', TOWN.predictId, 600, 'kW'); act(e, 'setLineRatio', 7); act(e, 'setTransformerKva', 630);
+    const n = townNumbers(e.state.bench!.town!); expect(n.overload).toBe(true); expect(n.lossPct).toBeLessThan(2);
+    const c = e.engine.q('coach') as { id: string; text: string };
+    expect(c.id).toBe('rating'); expect(c.text).toMatch(/800 kW/); expect(c.text).not.toMatch(/raise the line voltage/i);
+    act(e, 'setTransformerKva', 1000); expect((e.engine.q('coach') as { id: string }).id).toBe('run');
+    act(e, 'setLineRatio', 2); expect((e.engine.q('coach') as { id: string }).id).toBe('loss');
+  });
+  it('old saves: the rating step is added after loss, so a carry from before it (0 to 3) still means the same steps', () => {
+    const ids = L06.coach.map((c) => c.id); expect(ids.slice(0, 3)).toEqual(['predict', 'ratio', 'loss']);
+    const e = fresh('L06'); act(e, 'predict', TOWN.predictId, 600, 'kW'); act(e, 'setLineRatio', 7); act(e, 'setTransformerKva', 630);
+    e.state.coach.carry = 3;   // an old save that had finished predict, ratio and loss: it lands on the rating check, not on run
+    expect((e.engine.q('coach') as { id: string }).id).toBe('rating');
+    act(e, 'setTransformerKva', 1000); expect((e.engine.q('coach') as { id: string }).id).toBe('run');
+  });
+  it('both checks failing: the rating is named first, then the loss', () => {
+    const e = fresh('L06'); act(e, 'predict', TOWN.predictId, 600, 'kW'); act(e, 'setLineRatio', 2); act(e, 'setTransformerKva', 630);
+    expect((e.engine.q('coach') as { id: string }).id).toBe('rating');
+    act(e, 'setTransformerKva', 1000); expect((e.engine.q('coach') as { id: string }).id).toBe('loss');
+  });
+});
