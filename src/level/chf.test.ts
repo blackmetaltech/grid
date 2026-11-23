@@ -96,6 +96,14 @@ describe('the live calls (DECISIONS 20)', () => {
     const ref = priced([...plan4, ...spinAtCall]); expect(ref.status).toBe('won'); expect(ref.stars).toBe(3); expect(ref.ensMWh).toBe(0);
     expect(SPIN_CALL).toBe(96 + 12);   // Day 2 03:00, the radio's call (log.finale.spinCall)
   });
+  it('unplanned energy not served leaves out the shed the operator holds (DECISIONS 24)', () => {
+    const held = priced(plan2.concat(shedAtLightning));
+    expect(held.ensMWh).toBeGreaterThan(20); expect(held.track.unplannedEnsMWh!).toBeCloseTo(0, 6); expect(held.track.unplannedEnsPct!).toBe(0);   // all of it was ordered
+    const dry = priced(plan4.concat(spinAtCall)), none = priced(plan4);
+    expect(dry.track.unplannedEnsMWh!).toBe(0);
+    expect(none.track.unplannedEnsMWh!).toBeCloseTo(none.ensMWh, 6);   // a relay shed nobody ordered counts in full
+    expect(none.track.unplannedEnsPct!).toBeCloseTo(100 * none.ensMWh / FINALE.energyMWh, 6);
+  });
   it('no reserve at all passes on the last few MWh; U4 spun after the morning of Day 2 is too late for Day 3', () => {
     const none = priced(plan4); expect(none.status).toBe('won'); expect(none.stars).toBe(2); expect(none.ensMWh).toBeGreaterThan(0.99 * 0.001 * FINALE.energyMWh);
     const late = priced([...plan4, ...at(144, ...spinCcgt)]); expect(late.status).toBe('won'); expect(late.stars).toBe(2); expect(late.ensMWh).toBeGreaterThan(10);   // Day 2 12:00: a cold CCGT is not back before the Day 3 trip

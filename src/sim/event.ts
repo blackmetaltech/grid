@@ -179,7 +179,7 @@ export function levelResult(s: Readonly<GridState>, rules: Readonly<Rules>, tick
       const meets = (rs: readonly { key: string; min: number | null; max: number | null }[]): boolean => rs.every((r) => { const v = m.track[r.key]; return v !== undefined && (r.min === null || v >= r.min - 1e-12) && (r.max === null || v <= r.max + 1e-12); });
       const extra = meets(rules.star3), extra2 = meets(rules.star2 ?? []);
       if (c <= rules.starCost[0] + 1e-6 && extra2) stars = 2;
-      if (c <= rules.starCost[1] + 1e-6 && m.ensMWh === 0 && extra && extra2) stars = 3;
+      if (c <= rules.starCost[1] + 1e-6 && (rules.finale ? (m.track.unplannedEnsMWh ?? 0) <= 1e-9 : m.ensMWh === 0) && extra && extra2) stars = 3;
     }
     stars = ch4Stars(s, stars);   // L13's exam rule (one star without the night task)
     if (rules.predStars) { const n = predictionsWithin(s, 1); stars = (1 + (n >= 2 ? 1 : 0) + (n >= 3 ? 1 : 0)) as 1 | 2 | 3; }

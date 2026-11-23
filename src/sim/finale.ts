@@ -114,6 +114,14 @@ export function finaleTrack(s: GridState, standardRangeHz: [number, number]): vo
   const tr = s.metrics.track, solved = solvedOf(s);
   tr.demandMWh = (tr.demandMWh ?? 0) + s.loads.reduce((a, l) => a + l.P, 0) * 0.25;
   tr.ensPct = f.energyMWh > 0 ? (100 * s.metrics.ensMWh) / f.energyMWh : 0;
+  // what was not served and the operator did not order: relay sheds and dark buses count, the shed an operator holds on purpose (shedLoad, shedHold) does not (DECISIONS 24)
+  let unplanned = 0;
+  for (const l of s.loads) {
+    const dark = solved && solved.sol.energised[l.bus] === false;
+    unplanned += l.P * (l.shedFrac - Math.min(l.shedFrac, l.shedHold ?? 0) + (1 - l.shedFrac) * (dark ? 1 : 0));
+  }
+  tr.unplannedEnsMWh = (tr.unplannedEnsMWh ?? 0) + unplanned * 0.25;
+  tr.unplannedEnsPct = f.energyMWh > 0 ? (100 * tr.unplannedEnsMWh) / f.energyMWh : 0;
   const island = s.loads.filter((l) => l.bus === f.islandBus);
   const dark = island.some((l) => l.P > 0 && ((solved ? solved.sol.energised[l.bus] === false : false) || l.shedFrac > 0.5));
   tr.islandDarkBlocks = (tr.islandDarkBlocks ?? 0) + (dark ? 1 : 0);
