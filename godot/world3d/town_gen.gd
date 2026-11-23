@@ -11,13 +11,14 @@ extends RefCounted
 ## 1.18 (lead's art review: "a square grid with a pale halo"): streets grow the way a town grows. A main street follows the town's road and bends
 ## with it; side streets leave it at uneven gaps and angles and wander; some side streets carry a back lane; where the river passes, a street
 ## follows the bank. Houses line every street and keep clear of the others.
-static func build(gf: GenField, model: Dictionary, quality: String, ground: Callable) -> Dictionary:
+static func build(gf, model: Dictionary, quality: String, ground: Callable) -> Dictionary:   # gf: a GenField or an AreaTowns
 	var places: Array = []; var streets: Array = []; var lamps: Array = []; var centres: Array = []
 	var gap := 62.0 if quality == "high" else (78.0 if quality == "medium" else 100.0)
 	var keep_k := 1.0 if quality == "high" else (0.8 if quality == "medium" else 0.5)
 	for ti in model.towns.size():
 		var tw: Dictionary = model.towns[ti]
 		var c: Vector2 = gf.towns[ti].c; var r: float = gf.towns[ti].r * 1.45
+		if r <= 0.0: centres.append([c, str(tw.id), 0.0]); continue   # a town with no tiles of its own (AreaTowns)
 		var id := str(tw.id); var count := maxi(1, int(tw.count))
 		var rot := TAU * WorldMath.hash2(ti, 7, 901)
 		var ax := Vector2(cos(rot), sin(rot))
@@ -82,7 +83,7 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 					var side: float = sd2
 					var hh := WorldMath.hash2(ti * 131 + si * 7 + hq, int(side) + 3, 904)
 					var p := a + along * mid + across * side * (w0 * 0.5 + 4.5 + 3.0 * hh)
-					var dn := gf.town_dn(ti, p)
+					var dn: float = gf.town_dn(ti, p)
 					if dn > 1.0 or p.distance_to(c) < 32.0: continue
 					if _near_street(segs, buck, si, p, 8.5): continue   # corners stay open
 					var in_yard := false
@@ -110,7 +111,7 @@ static func build(gf: GenField, model: Dictionary, quality: String, ground: Call
 
 ## A street that wanders: steps of 22 m from p0 along dir, turning a little each step (a smooth noise of the town and street seeds),
 ## until it leaves the town (town_dn > lim) or reaches max_len. Returns the polyline (at least p0).
-static func _wander(gf: GenField, ti: int, p0: Vector2, dir: Vector2, max_len: float, lim: float, bend: float, seed: int) -> PackedVector2Array:
+static func _wander(gf, ti: int, p0: Vector2, dir: Vector2, max_len: float, lim: float, bend: float, seed: int) -> PackedVector2Array:
 	var out := PackedVector2Array([p0]); var p := p0; var d := dir.normalized(); var run := 0.0; var k := 0
 	var ph := WorldMath.hash2(seed, 3, 930) * TAU
 	while run < max_len:

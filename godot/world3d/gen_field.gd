@@ -58,9 +58,7 @@ func _near(x: float, z: float) -> Array:
 func cache_heights(r: Rect2, s: float) -> void:
 	_hc_r = Rect2(); _hc_s = s
 	var nx := int(ceil(r.size.x / s)) + 1; var nz := int(ceil(r.size.y / s)) + 1
-	var hc := PackedFloat32Array(); hc.resize(nx * nz)
-	for j in nz:
-		for i in nx: hc[j * nx + i] = height(r.position.x + i * s, r.position.y + j * s)
+	var hc := height_grid(r.position.x, r.position.y, s, nx, nz)   # parallel rows (1.18)
 	_hc = hc; _hc_nx = nx; _hc_nz = nz; _hc_r = r
 
 ## Depth of the sea at a point (> 0 in the sea), with a wobbling coast and the island round Saltmarsh (the easternmost town).
@@ -144,11 +142,15 @@ func splat(x: float, z: float, h: float) -> Array:
 		if _river_dist(x, z) < 120.0: w[K_MUD] = 0.6
 	return [Color(w[K_GRASS], w[K_FOREST], w[K_ROCK], w[K_SAND]), Vector2(w[K_MUD], w[K_PAVED])]
 
+func maybe_forest(x: float, z: float) -> bool: return n_hills.get_noise_2d(x * 2.4, z * 2.4) > 0.15
+
 func is_forest(x: float, z: float, h: float) -> bool:
 	if h < 3.0 or h > 380.0: return false
+	var fo := smoothstep(0.05, 0.25, n_hills.get_noise_2d(x * 2.4, z * 2.4))
+	if fo <= 0.5: return false   # 1.18: the cheap noise test first; most of the map is not forest (finale load)
 	var p := Vector2(x, z)
 	for ti in _near(x, z)[0]: if town_dn(ti, p) < 1.2: return false
-	return smoothstep(0.05, 0.25, n_hills.get_noise_2d(x * 2.4, z * 2.4)) * _flat_k(x, z) > 0.5
+	return fo * _flat_k(x, z) > 0.5
 
 ## The river as a ribbon of water quads along its polyline, 110 m wide.
 func river_mesh() -> ArrayMesh:

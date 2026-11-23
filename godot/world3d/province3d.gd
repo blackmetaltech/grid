@@ -217,8 +217,17 @@ func _update_sky(mn: float) -> void:
 # --------------------------------------------------------------------------------------------------------------------
 var _terrain_mat: ShaderMaterial
 
+var _prof_t := 0
+## CB_PROFILE=1: how long each build step of the 3D world takes (ms), one PROFILE line per step.
+func _tp(label: String) -> void:
+	if not OS.has_environment("CB_PROFILE"): return
+	var now := Time.get_ticks_msec()
+	if label != "": print("PROFILE %s %d ms" % [label, now - _prof_t])
+	_prof_t = now
+
 func set_model(m: Dictionary) -> void:
 	model = m
+	_tp("")
 	var has_t: bool = m.get("terrain") is Dictionary and not (m.terrain as Dictionary).is_empty()
 	var tid: String = str(m.terrain.id) if has_t else "gen:" + str(m.level)
 	if tid != _terrain_id or field == null:
@@ -226,22 +235,26 @@ func set_model(m: Dictionary) -> void:
 		if has_t: field = TerrainField.new(m.terrain, m.map, m.get("island_c", Vector2(-999, -999)))
 		else:   # no engine terrain (chapters 5-9): a generated province round the engine's buses, drawn at GEN_TILE_M per tile
 			var gf := GenField.new(m, clampf(30000.0 / maxf(1.0, float(m.map.x)), 200.0, 600.0))
+			_tp("genfield")
 			gf.cache_heights(Rect2(-1500, -1500, gf.size_m.x + 3000, gf.size_m.y + 3000), 40.0 if quality == "high" else 80.0)
+			_tp("cache_heights")
 			field = gf
 		tm = field.tm; map_size = field.size_m
 		dist_max = maxf(DIST_MAX, maxf(map_size.x, map_size.y) * 0.8)
 		env.fog_depth_begin = maxf(5000.0, map_size.x * 0.3); env.fog_depth_end = maxf(42000.0, map_size.x * 2.6)   # haze in layers: depth fog by the province's size
 		_build_static()
+		_tp("static")
 		reset_camera(); _cam_fresh = true
 	var lsig := JSON.stringify([m.level, m.towns.map(func(t): return [t.id, t.pos]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos]), m.get("batteries", []).map(func(b): return b.id)])
 	if lsig != _layout_sig:
-		_layout_sig = lsig; _build_layout()
+		_layout_sig = lsig; _build_layout(); _tp("layout")
 		if _cam_fresh and _big_centre.x < INF and not ("tx=" in OS.get_environment("CB_CAM") or "dist=" in OS.get_environment("CB_CAM")): reset_camera()   # the towns now exist: open on the largest one
 	_cam_fresh = false
 	var rsig := JSON.stringify([m.routes.map(func(r): return [r.id, r.supports.size(), r.spans.map(func(s): return s.sag_m)]), m.lines.map(func(l): return [l.id, l.kind, l.pts])])
 	if rsig != _routes_sig:
-		_routes_sig = rsig; _build_lines()
+		_routes_sig = rsig; _build_lines(); _tp("lines")
 	_update_dynamic()
+	_tp("dynamic")
 
 func tile_to_world(p: Vector2, z_m := 0.0) -> Vector3:
 	var x := p.x * tm; var z := p.y * tm
@@ -274,10 +287,11 @@ func _build_static() -> void:
 	if quality == "low": _terrain_mat.set_shader_parameter("cheap", true)
 	var step := 12.5 if quality == "high" else (20.0 if quality == "medium" else 30.0)
 	var margin := 900.0
-	if field is GenField: step = maxf(step * 2.0, map_size.x / 1400.0) if quality == "high" else maxf(step * 2.5, map_size.x / 700.0)
+	if field is GenField: step = maxf(step * 3.2, map_size.x / 1000.0) if quality == "high" else maxf(step * 2.5, map_size.x / 700.0)   # 1.18: 40 m on high, the height cache's own step (25 m interpolated it and cost 4 s of the finale load)
 	var near := Rect2(-margin, -margin, map_size.x + 2.0 * margin, map_size.y + 2.0 * margin)
 	var mi := MeshInstance3D.new(); mi.name = "TerrainNear"; mi.mesh = field.grid_mesh(near, step); mi.material_override = _terrain_mat
 	_root_static.add_child(mi)
+	_tp("terrain_near")
 	var far_half := maxf(26000.0, maxf(map_size.x, map_size.y) * 1.1)
 	var c := map_size * 0.5
 	var far := Rect2(c.x - far_half, c.y - far_half, far_half * 2.0, far_half * 2.0)
@@ -286,9 +300,10 @@ func _build_static() -> void:
 	var fm := MeshInstance3D.new(); fm.name = "TerrainFar"; fm.mesh = field.grid_mesh(far, fstep, hole, false); fm.material_override = _terrain_mat
 	fm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if quality != "high" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	_root_static.add_child(fm)
-	_build_water()
-	_build_forests(near)
-	_build_rocks()
+	_tp("terrain_far")
+	_build_water(); _tp("water")
+	_build_forests(near); _tp("forests")
+	_build_rocks(); _tp("rocks")
 	print("LOOK2 terrain built in %d ms (step %.1f m)" % [Time.get_ticks_msec() - t0, step])
 
 func _water_mat(river: bool) -> ShaderMaterial:
@@ -376,32 +391,42 @@ func _build_forests(near: Rect2) -> void:
 	var dens := 1.0 if quality == "high" else (0.55 if quality == "medium" else 0.12)
 	var cell := (9.0 if not field is GenField else 24.0) / sqrt(dens)
 	var nx := int(near.size.x / cell); var nz := int(near.size.y / cell)
-	for j in nz:
-		for i in nx:
-			var x := near.position.x + (i + _h(i, j, 301)) * cell; var z := near.position.y + (j + _h(i, j, 302)) * cell
-			var inside := field.inside(x, z)
-			var h := field.height(x, z)
-			if h < 2.5: continue
-			var forest := field.is_forest(x, z, h)
-			var lone := not forest and inside and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS and _h(i, j, 303) > 0.993   # a lone field tree
-			var hedge := false
-			if not forest and not lone and inside and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS:
-				var fp := Vector2(x * 0.966 - z * 0.259, x * 0.259 + z * 0.966)
-				var fr := Vector2(fposmod(fp.x, 150.0), fposmod(fp.y, 95.0))
-				hedge = (minf(fr.x, 150.0 - fr.x) < 4.0 or minf(fr.y, 95.0 - fr.y) < 4.0) and _h(i, j, 309) > 0.82   # trees along the hedgerows
-			if not (forest or lone or hedge): continue
-			if inside and not _clear_of_infra(x, z): continue
-			var sc := (13.0 + 11.0 * _h(i, j, 304)) * (1.0 if not field is GenField else 1.35)
-			if hedge: sc *= 0.7
-			var conif := _h(i, j, 305) < (0.75 if z < map_size.y * 0.4 else 0.35)
-			var xf := Transform3D(Basis(Vector3.UP, TAU * _h(i, j, 306)).scaled(Vector3(sc * (0.9 + 0.2 * _h(i, j, 307)), sc, sc)), Vector3(x, ground(x, z) - 0.3, z))
-			var tint := Color(0.85 + 0.3 * _h(i, j, 308), 0.9 + 0.2 * _h(i, j, 310), 0.8 + 0.3 * _h(i, j, 311))
-			if conif: xc.append(xf); cc.append(tint)
-			else: xb.append(xf); cb.append(tint)
+	for row in TerrainField.par_rows(nz, _forest_row.bind(near, cell, nx)):   # 1.18: rows in parallel (9 s single-threaded on the finale)
+		xc.append_array(row[0]); cc.append_array(row[1]); xb.append_array(row[2]); cb.append_array(row[3])
+	_tp("forest_rows")
 	var ve := (7000.0 if quality == "high" else 4500.0) * (1.6 if field is GenField else 1.0)
 	_mm_chunked(con, xc, cc, tmat, 600.0, ve, "Conifers", quality != "low")
 	_mm_chunked(brd, xb, cb, tmat, 600.0, ve, "Broadleaf", quality != "low")
 	print("LOOK2 trees: %d conifers, %d broadleaf" % [xc.size(), xb.size()])
+
+func _forest_row(j: int, near: Rect2, cell: float, nx: int) -> Array:
+	var xc: Array = []; var cc: Array = []; var xb: Array = []; var cb: Array = []
+	for i in nx:
+		var x := near.position.x + (i + _h(i, j, 301)) * cell; var z := near.position.y + (j + _h(i, j, 302)) * cell
+		# 1.18: the cheap tests first (finale load): a point that cannot be forest, a lone tree or a hedge tree is skipped before any height or tile lookup
+		var fp := Vector2(x * 0.966 - z * 0.259, x * 0.259 + z * 0.966)
+		var fr := Vector2(fposmod(fp.x, 150.0), fposmod(fp.y, 95.0))
+		var hedge_line := (minf(fr.x, 150.0 - fr.x) < 4.0 or minf(fr.y, 95.0 - fr.y) < 4.0) and _h(i, j, 309) > 0.82
+		var lone_roll := _h(i, j, 303) > 0.993
+		if not hedge_line and not lone_roll and not field.maybe_forest(x, z): continue
+		var inside := field.inside(x, z)
+		var h := field.height(x, z)
+		if h < 2.5: continue
+		var forest := field.is_forest(x, z, h)
+		var lone := not forest and inside and lone_roll and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS   # a lone field tree
+		var hedge := false
+		if not forest and not lone and inside and hedge_line and field.kind_at_tile(int(x / tm), int(z / tm)) == TerrainField.K_GRASS:
+			hedge = true   # trees along the hedgerows
+		if not (forest or lone or hedge): continue
+		if inside and not _clear_of_infra(x, z): continue
+		var sc := (13.0 + 11.0 * _h(i, j, 304)) * (1.0 if not field is GenField else 1.35)
+		if hedge: sc *= 0.7
+		var conif := _h(i, j, 305) < (0.75 if z < map_size.y * 0.4 else 0.35)
+		var xf := Transform3D(Basis(Vector3.UP, TAU * _h(i, j, 306)).scaled(Vector3(sc * (0.9 + 0.2 * _h(i, j, 307)), sc, sc)), Vector3(x, ground(x, z) - 0.3, z))
+		var tint := Color(0.85 + 0.3 * _h(i, j, 308), 0.9 + 0.2 * _h(i, j, 310), 0.8 + 0.3 * _h(i, j, 311))
+		if conif: xc.append(xf); cc.append(tint)
+		else: xb.append(xf); cb.append(tint)
+	return [xc, cc, xb, cb]
 
 func _build_rocks() -> void:
 	var xs: Array = []; var cs: Array = []
@@ -454,7 +479,9 @@ func _build_layout() -> void:
 	if field is GenField: walls = [Color(0.78, 0.72, 0.62), Color(0.62, 0.36, 0.26), Color(0.84, 0.8, 0.72), Color(0.55, 0.32, 0.24), Color(0.7, 0.66, 0.6), Color(0.74, 0.6, 0.46), Color(0.5, 0.48, 0.46)]   # stone, brick, render
 	var places: Array = []   # [x, z, w, d, h, rot, town_id, idx, block?]
 	var gen := field is GenField
+	_tp("layout_start")
 	var tg: Dictionary = TownGen.build(field, model, quality, ground) if gen else {}
+	_tp("towngen")
 	var areas := _town_areas() if not gen else []
 	var garden: Array = []   # plots left as gardens (trees)
 	if gen:
@@ -479,7 +506,17 @@ func _build_layout() -> void:
 		for cc in tg.centres:
 			_build_hall(cc[0], cc[2], int(counts.get(str(cc[1]), 1)))
 			if int(counts.get(str(cc[1]), 1)) > best: best = int(counts.get(str(cc[1]), 1)); _big_centre = cc[0]
-	for ai in areas.size():
+	var area_tg: Dictionary = {}
+	if not gen and not areas.is_empty():   # 1.18 (DECISIONS 25): the engine's town tiles get TownGen's grown streets, not four plots a tile
+		area_tg = TownGen.build(AreaTowns.new(field, model, areas), model, quality, ground)
+		places = area_tg.places
+		var sm2 := MeshInstance3D.new(); sm2.name = "Streets"; sm2.mesh = TownGen.street_mesh(area_tg.streets, ground)
+		_street_mat = ShaderMaterial.new(); _street_mat.shader = load("res://world3d/shaders/street.gdshader"); sm2.material_override = _street_mat
+		sm2.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(sm2)
+		_core_mat = ShaderMaterial.new(); _core_mat.shader = load("res://world3d/shaders/town_core.gdshader")
+		_town_lit = PackedFloat32Array(); _town_lit.resize(64)
+		for k in places.size(): if _h(k, 1, 615) > 0.78: garden.append(Vector3(places[k][0], 0, places[k][1]) + Vector3(6, 0, 6).rotated(Vector3.UP, places[k][5]))
+	for ai in (areas.size() if area_tg.is_empty() else 0):
 		var tiles: Array = areas[ai]
 		var c := Vector2.ZERO
 		for t in tiles: c += Vector2(t) + Vector2(0.5, 0.5)
@@ -582,7 +619,9 @@ func _build_layout() -> void:
 				gm.set_instance_color(k * 2 + q, Color(0.9 + 0.2 * _h(k, q, 614), 1.0, 0.85))
 		var gmi := MultiMeshInstance3D.new(); gmi.multimesh = gm; var tm3 := ShaderMaterial.new(); tm3.shader = load("res://world3d/shaders/tree.gdshader"); gmi.material_override = tm3
 		_root_infra.add_child(gmi)
+	_tp("houses")
 	if gen: _build_town_lamps(tg.lamps)
+	elif not area_tg.is_empty(): _build_town_lamps(area_tg.lamps)
 	else:
 		var ll: Array = []
 		for k in places.size():

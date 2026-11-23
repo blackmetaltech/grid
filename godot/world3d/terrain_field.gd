@@ -121,8 +121,10 @@ func river_surface(x: float, z: float) -> float:
 func splat(x: float, z: float, h: float) -> Array:
 	var w := PackedFloat32Array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 	if inside(x, z):
-		# bilinear blend of the four nearest tiles' one-hot kinds: soft borders, not tile squares
-		var u := x / tm - 0.5; var v := z / tm - 0.5
+		# bilinear blend of the four nearest tiles' one-hot kinds: soft borders, not tile squares. 1.18 (DECISIONS 25): read at a point warped by up
+		# to half a tile, so kinds meet along wandering lines, not stairs. Only the colour moves; heights stay the engine's (clearance is honest).
+		var wx := x + n_coast.get_noise_2d(x * 4.0, z * 4.0) * 0.5 * tm; var wz := z + n_coast.get_noise_2d(x * 4.0 + 711.0, z * 4.0 - 293.0) * 0.5 * tm
+		var u := wx / tm - 0.5; var v := wz / tm - 0.5
 		var i := floori(u); var j := floori(v); var fu := u - i; var fv := v - j
 		for c in [[0, 0, (1 - fu) * (1 - fv)], [1, 0, fu * (1 - fv)], [0, 1, (1 - fu) * fv], [1, 1, fu * fv]]:
 			var kk := kind_at_tile(i + int(c[0]), j + int(c[1]))
@@ -142,6 +144,9 @@ func splat(x: float, z: float, h: float) -> Array:
 	return [Color(w[K_GRASS], w[K_FOREST], w[K_ROCK], w[K_SAND]), Vector2(w[K_MUD], w[K_PAVED])]
 
 ## Is a point forest (for tree scattering), inside or outside the map.
+## A cheap first test before is_forest (false only where is_forest is surely false); GenField answers from its forest noise.
+func maybe_forest(_x: float, _z: float) -> bool: return true
+
 func is_forest(x: float, z: float, h: float) -> bool:
 	if inside(x, z): return kind_at_tile(int(x / tm), int(z / tm)) == K_FOREST
 	var s: Array = splat(x, z, h)
@@ -149,23 +154,56 @@ func is_forest(x: float, z: float, h: float) -> bool:
 
 ## A rectangular grid mesh of the field: step metres, with a skirt that drops 40 m at the border (hides the seam to the far mesh). `hole` (Rect2,
 ## metres) skips the quads fully inside it (the far mesh leaves the near area to the near mesh).
+## 1.18 (finale load 14-22 s, profiled: heights 2.5 s, near terrain 8.2 s, forests 9.1 s, all single-threaded GDScript loops): rows of a grid
+## are independent, so they run on the worker pool. fn(j) must only read shared state; each row's result lands in its own slot.
+## CB_NOTHREADS=1 runs them in order (the result is the same: tests/par_rows_truth.gd).
+static var serial := false   # tests flip it to compare with the threaded result
+static func par_rows(n: int, fn: Callable) -> Array:
+	var out := []; out.resize(n)
+	var workers := mini(8, OS.get_processor_count() - 2)
+	if n < 32 or workers < 2 or serial or OS.has_environment("CB_NOTHREADS"):
+		for j in n: out[j] = fn.call(j)
+		return out
+	var task := func(j: int) -> void: out[j] = fn.call(j)
+	var id := WorkerThreadPool.add_group_task(task, n, workers, true, "grid rows")
+	WorkerThreadPool.wait_for_group_task_completion(id)
+	return out
+
+func _h_row(j: int, x0: float, z0: float, step: float, nx: int) -> PackedFloat32Array:
+	var row := PackedFloat32Array(); row.resize(nx)
+	var z := z0 + j * step
+	for i in nx: row[i] = height(x0 + i * step, z)
+	return row
+
+## Heights on a grid (row-major), computed in parallel rows.
+func height_grid(x0: float, z0: float, step: float, nx: int, nz: int) -> PackedFloat32Array:
+	var hs := PackedFloat32Array()
+	for row in par_rows(nz, _h_row.bind(x0, z0, step, nx)): hs.append_array(row)
+	return hs
+
+func _v_row(j: int, x0: float, z0: float, step: float, nx: int, nz: int, hs: PackedFloat32Array) -> Array:
+	var verts := PackedVector3Array(); var nrm := PackedVector3Array(); var cols := PackedColorArray(); var uv2 := PackedVector2Array()
+	verts.resize(nx); nrm.resize(nx); cols.resize(nx); uv2.resize(nx)
+	for i in nx:
+		var k := j * nx + i
+		var x := x0 + i * step; var z := z0 + j * step; var h := hs[k]
+		verts[i] = Vector3(x, h, z)
+		var hl := hs[j * nx + maxi(i - 1, 0)]; var hr := hs[j * nx + mini(i + 1, nx - 1)]
+		var hu := hs[maxi(j - 1, 0) * nx + i]; var hd := hs[mini(j + 1, nz - 1) * nx + i]
+		nrm[i] = Vector3(hl - hr, 2.0 * step, hu - hd).normalized()
+		var s: Array = splat(x, z, h)
+		cols[i] = s[0]; uv2[i] = s[1]
+	return [verts, nrm, cols, uv2]
+
 func grid_mesh(r: Rect2, step: float, hole: Rect2 = Rect2(), skirt := true) -> ArrayMesh:
 	var nx := int(ceil(r.size.x / step)) + 1; var nz := int(ceil(r.size.y / step)) + 1
-	var hs := PackedFloat32Array(); hs.resize(nx * nz)
-	for j in nz:
-		for i in nx: hs[j * nx + i] = height(r.position.x + i * step, r.position.y + j * step)
+	var t0 := Time.get_ticks_msec()
+	var hs := height_grid(r.position.x, r.position.y, step, nx, nz)
+	var t1 := Time.get_ticks_msec()
 	var verts := PackedVector3Array(); var nrm := PackedVector3Array(); var cols := PackedColorArray(); var uv2 := PackedVector2Array()
-	verts.resize(nx * nz); nrm.resize(nx * nz); cols.resize(nx * nz); uv2.resize(nx * nz)
-	for j in nz:
-		for i in nx:
-			var k := j * nx + i
-			var x := r.position.x + i * step; var z := r.position.y + j * step; var h := hs[k]
-			verts[k] = Vector3(x, h, z)
-			var hl := hs[j * nx + maxi(i - 1, 0)]; var hr := hs[j * nx + mini(i + 1, nx - 1)]
-			var hu := hs[maxi(j - 1, 0) * nx + i]; var hd := hs[mini(j + 1, nz - 1) * nx + i]
-			nrm[k] = Vector3(hl - hr, 2.0 * step, hu - hd).normalized()
-			var s: Array = splat(x, z, h)
-			cols[k] = s[0]; uv2[k] = s[1]
+	for row in par_rows(nz, _v_row.bind(r.position.x, r.position.y, step, nx, nz, hs)):
+		verts.append_array(row[0]); nrm.append_array(row[1]); cols.append_array(row[2]); uv2.append_array(row[3])
+	var t2 := Time.get_ticks_msec()
 	var idx := PackedInt32Array()
 	var has_hole := hole.size.x > 0.0
 	for j in nz - 1:
@@ -189,5 +227,7 @@ func grid_mesh(r: Rect2, step: float, hole: Rect2 = Rect2(), skirt := true) -> A
 			idx.append_array([a0, a1, b0, b0, a1, b1, a0, b0, a1, b0, b1, a1])
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = nrm; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_TEX_UV2] = uv2; arr[Mesh.ARRAY_INDEX] = idx
+	var t3 := Time.get_ticks_msec()
 	var m := ArrayMesh.new(); m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	if OS.has_environment("CB_PROFILE"): print("PROFILE grid_mesh %dx%d heights %d verts %d index %d upload %d ms" % [nx, nz, t1 - t0, t2 - t1, t3 - t2, Time.get_ticks_msec() - t3])
 	return m
