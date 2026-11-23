@@ -111,7 +111,7 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 		b.tooltip_text = lock
 	return b
 
-## A small "Classic" chip: this screen keeps the classic 2D look (only the finale and L30 are in the new look so far).
+## A small "Classic" chip: this job still draws in the classic 2D look (the levels listed in WorldView.LOOK2_LEVELS are in the new look).
 static func classic_chip() -> Control:
 	var l := PaperKit.lbl(T("JOBS_CLASSIC"), 14, "mono", Color(PaperKit.INK, 0.6)); l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	l.tooltip_text = T("JOBS_CLASSIC_TIP"); l.mouse_filter = Control.MOUSE_FILTER_PASS; l.name = "Classic"

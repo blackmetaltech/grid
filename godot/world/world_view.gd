@@ -17,8 +17,10 @@ var title_mode := false
 var cute := true              # Cute mode (Settings): bulb mascots, villagers, lighthouse, fireflies; charm encodes state, never hides numbers
 var model: Dictionary = WorldModel.empty()
 ## LOOK2: the levels drawn by the 3D province (world3d/province3d.gd) when it is present; every other level keeps this 2D diorama.
-const LOOK2_LEVELS := ["L30", "L28", "L07", "L08", "L09"]   # 1.16: chapter 3 (Mill Town) in the new look (DECISIONS 21)   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
-var look3d = null              # Province3D or null (tests, CI, levels not yet rebuilt)
+const LOOK2_LEVELS := ["L30", "L28", "L07", "L08", "L09", "L01", "L02", "L03"]   # 1.16: chapter 3 (Mill Town) in the new look (DECISIONS 21)   # L30: engine terrain; L28: a generated province round the engine buses (GenField)
+var look3d = null              # the 3D layer in use: Province3D (grid levels), Bay3D (bench levels L01 to L03) or null (tests, CI, levels not yet rebuilt)
+var prov3d = null              # the province layer (look3d points at it unless a bay level is shown)
+var bay3d = null               # Bay3D: the island bay, the title backdrop and the bench levels (DECISIONS 23)
 var _drag_btn := 0
 var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
 func _l3() -> bool: return look3d != null and look3d.visible and look3d.field != null
@@ -85,7 +87,12 @@ func _ready() -> void:
 
 func set_cover(px: float) -> void: cover = px; _refit(); queue_redraw()
 func set_blocked(b: bool) -> void: blocked = b
-func set_title(on: bool) -> void: title_mode = on; repaint_static(); queue_redraw()
+## The dusk minute of the title backdrop (18:30: the warm band on the horizon, lamps coming on).
+const TITLE_MINUTE := 1110.0
+func set_title(on: bool) -> void:
+	title_mode = on
+	if bay3d != null: bay3d.set_title(on)
+	repaint_static(); queue_redraw()
 
 # --------------------------------------------------------------------------------------------------------------------
 # Model
@@ -97,11 +104,21 @@ func refresh(b) -> void:
 
 func set_model(m: Dictionary) -> void:
 	model = m
-	if look3d != null:
+	var bay_on: bool = bay3d != null and str(m.kind) == "bench" and Bay3D.LEVELS.has(str(m.level)) and OS.get_environment("CB_LOOK") != "1"
+	if bay3d != null:   # the bay answers for bench levels, the province for grid levels
+		if bay_on and title_mode: m.minute = TITLE_MINUTE; m.night = WorldMath.night(TITLE_MINUTE)   # the title is dusk, the hamlet dark
+		if bay_on: look3d = bay3d
+		elif prov3d != null: look3d = prov3d
+		bay3d.visible = bay_on; bay3d.view = self
+		if not bay_on and bay3d.cam != null: bay3d.cam.current = false
+	if look3d != null and not bay_on:
 		var want: bool = (LOOK2_LEVELS.has(str(m.level)) or OS.get_environment("CB_LOOK2_TRY").split(",").has(str(m.level))) and str(m.kind) == "grid" and not title_mode and OS.get_environment("CB_LOOK") != "1"
 		look3d.visible = want
 		if want: look3d.set_model(m)
 		elif look3d.cam != null: look3d.cam.current = false
+	elif prov3d != null and prov3d.visible:
+		prov3d.visible = false
+		if prov3d.cam != null: prov3d.cam.current = false
 	var sg := JSON.stringify([m.kind, m.level, m.map, m.towns.map(func(t): return [t.id, t.pos, t.count, t.kind]), m.subs.map(func(s): return [s.id, s.pos]), m.units.map(func(u): return [u.id, u.pos, u.kind]), m.lines.map(func(l): return [l.id, l.pts, l.kind]), m.get("ghosts", []), m.shunts.map(func(h): return [h.id, h.pos]), m.get("terrain", {}).get("id", ""), m.routes.map(func(r): return [r.id, r.supports.size()])])   # 1.8: span loading bands repaint (coalesced), they do not rebuild the map
 	_track_new_routes(m)
 	if sg != _sig:
@@ -109,6 +126,7 @@ func set_model(m: Dictionary) -> void:
 		_sig = sg
 		_rebuild(); _refit()
 		if not first: _zoom = 1.0; _pan = Vector2.ZERO
+	if bay_on: bay3d.set_model(m, _tiles, _zgrid, _objs)   # after the rebuild: the bay reads the tiles, heights and objects WorldView just made
 	_night = float(m.night); _gain = WorldMath.lights_gain(_night); _nl = WorldMath.ground_light(_night)
 	var wk := JSON.stringify([_sig, snappedf(_night, 0.05), m.lines.map(func(l): return [l.band, l.in_service, l.get("mm2"), l.width]), m.get("ghosts", []).size(), _route_poly.keys()])
 	if wk != _wire_key and _wire_layer != null:   # wires are cheap: repaint them on every band change
@@ -1069,7 +1087,8 @@ func _paint_top() -> void:
 	if _flash > 0.0:
 		_dr(Rect2(Vector2.ZERO, size), Color(1.0, 0.92, 0.75, 0.32 * _flash * _flash))
 	if OS.has_environment("CB_CLEAN"): return   # QA captures for the README and site: the world only, no labels
-	if _l3() and sld_on: _draw_line_overlay()
+	if title_mode and _l3(): return   # the title's bay carries no chips: the menu is the only text
+	if _l3() and sld_on and not bool(look3d.get("own_lines")): _draw_line_overlay()
 	_draw_labels()
 	_draw_pegs()
 	_draw_hand()
