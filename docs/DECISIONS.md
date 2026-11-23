@@ -189,3 +189,10 @@ Newest last. Each entry: what, why, where.
       - the first impression: either a 3D title and first job, or chapter 1 converted next, decided with Priya;
       - no mill exists in L07 today.
     - **Strongest argument against shipping now (Sigrid):** the landmarks are thin at the default distance, and chapter 3 is a plain with a disc of town. I ship because the gate items are met and these points are named here, not hidden.
+23. **1.17 first impression: one island bay in 3D, used as the title and as L01 (look4, 2026-11-23, Priya and Ingrid).**
+    - **Title:** the small island bay at dusk, with the hamlet dark and the lighthouse lit. Not the finale province: the title must not promise what the first job lacks.
+    - **L01 goes 3D.** It is a bench level (10 m tiles, one hut, one cable), so it needs a metre-scale scene that reads the same bench model as the 2D island. It cannot use the province renderer.
+    - **L02 and L03** go 3D only if the scene draws them with no per-level work; otherwise they keep the Classic chip. **P0 stays 2D:** it is off the campaign path, and its trip flashes are drawn in 2D.
+    - **The charm moment:** at dusk the ten homes and a porch bulb at the hut light from the engine's voltages, with brightness (V/V0)². A thin cable leaves the homes amber beside a white hut: V = I·R, seen. The bench lumps the ten homes on one node, so no gradient along the row is faked.
+    - **Disagreement:** Priya would cut the mill, the town outlines and the cloud shadows to 1.18. The manager put them in 1.17, so they stay in, after L01. If time runs out they are cut in this order: cloud shadows, then outlines, then the mill, and each cut is written here.
+    - **Strongest argument against (Priya's own):** the finale already renders, so a province title is nearly free, while the bay is new work that could slip. We choose the bay anyway: one scene used twice.
