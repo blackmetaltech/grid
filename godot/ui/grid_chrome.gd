@@ -160,6 +160,8 @@ func handle_input(e: InputEvent) -> bool:
 		if jb.button_index == JOY_BUTTON_X and not tags.is_open():   # X: the breaker (X also closes an open tag, as on the keyboard)
 			breaker.toggle(); return true
 		if jb.button_index == JOY_BUTTON_X: return tags.close()
+		if jb.button_index == JOY_BUTTON_BACK:   # 1.18 (Dagny): Back cycles 1x, 2x, 4x from anywhere; the D-pad only reached the knob with focus on the breaker
+			breaker.cycle_rate(); return true
 		return tr.pad_button(jb.button_index)
 	return false
 

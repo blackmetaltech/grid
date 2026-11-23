@@ -311,6 +311,11 @@ func game_smoke() -> void:
 	CbSmoke._check(chrome.instruments.clock.visible and chrome.instruments.volt.visible and not chrome.instruments.dial.visible, "bench level: clock and voltmeter, no frequency dial")
 	set_speed(0); chrome.breaker.set_rate(1); chrome.breaker.toggle(); CbSmoke._check(speed == 1, "breaker run sets speed 1")
 	chrome.breaker.cycle_rate(); CbSmoke._check(speed == 2, "rate knob moves a running night to 2x")
+	var pad_was := CbPad.enabled; CbPad.enabled = true
+	var jb := InputEventJoypadButton.new(); jb.button_index = JOY_BUTTON_BACK; jb.pressed = true
+	CbSmoke._check(chrome.handle_input(jb) and speed == 3, "pad Back steps a running night 2x -> 4x (1.18, Dagny: the D-pad never reached the speed keys)")
+	chrome.handle_input(jb); CbSmoke._check(speed == 1, "pad Back wraps 4x -> 1x")
+	CbPad.enabled = pad_was
 	chrome.breaker.toggle(); CbSmoke._check(speed == 0, "breaker pause sets speed 0")
 	chrome.space_steps = false; var ev := InputEventKey.new(); ev.keycode = KEY_SPACE; ev.pressed = true; game_unhandled_key(ev); CbSmoke._check(speed > 0, "Space toggles run"); game_unhandled_key(ev); CbSmoke._check(speed == 0, "Space toggles pause"); chrome.space_steps = true
 	var t0 := int(b.q("clock").tick); ev.keycode = KEY_PERIOD; game_unhandled_key(ev); CbSmoke._check(int(b.q("clock").tick) == t0 + 1, "'.' steps one block")
