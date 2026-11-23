@@ -98,7 +98,8 @@ func _tag_above() -> bool: return _narrow() or (_look3() and panel.size.x < 760.
 func _place_predict(row: Rect2) -> void:
 	predict_edit.visible = true; predict_btn.visible = true
 	var bw := 90.0
-	var tag_room := 0.0 if _tag_above() else 186.0   # a narrow panel hangs the price tag above itself and gives the row to the prediction
+	var tag_room := 0.0 if _tag_above() else 186.0
+	if _look3() and not _tag_above(): tag_room = _tag_w() + 22.0   # 3D: the tag grows with an over-budget figure; the row steps clear of it   # a narrow panel hangs the price tag above itself and gives the row to the prediction
 	predict_btn.position = row.position + Vector2(row.size.x - bw - tag_room, 4.0); predict_btn.size = Vector2(bw, 30.0)
 	predict_edit.position = predict_btn.position - Vector2(88.0, 0.0); predict_edit.size = Vector2(80.0, 30.0)
 
@@ -539,6 +540,13 @@ func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
 	s.border_color = GridTheme.SODIUM if lit else Color(GridTheme.SODIUM_DIM, 0.28); s.set_border_width_all(2 if lit else 1)
 	return s
+
+## The price tag's width as _draw_price_tag sizes it (it grows to its words at the 16 px floor).
+func _tag_w() -> float:
+	if q.is_empty(): return 176.0
+	var txt := T("C2_SPENT") % [_money(float(q.get("spent", 0.0))), _money(float(q.get("budget", 0.0)))]
+	var fz16 := GridText.floor_size(self, 13)
+	return maxf(176.0, maxf(GridTheme.font("semi").get_string_size(tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 34.0, GridTheme.font("mono").get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 20.0))
 
 func _draw_price_tag(pn: Rect2) -> void:
 	var spent := float(q.get("spent", 0.0)); var budget := float(q.get("budget", 0.0))
