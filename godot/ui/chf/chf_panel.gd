@@ -48,7 +48,7 @@ func _init() -> void:
 	_toggle.add_theme_font_size_override("font_size", GridTheme.fs(16)); _toggle.add_theme_color_override("font_color", GridTheme.PAPER_INK)
 	_toggle.pressed.connect(func(): _open = not _open; _user = 1 if _open else 0; refresh())
 	root.add_child(_toggle)
-	_scroll = ScrollContainer.new(); _scroll.name = "cf_scroll"; _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll = ScrollContainer.new(); _scroll.follow_focus = true; _scroll.name = "cf_scroll"; _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(_scroll)
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.add_child(_box)
 	GridUi.load_strings()
@@ -93,12 +93,24 @@ func refresh() -> void:
 	if sig != _sig: _sig = sig; _rebuild_ticker(g)
 	_rebuild_kit(g)
 	_rebuild_live(g)
+	_slow_for_lightning(g)
 	_look_at_island(lamp[0] as String)
 	_layout()
 
 ## When the island loses its feeder (on its battery, or dark), the 3D camera turns to it once, so the player sees the call and the lights (1.16 hand play:
 ## the camera stayed over the capital and the player never saw the island). Not in QA captures (CB_CAM).
 var _island_was := ""
+## An hour before the Day 2 lightning, a run at 2x or 4x drops to 1x once and says why: the north-feeder call has a real window (1.16 hand play: at 4x it passed in 2 s).
+var _slowed := false
+func _slow_for_lightning(g: Dictionary) -> void:
+	var L: Dictionary = (g.rules.get("finale", {}) as Dictionary).get("lightning", {})
+	if L.is_empty() or app == null: return
+	if int(g.tick) <= int(g.levelStart): _slowed = false; return
+	var d := int(g.clock.day); var bl := int(g.clock.block); var lb := int(L.get("block", 0))
+	if not _slowed and d == int(L.get("day", -1)) and bl >= lb - 4 and bl < lb:
+		_slowed = true
+		if int(app.speed) > 1: app.set_speed(1)
+		app.toast(tx("CF_STORM_SLOW"), "warn")
 func _look_at_island(state: String) -> void:
 	var was := _island_was; _island_was = state
 	if was == "" or state == was or not GridTheme.look2 or state == tx("CF_ISLAND_LIT") or OS.has_environment("CB_CAM"): return
@@ -248,6 +260,8 @@ func _rebuild_kit(g: Dictionary) -> void:
 	var sig := ",".join(have) + str(locked) + str(g.budget.get("spent", 0.0))
 	if sig == _kit_sig: return
 	_kit_sig = sig
+	var fo := get_viewport().gui_get_focus_owner() if is_inside_tree() else null
+	var keep := str(fo.name) if fo != null and _kit.is_ancestor_of(fo) else ""   # 1.16 hand play: the pad's focus stays on the part just pressed across the rebuild
 	for c in _kit.get_children(): _kit.remove_child(c); c.queue_free()
 	_kit.add_child(_wrap_ink(tx("CF_SHELF_HEAD"), 12, 0.7))
 	for area in SHELF:
@@ -266,6 +280,9 @@ func _rebuild_kit(g: Dictionary) -> void:
 			b.disabled = locked or (has and id == "spin") or (id == "spin" and not has and float(g.budget.spent) + p > float(g.budget.capexLimit) + 1e-6)   # fuel burned is not returned, so the card never commits fuel the budget cannot pay
 			b.pressed.connect(_press.bind(str(id)))
 			_kit.add_child(b)
+	var btns: Array = _kit.get_children().filter(func(c): return c is Button)
+	if not btns.is_empty(): (btns[0] as Control).focus_neighbor_top = (btns[0] as Control).get_path_to(btns[0])   # UP from the first part stays on the card (it reached the menu icon)
+	if keep != "" and _kit.has_node(keep): (_kit.get_node(keep) as Control).call_deferred("grab_focus")
 
 ## The live calls (DECISIONS 20), on actions the engine already has: spin U4 now (spinUnit prices the fuel for the hours left) and open or close the island's north feeder
 ## (shedLoad on the island's load, a third of it; the school stays on; the crews' 06:00 repair closes it again). Shown only while the three days run.

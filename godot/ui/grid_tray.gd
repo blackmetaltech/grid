@@ -309,6 +309,7 @@ func activate(i: int, down := false) -> void:
 	armed = i
 	if (sp.pick as Array).is_empty(): var r := run_armed(); armed = -1; queue_redraw(); return   # a cell with nothing to pick acts at once
 	mode = "pick"; picks = []; _show_pegs(); mode_changed.emit(mode); _hint(); queue_redraw()
+	if CbKit.pad_mode and not _targets.is_empty(): set_target_hi(0)   # 1.16 hand play: the pad cursor shows from the start, so the first A puts the part where the ring is
 
 func _kind_of_pick() -> String:
 	if armed < 0: return ""

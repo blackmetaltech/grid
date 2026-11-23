@@ -16,7 +16,7 @@ const S := {
 	"CF_P_TAP": "Eastgate tap changers T34+T35 hold 1.02 pu", "CF_P_CAP": "Capacitor bank 200 MVAr, automatic, Eastgate 400", "CF_P_STATCOM": "STATCOM 200 MVAr, Eastgate 400",
 	"CF_P_REACTOR": "Reactor 500 MVAr, automatic, Redhill 400", "CF_P_SPIN": "Keep gas unit U4 spinning (fuel for three days)", "CF_P_GFM": "Four grid-forming batteries, 200 MW, Capital 220",
 	"CF_P_LINE": "Second causeway line from Harbour, 132 kV", "CF_P_FEEDER": "New 132 kV line from Eastgate", "CF_P_BATT2": "Island battery 50 MW, 100 MWh (2 h)", "CF_P_BATT4": "Island battery 50 MW, 200 MWh (4 h)",
-	"CF_LIVE_HEAD": "Calls during the run",
+	"CF_LIVE_HEAD": "Calls during the run", "CF_STORM_SLOW": "Lightning is forecast for Saltmarsh within the hour. The clock slows to 1x.",
 	"CF_LIVE_SPIN": "Spin U4 now · %s, fuel for the hours left (%s left in the budget)", "CF_LIVE_SPUN": "✓ U4 spinning · fuel committed",
 	"CF_LIVE_SHED": "Open the island's north feeder: a third of its homes go dark so the battery lasts longer (the school stays on)", "CF_LIVE_SHED_OFF": "✓ North feeder open · press to close it",
 	"CF_P_FREE": "no cost", "CF_P_BACK": "press to take back", "CF_P_SPUN": "fuel committed",
