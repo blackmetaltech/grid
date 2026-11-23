@@ -26,6 +26,8 @@ var _level := ""
 var _hover := ""
 var pad_row := 0               ## the pad ring: a row of the panel (a knob, the ratio chips, the kVA chips, the prediction box) ...
 var pad_col := 0               ## ... and a chip in that row
+var pad_held := true           ## the panel has the pad (B hands it to the shell, so the D-pad reaches the radio's why?, the log and the menu)
+var _dpad_shell := false       ## a D-pad press went to the shell this frame from outside the panel: if it lands on the panel, the panel takes the ring back
 
 static func T(key: String) -> String: return TranslationServer.translate(key)
 
@@ -34,8 +36,9 @@ func _init() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	predict_edit = LineEdit.new(); predict_edit.placeholder_text = "0"; predict_edit.custom_minimum_size = Vector2(80, 30); predict_edit.alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	predict_edit.text_submitted.connect(func(_s): _on_predict()); predict_edit.visible = false; add_child(predict_edit)
+	predict_edit.focus_mode = Control.FOCUS_CLICK   # a click types in it; the pad never parks there (a focused box ate left / right for its cursor), A on the panel opens the number pad
 	predict_btn = Button.new(); predict_btn.pressed.connect(_on_predict); predict_btn.visible = false; add_child(predict_btn)
-	predict_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())   # the core pad parks its focus here; its outline read as a second pad ring beside the panel's (1.19)
+	_focus_look()
 	GridUi.load_strings(); TrayStrings.load_strings()
 	predict_btn.text = T("C2_PREDICT_BTN")
 
@@ -69,7 +72,7 @@ func refresh() -> void:
 	q = r; kind = str(r.kind); visible = true
 	var li = app.b.q("levelInfo")
 	var id: String = str(li.id) if li is Dictionary and li.get("active", false) else ""
-	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""; pad_row = 0; pad_col = -1   # a new job: the ring starts on the first row
+	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""; pad_row = 0; pad_col = -1; pad_held = true; _focus_look()   # a new job: the ring starts on the first row
 	predict_edit.editable = not _locked(); predict_btn.disabled = _locked()
 	layout(); queue_redraw()
 
@@ -202,6 +205,8 @@ func _process(dt: float) -> void:
 	_t += dt
 	var l3 := _look3()
 	if l3 != _was3: _was3 = l3; layout()   # the 3D bench came up (or went) after this level's first layout: the predict row and the tag move
+	if not pad_held and _dpad_shell and _on_panel_focus(): pad_held = true; _focus_look(); queue_redraw()   # the shell's D-pad walked back onto the panel
+	_dpad_shell = false
 	for act in pending.keys():   # one action per knob per frame, whatever the drag sent
 		var arg = pending[act]; _send(String(act), arg)
 	pending.clear()
@@ -264,7 +269,25 @@ func pad_free() -> bool:
 ## A pad button press, from the relay (or a test). True when the panel used it.
 func pad_input(e: InputEvent) -> bool:
 	if not (e is InputEventJoypadButton) or not e.pressed or not pad_free(): return false
-	return pad_button((e as InputEventJoypadButton).button_index)
+	var idx := (e as InputEventJoypadButton).button_index
+	if not pad_held:   # the shell has the pad: A on the panel's own box or button takes the ring back; a D-pad press may land there (checked next frame)
+		if idx == JOY_BUTTON_A and _on_panel_focus(): pad_held = true; _focus_look(); queue_redraw(); return true
+		if idx in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]: _dpad_shell = not _on_panel_focus()   # from Predict (where B leaves it) the press walks away
+		return false
+	if idx == JOY_BUTTON_B: pad_held = false; _dpad_shell = false; _focus_look(); queue_redraw(); return true   # hand the pad to the shell
+	return pad_button(idx)
+
+## The shell's focus sits on the panel's own prediction box or button.
+func _on_panel_focus() -> bool:
+	if not is_inside_tree(): return false
+	var fo := get_viewport().gui_get_focus_owner()
+	return fo != null and (fo == predict_btn or fo == predict_edit)
+
+## While the panel holds the pad, Predict's focus outline is blank (the core pad parks its focus there and the outline read as a second ring);
+## once B hands the pad back it is the shell's focus again and shows.
+func _focus_look() -> void:
+	if pad_held: predict_btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	else: predict_btn.remove_theme_stylebox_override("focus")
 
 func pad_button(idx: int) -> bool:
 	var st := pad_stop()
@@ -631,7 +654,7 @@ func _draw_panel() -> void:
 	elif pr is Dictionary:
 		var s2 := T("C2_PREDICTED") % [_f(float(pr.predicted), 1), unit] if pr.get("actual") == null else T("C2_PREDICTED_ACT") % [_f(float(pr.predicted), 1), unit, _f(float(pr.actual), 1)]
 		_text(mono, 12, Vector2(inner.position.x + 10.0, inner.position.y + 118.0), s2, GridTheme.SODIUM)
-	if CbKit.pad_mode and pad_free():   # the pad ring: where D-pad and A act
+	if CbKit.pad_mode and pad_held and pad_free():   # the pad ring: where D-pad and A act
 		var st := pad_stop()
 		if not st.is_empty(): draw_style_box(GridTheme.focus_sb(), (st.rect as Rect2).grow(2.0))
 	_draw_price_tag(panel)

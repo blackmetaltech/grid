@@ -5,7 +5,7 @@ bench3d_truth 253
 bench_geometry_truth 487
 career_map_truth 5483
 ch2_flow 37
-ch2_pad_truth 38
+ch2_pad_truth 48
 ch3_flow 23
 ch4_flow 24
 ch5_flow 21

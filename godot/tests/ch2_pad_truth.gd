@@ -71,6 +71,25 @@ func _initialize() -> void:
 	T.check(not bench.pad_free() and not _pad(bench, JOY_BUTTON_DPAD_DOWN), "an open drawer takes the pad")
 	app.set("_cover_px", 0.0)
 	T.check(bench.pad_free(), "a closed drawer gives it back")
+	# ---- B hands the pad back to the shell (1.20: the D-pad no longer reached the radio's why?) ----
+	var why := Button.new(); why.text = "why?"; why.focus_mode = Control.FOCUS_ALL; root.add_child(why)   # stands in for the radio's why?
+	why.grab_focus(); await process_frame
+	T.check(bench.pad_held and _pad(bench, JOY_BUTTON_B) and not bench.pad_held, "B with the ring in the panel lets go of the pad")
+	T.check(not _pad(bench, JOY_BUTTON_DPAD_UP) and not _pad(bench, JOY_BUTTON_DPAD_LEFT), "after B the D-pad goes to the shell (it can reach why?)")
+	T.check(not _pad(bench, JOY_BUTTON_A) and not bench.pad_held, "after B, A on another control is the shell's")
+	T.check(not _pad(bench, JOY_BUTTON_B), "a second B is the shell's too")
+	bench.predict_btn.grab_focus(); _pad(bench, JOY_BUTTON_DPAD_LEFT); bench._process(0.016)
+	T.check(not bench.pad_held, "from Predict (where B leaves the focus) a D-pad press walks away; it does not take the ring back")
+	T.check(bench.predict_edit.focus_mode == Control.FOCUS_CLICK, "the prediction box takes focus by click only (the pad never parks in it)")
+	why.grab_focus()
+	_pad(bench, JOY_BUTTON_DPAD_DOWN); bench.predict_btn.grab_focus(); bench._process(0.016)   # the shell's D-pad moved its focus onto the panel's Predict
+	T.check(bench.pad_held, "a D-pad press that lands on the panel takes the ring back")
+	_pad(bench, JOY_BUTTON_B); why.grab_focus(); bench._process(0.016)
+	T.check(not bench.pad_held, "B again: the shell has it")
+	bench.predict_btn.grab_focus(); bench._process(0.016)
+	T.check(not bench.pad_held, "focus moved there without a D-pad press (B parks it) does not take the ring")
+	T.check(_pad(bench, JOY_BUTTON_A) and bench.pad_held and bench.numpad_host().get_node_or_null("Numpad") == null, "A on the panel's Predict takes the ring back (and does not press Predict)")
+	why.grab_focus()
 	# ---- L06: ratio chips, kVA chips, prediction ----
 	T.level("L06"); bench.refresh()
 	T.check(bench.pad_free() and bench.pad_stop().get("id", "") == "ratio" and int(bench.pad_stop().arg) == int(bench.q.town.ratio), "job start: the ring is on the chosen ratio chip (%s)" % str(bench.pad_stop()))
