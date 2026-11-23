@@ -181,3 +181,44 @@ describe('determinism and free play', () => {
     expect(e.state.bench).toBeNull(); expect(act(e, 'setPoles', 12).ok).toBe(false);
   });
 });
+
+// 1.19 (Dagny's fun pass, DECISIONS 29): the prediction binds. The first prediction for a design is the one that counts; a second one for the same design is refused;
+// a prediction counts for the lamp only while the design it was made for is the one that runs. L06's answer does not depend on the design: once only.
+describe('the prediction binds (predictOnce)', () => {
+  const A = [['setPoles', 12], ['setTurns', 13], ['setField', 0.8], ['setArea', 0.1]] as const;
+  const B = [['setPoles', 12], ['setTurns', 15], ['setField', 0.86], ['setArea', 0.08]] as const;
+  const build = (e: Env<GridState>, d: typeof A | typeof B): void => { for (const [n, v] of d) act(e, n, v); };
+  it('L06: re-predicting after the reveal is refused; the first prediction stays', () => {
+    const e = fresh('L06');
+    expect(act(e, 'predict', TOWN.predictId, 6, 'kW').ok).toBe(true);
+    const r = act(e, 'predict', TOWN.predictId, 600, 'kW');
+    expect(r.ok).toBe(false); expect(r.key).toBe('act.predict.again'); expect(r.message).toBe('You already predicted this design.');
+    act(e, 'setLineRatio', 10); act(e, 'setTransformerKva', 1000);
+    expect(act(e, 'predict', TOWN.predictId, 600, 'kW').ok, 'L06 asks about 4 kV whatever the ratio: once only').toBe(false);
+    expect(e.state.metrics.predictions.map((p) => p.predicted)).toEqual([6]);
+    play(e); expect(e.state.status).toBe('won'); expect(e.state.metrics.track.predErrPct).toBeGreaterThan(98);
+  });
+  it('L04: a prediction for design A does not earn the lamp when design B runs; the coach asks again; a new prediction for B counts', () => {
+    const e = fresh('L04'); build(e, A);
+    const eA = machineNumbers(e.state.bench!.machine!).e0V;
+    expect(act(e, 'predict', 'L04.vpeak', Math.round(eA * 10) / 10, 'V').ok).toBe(true);
+    expect(act(e, 'predict', 'L04.vpeak', 300, 'V').ok, 'same design: refused').toBe(false);
+    expect((e.engine.q('ch2Bench') as { predictedThis: boolean }).predictedThis).toBe(true);
+    build(e, B);
+    expect((e.engine.q('ch2Bench') as { predictedThis: boolean }).predictedThis, 'a new design hides the numbers again').toBe(false);
+    expect((e.engine.q('coach') as { id: string }).id).toBe('predict');
+    const stale = runDesign(L04, 'global', [...A.map(([n, v]) => ({ name: n, args: [v] })), { name: 'predict', args: ['L04.vpeak', 325] }, ...B.map(([n, v]) => ({ name: n, args: [v] }))]);
+    expect(stale.status, stale.reason).toBe('won'); expect(stale.track.predErrPct, 'no lamp for a prediction of another design').toBeUndefined(); expect(stale.stars).toBeLessThan(3);
+    const eB = machineNumbers(e.state.bench!.machine!).e0V;
+    expect(act(e, 'predict', 'L04.vpeak', Math.round(eB * 10) / 10, 'V').ok, 'a new design may be predicted').toBe(true);
+    play(e); expect(e.state.status).toBe('won'); expect(e.state.metrics.track.predErrPct!).toBeLessThan(1);
+    expect(e.engine.q('levelInfo').lesson as string).toContain(`You predicted ${Math.round(eB * 10) / 10} V, it was ${Math.round(eB * 10) / 10} V.`);
+  });
+  it('the report names the prediction, or says it was for another design', () => {
+    const e = fresh('L06'); act(e, 'predict', TOWN.predictId, 590, 'kW'); act(e, 'setLineRatio', 10); act(e, 'setTransformerKva', 1000); play(e);
+    expect(e.engine.q('levelInfo').lesson as string).toContain('You predicted 590 kW, it was 600 kW.');
+    const s = runDesign(L04, 'global', [...A.map(([n, v]) => ({ name: n, args: [v] })), { name: 'predict', args: ['L04.vpeak', 325] }, ...B.map(([n, v]) => ({ name: n, args: [v] }))]);
+    expect(s.state.status).toBe('won');
+  });
+});
+

@@ -270,7 +270,7 @@ export interface ReplayLog {
 }
 
 /** A prediction the player made before running (P17) and what happened. */
-export interface Prediction { id: string; quantity: string; predicted: number; actual: number | null; unit: string }
+export interface Prediction { id: string; quantity: string; predicted: number; actual: number | null; unit: string; /** 1.19 predictOnce: the design it was made for (absent on questions that do not bind) */ design?: string }
 
 export interface Metrics {
   /** Operating cost so far, pack currency (US$ in `global`). */

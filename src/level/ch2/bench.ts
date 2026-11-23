@@ -7,6 +7,22 @@ import { MACHINE, freshMachine, machineNumbers } from './machine';
 import { TOWN, freshTown, pairCost, predict4kvKw, townNumbers } from './town';
 
 export const L04_PREDICT_ID = 'L04.vpeak';
+
+/** 1.19 predictOnce (DECISIONS 29): the design a chapter-2 prediction is made for. L04 asks for the peak of the winding as it stands (poles, turns, field,
+ *  coil area); L06 asks about 4 kV whatever the ratio, so its key is empty and it is asked once. null for every other question (they do not bind). */
+export function ch2PredictKey(s: Readonly<GridState>, questionId: string): string | null {
+  const b = s.bench;
+  if (questionId === L04_PREDICT_ID && b?.machine) { const m = b.machine; return `${m.poles}|${m.turns}|${m.fieldT}|${m.areaM2}`; }
+  if (questionId === TOWN.predictId && b?.town) return '';
+  return null;
+}
+/** The prediction stands for the design that is built now (always true for questions that do not bind and have a prediction). */
+export function ch2PredictedThis(s: Readonly<GridState>, questionId: string): boolean {
+  const p = s.metrics.predictions.find((x) => x.id === questionId);
+  if (!p) return false;
+  const k = ch2PredictKey(s, questionId);
+  return k === null || p.design === undefined || p.design === k;
+}
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const r1 = (x: number): number => Math.round(x * 10) / 10, r2 = (x: number): number => Math.round(x * 100) / 100, r3 = (x: number): number => Math.round(x * 1000) / 1000;
 
@@ -35,7 +51,10 @@ export function stepCh2(s: GridState): void {
   if (b.machine) {
     const m = b.machine, n = machineNumbers(m);
     tr.freqHz = n.fHz; tr.vRmsV = n.eRmsV; tr.vPeakV = n.e0V; tr.bandUsed = n.bandUsed;
-    for (const p of s.metrics.predictions) if (p.id === L04_PREDICT_ID) { p.actual = n.e0V; tr.predErrPct = (100 * Math.abs(p.predicted - n.e0V)) / n.e0V; }
+    for (const p of s.metrics.predictions) if (p.id === L04_PREDICT_ID) {   // the lamp only for the prediction of the winding that runs
+      p.actual = n.e0V;
+      if (ch2PredictedThis(s, L04_PREDICT_ID)) tr.predErrPct = (100 * Math.abs(p.predicted - n.e0V)) / n.e0V; else delete tr.predErrPct;
+    }
     if (!n.fOk) { bad = true; b.verdict = { key: 'level.lost.machineFreq', params: { f: r2(n.fHz), fLo: r2(n.fLoHz), fHi: r2(n.fHiHz), poles: m.poles, rpm: m.rpm } }; }
     else if (!n.vOk) { bad = true; b.verdict = { key: 'level.lost.machineVolt', params: { v: r1(n.eRmsV), vLo: r1(n.vLoV), vHi: r1(n.vHiV) } }; }
   } else if (b.town) {
@@ -121,11 +140,11 @@ export const ch2Queries: Record<string, QueryFn<GridState>> = {
     const b = s.bench;
     if (b?.machine) {
       const m = b.machine, n = machineNumbers(m);
-      return { active: true, kind: 'machine', machine: { ...m }, ...n, kg: n.copperKg, ranges: { poles: MACHINE.poles, turns: MACHINE.turns, fieldT: MACHINE.fieldT, areaM2: MACHINE.areaM2 }, predictId: L04_PREDICT_ID, prediction: s.metrics.predictions.find((p) => p.id === L04_PREDICT_ID) ?? null, spent: s.budget.spent, budget: s.budget.capexLimit };
+      return { active: true, kind: 'machine', machine: { ...m }, ...n, kg: n.copperKg, ranges: { poles: MACHINE.poles, turns: MACHINE.turns, fieldT: MACHINE.fieldT, areaM2: MACHINE.areaM2 }, predictId: L04_PREDICT_ID, prediction: s.metrics.predictions.find((p) => p.id === L04_PREDICT_ID) ?? null, predictedThis: ch2PredictedThis(s, L04_PREDICT_ID), spent: s.budget.spent, budget: s.budget.capexLimit };
     }
     if (b?.town) {
       const tw = b.town, n = townNumbers(tw);
-      return { active: true, kind: 'town', town: { ...tw }, ...n, ratios: [...TOWN.ratios], kvas: [...TOWN.kvas], kmOneWay: TOWN.kmOneWay, ohmPerKmPerWire: TOWN.ohmPerKmPerWire, predictId: TOWN.predictId, predict4kvKw: r3(predict4kvKw()), prediction: s.metrics.predictions.find((p) => p.id === TOWN.predictId) ?? null, spent: s.budget.spent, budget: s.budget.capexLimit };
+      return { active: true, kind: 'town', town: { ...tw }, ...n, ratios: [...TOWN.ratios], kvas: [...TOWN.kvas], kmOneWay: TOWN.kmOneWay, ohmPerKmPerWire: TOWN.ohmPerKmPerWire, predictId: TOWN.predictId, predict4kvKw: r3(predict4kvKw()), prediction: s.metrics.predictions.find((p) => p.id === TOWN.predictId) ?? null, predictedThis: ch2PredictedThis(s, TOWN.predictId), spent: s.budget.spent, budget: s.budget.capexLimit };
     }
     return { active: false };
   },
@@ -137,13 +156,21 @@ export function ch2Lesson(s: GridState, lessonKey: string): string {
   const b = s.bench;
   if (b?.machine) {
     const m = b.machine, n = machineNumbers(m);
-    return t(lessonKey, { poles: m.poles, rpm: m.rpm, f: r2(n.fHz), turns: m.turns, b: m.fieldT, a: m.areaM2, omega: r1(n.omega), e0: r1(n.e0V), erms: r1(n.eRmsV), vpk: r1(n.vPeakTargetV), v: m.vTargetRms });
+    return t(lessonKey, { poles: m.poles, rpm: m.rpm, f: r2(n.fHz), turns: m.turns, b: m.fieldT, a: m.areaM2, omega: r1(n.omega), e0: r1(n.e0V), erms: r1(n.eRmsV), vpk: r1(n.vPeakTargetV), v: m.vTargetRms }) + predictLine(s, L04_PREDICT_ID, r1(n.e0V), 'V');
   }
   if (b?.town) {
     const tw = b.town, n = townNumbers(tw), lo = townNumbers({ ...tw, ratio: 1 });
-    return t(tw.ratio === 1 ? 'level.L06.lessonNone' : lessonKey, { kv: r1(n.vLineV / 1000), i: r1(n.iA), r: tw.rLoopOhm, loss: r2(n.lossKw), pct: r2(n.lossPct), p: tw.pW / 1000, iLo: Math.round(lo.iA), lossLo: Math.round(lo.lossKw), pctLo: Math.round(lo.lossPct), gv: tw.vGenV / 1000, k: tw.ratio, k2: tw.ratio * tw.ratio });
+    return t(tw.ratio === 1 ? 'level.L06.lessonNone' : lessonKey, { kv: r1(n.vLineV / 1000), i: r1(n.iA), r: tw.rLoopOhm, loss: r2(n.lossKw), pct: r2(n.lossPct), p: tw.pW / 1000, iLo: Math.round(lo.iA), lossLo: Math.round(lo.lossKw), pctLo: Math.round(lo.lossPct), gv: tw.vGenV / 1000, k: tw.ratio, k2: tw.ratio * tw.ratio }) + predictLine(s, TOWN.predictId, r1(predict4kvKw()), 'kW');
   }
   return '';
+}
+
+/** " You predicted X, it was Y." after the lesson; or that the prediction was for another design; '' with no prediction. */
+function predictLine(s: GridState, id: string, actual: number, unit: string): string {
+  const p = s.metrics.predictions.find((x) => x.id === id);
+  if (!p) return '';
+  if (!ch2PredictedThis(s, id)) return ' ' + t('level.ch2.predictedOther');
+  return ' ' + t('level.ch2.predicted', { p: p.predicted, a: actual, unit });
 }
 
 /** What to try after a lost bench of chapter 2, from the numbers the verdict used. '' when it was not lost or fits nothing. */

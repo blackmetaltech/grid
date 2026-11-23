@@ -86,6 +86,7 @@ export const en: Record<string, string> = {
   'act.ufls.ok': 'UFLS stage {stage} now sheds {n} load(s).',
   'act.ufls.stage': 'There are {n} UFLS stages; {stage} is not one of them.',
   'act.predict.ok': 'Prediction recorded: {q} = {value} {unit}. It is compared with what happens.',
+  'act.predict.again': 'You already predicted this design.',
   // log lines of the pipeline
   'log.overloadTrip': 'Branch {id} tripped on thermal overload at {pct} % of its rating.',
   'unitKind.coal': 'coal', 'unitKind.gas': 'gas', 'unitKind.diesel': 'diesel', 'unitKind.biomass': 'biomass', 'unitKind.nuclear': 'nuclear', 'unitKind.hydro': 'hydro',

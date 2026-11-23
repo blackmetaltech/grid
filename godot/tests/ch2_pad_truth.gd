@@ -71,6 +71,15 @@ func _initialize() -> void:
 	T.check(pr is Dictionary and is_equal_approx(float(pr.predicted), 327.0), "the pad's 327 reaches the engine as the prediction (%s)" % str(pr))
 	bench.refresh()
 	T.check(not bench.hide_answer() and bench.shown(325.3, 1) == "325.3", "after predicting every number shows")
+	# 1.19 (DECISIONS 29): the prediction binds. The box locks for this design; a new design hides the numbers and asks again; back to the predicted one, they show
+	T.check(not bench.predict_edit.editable and bench.predict_btn.disabled, "predicted: the box locks for this design")
+	var n1 := app.seen.size(); _pad(bench, JOY_BUTTON_A)
+	T.check(bench.numpad_host().get_node_or_null("Numpad") == null and app.seen.size() == n1 + 1 and str(app.seen[-1]) == "You already predicted this design.", "A on the locked box says why (%s)" % str(app.seen.slice(n1)))
+	_pad(bench, JOY_BUTTON_DPAD_UP); _pad(bench, JOY_BUTTON_DPAD_RIGHT)
+	T.check(bench.hide_answer() and bench.shown(325.3, 1) == "?" and bench.predict_edit.editable, "a new coil area: the numbers hide again and the box opens for a new prediction")
+	_pad(bench, JOY_BUTTON_DPAD_LEFT)
+	T.check(not bench.hide_answer() and not bench.predict_edit.editable, "back to the predicted winding: they show and the box locks again")
+	_pad(bench, JOY_BUTTON_DPAD_DOWN)
 	# locked: the night runs, a nudge is refused and says why
 	app.speed = 1; var n0 := app.seen.size(); var p0 := int(T.b.q("ch2Bench").machine.poles)
 	_pad(bench, JOY_BUTTON_DPAD_UP); _pad(bench, JOY_BUTTON_DPAD_UP); _pad(bench, JOY_BUTTON_DPAD_UP); _pad(bench, JOY_BUTTON_DPAD_UP)

@@ -39,6 +39,8 @@ export const EN_CH2: Record<string, string> = {
   'coach.L06.ratio.why': 'V₁ ÷ V₂ = N₁ ÷ N₂. Ideal transformers keep the power, so raising the voltage lowers the current by the same ratio.',
   'coach.L06.loss': 'Still over 2 %. The loss goes with the square of the current: raise the line voltage further, but every extra volt costs insulation.',
   'coach.L06.loss.why': 'Loss = (P ÷ V)² × R. Doubling the voltage quarters the loss.',
+  'level.ch2.predicted': 'You predicted {p} {unit}, it was {a} {unit}.',
+  'level.ch2.predictedOther': 'Your prediction was for another design, so it earned no lamp.',
   'coach.L06.run': 'Switch on and run the evening.',
   'coach.L06.run.why': 'The town line is checked every 15 minutes.',
   // chapter 2 bench actions (src/level/ch2/bench.ts)

@@ -74,7 +74,7 @@ func refresh() -> void:
 	var li = app.b.q("levelInfo")
 	var id: String = str(li.id) if li is Dictionary and li.get("active", false) else ""
 	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""; pad_row = 0; pad_col = -1; pad_held = true; _focus_look()   # a new job: the ring starts on the first row
-	predict_edit.editable = not _locked(); predict_btn.disabled = _locked()
+	predict_edit.editable = not _locked() and not predicted_this(); predict_btn.disabled = not predict_edit.editable   # 1.19: one prediction per design
 	layout(); queue_redraw()
 
 func layout() -> void:
@@ -313,7 +313,8 @@ func pad_button(idx: int) -> bool:
 					if _locked(): app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
 					else: _send("setLineRatio" if str(st.id) == "ratio" else "setTransformerKva", st.arg)
 				"predict":
-					if not predict_edit.editable: app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
+					if predicted_this(): app.toast(T("C2_PREDICT_DONE"), "warn"); app.sfx("bad")
+					elif not predict_edit.editable: app.toast(T("C2_LOCKED"), "warn"); app.sfx("bad")
 					else: predict_edit.grab_focus(); GridNumpad.open_for(predict_edit, numpad_host())
 			queue_redraw(); return true
 	return false
@@ -326,7 +327,10 @@ class PadRelay extends Node:
 
 # ---- the prediction's answer stays hidden until it is made ---------------------------------------------------------------------------
 ## L04 asks for the winding's peak e0 (the rms is e0 ÷ √2), L06 for the loss at 4 kV (the kW, the % and the line current lead straight to it).
-func hide_answer() -> bool: return not q.is_empty() and q.get("prediction") == null
+func hide_answer() -> bool: return not q.is_empty() and not predicted_this()
+
+## The engine holds a prediction for the design that is built now (DECISIONS 29: a new design asks for a new one).
+func predicted_this() -> bool: return not q.is_empty() and bool(q.get("predictedThis", q.get("prediction") != null))
 
 ## The scope trace: green / amber / red against the band, one neutral colour until the prediction is made.
 func trace_colour() -> Color:
@@ -660,6 +664,8 @@ func _draw_panel() -> void:
 	var pr = q.get("prediction")
 	var unit := "V" if kind == "machine" else "kW"
 	if predict_msg != "": _text(mono, 12, Vector2(inner.position.x + 10.0, inner.position.y + 118.0), predict_msg, GridTheme.WARN)
+	elif pr is Dictionary and not predicted_this():   # the prediction was for another design
+		_text(mono, 12, Vector2(inner.position.x + 10.0, inner.position.y + 118.0), T("C2_PREDICT_AGAIN"), GridTheme.WARN)
 	elif pr is Dictionary:
 		var s2 := T("C2_PREDICTED") % [_f(float(pr.predicted), 1), unit] if pr.get("actual") == null else T("C2_PREDICTED_ACT") % [_f(float(pr.predicted), 1), unit, _f(float(pr.actual), 1)]
 		_text(mono, 12, Vector2(inner.position.x + 10.0, inner.position.y + 118.0), s2, GridTheme.SODIUM)

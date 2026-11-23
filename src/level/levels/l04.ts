@@ -2,7 +2,7 @@
 // (peak 325 V) at 50 Hz. The player picks poles (f = p N / 120), turns, field and coil area (e0 = N B A w). Closed form (src/level/ch2/machine.ts); the oracle
 // numbers are in tools/oracles/ch2_expected.json (ch2_oracles.py). The decisive quantity is the share of the tolerance band the machine uses (<= 1 passes).
 import type { Action } from '@core/kit';
-import { freshMachineBench, L04_PREDICT_ID } from '../ch2/bench';
+import { ch2PredictedThis, freshMachineBench, L04_PREDICT_ID } from '../ch2/bench';
 import { machineNumbers, MACHINE } from '../ch2/machine';
 import type { GridLevelSpec } from '../spec';
 import type { GridState } from '../../types';
@@ -39,7 +39,7 @@ export const L04: GridLevelSpec = {
   coach: [
     { id: 'poles', textKey: 'coach.L04.poles', whyKey: 'coach.L04.poles.why', done: (s) => live(s)?.fOk === true },
     { id: 'volts', textKey: 'coach.L04.volts', whyKey: 'coach.L04.volts.why', done: (s) => live(s)?.vOk === true },
-    { id: 'predict', textKey: 'coach.L04.predict', whyKey: 'coach.L04.predict.why', done: (s) => s.metrics.predictions.some((p) => p.id === L04_PREDICT_ID) },
+    { id: 'predict', textKey: 'coach.L04.predict', whyKey: 'coach.L04.predict.why', done: (s) => ch2PredictedThis(s, L04_PREDICT_ID) },   // 1.19: a new winding asks for a new prediction
     { id: 'run', textKey: 'coach.L04.run', whyKey: 'coach.L04.run.why', done: run },
   ],
   place: (s, sc) => { s.bench = freshMachineBench(sc.params.f0, sc.bench.cable.perMm2PerM); },

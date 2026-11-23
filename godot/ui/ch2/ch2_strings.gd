@@ -23,5 +23,5 @@ const S := {
 	"C2_REP_FREQ": "Frequency", "C2_REP_HZ": "%s\u00a0Hz", "C2_REP_VOLT": "Voltage (rms)", "C2_REP_TOWN": "Town voltage",
 	"C2_TOWN_V": "town sees %s %% of its voltage", "C2_R_LIMIT": "limit %s %% lost",
 	"C2_LINE_KM": "%s km to the town, drawn short",
-	"C2_C_RMS_V": "%s V rms", "C2_C_PEAK_V": "peak %s V", "C2_C_NEED_PK": "needs %s V", "C2_C_NBA": "N × B × A %s · ω %s rad/s", "C2_C_COPPER": "copper %s kg", "C2_LOSS_EQ_HIDE": "Predict first: the numbers show after.",
+	"C2_C_RMS_V": "%s V rms", "C2_C_PEAK_V": "peak %s V", "C2_C_NEED_PK": "needs %s V", "C2_C_NBA": "N × B × A %s · ω %s rad/s", "C2_C_COPPER": "copper %s kg", "C2_LOSS_EQ_HIDE": "Predict first: the numbers show after.", "C2_PREDICT_DONE": "You already predicted this design.", "C2_PREDICT_AGAIN": "New design: predict again.",
 }

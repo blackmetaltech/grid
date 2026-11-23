@@ -6,6 +6,7 @@ import type { ActionFn, ActionResult } from '@core/kit';
 import { t } from './i18n';
 import { BLOCKS_PER_DAY, SPEEDS, type ClockSpeed, type GridState, type LoadClass, type BusKind } from './types';
 import { makeLine, makeShunt, makeStorage, makeTransformer, makeUnit, type CatalogueView } from './sim/build';
+import { ch2PredictKey } from './level/ch2/bench';
 import type { SimParams } from './sim/params';
 
 const BLOCK_REAL_MS_AT_1X = 750;
@@ -312,8 +313,10 @@ export function buildActions(d: ActionDeps): Record<string, ActionFn<GridState>>
       if (!isStr(questionId)) return bad('questionId', 'exp.a_question_id');
       if (!isNum(value)) return bad('value', 'exp.a_number');
       const u = isStr(unit) ? unit : '';
+      const key = ch2PredictKey(s, questionId);   // 1.19 predictOnce (DECISIONS 29): one prediction per design; after it the numbers show
+      if (key !== null && s.metrics.predictions.some((p) => p.id === questionId && p.design === key)) return reject('act.predict.again');
       s.metrics.predictions = s.metrics.predictions.filter((p) => p.id !== questionId);
-      s.metrics.predictions.push({ id: questionId, quantity: questionId, predicted: value, actual: null, unit: u });
+      s.metrics.predictions.push({ id: questionId, quantity: questionId, predicted: value, actual: null, unit: u, ...(key !== null ? { design: key } : {}) });
       return accept(s, 'predict', 'act.predict.ok', { q: questionId, value, unit: u });
     },
   };
