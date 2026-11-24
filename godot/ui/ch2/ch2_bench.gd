@@ -74,7 +74,8 @@ func refresh() -> void:
 	var li = app.b.q("levelInfo")
 	var id: String = str(li.id) if li is Dictionary and li.get("active", false) else ""
 	if id != _level: _level = id; predict_msg = ""; predict_edit.text = ""; pad_row = 0; pad_col = -1; pad_held = true; _focus_look()   # a new job: the ring starts on the first row
-	predict_edit.editable = not _locked() and not predicted_this(); predict_btn.disabled = not predict_edit.editable   # 1.19: one prediction per design
+	predict_edit.editable = not _locked() and not predicted_this(); predict_btn.disabled = _locked()   # 1.19: one prediction per design
+	predict_btn.modulate = Color(1, 1, 1, 0.45) if predicted_this() else Color.WHITE   # dimmed, not disabled: a disabled button is no focus target and the core pad moved its focus to why?
 	layout(); queue_redraw()
 
 func layout() -> void:
@@ -222,12 +223,13 @@ func _send(act: String, arg) -> void:
 func _on_predict() -> void:
 	var txt := predict_edit.text.strip_edges().replace(",", ".")
 	if txt == "" or not txt.is_valid_float(): predict_msg = T("C2_PREDICT_BAD"); queue_redraw(); return
+	if predicted_this(): app.toast(T("C2_PREDICT_DONE"), "warn"); app.sfx("bad"); return   # the engine refuses it too; say it here without a round trip
 	var unit := "V" if kind == "machine" else "kW"
 	var r: Dictionary = app.b.act("predict", [str(q.predictId), float(txt), unit])
 	predict_msg = ""
 	if r.get("ok", false): app.sfx("click")
 	else: app.sfx("bad"); app.toast(str(r.get("message", "")), "bad")
-	predict_edit.release_focus(); app.game_on_changed()
+	predict_edit.release_focus(); predict_edit.release_focus.call_deferred(); app.game_on_changed()   # deferred too: the number pad hands the focus back after it submits
 
 # ---- pad --------------------------------------------------------------------------------------------------------------------------
 ## The rows the ring walks: L04 one knob a row (left / right nudge it), L06 the ratio chips, the kVA chips; last the prediction box.

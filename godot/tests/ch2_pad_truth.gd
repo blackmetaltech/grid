@@ -67,12 +67,16 @@ func _initialize() -> void:
 	if np != null:
 		for k in ["3", "2", "7", "OK"]: np._key(k)
 	await process_frame
+	T.check(bench.get_viewport().gui_get_focus_owner() != bench.predict_edit, "after OK the prediction box does not keep the focus (its outline read as a second ring, 1.19 GPU check)")
 	var pr = T.b.q("ch2Bench").prediction
 	T.check(pr is Dictionary and is_equal_approx(float(pr.predicted), 327.0), "the pad's 327 reaches the engine as the prediction (%s)" % str(pr))
 	bench.refresh()
 	T.check(not bench.hide_answer() and bench.shown(325.3, 1) == "325.3", "after predicting every number shows")
 	# 1.19 (DECISIONS 29): the prediction binds. The box locks for this design; a new design hides the numbers and asks again; back to the predicted one, they show
-	T.check(not bench.predict_edit.editable and bench.predict_btn.disabled, "predicted: the box locks for this design")
+	T.check(not bench.predict_edit.editable and bench.predict_btn.modulate.a < 0.9, "predicted: the box locks for this design and Predict dims")
+	T.check(not bench.predict_btn.disabled and bench.predict_btn.focus_mode != Control.FOCUS_NONE, "Predict stays a focus target (disabled, the core pad parked its focus on why?: a second ring, 1.19 GPU check)")
+	var n0p := app.seen.size(); bench.predict_btn.pressed.emit()
+	T.check(app.seen.size() == n0p + 1 and str(app.seen[-1]) == "You already predicted this design." and is_equal_approx(float(T.b.q("ch2Bench").prediction.predicted), 327.0), "pressing the dimmed Predict says why and changes nothing")
 	var n1 := app.seen.size(); _pad(bench, JOY_BUTTON_A)
 	T.check(bench.numpad_host().get_node_or_null("Numpad") == null and app.seen.size() == n1 + 1 and str(app.seen[-1]) == "You already predicted this design.", "A on the locked box says why (%s)" % str(app.seen.slice(n1)))
 	_pad(bench, JOY_BUTTON_DPAD_UP); _pad(bench, JOY_BUTTON_DPAD_RIGHT)
