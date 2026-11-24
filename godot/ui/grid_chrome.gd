@@ -196,6 +196,10 @@ func qa_ui(spec: String) -> void:
 		"say": for ln in f.slice(1): radio.say("TOBI", ln.replace("_", " "), "coach", "qa%d" % radio.lines.size(), "Because copper resists.")
 		"why": for l in radio.lines: if l.kind == "coach" and l.step != "" and str(l.get("why", "")) != "": radio.ask_why(l); break
 
+## The pin of a passed job: "lit" only when every home was served; P0 passes in the dark by design (1.19: "WO-P0 · lit" over a dark city).
+static func done_pin_key(g: Dictionary) -> String:
+	return "PIN_DONE_DARK" if float((g.get("metrics", {}) as Dictionary).get("ensMWh", 0.0)) > 0.0 else "PIN_DONE"
+
 func tray_active() -> bool: return (ch8 != null and ch8.visible) or (ch7 != null and ch7.visible) or (ch4 != null and ch4.visible) or (ch2 != null and ch2.visible) or (tray != null and tray.visible) or (rtray != null and rtray.visible) or (gtray != null and gtray.visible)
 
 func set_chrome_visible(v: bool) -> void:

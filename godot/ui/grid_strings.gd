@@ -56,7 +56,7 @@ const S := {
 	"REP_CODE_TOAST": "Design code copied to the clipboard.", "REP_REOPEN": "Show the report", "REP_NO_CODE": "No design code yet.",
 	"TITLE_SUB": "keep the lights on", "TITLE_NIGHT": "Take the night shift", "TITLE_CONTINUE": "Continue the night shift", "TITLE_JOBS": "Jobs", "TITLE_SANDBOX": "Sandbox", "TITLE_SETTINGS": "Settings", "TITLE_QUIT": "Quit",
 	"DOCK_HOME": "Island", "UI_MORE": "more", "UI_LOADING": "Loading the job…", "REP_COMING": "Shift over. Report in a moment. Press A or click to open it now.", "REP_FEW": "Few designs yet: the comparison appears when more players finish.", "REP_LOOK_HINT": "Incident filed. Look around, then pull the lever (Retry the job) or tap the red pin top left: your build stays.",
-	"PIN_INCIDENT": "Incident · Retry ▸", "PIN_INCIDENT_SUB": "WO-%s · reopens the report", "PIN_DONE": "WO-%s · lit ▸", "PIN_DONE_SUB": "report · next job",
+	"PIN_INCIDENT": "Incident · Retry ▸", "PIN_INCIDENT_SUB": "WO-%s · reopens the report", "PIN_DONE": "WO-%s · lit ▸", "PIN_DONE_DARK": "WO-%s · dark ▸", "PIN_DONE_SUB": "report · next job",
 	"JOBS_LOCKED": "Locked: pass WO-%s first.",
 	"CH_TITLE": "Saltmarsh is lit", "CH_SUB": "Chapter 1 · The Island, complete", "CH_NIA_TAG": "NIA ›", "CH_NIA": "I passed! Well, the exam's tomorrow, but the hall stayed lit all week.",
 	"CH_LAMPS": "Lamps earned on the island: %d of %d", "CH_NEXT": "Chapter 2 · The Mainland", "CH_SOON": "Brightwater market wants the waterfall's power: 4 km of line over a river, a mangrove and a ridge. Poles, spans and sag from here on.", "CH_PREVIEW": "Take the mainland job", "CH_STAY": "Stay on the island",

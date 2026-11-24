@@ -242,6 +242,12 @@ describe('allowed parts and the part gate', () => {
     expect(env.engine.act('placeBus', [1, 1, 11, 'gen', 1]).key).toBe('level.action.notAllowed');
     expect(env.engine.act('switchBranch', ['T5', true]).ok).toBe(true);
   });
+  it('P0: the brief and the coach call the line by the name the breaker message uses (T5), not "Line 7" (1.19, Dagny)', () => {
+    const env = new Env(GAME); env.reset({ seed: 1, level: 'P0' });
+    const msg = env.engine.act('switchBranch', ['T5', true]).message;
+    expect(msg).toContain('T5');
+    for (const k of ['level.P0.brief', 'coach.P0.close'] as const) { expect(en[k], k).toContain('T5'); expect(en[k], k).not.toMatch(/Line 7/); }
+  });
   it('bench actions teach: range, order, sizes, which level offers what', () => {
     const env = new Env(GAME); env.reset({ seed: 1, level: 'L01' });
     expect(env.engine.act('placeHut', [50]).key).toBe('bench.hutRange');

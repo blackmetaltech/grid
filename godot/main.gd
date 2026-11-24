@@ -248,7 +248,7 @@ func _skin_pin() -> void:
 			if GridTheme.look2 and (l as Label).label_settings != null:
 				if not l.has_meta("ls0"): l.set_meta("ls0", (l as Label).label_settings)
 				var ls := (l as Label).label_settings.duplicate() as LabelSettings; ls.font_color = ink if l == t else Color(ink, 0.85); (l as Label).label_settings = ls
-	var tt: String = tr("PIN_INCIDENT") if kind == "lost" else tr("PIN_DONE") % lid
+	var tt: String = tr("PIN_INCIDENT") if kind == "lost" else tr(GridChrome.done_pin_key(b.g)) % lid
 	var ss: String = tr("PIN_INCIDENT_SUB") % lid if kind == "lost" else tr("PIN_DONE_SUB")
 	if t.text != tt: t.text = tt
 	if sub.text != ss: sub.text = ss

@@ -17,6 +17,9 @@ func _initialize() -> void:
 	T.b.act("tick", [3]); _grid(T, pairs)   # blackout: the load bus is dead
 	var dead := WorldModel.build(T.b)
 	for t in dead.towns: T.check(t.v == 0.0 and t.energy == 0.0, "a blacked-out town is dark")
+	for i in 40: if str(T.b.g.status) == "playing": T.b.act("tick", [1])
+	T.check(str(T.b.g.status) == "won" and GridChrome.done_pin_key(T.b.g) == "PIN_DONE_DARK", "P0 passes in a dark city: the pin says dark, not lit (1.19, Dagny) (%s, %s)" % [str(T.b.g.status), GridChrome.done_pin_key(T.b.g)])
+	T.check(GridChrome.done_pin_key({"metrics": {"ensMWh": 0.0}}) == "PIN_DONE", "a job passed with every home served says lit")
 	T.level("L07"); T.b.act("tick", [3]); _grid(T, pairs)
 	# 2. bench levels: homes are lit by (V_home / 48)^2; an unpowered bench is dark; a better cable is brighter
 	T.level("L01")

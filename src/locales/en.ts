@@ -165,7 +165,7 @@ export const en: Record<string, string> = {
   'bench.noLowVoltageSolution': 'At 48 V the 5 kW load would need more current than the cable can carry at any voltage drop: the voltage collapses. Raise the line voltage.',
   // authored levels (M2)
   'level.P0.title': 'The Night the Lights Went Out',
-  'level.P0.brief': 'Night shift. Line 7 is back from maintenance: close its breaker. It is the only thing you can do.',
+  'level.P0.brief': 'Night shift. Line T5 is back from maintenance: close its breaker. It is the only thing you can do.',
   'level.L01.title': 'First Light',
   'level.L01.brief': 'Light the ten-home hamlet from the battery hut. Every home must stay at 43.2 V or more from 18:00 to 23:00, inside the budget.',
   'level.L01.place': 'Saltmarsh Island · the beach strip, 18:00',
@@ -188,7 +188,7 @@ export const en: Record<string, string> = {
   'level.L07.title': 'The Lagging Mill',
   'level.L07.brief': 'A rice mill (1.2 MW, power factor 0.70) and a village share a 4 km 11 kV feeder. Keep the feeder from tripping and the mill bus inside its voltage band all day.',
   // coach steps (DESIGN 7.2): text and why, advanced by real state only
-  'coach.P0.close': 'Line 7 is back from maintenance. Close the glowing breaker.',
+  'coach.P0.close': 'Line T5 is back from maintenance. Close the glowing breaker.',
   'coach.P0.close.why': 'Closing a line ties two parts of the grid together; power now flows where it did not before.',
   'coach.P0.watch': 'Watch the lines.',
   'coach.P0.watch.why': 'A line carrying more than its rating heats up and trips on its timer; its flow lands on the next line.',
