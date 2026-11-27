@@ -73,6 +73,9 @@ static func build(gf, model: Dictionary, quality: String, ground: Callable) -> D
 		var buck := _bucket(segs)
 		for si in segs.size():
 			var a: Vector2 = segs[si][0]; var b2: Vector2 = segs[si][1]; var w0: float = segs[si][2]
+			# 11-28 (lead's review of chapters 5-6): on engine maps (AreaTowns) no house may stand off the town's tiles, so a street that wandered
+			# past them was a bare dark line across the fields (the towns read as spiders): only the segments inside the town are drawn
+			if gf is AreaTowns and gf.town_dn(ti, (a + b2) * 0.5) > 1.0: continue
 			streets.append([a, b2, w0, ti])
 			var along := (b2 - a).normalized(); var across := along.orthogonal(); var L := a.distance_to(b2)
 			var s := 4.0; var hq := 0

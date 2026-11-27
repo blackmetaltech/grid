@@ -23,8 +23,10 @@ void vertex() {
 void fragment() {
 	float nn = smoothstep(0.35, 0.9, night);
 	// by day a far street fades toward a dusty road tone instead of staying black asphalt
-	ALBEDO = mix(vec3(0.27, 0.27, 0.28), vec3(0.44, 0.42, 0.38), far * (1.0 - nn)) * mix(1.0, 0.63, nn) * (1.0 - 0.6 * far * nn);
+	ALBEDO = mix(vec3(0.15, 0.15, 0.16), vec3(0.30, 0.29, 0.27), far * (1.0 - nn)) * (1.0 - 0.6 * far * nn);
 	ROUGHNESS = 0.92;
+	// 11-28: the ribbon's own normal pointed down, so by day a street was lit like the underside of the ground (near black); light it as flat ground
+	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
 	// 1.18 (lead's review: orange stubs like glowing rods at dusk): up close the street is asphalt lit by its own lamps; only far away, where a
 	// street is a pixel wide, does it carry a sodium line, so a town reads from the horizon
 	EMISSION = lamp * nn * lit * 0.4 * smoothstep(0.35, 1.0, far) * mix(0.3, 1.0, UV.y);
