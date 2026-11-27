@@ -9,6 +9,13 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - **The Town Line (WO-06) is a place.** A powerhouse, 15 km of line and a town. The line glows with the power it wastes. The town's windows follow the voltage it gets.
 - **Power stations.** Coal plants have a boiler house, a turbine hall, a chimney with red lights and cooling towers. Gas plants have a hall and stacks. They show in the prologue and the finale.
 - **The Mainland town has a church and a water tower**, so you can find it.
+- **Chapter 4 is four places.** Balance the Phases is a street at dusk: the transformer, six poles, three phase wires and the neutral, and 18 houses. Each house's drop runs to its phase. Click a house to move it. The neutral glows with its current.
+- **Star or Delta is a works yard** with the motor hall, the capacitor bank (count the cans) and the pump house.
+- **Over the Hill is a valley:** the hydro plant, the long circuits over the ridge with their series capacitors, and the city. A tripped circuit goes dark.
+- **Generator Phasors is a generator hall.** The field glows with the excitation you set.
+- **Chapters 5 and 6 play on the 3D map.** The control cards are glass.
+- **Chapter 7 is five places:** the 33 kV substation for Fault Level, a feeder down a valley with four relays for Coordination, a generating unit and its breaker bay for Clear It in Time, the dispatch room and its plants for Merit Order, and the grown substation for the exam. After the run you see the fault, the breaker that opens and the breaker that fails.
+- **`make run`** starts the game on the RTX 4090. `make help` lists the other commands.
 ### Changed
 - **Woods have natural edges** with bays and scattered trees, not square blocks.
 - **Fields end in grass margins and broken hedges**, not hard lines.
@@ -23,6 +30,7 @@ All notable changes to GRID. The release workflow publishes the section whose he
 - The harbour yard on WO-29 keeps its name in the tags.
 - The frequency dial's dip no longer overlaps the reading.
 - In the prologue, the camera turns to the city at the first trip.
+- Streets by day were drawn almost black. They are lit as ground now.
 
 ## [1.18.1] - "Bay and Mainland" (patch)
 ### Fixed
