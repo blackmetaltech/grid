@@ -92,6 +92,7 @@ func _build_stage() -> void:
 	_alt = null; _rotor = null; _coils = null; _gap_mat = null; _fall_mat = null; _wire_mat = null; _wire_glow = null; _neutral_core = null; _neutral_glow = null
 	_rotor_key = ""; _coil_key = ""; _bank_key = ""; _plat_key = ""; _bank_root = null; _bank_wire = null; _pump_blade = null; _pump_lamp = null; _city_mat = null; _exc_mat = null; _line_nodes = null
 	_plats = 0
+	_grass_tint = Vector3(0.62, 0.92, 0.50) if scn == "l11" else Vector3(0.86, 0.95, 0.70)
 	match scn:
 		"l10": _play = Rect2(-200.0, -70.0, 400.0, 140.0)
 		"l11": _play = Rect2(-100.0, -60.0, 220.0, 120.0)
@@ -181,7 +182,7 @@ func _splat(x: float, z: float, h: float) -> Array:
 		"l11":
 			var f := maxf(wood * 0.6, smoothstep(24.0, 60.0, -z))
 			c = Color(1.0 - f, f, 0.0, 0.0)
-			paved = _pad(x, z, Rect2(-80.0, -24.0, 130.0, 48.0), 3.0)
+			paved = maxf(maxf(_pad(x, z, Rect2(-66.0, -12.0, 40.0, 26.0), 3.0), _pad(x, z, Rect2(-6.0, -9.0, 36.0, 19.0), 3.0)), maxf(_pad(x, z, Rect2(50.0, -3.0, 22.0, 17.0), 3.0), _pad(x, z, Rect2(-70.0, 12.0, 130.0, 5.0), 2.0) * 0.6))
 			c = c.lerp(Color(0, 0, 0, 1), 1.0 - smoothstep(14.0, 22.0, Vector2(x - 86.0, z - 6.0).length()))
 		"l12":
 			var f := maxf(wood, smoothstep(20.0, 60.0, absf(z - _rz12(x)) - 20.0 * (1.0 - smoothstep(60.0, 220.0, x)))) * (1.0 - smoothstep(0.0, 8.0, h - 55.0))
@@ -599,14 +600,14 @@ func _lines_set(n: int, pct: int) -> void:
 					var zo := (w - 1) * 2.3
 					wires[w].append(Vector3(xm - 8.0, gy + 7.0, zc + zo)); wires[w].append(Vector3(xm + 8.0, gy + 7.0, zc + zo))
 		var core := _mat(Color(0.55, 0.56, 0.58), 0.35, 0.5); core.emission_enabled = true; core.emission = Color(1.0, 0.55, 0.2); core.emission_energy_multiplier = 0.0
-		var gmat := _hot_mat(0.0)
+		var gmat := _hot_mat(0.0); gmat.set_shader_parameter("inflate", 0.0003)
 		var cs := SurfaceTool.new(); cs.begin(Mesh.PRIMITIVE_TRIANGLES); var gs := SurfaceTool.new(); gs.begin(Mesh.PRIMITIVE_TRIANGLES)
 		for w in 3:
 			var run := 0.0; var pts: Array = wires[w]
 			for k in pts.size() - 1:
 				var a: Vector3 = pts[k]; var b: Vector3 = pts[k + 1]
 				var sg := 1.8 * clampf(a.distance_to(b) / 50.0, 0.05, 1.2)
-				Props3D.add_wire(cs, a, b, sg, 0.12, run, 12); Props3D.add_wire(gs, a, b, sg, 0.26, run, 12); run += a.distance_to(b)
+				Props3D.add_wire(cs, a, b, sg, 0.1, run, 12); Props3D.add_wire(gs, a, b, sg, 0.17, run, 12); run += a.distance_to(b)
 		_inst(root, cs.commit(), core, "Conductors", Vector3.ZERO, false)
 		_inst(root, gs.commit(), gmat, "Glow", Vector3.ZERO, false)
 		if plat:   # the series capacitor: a deck on stilts with a block of cans per step of compensation, between two towers
@@ -734,7 +735,7 @@ func _apply_l12() -> void:
 		var core: StandardMaterial3D = ci.core; var g: ShaderMaterial = ci.glow
 		core.emission_energy_multiplier = 0.0 if gone else 0.4 + 1.8 * load_g
 		core.albedo_color = Color(0.22, 0.22, 0.24) if gone else Color(0.62, 0.62, 0.64)
-		g.set_shader_parameter("power", 0.0 if gone else 0.15 + 0.45 * load_g)
+		g.set_shader_parameter("power", 0.0 if gone else 0.1 + 0.3 * load_g)
 		g.set_shader_parameter("tint", Color(1.0, 0.55, 0.2, 1.0))
 	var blackout := fired and not bool((q.swing as Dictionary).stable)
 	_city_mat.emission_energy_multiplier = 0.15 if blackout else 3.5
@@ -798,8 +799,8 @@ func house_rect(i: int) -> Rect2:
 func reset_camera() -> void:
 	match scn:
 		"l10": _g_target = Vector3(-8.0, 0.0, 6.0); _g_yaw = deg_to_rad(-42.0); _g_pitch = deg_to_rad(11.0); _g_dist = 82.0
-		"l11": _g_target = Vector3(4.0, 0.0, 6.0); _g_yaw = deg_to_rad(-16.0); _g_pitch = deg_to_rad(21.0); _g_dist = 128.0
-		"l12": _g_target = Vector3(150.0, 0.0, 25.0); _g_yaw = deg_to_rad(-62.0); _g_pitch = deg_to_rad(19.0); _g_dist = 340.0
+		"l11": _g_target = Vector3(4.0, 0.0, 4.0); _g_yaw = deg_to_rad(-14.0); _g_pitch = deg_to_rad(20.0); _g_dist = 96.0
+		"l12": _g_target = Vector3(95.0, 0.0, 28.0); _g_yaw = deg_to_rad(-56.0); _g_pitch = deg_to_rad(14.0); _g_dist = 215.0
 		_: _g_target = Vector3(6.0, 0.0, 2.0); _g_yaw = deg_to_rad(-16.0); _g_pitch = deg_to_rad(10.0); _g_dist = 50.0
 	var vp := get_viewport()
 	if vp != null:

@@ -29,6 +29,7 @@ const LIP_H := 26.0               # L04: its height above the lower valley
 const TOWN_V_OK := 0.97           # L06: the 2D bench's "town is happy" share; below it the windows burn amber
 
 var quality := "high"
+var _grass_tint := Vector3(0.86, 0.95, 0.70)   # Stage3D greens its yards
 var tm := 10.0                    # WorldView maps tiles to metres with it (the bench has no tiles of its own)
 var field = null                  # non-null once built: WorldView's `_l3()` asks for it
 var own_lines := true             # no screen-space line overlay from WorldView
@@ -337,7 +338,7 @@ func _build_terrain() -> void:
 	tmat.set_shader_parameter("fields", 1.0 if kind == "town" else 0.0)
 	tmat.set_shader_parameter("wet_top", 0.4)
 	tmat.set_shader_parameter("cloud_scale", 0.2)
-	tmat.set_shader_parameter("grass_tint", Vector3(0.86, 0.95, 0.70))
+	tmat.set_shader_parameter("grass_tint", _grass_tint)
 	tmat.set_shader_parameter("sand_tint", Vector3(0.95, 0.93, 0.90))
 	if quality == "low": tmat.set_shader_parameter("cheap", true)
 	var mi := MeshInstance3D.new(); mi.name = "Land"; mi.mesh = mesh; mi.material_override = tmat; _root.add_child(mi)

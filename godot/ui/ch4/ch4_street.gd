@@ -27,7 +27,7 @@ func _layout_panel() -> void:
 	for i in 18: hits.append({"rect": _house_rect(i, _g).grow(4.0), "kind": "item", "id": "house", "arg": i, "stage": true})
 	var ns: Array = kit.get("l10", {}).get("neutrals", [])
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))
-	var cw := 106.0; var x := inner.position.x
+	var cw := 140.0; var x := inner.position.x
 	for k in ns.size():
 		_add_chip(Rect2(Vector2(x + (cw + 6.0) * k, inner.position.y + 22.0), Vector2(cw, 46.0)), "neutral", float(ns[k].mm2))
 
@@ -166,7 +166,8 @@ func _draw_instruments() -> void:
 	# the phasor chain: I_a, then I_b from its tip, then I_c: the closing side is I_N
 	var c := Vector2(150.0, 178.0); var R := 64.0
 	draw_style_box(_box_sb(0.82), Rect2(c - Vector2(R + 22.0, R + 30.0), Vector2((R + 22.0) * 2.0, (R + 22.0) * 2.0 + 18.0)))
-	_text(_semi(), 11, c + Vector2(-R - 12.0, -R - 12.0), T("C4_CHAIN"), Color(GridTheme.TEXT, 0.7))
+	if _look3(): _wrap(_semi(), 11, c + Vector2(-R - 12.0, -R - 12.0), T("C4_CHAIN"), Color(GridTheme.TEXT, 0.7), (R + 12.0) * 2.0)   # wraps inside its glass box
+	else: _text(_semi(), 11, c + Vector2(-R - 12.0, -R - 12.0), T("C4_CHAIN"), Color(GridTheme.TEXT, 0.7))
 	var ph: Dictionary = q.phasors; var pts: Array = [Vector2.ZERO]
 	var cur := Vector2.ZERO
 	for p in PH:
@@ -183,8 +184,8 @@ func _draw_instruments() -> void:
 	draw_circle(P.call(pts[0]), 3.0, Color(GridTheme.INK))
 	_text(_mono(), 12, c + Vector2(-R - 14.0, R + 16.0), T("C4_IN_SUM") % _f(inn, 1), _good(bool(q.pass.neutral)))
 	# phase currents and the neutral
-	var bx := 300.0; var by := 120.0; var bh := 160.0; var bw := 38.0
-	draw_style_box(_box_sb(0.82), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 96.0)))
+	var bx := 300.0 if not _look3() else 330.0; var by := 120.0; var bh := 160.0; var bw := 38.0
+	draw_style_box(_box_sb(0.82), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0 + (110.0 if _look3() else 0.0), bh + 96.0 + (40.0 if _look3() else 0.0))))
 	_text(_semi(), 11, Vector2(bx, by - 12.0), T("C4_CURRENTS"), Color(GridTheme.TEXT, 0.7))
 	var scale_a := maxf(180.0, float(q.iMax) * 1.1)
 	var ip: Dictionary = q.iPhase
@@ -201,11 +202,17 @@ func _draw_instruments() -> void:
 	draw_line(Vector2(bx + (bw + 10.0) * 3 - 6.0, rat_y), Vector2(bx + (bw + 10.0) * 3 + bw + 6.0, rat_y), GridTheme.BAD, 2.0)
 	_text(_mono(), 10, Vector2(bx + (bw + 10.0) * 3 + bw + 10.0, lim_y + 4.0), T("C4_LIM_PCT") % WorkOrder.num(float(q.iNmaxPct)), GridTheme.GOOD)
 	_text(_mono(), 10, Vector2(bx + (bw + 10.0) * 3 + bw + 10.0, rat_y + 4.0), T("C4_RATED") % int(q.neutral.ampacityA), GridTheme.BAD)
-	_text(_mono(), 11, Vector2(bx - 4.0, by + bh + 52.0), T("C4_CUT"), Color(GridTheme.SODIUM, 0.9))
-	_text(_mono(), 12, Vector2(bx - 4.0, by + bh + 34.0), T("C4_IN_PCT") % [_f(float(q.iNpct), 1)], _good(bool(q.pass.neutral)))
+	if _look3():   # 3D: the two sentences wrap inside the box
+		var cwid := bw * 4.0 + 110.0 + 80.0
+		_wrap(_mono(), 12, Vector2(bx - 4.0, by + bh + 34.0), T("C4_IN_PCT") % [_f(float(q.iNpct), 1)], _good(bool(q.pass.neutral)), cwid)
+		_wrap(_mono(), 11, Vector2(bx - 4.0, by + bh + 74.0), T("C4_CUT"), Color(GridTheme.SODIUM, 0.9), cwid)
+	else:
+		_text(_mono(), 11, Vector2(bx - 4.0, by + bh + 52.0), T("C4_CUT"), Color(GridTheme.SODIUM, 0.9))
+		_text(_mono(), 12, Vector2(bx - 4.0, by + bh + 34.0), T("C4_IN_PCT") % [_f(float(q.iNpct), 1)], _good(bool(q.pass.neutral)))
 	# far-pole voltages against the supply band
 	var vx := 850.0; var vy := 158.0; var vw := 330.0
 	if w < 1250.0: vx = 640.0; vw = w - vx - 20.0
+	if _look3(): vx = 900.0; vy = 196.0; vw = minf(330.0, _right() - vx - 40.0)   # under the clock, clear of the currents box
 	draw_style_box(_box_sb(0.82), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
 	_text(_semi(), 11, Vector2(vx, vy - 12.0), T("C4_VFAR"), Color(GridTheme.TEXT, 0.7))
 	var vmin := 185.0; var vmax := 265.0
@@ -226,8 +233,9 @@ func _draw_panel_body() -> void:
 	var semi := _semi(); var mono := _mono(); var lock := _locked()
 	_text(semi, 11, inner.position + Vector2(0, 15.0), T("C4_NEUTRAL_CAP"), Color(GridTheme.TEXT, 0.7))
 	_text(semi, 12, inner.position + Vector2(0, 86.0), T("C4_TAP_HOUSE"), Color(GridTheme.SODIUM, 0.9))
-	_text(mono, 12, inner.position + Vector2(352.0, 40.0), T("C4_MOVED") % [int(q.moved), str(kit.get("l10", {}).get("moveHouse", ""))], Color(GridTheme.TEXT, 0.8))
-	_text(mono, 12, inner.position + Vector2(352.0, 60.0), T("C4_SPREAD") % [_f(float(q.kvaPh.a), 1), _f(float(q.kvaPh.b), 1), _f(float(q.kvaPh.c), 1)], Color(GridTheme.TEXT, 0.8))
+	var tw := inner.size.x - 450.0   # the notes right of the three chips wrap inside the panel
+	_wrap(mono, 12, inner.position + Vector2(450.0, 34.0), T("C4_MOVED") % [int(q.moved), str(kit.get("l10", {}).get("moveHouse", ""))], Color(GridTheme.TEXT, 0.8), tw)
+	_wrap(mono, 12, inner.position + Vector2(450.0, 72.0), T("C4_SPREAD") % [_f(float(q.kvaPh.a), 1), _f(float(q.kvaPh.b), 1), _f(float(q.kvaPh.c), 1)], Color(GridTheme.TEXT, 0.8), tw)
 	var ns: Array = kit.get("l10", {}).get("neutrals", [])
 	for h in hits:
 		if str(h.kind) != "chip": continue
@@ -238,6 +246,7 @@ func _draw_panel_body() -> void:
 	var checks := [[T("C4_CHK_NEUTRAL") % [_f(float(q.iNpct), 1), WorkOrder.num(float(q.iNmaxPct))], bool(q.pass.neutral)], [T("C4_CHK_VOLTS"), bool(q.pass.volts)], [T("C4_CHK_RATING") % [_f(float(q.iN), 0), int(q.neutral.ampacityA)], bool(q.pass.rating)]]
 	var x := inner.position.x
 	for c in checks:
-		_text(mono, 11, Vector2(x, y), ("✓ " if c[1] else "✗ ") + str(c[0]), _good(bool(c[1])))
-		x += 172.0
+		var ct := ("✓ " if c[1] else "✗ ") + str(c[0])
+		_text(mono, 11, Vector2(x, y), ct, _good(bool(c[1])))
+		x += mono.get_string_size(ct, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(11)).x + 28.0   # each check starts after the one before it
 	if q.fail != null and not bool(q.done): pass
