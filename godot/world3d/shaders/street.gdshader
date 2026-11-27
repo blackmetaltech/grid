@@ -14,12 +14,16 @@ void vertex() {
 	lit = town_lit[clamp(int(COLOR.a * 63.0 + 0.5), 0, 63)];
 	vec2 lat = COLOR.rg * 2.0 - 1.0;
 	float side = COLOR.b * 2.0 - 1.0;
-	VERTEX.xz += lat * side * d * 0.0007 * far * UV.y;   // main streets stay about one pixel wide at any distance past 3.5 km
+	float nn_v = smoothstep(0.35, 0.9, night);
+	// main streets stay about one pixel wide at any distance past 3.5 km at night, where they carry the sodium line; by day the widening is a
+	// third of that (owner review 11-28 of chapters 5-6: widened asphalt read as thick black ribbons across the fields)
+	VERTEX.xz += lat * side * d * 0.0007 * far * UV.y * mix(0.33, 1.0, nn_v);
 	VERTEX.y += far * d * 0.0002;
 }
 void fragment() {
 	float nn = smoothstep(0.35, 0.9, night);
-	ALBEDO = vec3(0.17, 0.17, 0.18) * (1.0 - 0.6 * far * nn);
+	// by day a far street fades toward a dusty road tone instead of staying black asphalt
+	ALBEDO = mix(vec3(0.27, 0.27, 0.28), vec3(0.44, 0.42, 0.38), far * (1.0 - nn)) * mix(1.0, 0.63, nn) * (1.0 - 0.6 * far * nn);
 	ROUGHNESS = 0.92;
 	// 1.18 (lead's review: orange stubs like glowing rods at dusk): up close the street is asphalt lit by its own lamps; only far away, where a
 	// street is a pixel wide, does it carry a sodium line, so a town reads from the horizon

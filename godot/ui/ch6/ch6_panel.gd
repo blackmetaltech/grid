@@ -28,11 +28,20 @@ func _init() -> void:
 	add_theme_stylebox_override("panel", GridTheme.paper_sb(4, 10.0))
 	_root = VBoxContainer.new(); _root.add_theme_constant_override("separation", 2); add_child(_root)
 	_toggle_btn = Button.new(); _toggle_btn.flat = true; _toggle_btn.name = "c6_collapse"; _toggle_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT; _toggle_btn.focus_mode = CbKit.focus_mode()
-	_toggle_btn.add_theme_font_size_override("font_size", GridTheme.fs(16)); _toggle_btn.add_theme_color_override("font_color", GridTheme.PAPER_INK)
+	_toggle_btn.add_theme_font_size_override("font_size", GridTheme.fs(16)); _toggle_btn.add_theme_color_override("font_color", GridTheme.chit_ink())
 	_toggle_btn.pressed.connect(func(): _collapsed = not _collapsed; _apply_collapse()); _root.add_child(_toggle_btn)
 	_scroll = ScrollContainer.new(); _scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED; _scroll.name = "c6_scroll"; _root.add_child(_scroll)
 	_box = VBoxContainer.new(); _box.add_theme_constant_override("separation", 4); _box.size_flags_horizontal = Control.SIZE_EXPAND_FILL; _scroll.add_child(_box)
 	GridUi.load_strings()
+
+## LOOK2: glass with light ink while the 3D province shows (GridTheme.look2), paper in the classic look.
+var _skin := ""
+func _apply_skin() -> void:
+	var want := "glass" if GridTheme.look2 else "paper"
+	if want == _skin: return
+	_skin = want; _sig = ""
+	add_theme_stylebox_override("panel", GridTheme.glass_sb(0.78, 4, 10.0) if GridTheme.look2 else GridTheme.paper_sb(4, 10.0))
+	_toggle_btn.add_theme_color_override("font_color", GridTheme.chit_ink())
 
 ## True while a number is being typed into one of the fields (the chrome then leaves the keys alone).
 func editing() -> bool:
@@ -49,6 +58,7 @@ func refresh() -> void:
 	_level = str(li.id) if li is Dictionary and li.get("active", false) else ""
 	visible = _level in LEVELS
 	if not visible: return
+	_apply_skin()
 	var g := _g()
 	if _level != _seen_level or int(g.tick) < _last_tick: _reset_frame = Engine.get_process_frames(); _seen_level = _level   # a fresh start or a Retry
 	if Engine.get_process_frames() == _reset_frame:   # Retry restarts the job and replays the build in the same frame: was a build already standing once it is back?
@@ -124,8 +134,8 @@ func _rebuild() -> void:
 	for c in _box.get_children(): _box.remove_child(c); c.queue_free()
 	_edits.clear()
 	var g := _g()
-	var head := GridTheme.label(tx("C6_TITLE_" + _level), 18, GridTheme.PAPER_INK, "title"); if not _phone(): _box.add_child(head)   # on a phone the collapse header carries the title
-	_readout = GridTheme.label("", 14, GridTheme.PAPER_INK, "mono"); _box.add_child(_readout)
+	var head := GridTheme.label(tx("C6_TITLE_" + _level), 18, GridTheme.chit_ink(), "title"); if not _phone(): _box.add_child(head)   # on a phone the collapse header carries the title
+	_readout = GridTheme.label("", 14, GridTheme.chit_ink(), "mono"); _box.add_child(_readout)
 	var locked: bool = str(g.get("status", "playing")) != "playing" or int(g.tick) > int(g.levelStart)
 	match _level:
 		"L19": _l19(g, locked)
@@ -139,7 +149,7 @@ func _unit(g: Dictionary, id: String):
 	return null
 
 func _note(t: String) -> void:
-	var l := GridTheme.label(t, 12, Color(GridTheme.PAPER_INK, 0.75), "sans"); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size.x = W - 24.0; _box.add_child(l)
+	var l := GridTheme.label(t, 12, Color(GridTheme.chit_ink(), 0.75), "sans"); l.autowrap_mode = TextServer.AUTOWRAP_WORD; l.custom_minimum_size.x = W - 24.0; _box.add_child(l)
 
 func _cost_text(act: String, args: Array) -> String:
 	var r = app.b.q("actionCost", [act, args])
@@ -204,7 +214,7 @@ func _l21(g: Dictionary, locked: bool) -> void:
 
 func _l22(g: Dictionary, locked: bool) -> void:
 	var card := Label.new(); card.text = tx("C6_FORM_TEXT"); card.autowrap_mode = TextServer.AUTOWRAP_WORD; card.custom_minimum_size.x = W - 24.0; card.visible = _card
-	card.add_theme_font_size_override("font_size", GridTheme.fs(11)); card.add_theme_color_override("font_color", GridTheme.PAPER_INK); card.name = "c6_card"
+	card.add_theme_font_size_override("font_size", GridTheme.fs(11)); card.add_theme_color_override("font_color", GridTheme.chit_ink()); card.name = "c6_card"
 	var tg := Button.new(); tg.text = tx("C6_FORMULAS_HIDE") if _card else tx("C6_FORMULAS"); tg.name = "c6_toggle"; tg.focus_mode = CbKit.focus_mode(); tg.add_theme_font_size_override("font_size", GridTheme.fs(13))
 	tg.pressed.connect(func(): _card = not _card; _sig = ""; refresh())
 	_box.add_child(tg); _box.add_child(card)
@@ -218,7 +228,7 @@ func _l22(g: Dictionary, locked: bool) -> void:
 		var u = _unit(g, id)
 		if u == null: continue
 		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 4)
-		var lb := GridTheme.label(tx("C6_DROOP") % ["G" + id.substr(1), float(u.droopPct)], 14, GridTheme.PAPER_INK, "mono"); lb.custom_minimum_size.x = 130; h.add_child(lb)
+		var lb := GridTheme.label(tx("C6_DROOP") % ["G" + id.substr(1), float(u.droopPct)], 14, GridTheme.chit_ink(), "mono"); lb.custom_minimum_size.x = 130; h.add_child(lb)
 		for d in [-0.5, -0.1, 0.1, 0.5]:
 			var b := Button.new(); b.text = ("%+.1f" % d); b.custom_minimum_size = Vector2(34, 28); b.name = "c6_d_%s_%s" % [id, str(d)]; b.disabled = locked
 			b.add_theme_font_size_override("font_size", GridTheme.fs(12)); b.pressed.connect(func(): _do("setDroop", [id, snappedf(float(_unit(_g(), id).droopPct) + d, 0.01)])); h.add_child(b)
@@ -229,7 +239,7 @@ func _l22(g: Dictionary, locked: bool) -> void:
 
 func _predict(id: String, unit: String, caption: String, locked: bool) -> void:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 6)
-	var lb := GridTheme.label(caption, 13, GridTheme.PAPER_INK, "sans"); lb.custom_minimum_size.x = 210; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
+	var lb := GridTheme.label(caption, 13, GridTheme.chit_ink(), "sans"); lb.custom_minimum_size.x = 210; lb.autowrap_mode = TextServer.AUTOWRAP_WORD; h.add_child(lb)
 	var e := LineEdit.new(); e.placeholder_text = "? " + unit; e.custom_minimum_size = Vector2(104, 28); e.editable = not locked; e.name = "c6_p_" + id; e.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	for p in _g().metrics.predictions: if p.id == id: e.text = str(snappedf(float(p.predicted), 0.0001))
 	e.text_submitted.connect(func(s): _submit(id, unit, s)); e.focus_exited.connect(func(): _submit(id, unit, e.text))
@@ -253,7 +263,7 @@ class NetCurve extends Control:
 	func _x(i: float) -> float: return LM + (size.x - LM - 6.0) * i / 95.0
 	func _draw() -> void:
 		# 1.9: laid out from the floored text size (16 px on screen), so the caption, the axis numbers and the ramp label never sit on each other
-		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
+		var f := ThemeDB.fallback_font; var ink := GridTheme.chit_ink()
 		var fz := GridText.floor_size(self, 11)
 		draw_rect(Rect2(Vector2.ZERO, size), Color(ink, 0.08))
 		GridText.ds(self, f, Vector2(4, fz), cap, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, ink)
@@ -296,7 +306,7 @@ class ShareBar extends Control:
 	var share := 0.0
 	var caption := ""
 	func _draw() -> void:
-		var f := ThemeDB.fallback_font; var ink := GridTheme.PAPER_INK
+		var f := ThemeDB.fallback_font; var ink := GridTheme.chit_ink()
 		var fz := GridText.floor_size(self, 11)
 		if custom_minimum_size.y < fz * 2.0 + 26.0: custom_minimum_size.y = fz * 2.0 + 26.0
 		GridText.ds(self, f, Vector2(0, fz), caption, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, ink)
