@@ -7,6 +7,12 @@ const S := {
 	"C8_ALL": "all", "C8_OFF": "off", "C8_ON": "on", "C8_V": "%s V", "C8_KM": "%s km", "C8_KW": "%s kW", "C8_HOMES": "%d", "C8_AMPS": "%s of %s A", "C8_PER_KM": "%s", "C8_SUBSTATION": "11 kV",
 	"C8_X_KM": "km along the feeder", "C8_Y_V": "customer voltage, V", "C8_BAND_LO": "lowest allowed %s V", "C8_BAND_HI": "highest allowed %s V",
 	"C8_DIAG_NOTE": "dot: green when both voltages are in band; bar: current against the wire's rating", "C8_REG_SHORT": "REG", "C8_REG_AT": "holds %s pu", "C8_TAP_AT": "tap %s %%",
+	# the 3D countryside (chips on the places)
+	"C8_SCALE": "%s km of feeder, drawn compressed", "C8_SUB_PIN": "Substation, 11 kV", "C8_REG_PIN": "Regulator, holds %s pu", "C8_REG_STEPS": "%d steps at peak",
+	"C8_PIN_YR": "%s min a year", "C8_BLAME_PIN": "Most to blame: %s", "C8_SW_PIN": "%s switch", "C8_FUSE_PIN": "fuse on", "C8_HOMES_PIN": "%d homes",
+	"C8_SHOTS_PIN": "%d fast shots", "C8_LINK_PIN": "%s  fuse %d A", "C8_FUSE_SAVED": "saved", "C8_FUSE_BLOWN": "blown", "C8_FUSE_IDLE": "not tried",
+	"C8_TX_TRIP": "trips at %s:00", "C8_HOT_PIN": "hot spot %s C, limit %d C", "C8_BUS_PIN": "bus section, %s", "C8_DR_PIN": "demand response: %d homes dimmed", "C8_TIE_PIN": "tie: %s",
+	"C8_OLTC_PIN": "tap changer, step %d at noon", "C8_PANELS": "%d panels", "C8_NOON_PIN": "noon %s", "C8_FAULTS_YR3": "%s/yr",
 	# L31
 	"C8_SECTION_CAP": "SECTION (N1 at the substation, N5 the far end)", "C8_WIRE_CAP": "WIRE of that section (price per km)", "C8_TAP_CAP": "TRANSFORMER TAP, % (off-load)", "C8_REG_CAP": "REGULATOR in the line to N2 / N3 (%s), set point pu",
 	"C8_PEAK": "peak", "C8_LIGHT": "light", "C8_PEAK_NAME": "evening peak", "C8_LIGHT_NAME": "light load (%d %%)", "C8_L31_TITLE": "READING THE FEEDER",

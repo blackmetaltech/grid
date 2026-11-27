@@ -29,10 +29,32 @@ func _initialize() -> void:
 	_l25(T)
 	_l26(T)
 	_l27(T)
+	_l31(T)
+	_l32(T)
+	_l33(T)
+	_l34(T)
+	_l35(T)
+	_l36(T)
 	await _input_pass(T)
-	for id in ["L10", "L11", "L12", "L13", "L23", "L24", "L25", "L26", "L27"]: T.check(Stage3D.STAGES.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D stage: no Classic chip" % id)
+	for id in ["L10", "L11", "L12", "L13", "L23", "L24", "L25", "L26", "L27", "L31", "L32", "L33", "L34", "L35", "L36"]: T.check(Stage3D.STAGES.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D stage: no Classic chip" % id)
 	for id in ["L04", "L06"]: T.check(Bench3D.LEVELS.has(id) and not Stage3D.STAGES.has(id), "%s stays with the chapter 2 bench" % id)
 	T.finish("STAGE3D-TRUTH", self)
+
+## Chapter 8: the scene is fed ch8Study with the kit beside it (what Stage3D.set_model does), at the minute the scene fixes for itself.
+func _s8(T: Truth, sg: Stage3D) -> Dictionary:
+	var q: Dictionary = T.b.q("ch8Study")
+	q["kit"] = T.b.q("ch8Kit")
+	sg.set_stage(q, 1110.0)
+	return q
+
+func _a8(T: Truth, sg: Stage3D, act: String, args: Array) -> Dictionary:
+	var r: Dictionary = T.b.act(act, args)
+	T.check(bool(r.get("ok", false)), "%s %s accepted: %s" % [act, str(args), str(r.get("message", ""))])
+	return _s8(T, sg)
+
+func _run8(T: Truth, sg: Stage3D) -> Dictionary:
+	T.b.act("tick", [1])
+	return _s8(T, sg)
 
 func _status(T: Truth, sg: Stage3D) -> Dictionary:
 	var q: Dictionary = T.b.q("ch4Status")
@@ -286,6 +308,220 @@ func _l27(T: Truth) -> void:
 	q = _run7(T, sg); rep = sg.report()
 	T.check((rep.smoke as Array).is_empty() == bool(q.ratingOk), "L27: the breakers smoke exactly when the rating is short (ratingOk %s)" % str(q.ratingOk))
 	_ground(T, sg, "L27")
+	sg.free()
+
+## L31: the wire of each section is as thick as its ampacity, the regulator stands where the engine says with its three tanks, each village's windows are
+## (V / 230)^2 of its peak voltage (amber under the band), the pole transformers' pointers follow the taps, a house is drawn per 40 customers.
+func _l31(T: Truth) -> void:
+	T.level("L31")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l31", "L31: the feeder is built")
+	for k in ["N1", "N2", "N3", "N4", "N5", "sub"]: T.check(sg.anchors.has(k), "L31: chip anchor %s" % k)
+	var rep := sg.report()
+	for i in 5:
+		T.check(str(rep.wire[i]) == str(q.tree[i].conductor), "L31: section %d is drawn in %s" % [i + 1, str(q.tree[i].conductor)])
+		T.check(int(rep.houses[i]) == Stage8.houses_for(int(q.tree[i].customers)), "L31: node %d has a house per 40 customers (%d for %d)" % [i + 1, int(rep.houses[i]), int(q.tree[i].customers)])
+	T.check(str(rep.reg_at) == "" and int(rep.reg_tanks) == 0, "L31: no regulator before one is placed")
+	q = _a8(T, sg, "setConductor", ["N3", "Hyena"]); rep = sg.report()
+	T.check(str(rep.wire[2]) == "Hyena" and float(rep.wire_r[2]) > float(rep.wire_r[0]), "L31: a Hyena section is thicker than a Weasel one (%f vs %f)" % [float(rep.wire_r[2]), float(rep.wire_r[0])])
+	q = _a8(T, sg, "setConductor", ["N4", "Rabbit"]); rep = sg.report()
+	for i in 5:
+		for j in 5:
+			var ai := float(q.tree[i].ampacityA); var aj := float(q.tree[j].ampacityA)
+			T.check((ai > aj) == (float(rep.wire_r[i]) > float(rep.wire_r[j]) + 1e-9), "L31: wire %d vs %d: thicker exactly when the ampacity is bigger (%.0f vs %.0f A)" % [i + 1, j + 1, ai, aj])
+	q = _a8(T, sg, "placeRegulator", ["N2", 1.0]); rep = sg.report()
+	T.check(str(rep.reg_at) == "N2" and int(rep.reg_tanks) == 3, "L31: a regulator at N2 stands on its section with three tanks (%s, %d)" % [str(rep.reg_at), int(rep.reg_tanks)])
+	q = _a8(T, sg, "placeRegulator", ["N3", 1.0]); rep = sg.report()
+	T.check(str(rep.reg_at) == "N3", "L31: moved to N3 it stands at N3 only (%s)" % str(rep.reg_at))
+	q = _a8(T, sg, "removeRegulator", []); rep = sg.report()
+	T.check(str(rep.reg_at) == "" and int(rep.reg_tanks) == 0, "L31: removed, it is gone")
+	# windows against the peak voltage, amber under the band
+	var lo := float(q.band.loV); var nom := float(q.band.nominalV); var amber_n := 0; var want_amber := 0
+	for i in 5:
+		var v := float(q.tree[i].vPeakV)
+		T.near(float(rep.win_e[i]), 6.0 * Bench3D.bulb_brightness(v, nom), 1e-6, "L31: village %d's windows follow (%.1f V / %.0f V)^2" % [i + 1, v, nom])
+		var col: Color = rep.win_col[i]; var is_amber := col.b < 0.3
+		T.check(is_amber == (v < lo), "L31: village %d is amber exactly when its peak voltage is under the band (%.1f V, floor %.1f V)" % [i + 1, v, lo])
+		if is_amber: amber_n += 1
+		if v < lo: want_amber += 1
+	T.check(amber_n == want_amber and want_amber > 0, "L31: the idle feeder has %d amber villages" % want_amber)
+	for i in 5: for j in 5: if float(q.tree[i].vPeakV) < float(q.tree[j].vPeakV): T.check(float(rep.win_e[i]) <= float(rep.win_e[j]), "L31: a lower voltage is never brighter (%d vs %d)" % [i + 1, j + 1])
+	# the pole transformers' taps
+	q = _a8(T, sg, "setDtTap", ["N1", 2.5]); rep = sg.report()
+	T.check(float(rep.tap_ptr[0]) > 0.1, "L31: a +2.5 %% tap stands right of centre (%f)" % float(rep.tap_ptr[0]))
+	q = _a8(T, sg, "setDtTap", ["N1", -5.0]); rep = sg.report()
+	T.check(float(rep.tap_ptr[0]) < -0.3 and float(rep.tap_ptr[1]) == 0.0, "L31: a -5 %% tap stands left and the others stay at centre (%s)" % str(rep.tap_ptr))
+	# the reference design brings every village into the band: none amber
+	for n in ["N1", "N2"]: q = _a8(T, sg, "setConductor", [n, "Dog"])
+	q = _a8(T, sg, "setConductor", ["N3", "Rabbit"]); q = _a8(T, sg, "setConductor", ["N4", "Weasel"])
+	for p in [["N1", 0.0], ["N2", 2.5], ["N3", 2.5], ["N4", 5.0], ["N5", 5.0]]: q = _a8(T, sg, "setDtTap", p)
+	rep = sg.report()
+	T.check(bool(q.voltage.ok), "L31: the reference design is in band")
+	var any_amber := false
+	for i in 5: any_amber = any_amber or (rep.win_col[i] as Color).b < 0.3
+	T.check(not any_amber, "L31: with every customer in band no village is amber")
+	_ground(T, sg, "L31")
+	sg.free()
+
+## L32: switches and fuses stand where the engine's design puts them, the tie only when bought; after the run each village is dimmed by its section's share of the
+## year's customer-minutes and the section most to blame carries the beacon.
+func _l32(T: Truth) -> void:
+	T.level("L32")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l32", "L32: the feeder is built")
+	for k in ["T1", "T2", "T3", "T4", "P1", "P2", "P3", "sub", "tie"]: T.check(sg.anchors.has(k), "L32: chip anchor %s" % k)
+	var rep := sg.report()
+	for id in ["T2", "T3", "T4"]: T.check(str(rep.sect[id]) == "none", "L32: no switch at %s to begin with" % id)
+	T.check(not bool(rep.fuse.P1) and not bool(rep.fuse.P2) and not bool(rep.fuse.P3) and not bool(rep.tie), "L32: no spur fuse and no tie to begin with")
+	T.check(not bool(rep.beacon) and str(rep.worst) == "", "L32: before the run nothing is to blame")
+	for id in rep.lit: T.near(float(rep.lit[id]), 6.0, 1e-6, "L32: before the run %s is lit" % id)
+	q = _a8(T, sg, "placeSwitch", ["T2", "manual"]); q = _a8(T, sg, "placeSwitch", ["T3", "remote"]); rep = sg.report()
+	T.check(str(rep.sect.T2) == "manual" and str(rep.sect.T3) == "remote" and str(rep.sect.T4) == "none", "L32: T2 has a manual switch and T3 a remote one (%s)" % str(rep.sect))
+	q = _a8(T, sg, "setFuse", ["P2", true]); rep = sg.report()
+	T.check(bool(rep.fuse.P2) and not bool(rep.fuse.P1), "L32: P2 has its fuse and P1 has none")
+	q = _a8(T, sg, "setTie", [true]); rep = sg.report()
+	T.check(bool(rep.tie), "L32: the tie is closed in on the next feeder")
+	q = _a8(T, sg, "setTie", [false]); q = _a8(T, sg, "setFuse", ["P2", false]); q = _a8(T, sg, "placeSwitch", ["T2", "none"]); q = _a8(T, sg, "placeSwitch", ["T3", "none"])
+	q = _run8(T, sg); rep = sg.report()
+	T.check(bool(q.revealed) and bool(rep.beacon), "L32: after the run the beacon stands")
+	var hmax := 0.0; var worst := ""
+	for sc in q.sections: if float(sc.saidiMin) > hmax: hmax = float(sc.saidiMin); worst = str(sc.id)
+	T.check(str(rep.worst) == worst, "L32: the section most to blame is %s (%s)" % [worst, str(rep.worst)])
+	for sc in q.sections: T.near(float(rep.lit[str(sc.id)]), 6.0 * (1.0 - 0.92 * float(sc.saidiMin) / hmax), 1e-6, "L32: %s is lit by what it does not cause (%.1f of %.1f min a year)" % [str(sc.id), float(sc.saidiMin), hmax])
+	for a in q.sections: for b in q.sections: if float(a.saidiMin) > float(b.saidiMin): T.check(float(rep.lit[str(a.id)]) <= float(rep.lit[str(b.id)]), "L32: %s, to blame for more, is never brighter than %s" % [str(a.id), str(b.id)])
+	_ground(T, sg, "L32")
+	sg.free()
+
+## L33: a recloser at the head; after the run a spur's fuse hangs closed and green when the fast curve saves it (a fast shot, a margin of 0 or more), open and red when it blows, and the
+## village behind a blown fuse is dark.
+func _l33(T: Truth) -> void:
+	T.level("L33")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l33", "L33: the feeder is built")
+	for k in ["sub", "recloser", "S1", "S2", "S3", "fuse_S1", "end"]: T.check(sg.anchors.has(k), "L33: chip anchor %s" % k)
+	var rep := sg.report()
+	T.check(bool(rep.recloser), "L33: the recloser stands at the head")
+	for id in ["S1", "S2", "S3"]: T.check(str(rep.state[id]) == "idle", "L33: before the run %s's fuse is untried" % id)
+	q = _run8(T, sg); rep = sg.report()
+	var saved_n := 0
+	for sp in q.spurs:
+		var id := str(sp.id); var saved: bool = int(q.design.fastShots) > 0 and float(sp.fastMarginS) >= 0.0
+		T.check(str(rep.state[id]) == ("saved" if saved else "open"), "L33: %s's fuse is %s (fast margin %.3f s, %d fast shots)" % [id, "saved" if saved else "blown", float(sp.fastMarginS), int(q.design.fastShots)])
+		if saved: saved_n += 1
+	T.check(str(q.kind) == "miscoordination" and float(rep.end_e) < 1.0, "L33: with the curves crossed (%s) the whole feeder is dark" % str(q.kind))
+	# the reference design: every fuse saved, every village lit
+	T.level("L33"); sg.set_stage(T.b.q("ch8Study"), 1110.0)
+	q = _a8(T, sg, "setRecloser", [200.0, 0.05, 3.0, 2.0])
+	for p in [["S1", 65.0], ["S2", 65.0], ["S3", 40.0]]: q = _a8(T, sg, "setFuseLink", p)
+	q = _run8(T, sg); rep = sg.report()
+	T.check(q.kind == null, "L33: the reference design coordinates")
+	for id in ["S1", "S2", "S3"]:
+		T.check(str(rep.state[id]) == "saved" and float(rep.village_e[id]) > 3.0, "L33: %s's fuse is saved and its village lit" % id)
+	for ck in rep.cut: T.check(str(ck) == "saved" or str(ck) == "closed", "L33: a saved cutout hangs closed")
+	# no fast shot: every fuse blows on a temporary fault and its village goes dark
+	T.level("L33"); sg.set_stage(T.b.q("ch8Study"), 1110.0)
+	q = _a8(T, sg, "setRecloser", [200.0, 0.05, 3.0, 0.0])
+	for p in [["S1", 65.0], ["S2", 65.0], ["S3", 40.0]]: q = _a8(T, sg, "setFuseLink", p)
+	q = _run8(T, sg); rep = sg.report()
+	T.check(q.kind == "fuseBlown", "L33: a recloser with no fast shot lets the fuses blow (%s)" % str(q.kind))
+	for id in ["S1", "S2", "S3"]: T.check(str(rep.state[id]) == "open" and float(rep.village_e[id]) < 1.0, "L33: with no fast shot %s's fuse is blown and its village dark" % id)
+	_ground(T, sg, "L33")
+	sg.free()
+
+## L34: the survivors' tanks glow with the engine's hot-spot against the limit (the unit that trips does not), the bay count is the engine's, the bus-section breaker
+## is a hand wheel or a motor, the tie a switch of the kind bought, demand response dims homes.
+func _l34(T: Truth) -> void:
+	T.level("L34")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l34", "L34: the substation is built")
+	for k in ["tx1", "tx2", "bus", "tie", "town"]: T.check(sg.anchors.has(k), "L34: chip anchor %s" % k)
+	var rep := sg.report()
+	T.check(int(rep.tx) == int(q.n) and int(q.n) == 2, "L34: two transformers in their bays (%d)" % int(rep.tx))
+	T.check(float(rep.hot_e[0]) == 0.0 and float(rep.hot[0]) == 0.0, "L34: the unit that trips is dark")
+	var frac := clampf((float(q.hotPeakC) - float(q.ambientC)) / (float(q.hotLimitC) - float(q.ambientC)), 0.0, 1.4)
+	T.near(float(rep.hot[1]), 0.9 * pow(minf(frac, 1.25), 1.4), 1e-6, "L34: the survivor glows with its hot-spot (%.1f C of %.0f C)" % [float(q.hotPeakC), float(q.hotLimitC)])
+	T.check(bool(q.overheat) and frac > 1.0, "L34: the idle design overheats and the survivor is past its limit")
+	T.check(bool(rep.bus_hand) and not bool(rep.bus_auto) and str(rep.tie) == "none" and int(rep.dimmed) == 0, "L34: manual bus section, no tie, no demand response")
+	var before := float(rep.hot[1])
+	q = _a8(T, sg, "setTransformerSize", [24.0]); rep = sg.report()
+	T.check(float(rep.hot[1]) < before, "L34: bigger units run cooler (%f -> %f)" % [before, float(rep.hot[1])])
+	q = _a8(T, sg, "setBusSection", ["auto"]); rep = sg.report()
+	T.check(bool(rep.bus_auto) and not bool(rep.bus_hand), "L34: an automatic bus section is a motor, not a hand wheel")
+	q = _a8(T, sg, "setTransfer", ["remote"]); rep = sg.report()
+	T.check(str(rep.tie) == "remote", "L34: the remote tie shows its switch (%s)" % str(rep.tie))
+	q = _a8(T, sg, "setTransfer", ["manual"]); rep = sg.report()
+	T.check(str(rep.tie) == "manual", "L34: the manual tie shows its switch")
+	q = _a8(T, sg, "setDemandResponse", ["large"]); rep = sg.report()
+	var mva := 0.0
+	for x in q.kit.dr: if str(x.id) == "large": mva = float(x.mva)
+	T.check(int(rep.dimmed) == int(roundf(float(rep.homes) * mva / float(q.peakMva))) and int(rep.dimmed) > 0, "L34: demand response of %.1f MVA dims %d of %d homes" % [mva, int(rep.dimmed), int(rep.homes)])
+	q = _a8(T, sg, "setDemandResponse", ["small"]); var small := int(sg.report().dimmed)
+	T.check(small <= int(rep.dimmed) and small >= 1, "L34: a smaller demand response dims no more homes (%d)" % small)
+	_ground(T, sg, "L34")
+	sg.free()
+
+## L35: the roof panels are one to 20 kW of the connected PV on each PV village, the voltage rise shows as window and conductor glow, the inverters' lamps say volt-var, the tap changer's pointer its step.
+func _l35(T: Truth) -> void:
+	T.level("L35")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l35", "L35: the feeder is built")
+	for k in ["N1", "N5", "sub", "oltc"]: T.check(sg.anchors.has(k), "L35: chip anchor %s" % k)
+	var rep := sg.report()
+	for i in 5:   # one panel to 20 kW of a node's share, as many as its roofs take (six to a house)
+		var id := str(q.tree[i].id)
+		if not (q.pvNodes as Array).has(id): continue
+		var want := mini(int(roundf(float(q.design.pvLimitKw) / float((q.pvNodes as Array).size()) / Stage8.KW_PER_PANEL)), 6 * int(rep.houses[i]))
+		T.check(int(rep.panels[id]) == want, "L35: %s has the engine's share of the PV in panels (%d, want %d for %.0f kW)" % [id, int(rep.panels[id]), want, float(q.design.pvLimitKw)])
+	q = _a8(T, sg, "setPvLimit", [2000.0]); rep = sg.report()
+	for id in q.pvNodes: T.check(int(rep.panels[id]) == 25, "L35: 2000 kW over four nodes is 500 kW each, 25 panels (%d)" % int(rep.panels[id]))
+	var p2: int = rep.panels["N2"]
+	q = _a8(T, sg, "setPvLimit", [500.0]); rep = sg.report()
+	T.check(int(rep.panels["N2"]) < p2 and int(rep.panels["N2"]) == 6, "L35: less PV, fewer panels (%d)" % int(rep.panels["N2"]))
+	q = _a8(T, sg, "setPvLimit", [0.0]); rep = sg.report()
+	T.check(int(rep.panels["N3"]) == 0, "L35: no PV, no panels")
+	# noon voltage: the glow rises with it, the windows follow (V / 230)^2
+	var nom := float(q.band.nominalV); var hi := float(q.band.hiV)
+	for i in 5:
+		var v := float(q.noon.vV[i])
+		T.near(float(rep.win_e[i]), 6.0 * Bench3D.bulb_brightness(v, nom), 1e-6, "L35: node %d's windows follow its noon voltage (%.1f V)" % [i + 1, v])
+		T.near(float(rep.glow[i]), 1.6 * pow(clampf((v - nom) / (hi - nom), 0.0, 1.4), 1.2), 1e-6, "L35: node %d's conductor glows with how far its noon voltage has climbed" % (i + 1))
+	var g_low := float(rep.glow[4])
+	q = _a8(T, sg, "setPvLimit", [3000.0]); rep = sg.report()
+	T.check(float(rep.glow[4]) >= g_low, "L35: more sun on the roofs never cools the far end's glow (%f -> %f)" % [g_low, float(rep.glow[4])])
+	q = _a8(T, sg, "setVoltVar", [true]); rep = sg.report()
+	for v in rep.vv: T.check(bool(v), "L35: with volt-var every inverter's lamp is the reactive colour")
+	q = _a8(T, sg, "setVoltVar", [false]); rep = sg.report()
+	for v in rep.vv: T.check(not bool(v), "L35: without it the lamps are amber")
+	T.check(int(rep.oltc) == int(q.noon.oltcStep), "L35: the tap changer stands on the engine's noon step (%d)" % int(rep.oltc))
+	q = _a8(T, sg, "setOltc", [1.04, true]); rep = sg.report()
+	T.check(int(rep.oltc) == int(q.noon.oltcStep) and bool(rep.ldc), "L35: set point 1.04 with line-drop compensation: step %d, the lamp lit" % int(rep.oltc))
+	_ground(T, sg, "L35")
+	sg.free()
+
+## L36: the exam feeder from the givens: three sections with their devices; after the run the far end's windows follow the engine's drop.
+func _l36(T: Truth) -> void:
+	T.level("L36")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s8(T, sg)
+	T.check(sg.field != null and sg.scn == "l36", "L36: the feeder is built")
+	for k in ["A", "B", "C", "sub"]: T.check(sg.anchors.has(k), "L36: chip anchor %s" % k)
+	var rep := sg.report()
+	var secs: Array = q.givens.sections
+	T.check((rep.wire as Array).size() == 3, "L36: three sections")
+	for i in 3:
+		T.check(str(rep.dev[i]) == ("manual" if str(secs[i].device) == "manual" else "none"), "L36: section %s has its device (%s)" % [str(secs[i].id), str(secs[i].device)])
+		T.check(int(rep.houses[i]) == Stage8.houses_for(int(secs[i].customers)), "L36: section %s has a house per 40 customers" % str(secs[i].id))
+	T.near(float(rep.win_e[2]), 6.0, 1e-6, "L36: before the run the far end is lit (nothing is told)")
+	T.b.act("predict", ["dropPct", 3.85, "%"])
+	q = _run8(T, sg); rep = sg.report()
+	var far: float = 230.0 * (1.0 - float(q.answers.dropPct) / 100.0)
+	T.near(float(rep.win_e[2]), 6.0 * Bench3D.bulb_brightness(far, 230.0), 1e-6, "L36: after the run the far end's windows follow the engine's drop of %.2f %% (%.1f V)" % [float(q.answers.dropPct), far])
+	_ground(T, sg, "L36")
 	sg.free()
 
 ## In 3D the stage lets the mouse through to the world and only the panel and the houses keep it; a click on a house sends the 2D tap's action; with no 3D place the whole stage keeps it.

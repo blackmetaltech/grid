@@ -38,6 +38,7 @@ func _body(ip: Rect2) -> void:
 	GridText.dm(self, _mono(), ip.position + Vector2(420.0, 70.0), T("C8_HOST_LINE") % [WorkOrder.num(float(q.design.pvLimitKw)), WorkOrder.num(float(q.hostingKw))], HORIZONTAL_ALIGNMENT_LEFT, 210.0, GridTheme.fs(11), 4, _good(float(q.design.pvLimitKw) <= float(q.hostingKw) + 0.5))
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r1 := Rect2(Vector2(30.0, top), Vector2(w - 60.0, minf(280.0, bh * 0.45)))
 	var tree: Array = q.tree; var noon: Dictionary = q.noon; var eve: Dictionary = q.evening
@@ -46,6 +47,10 @@ func _draw_stage() -> void:
 	var r2 := Rect2(Vector2(30.0, r1.end.y + 12.0), Vector2(maxf((w - 60.0) * 0.62, 400.0), maxf(bh - r1.size.y - 12.0, 160.0)))
 	_profile(r2, tree, _cum_km(tree), [{"name": T("C8_NOON_NAME"), "vals": noon.vV, "col": GridTheme.WARN}, {"name": T("C8_EVE_NAME"), "vals": eve.vV, "col": GridTheme.LIVE}])
 	var r3 := Rect2(Vector2(r2.end.x + 12.0, r2.position.y), Vector2(maxf(w - 30.0 - r2.end.x - 12.0, 220.0), r2.size.y))
+	_read_card(r3)
+
+func _read_card(r3: Rect2) -> void:
+	var noon: Dictionary = q.noon; var eve: Dictionary = q.evening
 	var lines := []; var band: Dictionary = q.band
 	lines.append([T("C8_L35_NOON") % [WorkOrder.num(float(noon.maxV)), str(noon.maxNode), WorkOrder.num(float(band.hiV)), WorkOrder.num(float(q.marginHiV))], _good(float(q.marginHiV) >= 0.0)])
 	lines.append([(T("C8_L35_BACK") % WorkOrder.num(absf(float(noon.headKw)))) if bool(noon.reverseFlow) else T("C8_L35_FWD") % WorkOrder.num(absf(float(noon.headKw))), Color(GridTheme.TEXT, 0.85)])
@@ -57,3 +62,22 @@ func _draw_stage() -> void:
 	if bool(q.design.voltVar): lines.append([T("C8_L35_VV") % WorkOrder.num(snappedf(qs, 1.0)), GridTheme.REACTIVE])
 	lines.append([T("C8_L35_GLOSS1"), Color(GridTheme.TEXT, 0.6)]); lines.append([T("C8_L35_GLOSS2"), Color(GridTheme.TEXT, 0.6)])
 	_lines(r3, T("C8_L35_TITLE"), lines)
+
+## The 3D feeder at noon: the two profiles and the readings stay as glass cards; each village carries its noon voltage and its panels.
+func _draw_stage3() -> void:
+	var bh := _cards3_h(); var cs := _cards3(640.0, 520.0, bh)
+	var tree: Array = q.tree; var noon: Dictionary = q.noon; var eve: Dictionary = q.evening
+	_profile(cs[0], tree, _cum_km(tree), [{"name": T("C8_NOON_NAME"), "vals": noon.vV, "col": GridTheme.WARN}, {"name": T("C8_EVE_NAME"), "vals": eve.vV, "col": GridTheme.LIVE}])
+	_read_card(cs[1])
+	var lo := float(q.band.loV); var hi := float(q.band.hiV)
+	var l3 = app.get("grid_world").look3d
+	var rep: Dictionary = l3.report() if l3 != null else {}
+	var total := 0.0
+	for n in tree: total += float(n.km)
+	_pin("sub", [T("C8_SUB_PIN"), T("C8_SCALE") % WorkOrder.num(total), T("C8_OLTC_PIN") % int(noon.oltcStep)], [GridTheme.G_TEXT, GridTheme.G_DIM, GridTheme.SODIUM], 22.0)
+	for i in tree.size():
+		var n: Dictionary = tree[i]; var v := float(noon.vV[i])
+		var lines := ["%s  %s  %s" % [str(n.id), T("C8_KM") % WorkOrder.num(float(n.km)), str(n.conductor)], T("C8_NOON_PIN") % _vtxt(v)]; var cols := [GridTheme.G_TEXT, _good(v <= hi and v >= lo)]
+		var pn: int = int(rep.get("panels", {}).get(str(n.id), 0))
+		if pn > 0: lines.append(T("C8_PANELS") % pn); cols.append(GridTheme.WARN)
+		_pin(str(n.id), lines, cols, 20.0)

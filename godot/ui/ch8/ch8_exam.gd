@@ -43,6 +43,7 @@ func _over(ip: Rect2) -> void:
 		GridText.ds(self, f, r.position + Vector2(10.0, r.size.y * 0.5 + fz * 0.35), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz, GridTheme.SODIUM if on else Color(GridTheme.TEXT, 0.85))
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(380.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var g: Dictionary = q.givens; var secs: Array = g.sections
 	var gr := Rect2(Vector2(30.0, top), Vector2(minf(w * 0.46, 860.0), bh))
@@ -72,7 +73,11 @@ func _draw_stage() -> void:
 			draw_rect(Rect2(a - Vector2(8, 8), Vector2(16, 16)), Color(GridTheme.INK)); draw_rect(Rect2(a - Vector2(8, 8), Vector2(16, 16)), col, false, 2.5); draw_rect(Rect2(a - Vector2(4, 4), Vector2(8, 8)), col)
 			_text(_mono(), 10, a + Vector2(-30.0, -14.0), T("C8_DEV_SHORT_" + dev), col, 60.0, 1)
 		x += l
-	var y := rr.position.y + 190.0
+	_answers(rr, rr.position.y + 190.0)
+
+## The three predictions beside the engine's answers (after the run), from y down.
+func _answers(rr: Rect2, y0: float) -> void:
+	var y := y0
 	_text(_semi(), 11, Vector2(rr.position.x + 12.0, y), T("C8_ANS_CAP"), GridTheme.SODIUM); y += 12.0
 	for qq in q.questions:
 		var id := str(qq.id); y += 34.0
@@ -86,3 +91,24 @@ func _draw_stage() -> void:
 	var made := 0
 	for qq in q.questions: if qq.get("predicted") != null: made += 1
 	_text(_mono(), 11, Vector2(rr.position.x + 14.0, rr.end.y - 16.0), T("C8_MADE") % made, _good(made == 3))
+
+## The 3D feeder: the givens and the answers stay as glass cards over the sky (the prediction boxes and the why card are in the panel); each section's village says its load and device.
+func _draw_stage3() -> void:
+	var w := _right(); var bh := _cards3_h(460.0)
+	var g: Dictionary = q.givens; var secs: Array = g.sections
+	var gr := Rect2(Vector2(M, TOP), Vector2(minf(w * 0.4, 640.0), bh))
+	var lines := [[T("C8_G_LINE") % [int(g.kV), str(g.conductor), WorkOrder.num(float(g.rOhmKm)), WorkOrder.num(float(g.xOhmKm))], Color(GridTheme.TEXT, 0.9)]]
+	for s in secs:
+		lines.append([T("C8_G_SEC") % [str(s.id), WorkOrder.num(float(s.km)), int(s.customers), WorkOrder.num(float(s.kw)), WorkOrder.num(float(s.kvar)), T("C8_DEV_" + str(s.device))], Color(GridTheme.TEXT, 0.85)])
+	lines.append([T("C8_G_FAULTS") % [WorkOrder.num(float(g.lambdaPerKm)), WorkOrder.num(float(g.repairH)), WorkOrder.num(float(g.manualH))], Color(GridTheme.TEXT, 0.85)])
+	lines.append([T("C8_G_TASK"), GridTheme.SODIUM]); lines.append([T("C8_G_THINK"), Color(GridTheme.TEXT, 0.6)])
+	_lines(gr, T("C8_GIV_CAP"), lines, 12, 8.0)
+	var rw := minf(w * 0.3, 440.0)
+	var rr := Rect2(Vector2(w - M - rw, TOP), Vector2(rw, minf(bh, 330.0))); _card(rr)
+	_answers(rr, rr.position.y + 22.0)
+	_pins.append(gr); _pins.append(rr)
+	_pin("sub", [T("C8_SUB_PIN")], [GridTheme.G_TEXT], 22.0)
+	for s in secs:
+		var ln := ["%s  %s" % [str(s.id), T("C8_KM") % WorkOrder.num(float(s.km))], T("C8_HOMES_PIN") % int(s.customers), T("C8_G_LOAD") % [WorkOrder.num(float(s.kw)), WorkOrder.num(float(s.kvar))]]; var cl := [GridTheme.G_TEXT, GridTheme.G_DIM, GridTheme.G_DIM]
+		if str(s.device) != "none": ln.append(T("C8_DEV_SHORT_" + str(s.device))); cl.append(GridTheme.COPPER if str(s.device) == "manual" else GridTheme.GOOD)
+		_pin(str(s.id), ln, cl, 20.0)

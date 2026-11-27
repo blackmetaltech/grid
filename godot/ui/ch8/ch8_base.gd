@@ -113,7 +113,7 @@ func _status(ip: Rect2, text: String, col: Color, y := 124.0, w := 440.0) -> voi
 	GridText.dm(self, _mono(), ip.position + Vector2(0.0, y + 10.0), text, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(11), 3, col)
 
 # ---- stage helpers -----------------------------------------------------------------------------------------------------------------
-func _card(r: Rect2) -> void: draw_style_box(GridTheme.ink_sb(INK_CARD, 10, 0.0), r)
+func _card(r: Rect2) -> void: draw_style_box(_box_sb(INK_CARD), r)   # glass over the 3D place, navy ink on the classic stage
 
 func _lines(r: Rect2, title: String, lines: Array, fsz := 11, gap := 6.0) -> void:
 	_card(r); _text(_semi(), 11, r.position + Vector2(12.0, 20.0), title, GridTheme.SODIUM)
@@ -253,3 +253,15 @@ func _cum_km(tree: Array) -> Array:
 	var out := [0.0]; var c := 0.0
 	for n in tree: c += float(n.km); out.append(c)
 	return out
+
+# ---- the 3D countryside (world3d/stage3d_ch8.gd): the charts stay as glass cards over the sky, the places carry chips -----------------------------------
+## The height the glass cards take at the top of the 3D view: they stay clear of the panel, and a chip hung on the place never rises into them.
+func _cards3_h(maxh := 340.0) -> float: return clampf(_stage_bottom() - TOP - 12.0, 200.0, maxh)
+
+## A card on the left and one on the right of the top of the view, as wide as the screen allows; returns [left, right].
+func _cards3(lw: float, rw: float, h: float) -> Array:
+	var w := _right()
+	var l := Rect2(Vector2(M, TOP), Vector2(minf(lw, w * 0.44), h))
+	var r := Rect2(Vector2(w - M - minf(rw, w * 0.34), TOP), Vector2(minf(rw, w * 0.34), h))
+	_pins.append(l); _pins.append(r)   # the chips on the place step round the cards
+	return [l, r]

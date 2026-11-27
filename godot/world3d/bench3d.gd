@@ -29,6 +29,7 @@ const LIP_H := 26.0               # L04: its height above the lower valley
 const TOWN_V_OK := 0.97           # L06: the 2D bench's "town is happy" share; below it the windows burn amber
 
 var quality := "high"
+var _fields_on := false           # Stage3D: farmland plots on the ground (chapter 8's countryside)
 var _grass_tint := Vector3(0.86, 0.95, 0.70)   # Stage3D greens its yards
 var tm := 10.0                    # WorldView maps tiles to metres with it (the bench has no tiles of its own)
 var field = null                  # non-null once built: WorldView's `_l3()` asks for it
@@ -335,7 +336,7 @@ func _build_terrain() -> void:
 	var fn := FastNoiseLite.new(); fn.frequency = 0.008; fn.fractal_octaves = 4; mn.noise = fn
 	tmat.set_shader_parameter("macro_noise", mn)
 	tmat.set_shader_parameter("tile_m", 8.0)
-	tmat.set_shader_parameter("fields", 1.0 if kind == "town" else 0.0)
+	tmat.set_shader_parameter("fields", 1.0 if kind == "town" or _fields_on else 0.0)
 	tmat.set_shader_parameter("wet_top", 0.4)
 	tmat.set_shader_parameter("cloud_scale", 0.2)
 	tmat.set_shader_parameter("grass_tint", _grass_tint)

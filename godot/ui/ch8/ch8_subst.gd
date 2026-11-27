@@ -33,6 +33,7 @@ func _body(ip: Rect2) -> void:
 	GridText.dm(self, _mono(), ip.position + Vector2(390.0, 22.0), T("C8_L34_OK") if ok else (T("C8_L34_HOT") if bool(q.overheat) else T("C8_L34_LATE")), HORIZONTAL_ALIGNMENT_LEFT, 240.0, GridTheme.fs(11), 5, _good(ok))
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var day: Dictionary = q.day; var n: int = (day.hotC as Array).size(); var step := float(q.stepMin) / 60.0
 	var hot_peak := float(q.hotPeakC); var lim := float(q.hotLimitC); var ok := not bool(q.overheat) and not bool(q.notRestored)
@@ -53,6 +54,12 @@ func _draw_stage() -> void:
 	GridText.dm(self, _mono(), th.position + Vector2(124.0, 206.0), T("C8_LOL_LAMPS") % [WorkOrder.num(lstar * 2.0), WorkOrder.num(lstar)], HORIZONTAL_ALIGNMENT_LEFT, 112.0, GridTheme.fs(10), 5, Color(GridTheme.TEXT, 0.6))
 	# right: the readings
 	var tw := minf(340.0, (w - 60.0) * 0.25); var tr := Rect2(Vector2(w - 30.0 - tw, top), Vector2(tw, bh))
+	_readings(tr)
+	# centre: temperatures, and load against served
+	var cx := th.end.x + 12.0; var cwid := tr.position.x - 12.0 - cx
+	_charts(Rect2(Vector2(cx, top), Vector2(cwid, bh)))
+
+func _readings(tr: Rect2) -> void:
 	var lines := []
 	lines.append([T("C8_FIRM_LINE") % [int(q.n), WorkOrder.num(float(q.sizeMva)), WorkOrder.num(float(q.totalMva)), WorkOrder.num(float(q.firmMva)), WorkOrder.num(float(q.peakMva))], _good(float(q.shortfallMva) <= 0.0)])
 	lines.append([T("C8_TRIP_LINE") % [WorkOrder.num(float(q.tripHour)), WorkOrder.num(float(q.sizeMva) * 1.5)], Color(GridTheme.TEXT, 0.85)])
@@ -61,8 +68,13 @@ func _draw_stage() -> void:
 	if bool(q.overheat): lines.append([T("C8_L34_HOT"), HOT])
 	lines.append([T("C8_L34_GLOSS_AGE"), Color(GridTheme.TEXT, 0.6)]); lines.append([T("C8_L34_GLOSS_FIRM"), Color(GridTheme.TEXT, 0.6)])
 	_lines(tr, T("C8_L34_TITLE"), lines)
-	# centre: temperatures, and load against served
-	var cx := th.end.x + 12.0; var cwid := tr.position.x - 12.0 - cx
+
+## The temperatures through the day and the load against what is served.
+func _charts(box: Rect2) -> void:
+	var day: Dictionary = q.day; var n: int = (day.hotC as Array).size(); var step := float(q.stepMin) / 60.0
+	var hot_peak := float(q.hotPeakC); var lim := float(q.hotLimitC)
+	var tmin := 20.0; var tmax := maxf(180.0, ceilf((hot_peak + 5.0) / 20.0) * 20.0)
+	var top := box.position.y; var bh := box.size.y; var cx := box.position.x; var cwid := box.size.x
 	var p1 := Rect2(Vector2(cx, top), Vector2(cwid, bh * 0.58))
 	_frame(p1, 0.0, 24.0, tmin, tmax, false, false, T("C8_HOUR"), T("C8_Y_C"))
 	var pr: Rect2 = plot.r
@@ -73,7 +85,7 @@ func _draw_stage() -> void:
 	var trip := float(q.tripHour); draw_line(_pt(trip, tmin), _pt(trip, tmax), Color(GridTheme.WARN, 0.7), 1.5); _text(_mono(), 10, _pt(trip, tmax) + Vector2(4.0, 14.0), T("C8_TRIP_TAG"), GridTheme.WARN)
 	if not bool(q.notRestored): var bx := trip + float(q.restoredAtH); draw_line(_pt(bx, tmin), _pt(bx, tmax), Color(GridTheme.GOOD, 0.7), 1.5); _text(_mono(), 10, _pt(bx, tmax) + Vector2(4.0, 28.0), T("C8_BACK_TAG"), GridTheme.GOOD)
 	_poly(oil, OIL, 2.0); _poly(hot, HOT, 3.0)
-	_text(_mono(), 10, pr.position + Vector2(10.0, 14.0), T("C8_LEG_HOT"), HOT); _text(_mono(), 10, pr.position + Vector2(160.0, 14.0), T("C8_LEG_OIL"), OIL)
+	_text(_mono(), 10, pr.position + Vector2(10.0, 14.0), T("C8_LEG_HOT"), HOT); _text(_mono(), 10, pr.position + Vector2(260.0 if _look3() else 160.0, 14.0), T("C8_LEG_OIL"), OIL)
 	var p2 := Rect2(Vector2(cx, p1.end.y + 12.0), Vector2(cwid, bh - p1.size.y - 12.0))
 	var lmax := 0.0
 	for i in n: lmax = maxf(lmax, float(day.loadMva[i]))
@@ -86,3 +98,22 @@ func _draw_stage() -> void:
 	draw_line(_pt(0.0, firm), _pt(24.0, firm), Color(GridTheme.LIVE, 0.6), 1.5); _text(_mono(), 10, _pt(24.0, firm) + Vector2(-160.0, 12.0), T("C8_FIRM_TAG") % WorkOrder.num(firm), GridTheme.LIVE)
 	_poly(load, Color(GridTheme.TEXT, 0.9), 2.0); _poly(served, GridTheme.GOOD, 3.0)
 	_text(_mono(), 10, (plot.r as Rect2).position + Vector2(10.0, 14.0), T("C8_LEG_LOAD"), GridTheme.TEXT); _text(_mono(), 10, (plot.r as Rect2).position + Vector2(130.0, 14.0), T("C8_LEG_SERVED"), GridTheme.GOOD)
+
+## The 3D substation: the two day charts and the readings stay as glass cards; the transformers, the bus section, the tie and the town carry the thermometer's numbers as chips.
+func _draw_stage3() -> void:
+	var w := _right(); var bh := _cards3_h(520.0)
+	var cwid := minf(w * 0.37, 700.0)
+	var cr := Rect2(Vector2(M, TOP), Vector2(cwid, bh)); _charts(cr)
+	var rw := minf(w * 0.3, 440.0)
+	var rr := Rect2(Vector2(w - M - rw, TOP), Vector2(rw, minf(bh, 380.0))); _readings(rr)
+	_pins.append(cr); _pins.append(rr)
+	var hot := float(q.hotPeakC); var lim := float(q.hotLimitC); var d: Dictionary = q.design
+	var l3 = app.get("grid_world").look3d
+	_pin("tx1", [T("C8_TX_TRIP") % WorkOrder.num(float(q.tripHour))], [GridTheme.BAD], 18.0)
+	_pin("tx2", [T("C8_HOT_PIN") % [WorkOrder.num(hot), int(lim)], T("C8_HOT_AT") % str(q.hotPeakAt)], [_good(hot <= lim), GridTheme.G_DIM], 18.0)
+	var bl := T("C8_BUS_PIN") % (T("C8_AUTO") if str(d.bus) == "auto" else T("C8_MANUAL"))
+	_pin("bus", [bl, T("C8_BUS_H") % int(kit.get("bus", {}).get("manualH", 1)) if str(d.bus) == "manual" else T("C8_AUTO")], [GridTheme.G_TEXT, GridTheme.G_DIM], 18.0)
+	_pin("tie", [T("C8_TIE_PIN") % T("C8_" + str(d.tie).to_upper())], [GridTheme.G_TEXT], 18.0)
+	var dim_n := 0
+	if l3 != null: dim_n = int(l3.report().get("dimmed", 0))
+	_pin("town", [(T("C8_DR_PIN") % dim_n) if dim_n > 0 else T("C8_DR_CAP") + ": " + T("C8_NONE")], [GridTheme.SODIUM if dim_n > 0 else GridTheme.G_DIM], 18.0)

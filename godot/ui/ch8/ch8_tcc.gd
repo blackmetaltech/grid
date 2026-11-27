@@ -36,8 +36,13 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 func _kind() -> String: return "ok" if q.get("kind") == null else str(q.kind)
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r := Rect2(Vector2(30.0, top), Vector2(maxf((w - 60.0) * 0.68, 420.0), bh))
+	_tcc(r)
+	var lg := Rect2(Vector2(r.end.x + 12.0, top), Vector2(maxf(w - r.end.x - 42.0, 240.0), bh)); _legend(lg)
+
+func _tcc(r: Rect2) -> void:
 	var xlo := 80.0; var xhi := 6000.0
 	_frame(r, xlo, xhi, 0.01, 300.0, true, true, T("C8_TC_X"), T("C8_TC_Y"))
 	var pr: Rect2 = plot.r; var rc: Dictionary = q.recloser
@@ -60,8 +65,10 @@ func _draw_stage() -> void:
 		var sp: Dictionary = q.spurs[k]
 		if int(q.design.fastShots) > 0: _bracket(rc.fast, sp.minMelt, float(sp.iMinA), float(sp.iMaxA), COLS[k], float(sp.fastMarginS), false)
 		_bracket(rc.slow, sp.totalClear, float(sp.iMinA), float(sp.iMaxA), COLS[k], float(sp.slowMarginS), true)
-	# the legend card and the margins
-	var lg := Rect2(Vector2(r.end.x + 12.0, top), Vector2(maxf(w - r.end.x - 42.0, 240.0), bh)); _card(lg)
+
+## The legend card and the margins.
+func _legend(lg: Rect2) -> void:
+	_card(lg)
 	var lx := lg.position.x + 14.0; var ly := lg.position.y + 36.0
 	_text(_semi(), 11, Vector2(lx, ly - 16.0), T("C8_LEG"), GridTheme.SODIUM)
 	draw_line(Vector2(lx, ly), Vector2(lx + 22.0, ly), FAST, 3.0); _text(_mono(), 10, Vector2(lx + 30.0, ly + 4.0), T("C8_LEG_FAST") % int(q.design.fastShots), GridTheme.TEXT)
@@ -96,3 +103,18 @@ func _bracket(c1: Array, c2: Array, lo: float, hi: float, col: Color, margin: fl
 	var good := margin >= 0.0
 	draw_line(p1, p2, _good(good), 2.0); draw_circle(p1, 3.0, col); draw_circle(p2, 3.0, col)
 	_text(_mono(), 10, (p1 + p2) * 0.5 + Vector2(6.0, 4.0), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.001)), _good(good))
+
+## The 3D feeder: the time-current chart and its legend stay as glass cards over the sky; the recloser and each spur's fuse carry chips, and after the run a fuse says saved or blown.
+func _draw_stage3() -> void:
+	var bh := _cards3_h(); var cs := _cards3(760.0, 430.0, bh)
+	_tcc(cs[0]); _legend(cs[1])
+	var d: Dictionary = q.design; var rev := _revealed()
+	_pin("sub", [T("C8_SUB_PIN")], [GridTheme.G_TEXT], 22.0)
+	_pin("recloser", [T("C8_PICKUP_LINE") % WorkOrder.num(float(d.pickupA)), T("C8_SHOTS_PIN") % int(d.fastShots)], [GridTheme.G_TEXT, GridTheme.G_DIM], 18.0)
+	for sp in q.spurs:
+		var id := str(sp.id); var saved: bool = int(d.fastShots) > 0 and float(sp.fastMarginS) >= 0.0
+		var lines := [T("C8_LINK_PIN") % [id, int(sp.fuseA)]]; var cols := [GridTheme.G_TEXT]
+		lines.append(T("C8_FAST_TAG") + " " + ("+" if float(sp.fastMarginS) >= 0.0 else "") + WorkOrder.num(snappedf(float(sp.fastMarginS), 0.001)) + " s"); cols.append(_good(float(sp.fastMarginS) >= 0.0))
+		if rev: lines.append(T("C8_FUSE_SAVED") if saved else T("C8_FUSE_BLOWN")); cols.append(_good(saved))
+		_pin("fuse_" + id, lines, cols, 18.0)
+		_pin(id, [T("C8_HOMES_PIN") % int(sp.customers)], [GridTheme.G_DIM], 16.0)

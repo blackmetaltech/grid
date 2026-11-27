@@ -24,7 +24,10 @@ func _initialize() -> void:
 	T.check(WorldView.LOOK2_LEVELS.has("P0"), "P0, the prologue, is drawn by the 3D province (1.19, DECISIONS 27)")
 	for id in ["L04", "L06"]: T.check(Bench3D.LEVELS.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D bench: no Classic chip (1.19)" % id)   # was: L04 and L06 keep the Classic chip
 	for id in WorldView.LOOK2_LEVELS: T.check(not Jobs.is_classic(id), "%s has no Classic chip" % id)
-	T.check(Jobs.is_classic("L31"), "a job no 3D layer draws (L31) keeps the Classic chip")   # was L10, then L23, until chapters 4 and 7 got their 3D places (Stage3D)
+	# Every job from P0 to L36 has a 3D place now (chapters 4, 7 and 8 through Stage3D), so no real level id is left to stand for "a job no 3D layer draws". The rule is the
+	# predicate's: an id that no 3D layer lists keeps the Classic chip. L99 is such an id (it is in no list; checked here so the example cannot become a real job unnoticed).
+	T.check(not WorldView.LOOK2_LEVELS.has("L99") and not Bench3D.LEVELS.has("L99") and not Stage3D.STAGES.has("L99"), "L99 is listed by no 3D layer")
+	T.check(Jobs.is_classic("L99"), "a job no 3D layer draws (L99) keeps the Classic chip")   # was L10, then L23, then L31, until every chapter got its 3D place
 	for id in ["L05", "L29", "L30"]: T.check(WorldView.LOOK2_LEVELS.has(id), "%s, a chapter 2 map level, is in the 3D look" % id)
 	T.check(Bay3D.LEVELS.has("L01"), "L01 is drawn in 3D")
 	T.finish("BAY-LIGHTS-TRUTH", self)

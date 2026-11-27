@@ -403,6 +403,8 @@ function nowSection(): string {
   const byChapter = (ids: string[]): string => CHAPTERS.filter((c) => c.n >= 1).map((c) => ({ c, ids: idsOf(c.n).filter((i) => ids.includes(i)) })).filter((x) => x.ids.length).map((x) => `${x.c.n === 9 ? 'the finale' : `chapter ${x.c.n}`} (${ranges(x.ids)})`).join(', ');
   const classicIds = LEVEL_SPECS.map((l) => l.id).filter((i) => !newIds.includes(i));
   const classicJobs = classicIds.filter((i) => i !== 'P0');
+  const classicParts = [...(classicIds.includes('P0') ? ['the prologue'] : []), ...(classicJobs.length ? [byChapter(classicJobs)] : [])];
+  const classicLine = classicParts.length ? `${classicParts.join(', ').replace(/^./, (c) => c.toUpperCase())}. The job board marks them "Classic".` : 'None. Every job is drawn in the new 3D look.';
   return `<section class="now card" id="now" aria-labelledby="now-h">
 <h2 id="now-h">What is in the game now</h2>
 <dl class="facts">
@@ -410,7 +412,7 @@ function nowSection(): string {
 <dt>Campaign</dt><dd>A prologue and ${jobs.length} jobs in ${chapters} chapters and a finale. All of them can be played, from Ohm's law on a beach to a province.</dd>
 <dt>Career</dt><dd>Ten years as a district engineer, one quarter at a time. ${['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'][CHARTER_IDS.length] ?? CHARTER_IDS.length} districts, and a weekly district that is the same for everyone.</dd>
 <dt>In the new 3D look</dt><dd>The title, ${byChapter(newIds.filter((i) => i !== 'P0'))}.</dd>
-<dt>Still in the classic 2D look</dt><dd>The prologue, ${byChapter(classicJobs)}. The job board marks them "Classic".</dd>
+<dt>Still in the classic 2D look</dt><dd>${classicLine}</dd>
 <dt>Platforms</dt><dd>${PLATFORMS.join(' and ')}. The macOS build is untested: no one has opened it on a Mac.</dd>
 </dl>
 <h3>The campaign is complete. What is not built yet</h3>

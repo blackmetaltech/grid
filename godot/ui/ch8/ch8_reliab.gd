@@ -53,6 +53,7 @@ func _layout_tree(r: Rect2) -> Dictionary:
 	return pos
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r1 := Rect2(Vector2(30.0, top), Vector2(w - 60.0, minf(340.0, bh * 0.5)))
 	_card(r1)
@@ -90,18 +91,26 @@ func _draw_stage() -> void:
 	_text(_semi(), 10, Vector2(ex.x, te.y + 4.0), T("C8_NEXT_FEEDER"), Color(GridTheme.TEXT, 0.75), 100.0, 1)
 	_text(_mono(), 10, Vector2(ex.x - 90.0, te.y + 52.0), (T("C8_TIE_INFO") % [int(kit.get("tie", {}).get("kw", 0)), int(kit.get("tie", {}).get("minutes", 0))]) if bool(d.tie) else T("C8_NO_TIE"), Color(GridTheme.TEXT, 0.6), 280.0, 1)
 	_text(_semi(), 10, r1.position + Vector2(12.0, r1.size.y - 10.0), T("C8_L32_NOTE") % [WorkOrder.num(float(q.repairH)), int(q.switching.manualH), int(round(float(q.switching.remoteH) * 60.0))], Color(GridTheme.TEXT, 0.5))
-	# the heat strip: expected customer minutes lost per year, section by section
-	var r2 := Rect2(Vector2(30.0, r1.end.y + 12.0), Vector2(w - 60.0, 110.0)); _card(r2)
+	var r2 := Rect2(Vector2(30.0, r1.end.y + 12.0), Vector2(w - 60.0, 110.0)); _heat_strip(r2)
+	# the indices against the targets
+	var r3 := Rect2(Vector2(30.0, r2.end.y + 12.0), Vector2(w - 60.0, bh - r1.size.y - r2.size.y - 24.0))
+	if r3.size.y < 90.0: return   # the phone's canvas has no room for it: the panel shows the four numbers
+	_indices_card(r3)
+
+## The heat strip: expected customer minutes lost per year, section by section.
+func _heat_strip(r2: Rect2) -> void:
+	var by := {}; var hmax := 1.0
+	for s in q.sections: by[str(s.id)] = s; hmax = maxf(hmax, float(s.saidiMin))
+	_card(r2)
 	_text(_semi(), 11, r2.position + Vector2(12.0, 18.0), T("C8_HEAT_CAP"), GridTheme.SODIUM)
 	var order := ["T1", "T2", "T3", "T4", "P1", "P2", "P3"]; var cw2 := (r2.size.x - 24.0) / 7.0
 	for k in 7:
 		var s: Dictionary = by[order[k]]; var cr := Rect2(r2.position + Vector2(12.0 + cw2 * k, 28.0), Vector2(cw2 - 6.0, 72.0))
 		draw_rect(cr, Color(_heat(float(s.saidiMin) / hmax), 0.30)); draw_rect(cr, _heat(float(s.saidiMin) / hmax), false, 1.5)
 		_text(_semi(), 12, cr.position + Vector2(8, 18), order[k], GridTheme.TEXT); _text(_mono(), 13, cr.position + Vector2(0, 40), T("C8_MIN_YR") % WorkOrder.num(float(s.saidiMin)), GridTheme.TEXT, cr.size.x - 8.0, 2)
-		_text(_mono(), 10, cr.position + Vector2(8, 62), T("C8_FAULTS_YR") % WorkOrder.num(float(s.faultsPerYear)), Color(GridTheme.TEXT, 0.7))
-	# the indices against the targets
-	var r3 := Rect2(Vector2(30.0, r2.end.y + 12.0), Vector2(w - 60.0, bh - r1.size.y - r2.size.y - 24.0))
-	if r3.size.y < 90.0: return   # the phone's canvas has no room for it: the panel shows the four numbers
+		_text(_mono(), 10, cr.position + Vector2(8, 62), (T("C8_FAULTS_YR3") if _look3() else T("C8_FAULTS_YR")) % WorkOrder.num(float(s.faultsPerYear)), Color(GridTheme.TEXT, 0.7))
+
+func _indices_card(r3: Rect2) -> void:
 	_card(r3)
 	var ix: Dictionary = q.indices; var tg: Dictionary = q.targets
 	var cells := [[T("C8_SAIFI"), WorkOrder.num(float(ix.saifi)), T("C8_TARGET_MAX") % WorkOrder.num(float(tg.saifiMax)), float(ix.saifi) <= float(tg.saifiMax), T("C8_G_SAIFI")],
@@ -113,3 +122,26 @@ func _draw_stage() -> void:
 		_text(_semi(), 11, o + Vector2(0, 8), str(c[0]), Color(GridTheme.TEXT, 0.75)); _text(_mono(), 26, o + Vector2(0, 42), str(c[1]), _good(bool(c[3])))
 		_text(_mono(), 10, o + Vector2(0, 60), str(c[2]), Color(GridTheme.TEXT, 0.65))
 		if not _phone(): GridText.dm(self, _mono(), o + Vector2(0, 78), str(c[4]), HORIZONTAL_ALIGNMENT_LEFT, iw - 14.0, GridTheme.fs(10), 4, Color(GridTheme.TEXT, 0.5))
+
+## The 3D feeder: the heat strip and the four indices stay as glass cards over the sky; each section's village carries what it costs a year, the devices and the tie their own chip.
+func _draw_stage3() -> void:
+	var w := _right(); var cw := minf(w * 0.46, 880.0)
+	var r2 := Rect2(Vector2(M, TOP), Vector2(cw, 112.0)); _heat_strip(r2)
+	var r3 := Rect2(Vector2(M, r2.end.y + 8.0), Vector2(cw, clampf(_stage_bottom() - r2.end.y - 20.0, 120.0, 178.0))); _indices_card(r3)
+	_pins.append(r2); _pins.append(r3)
+	var d: Dictionary = q.design; var hmax := 1.0
+	for s in q.sections: hmax = maxf(hmax, float(s.saidiMin))
+	_pin("sub", [T("C8_SUB_PIN")], [GridTheme.G_TEXT], 22.0)
+	for s in q.sections:
+		var id := str(s.id); var lines := ["%s  %s" % [id, T("C8_KM") % WorkOrder.num(float(s.km))], T("C8_HOMES_PIN") % int(s.customers)]; var cols := [GridTheme.G_TEXT, GridTheme.G_DIM]
+		if _revealed():
+			lines.append(T("C8_PIN_YR") % WorkOrder.num(float(s.saidiMin))); cols.append(_heat(float(s.saidiMin) / hmax))
+		if id.begins_with("T") and str(d.sect.get(id, "none")) != "none":
+			lines.append(T("C8_SW_PIN") % (T("C8_MANUAL") if str(d.sect[id]) == "manual" else T("C8_REMOTE"))); cols.append(GridTheme.COPPER if str(d.sect[id]) == "manual" else GridTheme.LIVE)
+		if id.begins_with("P") and bool(d.fuse[id]): lines.append(T("C8_FUSE_PIN")); cols.append(GridTheme.GOOD)
+		_pin(id, lines, cols, 20.0)
+	_pin("tie", [T("C8_NEXT_FEEDER"), (T("C8_TIE_INFO") % [int(kit.get("tie", {}).get("kw", 0)), int(kit.get("tie", {}).get("minutes", 0))]) if bool(d.tie) else T("C8_NO_TIE")], [GridTheme.G_TEXT, GridTheme.WARN if bool(d.tie) else GridTheme.G_DIM], 18.0)
+	if _revealed():
+		var worst := ""; var wm := -1.0
+		for s in q.sections: if float(s.saidiMin) > wm: wm = float(s.saidiMin); worst = str(s.id)
+		_pin("blame", [T("C8_BLAME_PIN") % worst], [GridTheme.BAD], 18.0)

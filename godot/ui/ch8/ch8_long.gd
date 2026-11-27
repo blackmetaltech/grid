@@ -57,6 +57,7 @@ func _body(ip: Rect2) -> void:
 	_status(ip, (T("C8_L31_OK") if ok else T("C8_L31_LOW") % [WorkOrder.num(float(v.minV)), str(v.minNode), WorkOrder.num(float(q.band.loV))]), _good(ok))
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var sb := _sbox(420.0); var w := sb.size.x + 60.0; var top := sb.position.y; var bh := sb.size.y
 	var r1 := Rect2(Vector2(30.0, top), Vector2(w - 60.0, minf(260.0, bh * 0.45)))
 	var tree: Array = q.tree; var va := []; var vb := []
@@ -65,7 +66,10 @@ func _draw_stage() -> void:
 	var r2 := Rect2(Vector2(30.0, r1.end.y + 12.0), Vector2(maxf((w - 60.0) * 0.62, 400.0), maxf(bh - r1.size.y - 12.0, 160.0)))
 	_profile(r2, tree, _cum_km(tree), [{"name": T("C8_PEAK_NAME"), "vals": va, "col": GridTheme.SODIUM}, {"name": T("C8_LIGHT_NAME") % int(q.minLoadPct), "vals": vb, "col": GridTheme.LIVE}])
 	var r3 := Rect2(Vector2(r2.end.x + 12.0, r2.position.y), Vector2(maxf(w - 30.0 - r2.end.x - 12.0, 220.0), r2.size.y))
-	var v: Dictionary = q.voltage; var ok := bool(v.ok); var lines := []
+	_read_card(r3)
+
+func _read_card(r3: Rect2) -> void:
+	var v: Dictionary = q.voltage; var lines := []
 	lines.append([T("C8_L31_MIN") % [WorkOrder.num(float(v.minV)), str(v.minNode), WorkOrder.num(float(q.band.loV)), WorkOrder.num(float(v.marginLoV))], _good(float(v.marginLoV) >= 0.0)])
 	lines.append([T("C8_L31_MAX") % [WorkOrder.num(float(v.maxV)), str(v.maxNode), WorkOrder.num(float(q.band.hiV)), WorkOrder.num(float(v.marginHiV))], _good(float(v.marginHiV) >= 0.0)])
 	lines.append([T("C8_L31_LOSS") % [WorkOrder.num(float(q.lossPct)), WorkOrder.num(float(q.lossKw))], Color(GridTheme.TEXT, 0.85)])
@@ -74,3 +78,23 @@ func _draw_stage() -> void:
 	if rg != null: lines.append([T("C8_L31_REG") % [str(rg.nodeId), WorkOrder.num(float(rg.vSetPu)), int(rg.stepsPeak), int(rg.stepsMinLoad), int(rg.maxSteps)], GridTheme.COPPER])
 	lines.append([T("C8_L31_GLOSS_TAP"), Color(GridTheme.TEXT, 0.6)]); lines.append([T("C8_L31_GLOSS_REG"), Color(GridTheme.TEXT, 0.6)])
 	_lines(r3, T("C8_L31_TITLE"), lines)
+
+## The 3D feeder: the profile and the readings stay as glass cards over the sky; the villages, the wire of each section and the regulator carry chips.
+func _draw_stage3() -> void:
+	var bh := _cards3_h(); var cs := _cards3(640.0, 520.0, bh)
+	var tree: Array = q.tree; var va := []; var vb := []
+	for n in tree: va.append(float(n.vPeakV)); vb.append(float(n.vMinLoadV))
+	_profile(cs[0], tree, _cum_km(tree), [{"name": T("C8_PEAK_NAME"), "vals": va, "col": GridTheme.SODIUM}, {"name": T("C8_LIGHT_NAME") % int(q.minLoadPct), "vals": vb, "col": GridTheme.LIVE}])
+	_read_card(cs[1])
+	var lo := float(q.band.loV); var total := 0.0
+	for n in tree: total += float(n.km)
+	_pin("sub", [T("C8_SUB_PIN"), T("C8_SCALE") % WorkOrder.num(total)], [GridTheme.G_TEXT, GridTheme.G_DIM], 22.0)
+	for n in tree:
+		var v := float(n.vPeakV)
+		var lines := ["%s  %s  %s" % [str(n.id), T("C8_KM") % WorkOrder.num(float(n.km)), str(n.conductor)], T("C8_PEAK") + " " + _vtxt(v)]; var cols := [GridTheme.G_TEXT, _good(v >= lo)]
+		if float(n.tap) != 0.0: lines.append(T("C8_TAP_AT") % WorkOrder.num(float(n.tap))); cols.append(GridTheme.SODIUM)
+		_pin(str(n.id), lines, cols, 20.0)
+	var rg = q.get("regulator")
+	if rg != null:
+		for i in tree.size():
+			if str(tree[i].id) == str(rg.nodeId): _pin("reg%d" % (i + 1), [T("C8_REG_PIN") % WorkOrder.num(float(rg.vSetPu)), T("C8_REG_STEPS") % int(rg.stepsPeak)], [GridTheme.COPPER, GridTheme.G_DIM], 16.0)

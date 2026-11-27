@@ -209,11 +209,14 @@ func _pin_at(wp: Vector2, lines: Array, cols: Array, lift: float, wv = null) -> 
 	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - lift * size.y / 1080.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
 	r.position.x = clampf(r.position.x, M, _right() - M - r.size.x)
 	r.position.y = clampf(r.position.y, _top_y, panel.position.y - 8.0 - r.size.y)
-	for c in _pins:   # step clear of the chips already drawn: to the side first, below only if no side fits
-		var cr := c as Rect2
-		if not cr.grow(4.0).intersects(r): continue
+	for _try in 6:   # step clear of the chips (and glass cards) already drawn: to the side first, below only if no side fits; again, for a move may land on another
+		var hit = null
+		for c in _pins: if (c as Rect2).grow(4.0).intersects(r): hit = c; break
+		if hit == null: break
+		var cr := hit as Rect2
 		if cr.end.x + 10.0 + r.size.x <= _right() - M and sp.x >= cr.get_center().x: r.position.x = cr.end.x + 10.0
 		elif cr.position.x - 10.0 - r.size.x >= M: r.position.x = cr.position.x - 10.0 - r.size.x
+		elif cr.end.x + 10.0 + r.size.x <= _right() - M: r.position.x = cr.end.x + 10.0
 		else: r.position.y = cr.end.y + 8.0
 	if r.end.y > panel.position.y - 8.0: return
 	_pins.append(r)
