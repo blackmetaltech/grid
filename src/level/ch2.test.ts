@@ -212,11 +212,11 @@ describe('the prediction binds (predictOnce)', () => {
     const eB = machineNumbers(e.state.bench!.machine!).e0V;
     expect(act(e, 'predict', 'L04.vpeak', Math.round(eB * 10) / 10, 'V').ok, 'a new design may be predicted').toBe(true);
     play(e); expect(e.state.status).toBe('won'); expect(e.state.metrics.track.predErrPct!).toBeLessThan(1);
-    expect(e.engine.q('levelInfo').lesson as string).toContain(`You predicted ${Math.round(eB * 10) / 10} V, it was ${Math.round(eB * 10) / 10} V.`);
+    expect((e.engine.q('levelInfo') as { lesson: string }).lesson).toContain(`You predicted ${Math.round(eB * 10) / 10} V, it was ${Math.round(eB * 10) / 10} V.`);
   });
   it('the report names the prediction, or says it was for another design', () => {
     const e = fresh('L06'); act(e, 'predict', TOWN.predictId, 590, 'kW'); act(e, 'setLineRatio', 10); act(e, 'setTransformerKva', 1000); play(e);
-    expect(e.engine.q('levelInfo').lesson as string).toContain('You predicted 590 kW, it was 600 kW.');
+    expect((e.engine.q('levelInfo') as { lesson: string }).lesson).toContain('You predicted 590 kW, it was 600 kW.');
     const s = runDesign(L04, 'global', [...A.map(([n, v]) => ({ name: n, args: [v] })), { name: 'predict', args: ['L04.vpeak', 325] }, ...B.map(([n, v]) => ({ name: n, args: [v] }))]);
     expect(s.state.status).toBe('won');
   });
