@@ -65,13 +65,28 @@ func _drag(h: Dictionary, p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var w := _vs().x; var top := 150.0; var bh := maxf(_stage_bottom() - top - 14.0, 200.0)
 	_draw_rated(Rect2(Vector2(30.0, top), Vector2(380.0, bh)))
 	_draw_night(Rect2(Vector2(426.0, top), Vector2(380.0, bh)))
 	_draw_gauges(Rect2(Vector2(822.0, top), Vector2(maxf(w - 822.0 - 30.0, 300.0), bh)))
 
+## The 3D exam: the generator hall is Stage3D's; the rated case and the night's phasors stack on the left, the gauges stand on the right, in glass.
+func _draw_stage3() -> void:
+	var top := TOP; var bh := maxf(_stage_bottom() - top - 14.0, 220.0)
+	var cw := minf(380.0, size.x * 0.28)
+	var half := (bh - 12.0) * 0.5
+	_draw_rated(Rect2(Vector2(M + 6.0, top), Vector2(cw, half)))
+	_draw_night(Rect2(Vector2(M + 6.0, top + half + 12.0), Vector2(cw, half)))
+	_draw_gauges(Rect2(Vector2(_right() - cw - M - 6.0, top), Vector2(cw, bh)))
+	var n: Dictionary = q.night
+	var has_e: bool = n.excitation != null
+	var sg := GridTheme.G_TEXT
+	_pin("gen", [T("C4_GEN_PIN")], [sg], 24.0)
+	_pin("exciter", [T("C4_EXC_PIN") % _f(float(n.excitation), 3) if has_e else T("C4_UNSET")], [GridTheme.SODIUM if has_e else GridTheme.G_DIM], 70.0)
+
 func _draw_rated(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_RATED_CASE"), Color(GridTheme.TEXT, 0.7))
 	var s := 112.0; var o := r.position + Vector2(48.0, r.size.y * 0.55)
 	var V := Vector2(s, 0.0); var a := deg_to_rad(36.87); var I := Vector2(cos(a), sin(a)) * s * 0.9   # screen y down: I lags V, so it points below the axis
@@ -94,9 +109,9 @@ func _draw_rated(r: Rect2) -> void:
 		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.7))
 
 func _draw_night(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_NIGHT") % WorkOrder.num(float(q.night.p)), Color(GridTheme.TEXT, 0.7))
-	var s := 150.0; var o := r.position + Vector2(48.0, r.size.y * 0.55); var n: Dictionary = q.night
+	var s := 150.0 if not _look3() else 118.0; var o := r.position + Vector2(48.0, r.size.y * 0.55); var n: Dictionary = q.night
 	var V := Vector2(s, 0.0); _arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V + Vector2(6, 4), "V", Color.WHITE)
 	if n.excitation == null or n.deltaDeg == null:
 		var ghost := Vector2(cos(-deg_to_rad(40.0)), sin(-deg_to_rad(40.0))) * 1.05 * s
@@ -114,7 +129,7 @@ func _draw_night(r: Rect2) -> void:
 	_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6))
 
 func _draw_gauges(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	var n: Dictionary = q.night; var x := r.position.x + 20.0; var wd := r.size.x - 40.0
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_QGAUGE"), Color(GridTheme.TEXT, 0.7))
 	var qlo := -0.6; var qhi := 0.4

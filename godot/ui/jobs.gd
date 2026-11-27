@@ -112,8 +112,8 @@ static func _row(app: CbApp, lv: Dictionary, host: Control, compact := false) ->
 		b.tooltip_text = lock
 	return b
 
-## A job still drawn in the classic 2D look: neither the province or the bay (WorldView.LOOK2_LEVELS) nor the chapter 2 bench (Bench3D.LEVELS) draws it.
-static func is_classic(id: String) -> bool: return not WorldView.LOOK2_LEVELS.has(id) and not Bench3D.LEVELS.has(id)
+## A job still drawn in the classic 2D look: neither the province or the bay (WorldView.LOOK2_LEVELS) nor the chapter 2 bench (Bench3D.LEVELS) nor chapter 4's places (Stage3D.STAGES) draw it.
+static func is_classic(id: String) -> bool: return not WorldView.LOOK2_LEVELS.has(id) and not Bench3D.LEVELS.has(id) and not Stage3D.STAGES.has(id)
 
 ## A small "Classic" chip: this job still draws in the classic 2D look (see is_classic).
 static func classic_chip() -> Control:

@@ -24,8 +24,9 @@ phasor_truth 441
 route_flow 85
 route_world_truth 93
 salt_flow 35
+stage3d_truth 315
 tag_truth 1462
-text_flow 5347
+text_flow 5441
 ticker_flow 10
 town_lights_truth 341
 tray_flow 94

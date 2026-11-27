@@ -27,14 +27,16 @@ export function releaseOf(changelog: string): { version: string; name: string } 
   if (!m) throw new Error('CHANGELOG.md: the newest section has no [x.y.z] - "Name" heading');
   return { version: m[1]!, name: m[2]! };
 }
-/** The jobs drawn in the new 3D look: godot/world/world_view.gd LOOK2_LEVELS and godot/world3d/bench3d.gd LEVELS (every other job carries the Classic
+/** The jobs drawn in the new 3D look: godot/world/world_view.gd LOOK2_LEVELS and godot/world3d/bench3d.gd LEVELS and godot/world3d/stage3d.gd STAGES (every other job carries the Classic
  * chip on the job board, godot/ui/jobs.gd is_classic). */
-export function newLookIds(src = read('godot/world/world_view.gd'), bench = read('godot/world3d/bench3d.gd')): string[] {
+export function newLookIds(src = read('godot/world/world_view.gd'), bench = read('godot/world3d/bench3d.gd'), stage = read('godot/world3d/stage3d.gd')): string[] {
   const m = /const LOOK2_LEVELS := \[([^\]]*)\]/.exec(src);
   if (!m) throw new Error('world_view.gd: LOOK2_LEVELS not found');
   const b = /const LEVELS := \[([^\]]*)\]/.exec(bench);
   if (!b) throw new Error('bench3d.gd: LEVELS not found');
-  return [...`${m[1]!},${b[1]!}`.matchAll(/"([A-Z]\d+)"/g)].map((x) => x[1]!);
+  const sg = /const STAGES := \{([^}]*)\}/.exec(stage);
+  if (!sg) throw new Error('stage3d.gd: STAGES not found');
+  return [...`${m[1]!},${b[1]!},${sg[1]!}`.matchAll(/"([A-Z]\d+)"/g)].map((x) => x[1]!);
 }
 /** Godot string tables (GDScript dictionaries of "KEY": "text"), unescaped. */
 function godotStrings(): Map<string, string> {

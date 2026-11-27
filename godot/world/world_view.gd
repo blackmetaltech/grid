@@ -22,6 +22,7 @@ var look3d = null              # the 3D layer in use: Province3D (grid levels), 
 var prov3d = null              # the province layer (look3d points at it unless a bay level is shown)
 var bay3d = null               # Bay3D: the island bay, the title backdrop and the bench levels (DECISIONS 23)
 var bench3d = null             # Bench3D: chapter 2's bench jobs (L04 the alternator, L06 the town line)
+var stage3d = null             # Stage3D: chapter 4's jobs (L10 the street, L11 the estate, L12 Over the Hill, L13 the generator hall)
 var _drag_btn := 0
 var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
 func _l3() -> bool: return look3d != null and look3d.visible and look3d.field != null
@@ -107,7 +108,8 @@ func set_model(m: Dictionary) -> void:
 	model = m
 	var bay_on: bool = bay3d != null and str(m.kind) == "bench" and Bay3D.LEVELS.has(str(m.level)) and OS.get_environment("CB_LOOK") != "1"
 	var bench_on: bool = bench3d != null and str(m.kind) == "bench" and Bench3D.LEVELS.has(str(m.level)) and not title_mode and OS.get_environment("CB_LOOK") != "1"
-	if bench_on:   # the bench draws its own place: none of the island objects WorldModel lays out for other benches get a chip, a peg or a tap
+	var stage_on: bool = stage3d != null and Stage3D.STAGES.has(str(m.level)) and not title_mode and OS.get_environment("CB_LOOK") != "1" and CbLayout.kind != "phone"   # chapter 4 (a phone keeps the classic stage)
+	if bench_on or stage_on:   # the bench draws its own place: none of the island objects WorldModel lays out for other benches get a chip, a peg or a tap
 		m.towns = []; m.units = []; m.lines = []; m.subs = []; m.shunts = []
 	if bay3d != null:   # the bay answers for bench levels, the province for grid levels
 		if bay_on and title_mode: m.minute = TITLE_MINUTE; m.night = WorldMath.night(TITLE_MINUTE)   # the title is dusk, the hamlet dark
@@ -121,7 +123,11 @@ func set_model(m: Dictionary) -> void:
 		bench3d.visible = bench_on; bench3d.view = self
 		if not bench_on and bench3d.cam != null: bench3d.cam.current = false
 	if bench_on: bench3d.set_model(m)
-	if look3d != null and not bay_on and not bench_on:
+	if stage3d != null:
+		stage3d.visible = stage_on; stage3d.view = self
+		if not stage_on and stage3d.cam != null: stage3d.cam.current = false
+	if stage_on: look3d = stage3d; stage3d.set_model(m)
+	if look3d != null and not bay_on and not bench_on and not stage_on:
 		var want: bool = (LOOK2_LEVELS.has(str(m.level)) or OS.get_environment("CB_LOOK2_TRY").split(",").has(str(m.level))) and str(m.kind) == "grid" and not title_mode and OS.get_environment("CB_LOOK") != "1"
 		look3d.visible = want
 		if want: look3d.set_model(m)

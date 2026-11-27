@@ -28,6 +28,7 @@ func game_build_world(parent: Node) -> Node:
 		var p3 := Province3D.new(); p3.name = "Province3D"; p3.visible = false; add_child(p3); grid_world.look3d = p3; grid_world.prov3d = p3
 		var b3 := Bay3D.new(); b3.name = "Bay3D"; b3.visible = false; add_child(b3); grid_world.bay3d = b3   # DECISIONS 23: the island bay under the title and L01 to L03
 		var bn := Bench3D.new(); bn.name = "Bench3D"; bn.visible = false; add_child(bn); grid_world.bench3d = bn   # chapter 2's bench jobs L04 and L06 in 3D
+		var sg3 := Stage3D.new(); sg3.name = "Stage3D"; sg3.visible = false; add_child(sg3); grid_world.stage3d = sg3   # chapter 4's jobs L10 to L13 in 3D
 	return grid_world
 
 ## The prologue's cascade in bullet time: every new trip slows the clock 4x for 3.5 s and flashes the world, so the player watches each line go.

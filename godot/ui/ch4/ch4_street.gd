@@ -40,6 +40,7 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var g := _g if not _g.is_empty() else _geo()
 	var w := _vs().x; var h := _vs().y; var ground: float = g.ground; var wire: float = g.wire
 	draw_rect(Rect2(0, ground, w, h - ground), Color("#17331F"))
@@ -48,6 +49,41 @@ func _draw_stage() -> void:
 	_draw_wires(g)
 	for i in 18: _draw_house(i, g)
 	_draw_transformer(g)
+
+# ---- the 3D street: the place is Stage3D; the charts stay in glass, a click on a house is the tap it always was ---------------------------------
+
+## Put each house's tap on the house as the 3D camera sees it (the hits keep their order and count; only the rects follow the view).
+func _sync_house_hits() -> void:
+	var l3 = app.get("grid_world").look3d
+	for h in hits:
+		if str(h.id) != "house": continue
+		var r: Rect2 = l3.house_rect(int(h.arg))
+		if r.size == Vector2.ZERO: h["rect"] = Rect2(Vector2(-9999, -9999), Vector2.ZERO); continue
+		var a := _to_local(r.position); var b := _to_local(r.end)
+		h["rect"] = Rect2(a, Vector2.ZERO).expand(b)
+
+func hit_at(p: Vector2) -> Dictionary:
+	if _look3(): _sync_house_hits()
+	return super.hit_at(p)
+
+func _stage_rects() -> Array:
+	_sync_house_hits()
+	var out: Array = []
+	for h in hits: if str(h.id) == "house": out.append(h.rect)
+	return out
+
+func _draw_stage3() -> void:
+	_g = _geo()
+	_draw_instruments()
+	var tx := T("C4_TX"); var tl := tx.substr(0, 1).to_upper() + tx.substr(1)
+	_pin("tx", [tl, "11 kV · 230/400 V"], [GridTheme.G_TEXT, GridTheme.G_DIM], 30.0)
+	_pin("neutral", [T("C4_IN_SUM") % _f(float(q.iN), 1)], [_good(bool(q.pass.neutral))], 40.0)
+	if hover.begins_with("house/"):   # the house under the pointer: its number, load, phase and voltage
+		var i := int(hover.get_slice("/", 1)); var st := _house_state(i); var l3 = app.get("grid_world").look3d
+		var r: Rect2 = l3.house_rect(i)
+		if r.size != Vector2.ZERO:
+			var okv: bool = float(st.v) >= float(q.loV) and float(st.v) <= float(q.hiV)
+			_pin_at(Vector2(r.get_center().x, r.position.y), ["H%d · %s kVA · %s kW" % [i + 1, _f(float(q.houses[i].kva), 1), WorkOrder.num(float(q.houses[i].kw))], "%s · %s V" % [String(st.ph), _f(float(st.v), 1)]], [GridTheme.G_TEXT, _good(okv)], 14.0)
 
 func _wire_y(g: Dictionary, ph: String) -> float: return float(g.wire) + 11.0 * PH.find(ph)
 func _neutral_y(g: Dictionary) -> float: return float(g.wire) + 44.0
@@ -129,7 +165,7 @@ func _draw_instruments() -> void:
 	var w := _vs().x
 	# the phasor chain: I_a, then I_b from its tip, then I_c: the closing side is I_N
 	var c := Vector2(150.0, 178.0); var R := 64.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(c - Vector2(R + 22.0, R + 30.0), Vector2((R + 22.0) * 2.0, (R + 22.0) * 2.0 + 18.0)))
+	draw_style_box(_box_sb(0.82), Rect2(c - Vector2(R + 22.0, R + 30.0), Vector2((R + 22.0) * 2.0, (R + 22.0) * 2.0 + 18.0)))
 	_text(_semi(), 11, c + Vector2(-R - 12.0, -R - 12.0), T("C4_CHAIN"), Color(GridTheme.TEXT, 0.7))
 	var ph: Dictionary = q.phasors; var pts: Array = [Vector2.ZERO]
 	var cur := Vector2.ZERO
@@ -148,7 +184,7 @@ func _draw_instruments() -> void:
 	_text(_mono(), 12, c + Vector2(-R - 14.0, R + 16.0), T("C4_IN_SUM") % _f(inn, 1), _good(bool(q.pass.neutral)))
 	# phase currents and the neutral
 	var bx := 300.0; var by := 120.0; var bh := 160.0; var bw := 38.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 96.0)))
+	draw_style_box(_box_sb(0.82), Rect2(Vector2(bx - 14.0, by - 30.0), Vector2(bw * 4.0 + 120.0, bh + 96.0)))
 	_text(_semi(), 11, Vector2(bx, by - 12.0), T("C4_CURRENTS"), Color(GridTheme.TEXT, 0.7))
 	var scale_a := maxf(180.0, float(q.iMax) * 1.1)
 	var ip: Dictionary = q.iPhase
@@ -170,7 +206,7 @@ func _draw_instruments() -> void:
 	# far-pole voltages against the supply band
 	var vx := 850.0; var vy := 158.0; var vw := 330.0
 	if w < 1250.0: vx = 640.0; vw = w - vx - 20.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
+	draw_style_box(_box_sb(0.82), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
 	_text(_semi(), 11, Vector2(vx, vy - 12.0), T("C4_VFAR"), Color(GridTheme.TEXT, 0.7))
 	var vmin := 185.0; var vmax := 265.0
 	var X := func(v: float) -> float: return vx + vw * (clampf(v, vmin, vmax) - vmin) / (vmax - vmin)

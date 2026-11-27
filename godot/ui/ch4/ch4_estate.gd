@@ -51,6 +51,7 @@ func _drag(h: Dictionary, p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var w := _vs().x; var h := _vs().y; var ground := h * 0.665
 	draw_rect(Rect2(0, ground, w, h - ground), Color("#1E2A2A")); draw_rect(Rect2(0, ground, w, 5), Color("#34474A"))
 	_draw_triangle(Vector2(150.0, 205.0))
@@ -63,10 +64,29 @@ func _draw_stage() -> void:
 	draw_line(Vector2(290.0, by), Vector2(w * 0.72, by), Color("#C9CED6"), 4.0)
 	_text(_mono(), 11, Vector2(300.0, by - 8.0), T("C4_ESTATE_BUS"), Color(GridTheme.TEXT, 0.6))
 
+## The 3D estate: the motor hall, the bank and the pump house are Stage3D's; here the two charts (glass) and a chip on each place.
+func _draw_stage3() -> void:
+	var w := _vs().x
+	_draw_triangle(Vector2(150.0, 205.0))
+	var bw := minf(w * 0.40, w - 790.0 - 20.0)
+	if w >= 1250.0: _draw_bus_trace(Rect2(Vector2(maxf(w * 0.58, 760.0), 118.0), Vector2(bw, 190.0)))
+	else: _draw_bus_trace(Rect2(Vector2(w - 360.0 - 14.0, 118.0), Vector2(360.0, 190.0)))
+	var dim := GridTheme.G_DIM
+	_pin("motors", [T("C4_MOTORS") % [int(q.estateKw), _f(float(q.estatePf), 2)], T("C4_BUSV") % _f(float(q.vBusPu) * 100.0, 1)], [GridTheme.G_TEXT, _good(float(q.vBusPu) >= 0.94)], 20.0)
+	var b = q.get("bank")
+	if b is Dictionary:
+		var burst := bool(b.burst)
+		var lines: Array = [T("C4_BANK_Y") if str(b.conn) == "Y" else T("C4_BANK_D"), T("C4_BANK_TXT") % [int(b.count), int(b.unitUF), int(b.cPhaseUF)], T("C4_CANV") % [int(b.canV), int(b.ratedV)]]
+		var cols: Array = [GridTheme.G_TEXT, GridTheme.G_TEXT, _good(not burst)]
+		if burst: lines.push_front(T("C4_BURST")); cols.push_front(GridTheme.BAD)
+		_pin("bank", lines, cols, 30.0)
+	else: _pin("bank", [T("C4_NOBANK")], [dim], 30.0)
+	_pin("pump", [T("C4_PUMP") % [int(q.pumpKw), T("C4_ST_" + str(q.starter).to_upper())], T("C4_IST") % [int(q.iStartA), _f(float(q.iStartA) / float(q.iFullA), 1)]], [GridTheme.G_TEXT, dim], 24.0)
+
 func _draw_triangle(c: Vector2) -> void:
 	var P := 500.0; var qm := float(q.motorsKvar); var qb := float(q.bank.qKvar) if q.get("bank") is Dictionary else 0.0; var qn := float(q.qNetKvar)
 	var sc := 150.0 / 520.0
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), Rect2(c + Vector2(-122.0, -98.0), Vector2(290.0, 248.0)))
+	draw_style_box(_box_sb(0.82), Rect2(c + Vector2(-122.0, -98.0), Vector2(290.0, 248.0)))
 	_text(_semi(), 11, c + Vector2(-110.0, -80.0), T("C4_TRIANGLE"), Color(GridTheme.TEXT, 0.7))
 	var o := c + Vector2(-100.0, 70.0)
 	var pv := Vector2(P * sc, 0.0)
@@ -140,7 +160,7 @@ func _draw_pump(r: Rect2, ground: float) -> void:
 	_text(_mono(), 10, Vector2(bx - 8.0, r.position.y + 16.0), "%d" % int(q.iFullA), Color("#7CFFB2"), 42.0, 1); _text(_mono(), 10, Vector2(bx + 26.0, r.position.y + 16.0), "%d A" % int(imax), Color("#FFB020"), 42.0, 1)
 
 func _draw_bus_trace(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_TRACE"), Color(GridTheme.TEXT, 0.7))
 	var plot := Rect2(r.position + Vector2(14.0, 36.0), r.size - Vector2(28.0, 100.0))
 	var v0 := float(q.vBusPu); var dip := float(q.dipPct) / 100.0; var vmin := 0.80; var vmax := 1.04

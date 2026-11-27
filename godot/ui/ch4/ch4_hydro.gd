@@ -34,6 +34,7 @@ func _press(h: Dictionary, _p: Vector2) -> void:
 
 # ---- stage ------------------------------------------------------------------------------------------------------------------------
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var w := _vs().x
 	draw_rect(Rect2(0, 300.0, w, 4), Color(1, 1, 1, 0.04))
 	_draw_line_scene(Rect2(Vector2(56.0, 150.0), Vector2(w - 90.0, 140.0)))
@@ -42,6 +43,24 @@ func _draw_stage() -> void:
 	_draw_pdelta(Rect2(Vector2(296.0, top), Vector2(420.0, bh)))
 	_draw_swing(Rect2(Vector2(732.0, top), Vector2(minf(400.0, w - 732.0 - 220.0), bh)))
 	_draw_numbers(Rect2(Vector2(maxf(732.0 + 410.0, w - 214.0), top), Vector2(200.0, bh)))
+
+## The 3D hydro: the plant, the circuits over the ridge and the city are Stage3D's; the four charts line up under the work order, in glass.
+func _draw_stage3() -> void:
+	var w := _right()
+	var top := TOP; var bh := 200.0
+	var f := clampf((w - 60.0 - 42.0) / 1140.0, 0.8, 1.25)
+	var x := 30.0 if w < 1400.0 else M
+	var ws := [220.0 * f, 380.0 * f, 340.0 * f, 200.0 * f]
+	_draw_rotor(Rect2(Vector2(x, top), Vector2(ws[0], bh))); x += ws[0] + 14.0
+	_draw_pdelta(Rect2(Vector2(x, top), Vector2(ws[1], bh))); x += ws[1] + 14.0
+	_draw_swing(Rect2(Vector2(x, top), Vector2(ws[2], bh))); x += ws[2] + 14.0
+	_draw_numbers(Rect2(Vector2(x, top), Vector2(ws[3], bh)))
+	_top_y = top + bh + 10.0
+	var n := int(q.circuits); var sg := GridTheme.G_TEXT
+	_pin("plant", [T("C4_KESTREL")], [sg], 20.0)
+	_pin("line", [T("C4_LINE") % [n, _f(float(q.pm) * 100.0, 0)]], [sg], 20.0)
+	if int(q.build.seriesPct) > 0: _pin("series", [T("C4_SERIES_PIN") % int(q.build.seriesPct)], [sg], 18.0)
+	_pin("city", [T("C4_CITY")], [sg], 20.0)
 
 func _draw_line_scene(r: Rect2) -> void:
 	var gy := r.end.y - 10.0; var n := int(q.circuits); var fired: bool = bool(q.fired)
@@ -82,7 +101,7 @@ func _draw_line_scene(r: Rect2) -> void:
 	_text(_semi(), 12, Vector2(cx, gy + 14.0), T("C4_CITY"), Color(GridTheme.TEXT, 0.8))
 
 func _draw_rotor(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_ROTOR"), Color(GridTheme.TEXT, 0.7))
 	var c := r.position + Vector2(r.size.x * 0.5, r.size.y * 0.52); var R := minf(r.size.x, r.size.y) * 0.34
 	draw_arc(c, R, 0.0, TAU, 48, Color(1, 1, 1, 0.18), 1.5)
@@ -102,7 +121,7 @@ func _draw_rotor(r: Rect2) -> void:
 	_text(_mono(), 13, r.position + Vector2(12.0, r.size.y - 12.0), "δ = %s°" % _f(ang, 0), GridTheme.SODIUM)
 
 func _draw_pdelta(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_PDELTA"), Color(GridTheme.TEXT, 0.7))
 	var plot := Rect2(r.position + Vector2(38.0, 30.0), r.size - Vector2(54.0, 58.0)); var pmaxy := 4.4
 	var X := func(d: float) -> float: return plot.position.x + plot.size.x * d / 180.0
@@ -122,7 +141,7 @@ func _draw_pdelta(r: Rect2) -> void:
 		var xp: float = X.call(minf(pk, 180.0)); draw_line(Vector2(xp, plot.position.y), Vector2(xp, plot.end.y), _good(sw_ok), 2.0); _text(_mono(), 10, Vector2(xp - 20.0, plot.end.y - 6.0), "%s°" % _f(pk, 0), _good(sw_ok))
 
 func _draw_swing(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_SWING"), Color(GridTheme.TEXT, 0.7))
 	var plot := Rect2(r.position + Vector2(38.0, 30.0), r.size - Vector2(54.0, 58.0)); var sw: Dictionary = q.swing
 	draw_rect(plot, Color("#0B1026"))
@@ -140,7 +159,7 @@ func _draw_swing(r: Rect2) -> void:
 	_text(_mono(), 12, r.position + Vector2(0.0, 17.0), txt, _good(bool(sw.stable)), r.size.x - 12.0, 2)
 
 func _draw_numbers(r: Rect2) -> void:
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	var m := _mono(); var y := r.position.y + 24.0
 	var lines := [["E′ = %s pu" % _f(float(q.E), 3), Color.WHITE], ["X before %s pu" % _f(float(q.xPre), 3), Color(GridTheme.LIVE)], ["X after %s pu" % _f(float(q.xPost), 3), Color("#FF9A3E")],
 		["P_max %s → %s" % [_f(float(q.pmaxPre), 2), _f(float(q.pmaxPost), 2)], Color.WHITE], ["P_m = %s pu" % _f(float(q.pm), 2), Color.WHITE], ["P_max/P_m after: %s" % _f(float(q.margin), 2), _good(float(q.margin) >= 1.0)],

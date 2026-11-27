@@ -117,6 +117,27 @@ static func bench3d_view(app: CbApp, id: String, at: String) -> void:
 		app.start_level(id, true); await _frames(app, 4)
 		if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 2)
 
+## The 3D place of a chapter-4 job (Stage3D, built here as bench3d_view does for chapter 2): the glass charts, the panel and the place chips are audited, then it goes away again.
+static func stage3d_view(app: CbApp, id: String, at: String) -> void:
+	var wv = app.get("grid_world")
+	if wv == null: return
+	var made := false
+	if wv.stage3d == null:
+		var sg := Stage3D.new(); sg.name = "Stage3DAudit"; sg.visible = false; app.add_child(sg); wv.stage3d = sg; made = true
+	app.start_level(id, true); await _frames(app, 5)
+	if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 4)
+	var ch4 = app.get("chrome").get("ch4") if app.get("chrome") != null else null
+	if ch4 != null: ch4.refresh()
+	await _frames(app, 4)
+	checks += 1
+	if not (wv.look3d == wv.stage3d and wv.stage3d.visible): fails += 1; print("TEXT FAIL %s: the 3D place is not showing for the audit" % id)
+	await audit(app, "%s 3D place%s" % [id, at])
+	if made:
+		var sg2 = wv.stage3d; wv.stage3d = null; wv.look3d = wv.get("prov3d")
+		(sg2 as Node).queue_free()
+		app.start_level(id, true); await _frames(app, 4)
+		if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 2)
+
 static func run(app: CbApp) -> void:
 	floor_px = float(OS.get_environment("CB_TEXTAUDIT_MIN")) if OS.get_environment("CB_TEXTAUDIT_MIN") != "" else 16.0
 	if OS.get_environment("CB_TEXTAUDIT_ONLY") != "": only = OS.get_environment("CB_TEXTAUDIT_ONLY").split(",")
@@ -139,6 +160,8 @@ static func run(app: CbApp) -> void:
 			await pad_strip(app, "%s pad strip%s" % [id, at])
 			if Bench3D.LEVELS.has(id):   # 1.19: the same job in its 3D bench (glass instruments and place chips), which a headless run never builds by itself
 				await bench3d_view(app, id, at)
+			if Stage3D.STAGES.has(id):   # the same for chapter 4's jobs
+				await stage3d_view(app, id, at)
 		if _want("menu"):
 			app.start_level("L07", true); await _frames(app, 4)
 			if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 2)

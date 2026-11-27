@@ -33,6 +33,29 @@ func _init() -> void:
 
 func _phone() -> bool: return CbLayout.kind == "phone"
 
+## The 3D place (world3d/stage3d.gd) is showing: this stage keeps only its charts and its panel, in glass, and hangs chips on the place's anchors.
+func _look3() -> bool:
+	var w = app.get("grid_world") if app != null else null
+	return w != null and w.look3d != null and w.look3d.visible and w.look3d is Stage3D
+
+## In 3D only the panel (and what the stage lists in _extra_hit_rects: the houses' taps) takes the mouse; drags elsewhere reach the world and turn the camera.
+func _has_point(p: Vector2) -> bool:
+	if not _look3(): return Rect2(Vector2.ZERO, size).has_point(p)
+	if panel.grow(4.0).has_point(p) or _tag_rect().has_point(p) or _fold_rect().has_point(p): return true
+	for r in _stage_rects(): if (r as Rect2).has_point(p): return true
+	return false
+
+## The rects of the stage that take the mouse in 3D (charts that are controls: none today; L10's houses).
+func _stage_rects() -> Array: return []
+
+func _fold_rect() -> Rect2: return Rect2()
+func _tag_rect() -> Rect2:
+	return Rect2(Vector2(panel.end.x - 260.0, panel.position.y - 56.0), Vector2(260.0, 56.0)) if _narrow() else Rect2()
+
+## A chart box: glass over the 3D place, the navy ink of the classic stage otherwise.
+func _box_sb(a: float) -> StyleBoxFlat:
+	return GridTheme.glass_sb(0.78, 4, 0.0) if _look3() else GridTheme.ink_sb(a, 10, 0.0)
+
 ## The stage's drawing size: the screen on desktop, a fixed canvas on phone.
 func _vs() -> Vector2: return Vector2(maxf(size.x, 1366.0), 768.0) if _phone() else size
 
@@ -149,7 +172,58 @@ func _act(act: String, args: Array) -> bool:
 func _process(dt: float) -> void:
 	if not visible: return
 	_t += dt
+	var l3 := _look3()
+	if l3 != _was3: _was3 = l3; layout()   # the 3D place came up (or went) after this level's first layout
 	if not CbSettings.reduced_motion: queue_redraw()
+
+# ---- the 3D place: glass chips hung on its anchors --------------------------------------------------------------------------------
+const TOP := 92.0               ## below the work order pin
+var _pins: Array = []           ## rects of the chips drawn this frame (a later chip steps clear of an earlier one)
+var _top_y := TOP
+var _was3 := false
+
+func _right() -> float: return size.x - (app.world_cover() if app != null and app.has_method("world_cover") else 0.0)
+
+## A glass chip hung over a place of the 3D scene (Stage3D.anchors), with a leader line down to it; off screen or behind the camera it is not drawn.
+func _pin(key: String, lines: Array, cols: Array, lift := 34.0) -> void:
+	var wv = app.get("grid_world")
+	var l3 = wv.look3d
+	var a = l3.anchors.get(key)
+	if a == null: return
+	_pin_at(l3.project(a), lines, cols, lift, wv)
+
+## A point in the 3D world's screen space (what Stage3D.project returns) in this stage's own space.
+func _to_local(wp: Vector2, wv = null) -> Vector2:
+	if wv == null: wv = app.get("grid_world")
+	return get_global_transform_with_canvas().affine_inverse() * ((wv as Control).get_global_transform_with_canvas() * wp)
+
+func _pin_at(wp: Vector2, lines: Array, cols: Array, lift: float, wv = null) -> void:
+	if wp.x < -9000.0: return
+	if wv == null: wv = app.get("grid_world")
+	var sp := _to_local(wp, wv)
+	if not Rect2(Vector2.ZERO, Vector2(_right(), size.y)).grow(-4.0).has_point(sp): return
+	var semi := _semi(); var fz := GridTheme.fs(13)
+	var cw := 0.0
+	for ln in lines: cw = maxf(cw, semi.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x)
+	var lh := float(fz) + 6.0
+	var r := Rect2(Vector2(sp.x - (cw + 24.0) * 0.5, sp.y - lift * size.y / 1080.0 - (lh * lines.size() + 12.0)), Vector2(cw + 24.0, lh * lines.size() + 12.0))
+	r.position.x = clampf(r.position.x, M, _right() - M - r.size.x)
+	r.position.y = clampf(r.position.y, _top_y, panel.position.y - 8.0 - r.size.y)
+	for c in _pins:   # step clear of the chips already drawn: to the side first, below only if no side fits
+		var cr := c as Rect2
+		if not cr.grow(4.0).intersects(r): continue
+		if cr.end.x + 10.0 + r.size.x <= _right() - M and sp.x >= cr.get_center().x: r.position.x = cr.end.x + 10.0
+		elif cr.position.x - 10.0 - r.size.x >= M: r.position.x = cr.position.x - 10.0 - r.size.x
+		else: r.position.y = cr.end.y + 8.0
+	if r.end.y > panel.position.y - 8.0: return
+	_pins.append(r)
+	var foot := Vector2(clampf(sp.x, r.position.x + 8.0, r.end.x - 8.0), r.end.y)
+	if sp.y > r.end.y + 4.0:
+		draw_line(foot, sp, Color(GridTheme.G_TICK, 0.7), 1.0, true)
+		draw_circle(sp, 3.0, GridTheme.G_TICK)
+	draw_style_box(GridTheme.glass_sb(0.78, 4, 0.0), r)
+	for i in lines.size():
+		_text(semi, 13, Vector2(r.position.x + 12.0, r.position.y + 6.0 + lh * (i + 1) - 6.0), str(lines[i]), cols[mini(i, cols.size() - 1)])
 
 # ---- drawing helpers --------------------------------------------------------------------------------------------------------------
 func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, w := -1.0, align := 0) -> void:
@@ -169,6 +243,7 @@ func _mono() -> Font: return GridTheme.font("mono")
 func _semi() -> Font: return GridTheme.font("semi")
 
 func _cell_sb(fill: Color, lit: bool) -> StyleBoxFlat:
+	if _look3(): return GridTheme.glass_cell_sb(fill, lit)
 	var s := StyleBoxFlat.new(); s.bg_color = fill; s.set_corner_radius_all(7)
 	s.border_color = GridTheme.SODIUM if lit else Color(GridTheme.SODIUM_DIM, 0.28); s.set_border_width_all(2 if lit else 1)
 	return s
@@ -233,6 +308,11 @@ func _arrow(a: Vector2, b: Vector2, col: Color, wd := 3.0) -> void:
 func _draw() -> void:
 	if not visible or q.is_empty(): return
 	if panel.size.x < 1.0: layout()   # the first layout came before the chrome was built
+	if _look3():   # the 3D place is the stage: charts and the panel stay, in glass
+		_pins.clear(); _top_y = TOP
+		_draw_stage()
+		_draw_panel()
+		return
 	draw_rect(Rect2(Vector2.ZERO, size), GridTheme.NIGHT, true)   # an opaque stage: the world underneath is not this level's place
 	_sky()
 	if _phone():
@@ -247,12 +327,15 @@ func _draw() -> void:
 
 func _draw_fold() -> void:
 	var w := panel.size.x * _sc
-	if _collapsed: draw_style_box(GridTheme.ink_sb(0.94, 8, 0.0), Rect2(_p0, Vector2(w, 26.0)))
+	if _collapsed: draw_style_box(_panel_sb(8), Rect2(_p0, Vector2(w, 26.0)))
 	_text(_semi(), 12, _p0 + Vector2(10.0, 18.0), T("C4_PANEL_TITLE") if _collapsed else "", Color(GridTheme.TEXT, 0.75))
 	_text(_mono(), 16, _p0 + Vector2(w - 34.0, 19.0), "▸" if _collapsed else "▾", GridTheme.SODIUM)
 
+func _panel_sb(r: int) -> StyleBoxFlat:
+	return GridTheme.glass_sb(0.86, 4, 0.0) if _look3() else GridTheme.ink_sb(0.94, r, 0.0)
+
 func _draw_panel() -> void:
-	draw_style_box(GridTheme.ink_sb(0.94, 10, 0.0), panel)
+	draw_style_box(_panel_sb(10), panel)
 	draw_line(panel.position + Vector2(10, 2), panel.position + Vector2(panel.size.x - 10, 2), Color(GridTheme.SODIUM_DIM, 0.35), 1.0)
 	_draw_panel_body()
 	_draw_price_tag(panel)
@@ -267,12 +350,14 @@ func _draw_price_tag(pn: Rect2) -> void:
 	var fz16 := GridText.floor_size(self, 13)   # 1.9: the tag grows to its words at the 16 px floor (it clipped "build incl. starting kit")
 	w = maxf(w, maxf(semi.get_string_size(tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 34.0, mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 20.0)); h = maxf(h, fz16 * 2.0 + 16.0)
 	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _narrow() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
-	draw_set_transform(_scr(org + Vector2(w, h) * 0.5), deg_to_rad(-1.4), Vector2(_sc, _sc))
+	var g3 := _look3()
+	draw_set_transform(_scr(org + Vector2(w, h) * 0.5), 0.0 if g3 else deg_to_rad(-1.4), Vector2(_sc, _sc))
 	var rect := Rect2(Vector2(-w * 0.5, -h * 0.5), Vector2(w, h))
-	draw_style_box(GridTheme.paper_sb(3, 0.0), rect)
-	draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
+	draw_style_box(GridTheme.glass_sb(0.8, 4, 0.0) if g3 else GridTheme.paper_sb(3, 0.0), rect)
+	if not g3: draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
 	var fsz := GridTheme.fs(13); var tw2 := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw2 > w - 16.0 and fsz > 9: fsz -= 1; tw2 = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	GridText.ds(self, semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
-	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	var ink := GridTheme.G_TEXT if g3 else GridTheme.PAPER_INK
+	GridText.ds(self, semi, Vector2(-w * 0.5 + (12.0 if g3 else 22.0), -h * 0.5 + 15.0), tr("TRAY_BUDGET_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.G_DIM if g3 else ink, 1.0 if g3 else 0.7))
+	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, (GridTheme.BAD if g3 else GridTheme.BAD.darkened(0.15)) if over else ink)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
