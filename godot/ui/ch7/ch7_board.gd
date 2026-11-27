@@ -42,8 +42,9 @@ func _draw_panel_body() -> void:
 		_text(_mono(), 14, inner.position + Vector2(432, 104), T("C7_FAULT_KA") % [WorkOrder.num(float(q.faultKA)), str(q.faultMVA)], _good(ok))
 
 func _draw_stage() -> void:
+	if _look3(): _draw_stage3(); return
 	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(minf(w * 0.58, 760.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	var r := Rect2(Vector2(30.0, top), Vector2(minf(w * 0.58, 760.0), bh)); draw_style_box(_box_sb(0.82), r)
 	var cx := r.position.x + r.size.x * 0.5; var gy := r.position.y + 28.0; var by := r.position.y + bh * 0.56
 	var ax := cx - r.size.x * 0.22; var bx := cx + r.size.x * 0.22
 	var dark := _revealed() and not bool(q.get("ok", true)); var wire := GridTheme.LIVE if not dark else Color(GridTheme.DIM, 0.6)
@@ -83,7 +84,11 @@ func _draw_stage() -> void:
 		for g in ["C7_GLOSS_IF", "C7_GLOSS_PU", "C7_GLOSS_REACTOR"]:
 			_text(_mono(), 10, Vector2(r.position.x + 14.0, gy2), T(g), Color(GridTheme.TEXT, 0.6)); gy2 += 15.0
 	# right: the table of who breaks what, and N-1
-	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), tr)
+	var tr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 260.0), bh))
+	_draw_table(tr)
+
+func _draw_table(tr: Rect2) -> void:
+	draw_style_box(_box_sb(0.82), tr)
 	_text(_semi(), 11, tr.position + Vector2(12, 18), T("C7_TABLE") if _revealed() else T("C7_GIV_CAP"), Color(GridTheme.TEXT, 0.7))
 	if _revealed():
 		_text(_mono(), 11, tr.position + Vector2(12, 38), T("C7_ZTH") % WorkOrder.num(float(q.zthPu)), Color(GridTheme.TEXT, 0.8))
@@ -104,3 +109,23 @@ func _draw_stage() -> void:
 		_card_text(tr, cl, 11, 8.0, 36.0)
 	var n1: Dictionary = q.n1; var sec := bool(n1.secure) and float(n1.vPu) >= 0.94
 	if not (_phone() and not _revealed()): _text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))
+
+## The 3D substation: the place is Stage3D's; the givens / duty table stays in glass on the right and each part of the board gets a chip.
+func _draw_stage3() -> void:
+	var w := _right(); var top := TOP; var bh := minf(_stage_bottom() - top - 12.0, 380.0)
+	var tw := minf(400.0, w * 0.3)
+	_draw_table(Rect2(Vector2(w - tw - M, top), Vector2(tw, bh)))
+	var g: Dictionary = q.givens; var dim := GridTheme.G_DIM; var txt := GridTheme.G_TEXT
+	_pin("incomer", [T("C7_GRID"), T("C7_Z") % WorkOrder.num(float(g.gridZ))], [txt, dim], 20.0)
+	_pin("xfmr", [T("C7_T1") % WorkOrder.num(float(g.xfmrZ))], [txt], 20.0)
+	_pin("board", [T("C7_SEC_A")], [txt], 16.0)
+	var open: bool = str(q.design.coupler) == "open"
+	var cl: Array = [T("C7_COUPLER") + " " + (T("C7_OPEN") if open else T("C7_CLOSED"))]; var cc: Array = [GridTheme.WARN if open else txt]
+	if float(q.design.reactor) > 0.0 and not open: cl.append(T("C7_GIV_R").trim_prefix(", ") % WorkOrder.num(float(q.design.reactor))); cc.append(GridTheme.COPPER)
+	_pin("coupler", cl, cc, 26.0)
+	_pin("gens", [T("C7_Z") % WorkOrder.num(float(g.genZ)) + "  G"], [txt], 20.0)
+	var fl: Array = [T("C7_FEEDER"), T("C7_RATED") % WorkOrder.num(float(q.ratingKA))]; var fc: Array = [txt, dim]
+	if _revealed():
+		for d in q.duty: if str(d.id) == "F1": fl.append(T("C7_DUTY") % WorkOrder.num(float(d.kA))); fc.append(GridTheme.BAD if bool(d.over) else GridTheme.GOOD)
+	_pin("feeder", fl, fc, 24.0)
+	if _revealed() and not bool(q.get("ok", true)): _pin("estate", [T("C7_ESTATE_DARK")], [GridTheme.BAD], 20.0)

@@ -13,7 +13,7 @@ extends Bench3D
 ## takes goes dark; the city's windows go out with an unstable swing; the rotor swings by the engine's angle.
 ## L13: the field glow (air gap, pole shoes, exciter) follows the engine's E.
 
-const STAGES := {"L10": "l10", "L11": "l11", "L12": "l12", "L13": "l13"}
+const STAGES := {"L10": "l10", "L11": "l11", "L12": "l12", "L13": "l13", "L23": "l23", "L24": "l24", "L25": "l25", "L26": "l26", "L27": "l27"}
 const PH := ["a", "b", "c"]
 const PH_COL := {"a": Color("#E5484D"), "b": Color("#F2C94C"), "c": Color("#4FA3FF")}
 const HOT := Color(1.0, 0.97, 0.92)
@@ -58,6 +58,7 @@ var _swing_t := 0.0
 var _exc_mat: ShaderMaterial
 var _field := 0.0
 var _ph12 := Vector3.ZERO
+var d7: Dictionary = {}           # chapter 7's scene state (world3d/stage3d_ch7.gd)
 var _ft_gpu := 0.0               # CB_FRAMETIME: render time of the viewport, as Province3D measures it
 var _ft_cpu := 0.0
 var _ft_n := 0
@@ -71,19 +72,20 @@ var _measuring := false
 func set_model(m: Dictionary) -> void:
 	_setup()
 	var r = null
-	if view != null and view.get("app") != null and view.app.get("b") != null: r = view.app.b.q("ch4Status")
+	var lid := str(m.get("level", ""))
+	if view != null and view.get("app") != null and view.app.get("b") != null: r = view.app.b.q("ch7Study" if Stage7.IDS.has(str(STAGES.get(lid, ""))) else "ch4Status")
 	set_stage(r if r is Dictionary else {}, float(m.get("minute", 1080.0)))
 
 ## The engine's ch4Status and the minute of the day. A query that is not active keeps the last scene.
 func set_stage(sq: Dictionary, minute: float) -> void:
 	_setup()
+	if absf(minute - _minute) > 0.4: _update_sky(minute)   # first: chapter 7's L26 reads the hour from it
 	if sq.get("active", false):
-		var s := str(sq.scenario)
+		var s := str(sq.scenario).to_lower()
 		q = sq
 		if s != scn or field == null:
 			scn = s; kind = s; _build_stage()
 		_apply_stage()
-	if absf(minute - _minute) > 0.4: _update_sky(minute)
 
 func _build_stage() -> void:
 	_clear(_root)
@@ -99,13 +101,15 @@ func _build_stage() -> void:
 		"l12":
 			_play = Rect2(-130.0, -110.0, 910.0, 230.0)
 			_ph12 = Vector3(-1.0, 1.0, _rz12(-1.0) + 40.0)
-		_: _play = Rect2(-90.0, -70.0, 180.0, 140.0)
+		"l13": _play = Rect2(-90.0, -70.0, 180.0, 140.0)
+		_: _play = Stage7.play(scn)
 	_build_terrain()
 	match scn:
 		"l10": _build_l10()
 		"l11": _build_l11()
 		"l12": _build_l12()
-		_: _build_l13()
+		"l13": _build_l13()
+		_: Stage7.build(self)
 	field = self
 	if _minute >= 0.0: _update_sky(_minute)
 	reset_camera()
@@ -119,7 +123,7 @@ func ground(x: float, z: float) -> float:
 		"l11": return _h11(x, z)
 		"l12": return _h12(x, z)
 		"l13": return _h13(x, z)
-	return 0.0
+	return Stage7.ground(self, x, z) if Stage7.IDS.has(scn) else 0.0
 
 func _n01(x: float, z: float) -> float: return _nz.get_noise_2d(x, z) * 0.5 + 0.5
 
@@ -171,6 +175,7 @@ func _h13(x: float, z: float) -> float:
 	return h
 
 func _splat(x: float, z: float, h: float) -> Array:
+	if Stage7.IDS.has(scn): return Stage7.splat(self, x, z, h)
 	var wood := smoothstep(0.05, 0.35, _nz.get_noise_2d(x * 0.5 + 300.0, z * 0.5))
 	var c := Color(1, 0, 0, 0); var mud := 0.0; var paved := 0.0
 	match scn:
@@ -684,6 +689,7 @@ func _apply_stage() -> void:
 		"l11": _apply_l11()
 		"l12": _apply_l12()
 		"l13": _apply_l13()
+		_: Stage7.apply(self)
 
 func _apply_l10() -> void:
 	var hs: Array = q.houses; var vlv: Dictionary = q.vLevels
@@ -751,6 +757,7 @@ func _apply_l13() -> void:
 
 ## What the scene shows now (tests/stage3d_truth.gd): what each job's engine numbers became.
 func report() -> Dictionary:
+	if Stage7.IDS.has(scn): return Stage7.report(self)
 	var r := {"kind": scn}
 	match scn:
 		"l10":
@@ -801,7 +808,10 @@ func reset_camera() -> void:
 		"l10": _g_target = Vector3(-8.0, 0.0, 6.0); _g_yaw = deg_to_rad(-42.0); _g_pitch = deg_to_rad(11.0); _g_dist = 82.0
 		"l11": _g_target = Vector3(4.0, 0.0, 4.0); _g_yaw = deg_to_rad(-14.0); _g_pitch = deg_to_rad(20.0); _g_dist = 96.0
 		"l12": _g_target = Vector3(95.0, 0.0, 28.0); _g_yaw = deg_to_rad(-56.0); _g_pitch = deg_to_rad(14.0); _g_dist = 215.0
-		_: _g_target = Vector3(6.0, 0.0, 2.0); _g_yaw = deg_to_rad(-16.0); _g_pitch = deg_to_rad(10.0); _g_dist = 50.0
+		"l13": _g_target = Vector3(6.0, 0.0, 2.0); _g_yaw = deg_to_rad(-16.0); _g_pitch = deg_to_rad(10.0); _g_dist = 50.0
+		_:
+			var cm: Array = Stage7.camera(scn)
+			_g_target = cm[0]; _g_yaw = deg_to_rad(float(cm[1])); _g_pitch = deg_to_rad(float(cm[2])); _g_dist = float(cm[3])
 	var vp := get_viewport()
 	if vp != null:
 		var vs := vp.get_visible_rect().size
@@ -814,6 +824,7 @@ func reset_camera() -> void:
 func _process(dt: float) -> void:
 	super._process(dt)
 	if not visible or field == null: return
+	if Stage7.IDS.has(scn): Stage7.process(self, dt)
 	if OS.has_environment("CB_FRAMETIME"):
 		var vp := get_viewport().get_viewport_rid()
 		if not _measuring: RenderingServer.viewport_set_measure_render_time(vp, true); _measuring = true

@@ -50,8 +50,10 @@ func _draw_panel_body() -> void:
 			_text(_mono(), 12, inner.position + Vector2(480, 104), "20:00 %s %s / %s %s" % [T("C7_LAM_G"), str(l.g), T("C7_LAM_S"), str(l.s)], GridTheme.TEXT)
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(240.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w * 0.62, 420.0), bh))
+	var l3 := _look3()
+	var w := _right() if l3 else size.x; var top := _stage_top(); var bh := _stage_h(240.0)
+	if l3: bh = clampf(_stage_bottom() - top - 12.0, 300.0, 400.0)
+	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w * 0.62, 420.0) if not l3 else minf(w * 0.46, 760.0), bh))
 	_frame(r, 0.0, 24.0, 0.0, 1600.0, false, false, "h", T("C7_STACK"))
 	var pr: Rect2 = plot.r; var bw := pr.size.x / 24.0
 	var rev := _revealed()
@@ -77,7 +79,7 @@ func _draw_stage() -> void:
 	for h in 24: dem.append([float(h) + 0.5, float(rev if false else q.demandMW[h])])
 	_poly(dem, GridTheme.TEXT, 2.0)
 	# right: the corridor and the prices
-	var sr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 300.0), bh))
+	var sr := Rect2(Vector2(r.end.x + 16.0, top if not l3 else 156.0), Vector2(maxf(w - r.end.x - 46.0, 300.0) if not l3 else minf(w - r.end.x - 46.0, 520.0), bh))
 	if rev:
 		(edits["lambda20"] as LineEdit).position = _scr(_home) if _phone() else _home   # phone: the panel is drawn scaled into the slot
 		_frame(Rect2(sr.position, Vector2(sr.size.x, bh * 0.5 - 6.0)), 0.0, 24.0, -500.0, 600.0, false, false, "", T("C7_FLOW"))
@@ -103,3 +105,18 @@ func _draw_stage() -> void:
 			GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
 			_text(_semi(), 11, sr.position + Vector2(14, bh * 0.5 + 138.0), T("C7_PREDICT_LAM"), GridTheme.SODIUM)
 			(edits["lambda20"] as LineEdit).position = sr.position + Vector2(14, bh * 0.5 + 146.0)
+	if l3: _top_y = top + 64.0 + bh + 8.0 if false else top + bh + 8.0; _pins3()
+
+## The 3D dispatch: a chip on the control room (the rule), on each plant (its output this hour once run) and on the corridor.
+func _pins3() -> void:
+	var l3 = app.get("grid_world").look3d
+	var h: int = int(l3.d7.get("h", 0)); var rev := _revealed()
+	var sg := GridTheme.G_TEXT; var dim := GridTheme.G_DIM
+	_pin("control", [T("C7_MODE_CAP"), T("C7_MODE_" + str(q.design.mode))], [dim, sg], 20.0)
+	for p in q.plants:
+		var id := str(p.id); var lines: Array = [T("C7_PLANT_" + id)]; var cols: Array = [PCOL[id]]
+		if rev: lines.append("%s MW" % WorkOrder.num(float(q.hourly.p[id][h]))); cols.append(sg)
+		_pin(id, lines, cols, 20.0)
+	_pin("hydro", [T("C7_HYDRO"), "%s MW" % WorkOrder.num(float(q.hydroMW[h]))], [PCOL["hydro"], sg], 20.0)
+	_pin("solar", [T("C7_SOLAR"), "%s MW" % WorkOrder.num(float(q.solarMW[h]))], [PCOL["solar"], sg], 20.0)
+	_pin("corridor", [T("C7_CORRIDOR") % int(q.corridorMW)], [sg], 18.0)

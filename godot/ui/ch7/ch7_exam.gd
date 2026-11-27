@@ -60,8 +60,9 @@ func _draw_panel_body() -> void:
 		_text(_mono(), 12, inner.position + Vector2(0, 84), T("C7_BOARD_KA") % [WorkOrder.num(float(q.boardKA.threePh)), WorkOrder.num(float(q.boardKA.slg))], _good(bool(q.ratingOk)))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(240.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(minf(w - 60.0, 800.0) if not _phone() else minf(w * 0.52, 620.0), 250.0 if not _phone() else 5.0 * _row() + 44.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	var l3 := _look3()
+	var w := _right() if l3 else size.x; var top := _stage_top(); var bh := _stage_h(240.0)
+	var r := Rect2(Vector2(30.0, top), Vector2((minf(w - 60.0, 800.0) if not l3 else minf(w - 60.0, 740.0)) if not _phone() else minf(w * 0.52, 620.0), 250.0 if not _phone() else 5.0 * _row() + 44.0)); draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 12, r.position + Vector2(14, 22), T("C7_EXAM"), Color(GridTheme.TEXT, 0.75))
 	var y := r.position.y + (46.0 if not _phone() else 30.0); var i := 0
 	for qq in q.questions:
@@ -75,11 +76,13 @@ func _draw_stage() -> void:
 		if not _revealed() and not _phone(): _text(_mono(), 9, Vector2(r.position.x + 480, y + 24), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
 		y += _row(); i += 1
 	var cr := Rect2(Vector2(30.0, 412.0), Vector2(minf(w - 60.0, 800.0), maxf(panel.position.y - 412.0 - 12.0, 60.0)))
-	if not _phone():
-		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), cr)
+	if not _phone() and (not l3 or show_card):
+		draw_style_box(_box_sb(0.82), cr)
 		if show_card: _text(_semi(), 11, cr.position + Vector2(200.0, 26.0), T("C7_FORMULA_CAP"), Color(GridTheme.TEXT, 0.7))
 		else: _text(_mono(), 11, cr.position + Vector2(200.0, 26.0), T("C7_HIDE_NOTE"), Color(GridTheme.TEXT, 0.5))
-	var gr := Rect2(Vector2(r.end.x + 14.0, top), Vector2(maxf(w - r.end.x - 44.0, 240.0), panel.position.y - top - 12.0)); draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), gr)
+	var gr := Rect2(Vector2(r.end.x + 14.0, top), Vector2(maxf(w - r.end.x - 44.0, 240.0), panel.position.y - top - 12.0))
+	if l3: gr = Rect2(Vector2(w - 380.0 - M, top), Vector2(380.0, panel.position.y - top - 12.0))   # 3D: a column at the right edge, the place stays in the middle
+	draw_style_box(_box_sb(0.82), gr)
 	var g: Dictionary = q.givens; var u: Array = g.units; var a: Dictionary = g.ps17; var b: Dictionary = g.ps18; var c: Dictionary = g.ps24
 	var lines := [T("C7_G27_A") % [WorkOrder.num(a.genX), WorkOrder.num(b.genX2), WorkOrder.num(b.genX0), WorkOrder.num(a.xfmrX), WorkOrder.num(a.lineXOhm), WorkOrder.num(b.lineX0Ohm), int(a.kv)]]
 	for k in 3: lines.append(T("C7_G27_B") % [k + 1, WorkOrder.num(u[k].a), WorkOrder.num(u[k].b), WorkOrder.num(u[k].c), int(u[k].pMin), int(u[k].pMax)])
@@ -88,7 +91,16 @@ func _draw_stage() -> void:
 	var cl := []
 	for ln in lines: cl.append([ln, Color(GridTheme.TEXT, 0.82)])
 	_card_text(gr, cl, 10, 4.0, 30.0)
+	if l3: _pins3()
 	if show_card and not _phone():
 		var fy := cr.position.y + 58.0
 		for f in ["C7_F1", "C7_F2", "C7_F3", "C7_F5"]:
 			_text(_mono(), 11, Vector2(cr.position.x + 14.0, fy), T(f), Color(GridTheme.TEXT, 0.85)); fy += 18.0
+
+## The 3D exam: the grown board's rating once run, and tonight's three units against the demand.
+func _pins3() -> void:
+	var sg := GridTheme.G_TEXT
+	if _revealed(): _pin("board", [T("C7_BOARD_KA") % [WorkOrder.num(float(q.boardKA.threePh)), WorkOrder.num(float(q.boardKA.slg))]], [_good(bool(q.ratingOk))], 20.0)
+	var s := 0.0
+	for k in 3: s += float(q.design.dispatch[k])
+	_pin("units", [T("C7_DISPATCH_SUM") % [WorkOrder.num(s), int(q.demandMW)]], [sg], 20.0)

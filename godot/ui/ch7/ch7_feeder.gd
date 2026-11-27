@@ -42,15 +42,17 @@ func _draw_panel_body() -> void:
 	_text(_semi(), 10, inner.position + Vector2(0, 102), T("C7_CURVE_CAP"), Color(GridTheme.TEXT, 0.65)); _text(_semi(), 10, inner.position + Vector2(250, 102), T("C7_PICKUP_CAP"), Color(GridTheme.TEXT, 0.65))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w - 60.0 - 250.0, 420.0), bh))
+	var l3 := _look3()
+	var w := _right() if l3 else size.x; var top := _stage_top(); var bh := _stage_h(220.0)
+	if l3: bh = clampf(_stage_bottom() - top - 12.0, 220.0, 330.0)
+	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w - 60.0 - 250.0, 420.0) if not l3 else minf(w * 0.5, 700.0), bh))
 	_frame(r, 80.0, 8000.0, 0.01, 30.0, true, true, T("C7_TC_X"), T("C7_TC_Y"))
 	for L in q.limits:
 		_poly(L.pts, Color(GridTheme.BAD, 0.35), 1.0)
 	for k in q.curves.size():
 		_poly(q.curves[k].pts, COLS[k], 2.5)
 		var ip := _pt(float(q.curves[k].is), 30.0); draw_line(ip, ip + Vector2(0, 14), COLS[k], 2.0)
-	var lg := Rect2(Vector2(r.end.x + 12.0, top), Vector2(maxf(w - r.end.x - 42.0, 200.0), bh)); draw_style_box(GridTheme.ink_sb(0.9, 10, 0.0), lg)
+	var lg := Rect2(Vector2(r.end.x + 12.0, top if not l3 else 156.0), Vector2(maxf(w - r.end.x - 42.0, 200.0) if not l3 else 290.0, bh)); draw_style_box(_box_sb(0.9), lg)
 	var lx: float = lg.position.x + 12.0; var ly: float = lg.position.y + 38.0
 	_text(_semi(), 10, Vector2(lx, ly - 14.0), T("C7_LEG_CURVES"), Color(GridTheme.TEXT, 0.7))
 	for k in 4:
@@ -64,7 +66,7 @@ func _draw_stage() -> void:
 		GridText.dm(self, _mono(), Vector2(lx, by2 + 76.0), T("C7_LEG_SPARE") % WorkOrder.num(snappedf(float(q.get("minMarginS", 0.0)), 0.001)), HORIZONTAL_ALIGNMENT_LEFT, lg.size.x - 24.0, GridTheme.fs(12), -1, okc)
 	var lx2: float = float((plot.r as Rect2).position.x) + 12.0
 	var gy: float = float((plot.r as Rect2).end.y) - 96.0; var gw: float = float((plot.r as Rect2).size.x) - 24.0
-	for g in (["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"] if not _phone() else []):
+	for g in (["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"] if not _phone() and not l3 else []):
 		var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10)).y
 		GridText.dm(self, _mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
 	for f in q.faults:
@@ -75,3 +77,16 @@ func _draw_stage() -> void:
 			if f.times[j] == null: continue
 			var dp := _pt(float(f.amps), float(f.times[j])); draw_circle(dp, 5.0 if j == f.times.size() - 1 else 3.5, COLS[j])
 		if bool(f.burnt): draw_circle(_pt(float(f.amps), float(f.nearestS)), 9.0, Color(GridTheme.BAD, 0.5))
+	if l3: _top_y = top + bh + 8.0; _pins3()
+
+## The 3D valley: a chip on each relay kiosk in its chart colour, and on the fault being shown (with the relay that opens).
+func _pins3() -> void:
+	for k in 4: _pin("R%d" % (k + 1), [T("C7_RELAY") % (k + 1) + "  " + T("C7_IS") % str(q.is[k])], [COLS[k]], 16.0)
+	if _revealed() and not q.faults.is_empty():
+		var l3 = app.get("grid_world").look3d
+		var d: Dictionary = l3.d7; var order: Array = d.get("order", [])
+		if not order.is_empty():
+			var cur: Dictionary = order[int(d.get("cur", 0)) % order.size()]
+			var fl: Array = ["%s  %d A" % [str(cur.id), int(cur.amps)]]; var fc: Array = [GridTheme.G_TEXT]
+			if int(cur.opener) >= 0: fl.append(T("C7_RELAY") % (int(cur.opener) + 1) + " " + T("C7_OPEN")); fc.append(COLS[int(cur.opener)])
+			_pin("fault", fl, fc, 18.0)

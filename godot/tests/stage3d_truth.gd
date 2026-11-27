@@ -24,8 +24,13 @@ func _initialize() -> void:
 	_l11(T)
 	_l12(T)
 	_l13(T)
+	_l23(T)
+	_l24(T)
+	_l25(T)
+	_l26(T)
+	_l27(T)
 	await _input_pass(T)
-	for id in ["L10", "L11", "L12", "L13"]: T.check(Stage3D.STAGES.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D stage: no Classic chip" % id)
+	for id in ["L10", "L11", "L12", "L13", "L23", "L24", "L25", "L26", "L27"]: T.check(Stage3D.STAGES.has(id) and not Jobs.is_classic(id), "%s is drawn by the 3D stage: no Classic chip" % id)
 	for id in ["L04", "L06"]: T.check(Bench3D.LEVELS.has(id) and not Stage3D.STAGES.has(id), "%s stays with the chapter 2 bench" % id)
 	T.finish("STAGE3D-TRUTH", self)
 
@@ -33,6 +38,21 @@ func _status(T: Truth, sg: Stage3D) -> Dictionary:
 	var q: Dictionary = T.b.q("ch4Status")
 	sg.set_stage(q, 1110.0)
 	return q
+
+## Chapter 7: the scene is fed ch7Study, at the minute `mn` (L26 reads its hour from the clock).
+func _s7(T: Truth, sg: Stage3D, mn := 1110.0) -> Dictionary:
+	var q: Dictionary = T.b.q("ch7Study")
+	sg.set_stage(q, mn)
+	return q
+
+func _a7(T: Truth, sg: Stage3D, act: String, args: Array, mn := 1110.0) -> Dictionary:
+	var r: Dictionary = T.b.act(act, args)
+	T.check(bool(r.get("ok", false)), "%s %s accepted: %s" % [act, str(args), str(r.get("message", ""))])
+	return _s7(T, sg, mn)
+
+func _run7(T: Truth, sg: Stage3D, mn := 1110.0) -> Dictionary:
+	T.b.act("tick", [1])
+	return _s7(T, sg, mn)
 
 func _act(T: Truth, sg: Stage3D, act: String, args: Array) -> Dictionary:
 	var r: Dictionary = T.b.act(act, args)
@@ -150,6 +170,122 @@ func _l13(T: Truth) -> void:
 		prev = float(rep.gap_glow); prev_x = float(rep.exciter_glow)
 	T.check(Stage3D.field_glow(0.5, true) == 0.0 and Stage3D.field_glow(2.0, true) == 1.0 and Stage3D.field_glow(1.0, false) == 0.0, "L13: field glow is 0 at 0.5 pu, 1 at 2.0 pu, 0 with no E")
 	_ground(T, sg, "L13")
+	sg.free()
+
+func _l23(T: Truth) -> void:
+	T.level("L23")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s7(T, sg)
+	T.check(sg.field != null and sg.scn == "l23", "L23: the substation is built")
+	for k in ["incomer", "xfmr", "board", "coupler", "gens", "feeder", "estate"]: T.check(sg.anchors.has(k), "L23: chip anchor %s" % k)
+	var rep := sg.report()
+	T.check(int(rep.kiosks) == 6 and not bool(rep.coupler_open) and int(rep.reactor_rings) == 0, "L23: six breakers, the coupler closed, no reactor")
+	T.check(float(rep.estate_e) > 1.0 and (rep.smoke as Array).is_empty(), "L23: before the run the estate is lit and no breaker smokes")
+	q = _a7(T, sg, "setBusCoupler", [true]); rep = sg.report()
+	T.check(bool(rep.coupler_open) == (str(q.design.coupler) == "open") and bool(rep.coupler_open), "L23: an open coupler shows its gap")
+	q = _a7(T, sg, "setBusCoupler", [false])
+	for rx in [0.1, 0.2, 0.0]:
+		q = _a7(T, sg, "setSeriesReactor", [rx]); rep = sg.report()
+		var want := 0 if rx == 0.0 else 2 + int(roundf(rx * 20.0))
+		T.check(int(rep.reactor_rings) == want and not bool(rep.coupler_open), "L23: a reactor of %.1f pu is a coil of %d rings (%d)" % [rx, want, int(rep.reactor_rings)])
+	q = _a7(T, sg, "setSeriesReactor", [0.2]); q = _a7(T, sg, "setBusCoupler", [true]); rep = sg.report()
+	T.check(int(rep.reactor_rings) == 0, "L23: an open coupler carries no reactor")
+	q = _a7(T, sg, "setBusCoupler", [false]); q = _a7(T, sg, "setSeriesReactor", [0.0])
+	q = _run7(T, sg); rep = sg.report()
+	var n_over := 0
+	for dd in q.duty:
+		T.check(bool(rep.over[str(dd.id)]) == bool(dd.over), "L23: breaker %s is red exactly when it is over its duty (%.1f kA)" % [str(dd.id), float(dd.kA)])
+		if bool(dd.over): n_over += 1
+	T.check(n_over > 0 and (rep.smoke as Array).size() == n_over, "L23: the naive board has %d breakers over their duty and they smoke (%s)" % [n_over, str(rep.smoke)])
+	T.check(not bool(q.ok) and float(rep.estate_e) == 0.0, "L23: the estate's windows are dark when the engine says the board fails")
+	T.level("L23"); sg.set_stage(T.b.q("ch7Study"), 1110.0)
+	q = _a7(T, sg, "setBreakerRating", [40.0]); q = _run7(T, sg); rep = sg.report()
+	T.check(bool(q.ok) and (rep.smoke as Array).is_empty() and float(rep.estate_e) > 1.0, "L23: a 40 kA board holds: no smoke, the estate lit")
+	_ground(T, sg, "L23")
+	sg.free()
+
+func _l24(T: Truth) -> void:
+	T.level("L24")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s7(T, sg)
+	for k in ["R1", "R2", "R3", "R4", "fault"]: T.check(sg.anchors.has(k), "L24: chip anchor %s" % k)
+	var rep := sg.report()
+	T.check(int(rep.relays) == 4 and int(rep.posts) == (q.faults as Array).size(), "L24: four relay kiosks and a post for each of the %d faults" % (q.faults as Array).size())
+	for k in 4: T.check((rep.cols[k] as Color).is_equal_approx(Stage7.RELAY_COL[k]), "L24: kiosk R%d is the chart's colour for R%d" % [k + 1, k + 1])
+	q = _run7(T, sg); rep = sg.report()
+	for i in (q.faults as Array).size():
+		var f: Dictionary = q.faults[i]; var best := 1e9; var op := -1
+		for j in (f.times as Array).size(): if f.times[j] != null and float(f.times[j]) < best: best = float(f.times[j]); op = j
+		T.check(int(rep.opener[i]) == op, "L24: for %s the breaker that opens is R%d (the engine's quickest, %.3f s)" % [str(f.id), op + 1, best])
+	var burnt := [false, false, false, false]
+	for f in q.faults: if bool(f.burnt): burnt[int(f.section) - 1] = true
+	T.check(Array(rep.burnt) == burnt, "L24: a section glows exactly when a fault burns its conductor (%s)" % str(burnt))
+	_ground(T, sg, "L24")
+	sg.free()
+
+func _l25(T: Truth) -> void:
+	T.level("L25")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s7(T, sg)
+	for k in ["gen", "breaker", "fault", "line"]: T.check(sg.anchors.has(k), "L25: chip anchor %s" % k)
+	T.check(int(sg.report().clear_ms) == int(q.clearMs), "L25: the breaker bay clears at the engine's %d ms" % int(q.clearMs))
+	for cy in [2, 5, 3]:
+		q = _a7(T, sg, "setBreakerCycles", [cy])
+		T.check(int(sg.report().clear_ms) == int(q.clearMs), "L25: with %d-cycle breakers it clears at %d ms (scene %d)" % [cy, int(q.clearMs), int(sg.report().clear_ms)])
+	sg._t = 0.1; Stage7.process(sg, 0.0)
+	T.check(not bool(sg.report().breaker_open) and absf(float(sg.report().marker)) < 1e-6, "L25: before the run the breaker is closed and the rotor marker at rest")
+	q = _run7(T, sg)
+	var cs := float(q.clearMs) / 1000.0
+	sg._t = maxf(cs * 0.5, 0.001); Stage7.process(sg, 0.0)
+	T.check(not bool(sg.report().breaker_open), "L25: before the clearing time (%.0f ms) the breaker is still closed" % (cs * 1000.0))
+	var m_half := float(sg.report().marker)
+	T.check(m_half > float(q.delta0Deg) - 1e-6 and m_half < float(q.clearAtDeg) + 1e-6, "L25: the rotor marker runs ahead between the engine's start angle %.1f and its angle at clearing %.1f (%.1f)" % [float(q.delta0Deg), float(q.clearAtDeg), m_half])
+	sg._t = cs + 0.05; Stage7.process(sg, 0.0)
+	T.check(bool(sg.report().breaker_open), "L25: after the clearing time the breaker has opened")
+	sg._t = cs + 1.0; Stage7.process(sg, 0.0)
+	T.near(float(sg.report().marker), float(q.peakDeg), 1e-6, "L25: a second after clearing the marker is at the engine's peak %.1f deg" % float(q.peakDeg))
+	_ground(T, sg, "L25")
+	sg.free()
+
+func _l26(T: Truth) -> void:
+	T.level("L26")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s7(T, sg, 720.0)
+	for k in ["control", "coalsub", "coalsc", "ccgt", "ocgt", "hydro", "solar", "corridor"]: T.check(sg.anchors.has(k), "L26: chip anchor %s" % k)
+	var rep := sg.report()
+	T.check(int(rep.hour) == 12, "L26: the scene reads hour 12 from the clock")
+	var smax := 1.0; for v in q.solarMW: smax = maxf(smax, float(v))
+	T.near(float(rep.share.solar), clampf(float((q.solarMW as Array)[12]) / smax, 0.0, 1.0), 1e-6, "L26: the solar field glows with the engine's solar MW at noon")
+	T.near(float(rep.share.hydro), clampf(float((q.hydroMW as Array)[12]) / 200.0, 0.0, 1.0), 1e-6, "L26: the hydro plant follows the engine's hydro MW")
+	for id in Stage7.PLANTS: T.check(float(rep.share[id]) == 0.0, "L26: before the run the %s plant is cold" % id)
+	var dmax := 1.0; for v in q.demandMW: dmax = maxf(dmax, float(v))
+	T.near(float(rep.dem), clampf(float((q.demandMW as Array)[12]) / dmax, 0.0, 1.0), 1e-6, "L26: the city's windows follow demand")
+	q = _run7(T, sg, 720.0); rep = sg.report()
+	var any_on := false
+	for p in q.plants:
+		var id := str(p.id); var want := clampf(float(q.hourly.p[id][12]) / float(p.pMax), 0.0, 1.0)
+		T.near(float(rep.share[id]), want, 1e-6, "L26: %s runs at %.2f of its rating at noon (engine %.0f MW)" % [id, want, float(q.hourly.p[id][12])])
+		if want > 0.0: any_on = true
+	T.check(any_on, "L26: some thermal plant is running at noon")
+	q = _s7(T, sg, 1200.0); rep = sg.report()
+	for p in q.plants: T.near(float(rep.share[str(p.id)]), clampf(float(q.hourly.p[str(p.id)][20]) / float(p.pMax), 0.0, 1.0), 1e-6, "L26: at 20:00 %s follows the engine's hour 20" % str(p.id))
+	T.near(float(rep.flow), 0.0 if bool(rep.tripped) else clampf(absf(float(q.hourly.flow[20])) / float(q.corridorMW), 0.0, 1.2), 1e-6, "L26: the corridor glows with the hour's flow (dark if tripped)")
+	_ground(T, sg, "L26")
+	sg.free()
+
+func _l27(T: Truth) -> void:
+	T.level("L27")
+	var sg := Stage3D.new(); root.add_child(sg)
+	var q := _s7(T, sg)
+	for k in ["board", "coupler", "feeder", "units"]: T.check(sg.anchors.has(k), "L27: chip anchor %s" % k)
+	var rep := sg.report()
+	for k in 3: T.near(float(rep.unit_share[k]), clampf(float(q.design.dispatch[k]) / float(q.units[k].pMax), 0.0, 1.0), 1e-6, "L27: unit %d's steam follows its dispatch" % (k + 1))
+	var a := float(q.units[0].pMax) * 0.5; var b := float(q.units[1].pMax) * 0.5; var c := float(q.units[2].pMax) * 0.5
+	q = _a7(T, sg, "setDispatch3", [a, b, c]); rep = sg.report()
+	for k in 3: T.near(float(rep.unit_share[k]), 0.5, 1e-6, "L27: unit %d at half its rating shows half" % (k + 1))
+	q = _run7(T, sg); rep = sg.report()
+	T.check((rep.smoke as Array).is_empty() == bool(q.ratingOk), "L27: the breakers smoke exactly when the rating is short (ratingOk %s)" % str(q.ratingOk))
+	_ground(T, sg, "L27")
 	sg.free()
 
 ## In 3D the stage lets the mouse through to the world and only the panel and the houses keep it; a click on a house sends the 2D tap's action; with no 3D place the whole stage keeps it.

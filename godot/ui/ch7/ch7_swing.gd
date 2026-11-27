@@ -43,8 +43,10 @@ func _draw_panel_body() -> void:
 		_text(_mono(), 12, inner.position + Vector2(300, 152), (T("C7_TCR") % int(q.tCrMs)) + "   " + (T("C7_MARGIN_MS") % int(q.marginMs)), _good(ok))
 
 func _draw_stage() -> void:
-	var w := size.x; var top := _stage_top(); var bh := _stage_h(220.0)
-	var pw := minf(w * 0.55, 640.0); var r := Rect2(Vector2(30.0, top), Vector2(pw, bh))
+	var l3 := _look3()
+	var w := _right() if l3 else size.x; var top := _stage_top(); var bh := _stage_h(220.0)
+	if l3: bh = clampf(_stage_bottom() - top - 12.0, 220.0, 330.0)
+	var pw := minf(w * 0.55, 640.0) if not l3 else minf(w * 0.4, 520.0); var r := Rect2(Vector2(30.0, top), Vector2(pw, bh))
 	_frame(r, 0.0, 180.0, 0.0, 2.0, false, false, "delta, deg", T("C7_PDELTA"))
 	var c: Dictionary = q.curves
 	var pre := []; var dur := []; var post := []
@@ -71,8 +73,8 @@ func _draw_stage() -> void:
 		_text(_mono(), 10, _pt(112.0, 0.35), T("C7_A1"), Color(GridTheme.BAD, 0.9)); _text(_mono(), 10, _pt(112.0, 0.22), T("C7_A2"), Color(GridTheme.GOOD, 0.9))
 		var dp := _pt(float(q.clearAtDeg), float(c.pm)); draw_circle(dp, 5.0, GridTheme.TEXT)
 	# the swing in time
-	var sr := Rect2(Vector2(r.end.x + 16.0, top), Vector2(maxf(w - r.end.x - 46.0, 280.0), bh))
-	if _revealed():
+	var sr := Rect2(Vector2(r.end.x + 16.0, top if not l3 else 156.0), Vector2(maxf(w - r.end.x - 46.0, 280.0) if not l3 else minf(w - r.end.x - 46.0, 440.0), bh))
+	if _revealed() and not (q.trace.t as Array).is_empty():   # the query's trace can be empty: then only the verdict shows
 		var tr: Dictionary = q.trace; var tmax := float(tr.t[tr.t.size() - 1]); tmax = maxf(tmax, 1.0)
 		_frame(sr, 0.0, tmax, 0.0, 200.0, false, false, "t, s", T("C7_SWING"))
 		var pts := []
@@ -80,11 +82,21 @@ func _draw_stage() -> void:
 		_poly(pts, GridTheme.LIVE if bool(q.stable) else GridTheme.BAD, 2.5)
 		_poly([[0.0, q.deltaUDeg], [tmax, q.deltaUDeg]], Color(GridTheme.BAD, 0.6), 1.0)
 		_text(_semi(), 20, Vector2(sr.position.x, sr.end.y - 40.0), T("C7_STABLE") if bool(q.stable) else T("C7_SLIPS"), _good(bool(q.stable)), sr.size.x, 1)
+	elif _revealed():
+		draw_style_box(_box_sb(0.82), sr); _text(_semi(), 20, Vector2(sr.position.x, sr.position.y + 60.0), T("C7_STABLE") if bool(q.stable) else T("C7_SLIPS"), _good(bool(q.stable)), sr.size.x, 1)
 	else:
-		draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), sr); _text(_mono(), 12, sr.position + Vector2(14, 28), T("C7_HIDDEN"), GridTheme.DIM)
+		draw_style_box(_box_sb(0.82), sr); _text(_mono(), 12, sr.position + Vector2(14, 28), T("C7_HIDDEN"), GridTheme.DIM)
 		var cl := [[T("C7_G25_TARGET") % int(q.tCrMs), GridTheme.SODIUM]]
 		for g in ["C7_G25_Z1", "C7_G25_Z2", "C7_G25_IDMT", "C7_GLOSS_PM"]: cl.append([T(g), Color(GridTheme.TEXT, 0.75)])
 		_card_text(sr, cl, 11, 8.0, 40.0)
+	if l3: _top_y = top + bh + 8.0; _pins3()
+
+## The 3D unit: a chip on the generator, the breaker bay (with the clearing time) and the fault on the line.
+func _pins3() -> void:
+	var sg := GridTheme.G_TEXT
+	_pin("gen", [T("C4_GEN_PIN")], [sg], 20.0)
+	_pin("breaker", [T("C7_CLEAR") % int(q.clearMs), T("C7_CLEAR_SUM") % [int(q.relayMs), int(q.breakerMs), int(q.design.cycles)]], [_good(int(q.clearMs) <= int(q.tCrMs)), GridTheme.G_DIM], 22.0)
+	_pin("fault", [T("C7_FAULT")], [GridTheme.WARN], 16.0)
 
 func _interp(pts: Array, d: float) -> float:
 	for i in range(1, pts.size()):

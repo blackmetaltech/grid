@@ -48,7 +48,7 @@ func _revealed() -> bool: return bool(q.get("revealed", false))
 # ---- plots ----------------------------------------------------------------------------------------------------------------------
 func _frame(r: Rect2, xlo: float, xhi: float, ylo: float, yhi: float, logx: bool, logy: bool, xcap := "", ycap := "") -> void:
 	plot = {"r": r, "xlo": xlo, "xhi": xhi, "ylo": ylo, "yhi": yhi, "lx": logx, "ly": logy}
-	draw_style_box(GridTheme.ink_sb(0.82, 10, 0.0), r)
+	draw_style_box(_box_sb(0.82), r)
 	var inner := r.grow(-10.0); plot["r"] = Rect2(inner.position + Vector2(34, 22), inner.size - Vector2(42, 44)); var pr: Rect2 = plot.r
 	draw_rect(pr, Color(GridTheme.NIGHT, 0.6)); draw_rect(pr, Color(GridTheme.SODIUM_DIM, 0.35), false, 1.0)
 	var xs: Array = _ticks(xlo, xhi, logx); var ys: Array = _ticks(ylo, yhi, logy)
@@ -112,7 +112,7 @@ var scroll := 0.0      ## phone: vertical drag-scroll offset of the stage's text
 var scroll_max := 0.0
 
 func _phone() -> bool: return CbLayout.kind == "phone"
-func _stage_top() -> float: return 128.0 if _phone() else 150.0
+func _stage_top() -> float: return 128.0 if _phone() else (TOP if _look3() else 150.0)
 func _stage_h(minh: float) -> float: return maxf(panel.position.y - _stage_top() - 10.0, 150.0 if _phone() else minh)
 
 ## Draw `lines` ([text, color] pairs) wrapped in `r`, shifted by the scroll offset on a phone; lines that would cross the card edge are left out (a drag scrolls them in).
@@ -184,12 +184,14 @@ func _draw_price_tag(pn: Rect2) -> void:
 	var fz16 := GridText.floor_size(self, 13)   # 1.9: the tag grows to its words at the 16 px floor (it clipped "build incl. starting kit")
 	w = maxf(w, maxf(semi.get_string_size(T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 34.0, mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fz16).x + 20.0)); h = maxf(h, fz16 * 2.0 + 16.0)
 	var org := Vector2(pn.end.x - 12.0 - w, pn.end.y - 12.0 - h) if not _narrow() else Vector2(pn.end.x - 12.0 - w, pn.position.y - h - 6.0)
-	draw_set_transform(_scr(org + Vector2(w, h) * 0.5), deg_to_rad(-1.4), Vector2(_sc, _sc))   # phone: the panel is drawn scaled into the tray slot, so is its tag
+	var g3 := _look3()
+	draw_set_transform(_scr(org + Vector2(w, h) * 0.5), 0.0 if g3 else deg_to_rad(-1.4), Vector2(_sc, _sc))   # phone: the panel is drawn scaled into the tray slot, so is its tag
 	var rect := Rect2(Vector2(-w * 0.5, -h * 0.5), Vector2(w, h))
-	draw_style_box(GridTheme.paper_sb(3, 0.0), rect)
-	draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
+	draw_style_box(GridTheme.glass_sb(0.8, 4, 0.0) if g3 else GridTheme.paper_sb(3, 0.0), rect)
+	if not g3: draw_circle(Vector2(-w * 0.5 + 11.0, -h * 0.5 + 11.0), 3.5, GridTheme.INK)
 	var fsz := GridTheme.fs(13); var tw2 := mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
 	while tw2 > w - 16.0 and fsz > 9: fsz -= 1; tw2 = mono.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz).x
-	GridText.ds(self, semi, Vector2(-w * 0.5 + 22.0, -h * 0.5 + 15.0), T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.PAPER_INK, 0.7))
-	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, GridTheme.BAD.darkened(0.15) if over else GridTheme.PAPER_INK)
+	var ink := GridTheme.G_TEXT if g3 else GridTheme.PAPER_INK
+	GridText.ds(self, semi, Vector2(-w * 0.5 + (12.0 if g3 else 22.0), -h * 0.5 + 15.0), T("C7_KIT_CAP"), HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(10), Color(GridTheme.G_DIM if g3 else ink, 1.0 if g3 else 0.7))
+	GridText.ds(self, mono, Vector2(-tw2 * 0.5, h * 0.5 - 8.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fsz, (GridTheme.BAD if g3 else GridTheme.BAD.darkened(0.15)) if over else ink)
 	draw_set_transform(_p0 - panel.position * _sc, 0.0, Vector2(_sc, _sc))   # back to the panel's transform (identity on desktop): the chip rows drawn after the tag were left unscaled and ran past the slot on the phone
