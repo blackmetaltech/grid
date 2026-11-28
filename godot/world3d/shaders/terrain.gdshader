@@ -82,7 +82,7 @@ void fragment() {
 	// 11-28b (audit: the Voronoi plots read as the old low-poly map): farmland as rectangular strip fields, the way a field system looks
 	// from the air. Each ~0.7 km block (warped edges) has one heading; inside it, staggered rectangles 75-150 m wide and 260-420 m long,
 	// tramlines every 24 m and crop rows along the long side, grass headlands and broken hedges at every edge.
-	vec2 bq = wpos.xz / 720.0 + 0.22 * vec2(sin(wpos.z / 330.0), cos(wpos.x / 390.0));
+	vec2 bq = wpos.xz / 720.0 + 0.05 * vec2(sin(wpos.z / 900.0), cos(wpos.x / 1100.0));   // a slight wobble: curved block edges read as ring roads
 	vec2 bc = floor(bq);
 	float bang = (h21(bc * 1.7 + 4.0) - 0.5) * 1.6 + step(0.5, h21(bc)) * 1.5708;
 	mat2 R = mat2(vec2(cos(bang), -sin(bang)), vec2(sin(bang), cos(bang)));

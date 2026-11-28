@@ -1448,13 +1448,13 @@ func _process(dt: float) -> void:
 func reset_camera() -> void:
 	_g_target = Vector3(map_size.x * 0.72, 0.0, map_size.y * 0.66)
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-	_g_yaw = deg_to_rad(32.0); _g_pitch = deg_to_rad(29.0); _g_dist = maxf(map_size.x, map_size.y) * 0.62
+	_g_yaw = deg_to_rad(32.0); _g_pitch = deg_to_rad(23.0); _g_dist = maxf(map_size.x, map_size.y) * 0.45   # 11-28b audit: lower and closer (opened as a map from a plane)
 	if field is GenField:   # the generated province opens on its capital at play zoom: whole streets readable, the next towns on the horizon
 		_g_target = Vector3(map_size.x * 0.5, 0.0, map_size.y * 0.56); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-		_g_yaw = deg_to_rad(205.0); _g_pitch = deg_to_rad(22.0); _g_dist = 3600.0   # 1.16: closer, so the spire and chimney read (Sigrid)
+		_g_yaw = deg_to_rad(205.0); _g_pitch = deg_to_rad(19.0); _g_dist = 2800.0   # 1.16: closer, so the spire and chimney read (Sigrid)
 		if _big_centre.x < INF and Vector2(_g_target.x, _g_target.z).distance_to(_big_centre) > maxf(map_size.x, map_size.y) * 0.2:   # 1.16: L07 and L09 opened on empty hills
 			_g_target = Vector3(_big_centre.x, 0.0, _big_centre.y); _g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
-			_g_dist = 2400.0; _g_pitch = deg_to_rad(26.0)
+			_g_dist = 1900.0; _g_pitch = deg_to_rad(21.0)
 		if true:   # 1.18 (Dagny): the finale opens on Eastgate, the harbour and Saltmarsh Island, where the first sag and the storm come
 			var pts: Array = []; var island := false
 			for t in model.get("towns", []):
@@ -1467,7 +1467,7 @@ func reset_camera() -> void:
 				c /= float(pts.size())
 				var spread := 0.0
 				for q in pts: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
-				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 2.4, 2400.0, 9000.0); _g_pitch = deg_to_rad(30.0)
+				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 1.8, 2000.0, 7000.0); _g_pitch = deg_to_rad(22.0)
 	var subj := _job_subject_pts()   # 11-28 (Sigrid): a grid job of chapters 5 and 6 opens on what its brief is about, at about 40 % of the old distance
 	if not subj.is_empty():
 		var c := Vector3.ZERO

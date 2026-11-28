@@ -196,7 +196,7 @@ static func _build_board(s: Stage3D) -> void:
 	# the 33 kV board: two sections of switchgear panels
 	for i in 2:
 		var bx := -30.0 if i == 0 else 30.0
-		s._box(s._root, Vector3(bx, 2.6, 0.0), Vector3(42.0, 5.2, 8.0), steel, "Section" + ("A" if i == 0 else "B"))
+		s._box(s._root, Vector3(bx, 2.6, 0.0), Vector3(42.0, 5.2, 8.0), s._clad_mat(Color(0.56, 0.58, 0.58), 0.5, 3.0), "Section" + ("A" if i == 0 else "B"))   # 11-28b: cladding, not a mirror-steel box
 		for k in 14: s._box(s._root, Vector3(bx - 19.5 + 3.0 * k, 2.4, 4.05), Vector3(2.4, 3.6, 0.1), dark, "Panel")
 		s._box(s._root, Vector3(bx, 5.4, 0.0), Vector3(40.0, 0.3, 7.0), s._mat(Color(0.4, 0.42, 0.45), 0.6, 0.3), "Roof")
 	d["coupler"] = Node3D.new(); (d.coupler as Node3D).name = "Coupler"; s._root.add_child(d.coupler); (d.coupler as Node3D).position = Vector3(0.0, 0.0, 0.0)
@@ -403,7 +403,7 @@ static func _build_l26(s: Stage3D) -> void:
 		var sd: Array = spec[id]; var p: Vector3 = sd[0]
 		var n := Node3D.new(); n.name = "Plant_" + id; n.position = Vector3(p.x, s.ground(p.x, p.z), p.z); s._root.add_child(n)
 		var w := 16.0 if id != "ocgt" else 9.0; var dd := 12.0; var h := 14.0 if id.begins_with("coal") else 9.0
-		s._box(n, Vector3(0, h * 0.5, 0), Vector3(w, h, dd), s._mat(Color(0.62, 0.62, 0.6), 0.7), "Hall")
+		s._box(n, Vector3(0, h * 0.5, 0), Vector3(w, h, dd), s._clad_mat(Color(0.58, 0.60, 0.60), 0.9, 7.5), "Hall")
 		var wm := s._emit_mat(Color(1.0, 0.85, 0.55), 0.0); wm.cull_mode = BaseMaterial3D.CULL_DISABLED
 		for k in 4: s._box(n, Vector3(-w * 0.35 + w * 0.23 * float(k), h * 0.6, dd * 0.5 + 0.05), Vector3(2.0, 2.4, 0.1), wm, "Window")
 		var puffs: Array = []
@@ -420,7 +420,7 @@ static func _build_l26(s: Stage3D) -> void:
 	# hydro on its shelf: a reservoir, a penstock and a powerhouse at the foot
 	s._water(13.2, Rect2(74.0, -118.0, 52.0, 52.0), Vector2(0, 0))
 	var hn := Node3D.new(); hn.name = "Plant_hydro"; hn.position = Vector3(100.0, s.ground(100.0, -58.0), -58.0); s._root.add_child(hn)
-	s._box(hn, Vector3(0, 2.5, 0), Vector3(14.0, 5.0, 9.0), s._mat(Color(0.62, 0.6, 0.55), 0.7), "Powerhouse")
+	s._box(hn, Vector3(0, 2.5, 0), Vector3(14.0, 5.0, 9.0), s._clad_mat(Color(0.62, 0.58, 0.52), 0.7, 4.0), "Powerhouse")
 	var hwm := s._emit_mat(Color(1.0, 0.85, 0.55), 0.0); hwm.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for k in 3: s._box(hn, Vector3(-4.0 + 4.0 * float(k), 3.0, 4.55), Vector3(1.8, 1.6, 0.1), hwm, "Window")
 	var pen := s._emit_mat(Color(0.4, 0.7, 1.0), 0.0); pen.albedo_color = Color(0.3, 0.33, 0.35)

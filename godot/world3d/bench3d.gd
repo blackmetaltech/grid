@@ -370,6 +370,13 @@ func _water(y: float, rect: Rect2, flow: Vector2) -> void:
 func _mat(c: Color, rough := 0.85, metal := 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new(); m.albedo_color = c; m.roughness = rough; m.metallic = metal; return m
 
+## 11-28b: ribbed, seamed, streaked cladding (world-space, any box): sheds, switchrooms and halls (flat metal boxes mirrored the night sky).
+func _clad_mat(base: Color, rib := 0.6, panel := 3.0, metal := 0.15, roof := Color(0.30, 0.31, 0.32)) -> ShaderMaterial:
+	var m := ShaderMaterial.new(); m.shader = load("res://world3d/shaders/clad.gdshader")
+	m.set_shader_parameter("base", base); m.set_shader_parameter("roof_col", roof); m.set_shader_parameter("rib_m", rib)
+	m.set_shader_parameter("panel_m", panel); m.set_shader_parameter("metal", metal); m.set_shader_parameter("grime", _tex("rock_rough"))
+	return m
+
 func _vc_mat(rough := 0.85) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; m.roughness = rough; m.cull_mode = BaseMaterial3D.CULL_DISABLED; return m
 
