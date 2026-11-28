@@ -135,6 +135,7 @@ describe('L22 Exam Bridge against the oracle', () => {
   it('the lesson and the try hint', () => {
     const e = run(play('L22', droops(4, 3.6))); expect(info(e).lesson).toMatch(/= 1\.200 Hz\/s.*G1 took 60\.0 % of the step/);
     const f = run(play('L22', [])); expect(info(f).tryHint).toMatch(/= 4 x 300 x 3 \/ \(500 x 2\) = 3\.60 %/);
+    expect(JSON.stringify((f.state as any).result ?? f.state)).not.toMatch(/"(lo|hi)":\d+\.\d{3,}/);   // 11-28b playtest: the band printed as 57.99999999999999
   });
 });
 
