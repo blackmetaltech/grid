@@ -27,7 +27,7 @@ route_world_truth 93
 salt_flow 35
 stage3d_truth 762
 tag_truth 1462
-text_flow 6720
+text_flow 6922
 ticker_flow 10
 town_lights_truth 341
 tray_flow 94

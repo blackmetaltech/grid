@@ -319,21 +319,25 @@ func layout() -> void:
 	if app == null or instruments == null: return
 	var w := app.vw(); var h := app.vs_h(); var kind := CbLayout.kind
 	instruments.layout()
-	if ch4 != null: ch4.layout()
-	if ch7 != null: ch7.layout()
-	if ch8 != null: ch8.layout()
-	if ch2 != null: ch2.layout()
-	if tray != null: tray.layout(); rtray.layout(); gtray.layout()
 	if app.cur == app.home and app.drawer_tab != null: app.drawer_tab.visible = false
 	var left: float = M + (app.world_tools_w() if CbLayout.touch and app.has_method("world_tools_w") else 0.0)
 	var nl := 1 if kind == "phone" else 4; var nw := clampf(w * (0.30 if kind == "desktop" else 0.34), 300.0, 560.0)
+	var wide_stage := kind != "phone" and ((ch4 != null and ch4.visible) or (ch7 != null and ch7.visible) or (ch8 != null and ch8.visible))
 	var cap := h * 0.30
+	if wide_stage and w < 1700.0:   # 11-28b (B25, B26): at 1280 wide the stage's tray ran under the speed keys; the radio gives it room (narrower, shorter)
+		nw = clampf(w * 0.30 - (1700.0 - w) * 0.35, 240.0, nw); nl = 2; cap = h * 0.24
 	if nl != radio.visible_lines or nw != radio.width or cap != radio.max_h: radio.visible_lines = nl; radio.width = nw; radio.max_h = cap; radio._rebuild()
 	radio.position = Vector2(left, _radio_y())
 	var bs := 0.80 if kind == "phone" else (1.0 if kind == "desktop" else 0.92)
 	breaker.scale = Vector2(bs, bs); breaker.size = breaker.custom_minimum_size
 	var bw := breaker.size.x * bs; var bh := breaker.size.y * bs
 	breaker.position = Vector2(w - M - bw, h - M - bh)
+	# the stages and trays lay out against the radio and the breaker just placed (they used last frame's sizes)
+	if ch4 != null: ch4.layout()
+	if ch7 != null: ch7.layout()
+	if ch8 != null: ch8.layout()
+	if ch2 != null: ch2.layout()
+	if tray != null: tray.layout(); rtray.layout(); gtray.layout()
 	var tap := maxf(CbLayout.tap(), 36.0)
 	menu_btn.custom_minimum_size = Vector2(tap, tap); menu_btn.size = Vector2(tap, tap); menu_btn.position = Vector2(w - M - tap, M)
 	# phone: a dark disc behind the ☰ so it reads as a button over a stage's text card, not a glyph inside it (tester, ch8)

@@ -139,6 +139,21 @@ static func stage3d_view(app: CbApp, id: String, at: String) -> void:
 	checks += 1
 	if not (wv.look3d == wv.stage3d and wv.stage3d.visible): fails += 1; print("TEXT FAIL %s: the 3D place is not showing for the audit" % id)
 	await audit(app, "%s 3D place%s" % [id, at])
+	var chr = app.get("chrome")
+	if chr != null and chr.breaker != null:   # 11-28b (B25, B26): every control of the stage's tray stays left of the lever and the speed keys
+		var sts: Array = []
+		for host in [chr.ch4, chr.ch7, chr.ch8]:
+			if host != null and host.visible and "stages" in host: for k in host.stages: sts.append(host.stages[k])
+		for st in sts:
+			if st == null or not (st as CanvasItem).is_visible_in_tree() or not ("hits" in st): continue
+			var bx: float = (chr.breaker as Control).position.x
+			var worst := 0.0
+			for hh in st.hits:
+				if hh.get("screen", false) or hh.get("stage", false) or not (hh.rect is Rect2): continue
+				var r: Rect2 = hh.rect
+				if r.position.y > (chr.breaker as Control).position.y - 4.0: worst = maxf(worst, r.end.x - bx)
+			checks += 1
+			if worst > 0.0: fails += 1; print("TEXT FAIL %s%s: a tray control runs %.0f px under the speed keys" % [id, at, worst])
 	if made:
 		var sg2 = wv.stage3d; wv.stage3d = null; wv.look3d = wv.get("prov3d")
 		(sg2 as Node).queue_free()
