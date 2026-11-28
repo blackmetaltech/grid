@@ -192,6 +192,7 @@ static func run(app: CbApp) -> void:
 		ck.call(_node(sc5.drawer, "Story_inesPromise") == null and _node(sc5.drawer, "Promise") != null, "career flow: answering it takes the letter away and pins the promise")
 		CareerScreen.guide_all = false
 		sc5.queue_free(); await _frames(app, 2)
+	await _district_pass(app, ck)
 	Career.forget(); Career.path = path0
 	app.b.act("careerQuit", [])
 	print("CAREER-FLOW OK" if CbSmoke.fails == fails0 else "CAREER-FLOW FAILED %d" % (CbSmoke.fails - fails0))
@@ -234,3 +235,47 @@ static func _phone_fit(app: CbApp, ck: Callable, sc0: CareerScreen) -> void:
 		await _frames(app, 2)
 	OS.set_environment("CB_INSET", env0); CbLayout.forced = forced0
 	win.size = size0; win.size_changed.emit(); await _frames(app, 4)
+
+## The 3D district under the screen (the desktop look): the world layer and the title sheet are put away and the district shown while the screen is open; a tap on the map picks a section,
+## a drag over it moves the camera and picks nothing; the colour chips reach the district; leaving gives everything back.
+static func _district_pass(app: CbApp, ck: Callable) -> void:
+	var wv = app.get("grid_world")
+	var dn := District3D.new(); dn.name = "District3D"; dn.visible = false; app.add_child(dn); app.set("district3d", dn)
+	var title := Control.new(); title.name = "fake_title"; title.set_meta("cb_modal", true); app.root.add_child(title)
+	var look0 := GridTheme.look2; GridTheme.look2 = true
+	var win := app.get_window(); var size0 := win.size; var forced0 := CbLayout.forced   # the smoke window is phone-sized: the district is the desktop look
+	CbLayout.forced = "desktop"; win.size = Vector2i(1920, 1080); win.size_changed.emit(); await _frames(app, 4)
+	var wv_vis: bool = wv.visible
+	var sc := Career.start(app, 7, "standard"); await _frames(app, 5)
+	if sc == null: ck.call(false, "district pass: the career starts"); return
+	ck.call(sc.district == dn and dn.visible and not wv.visible and bool(wv.career3d) and not title.visible and sc.map._d3_mode(), "career flow 3D: the district is shown and the world layer and the title are put away")
+	ck.call(sc._bg.color.a == 0.0, "career flow 3D: the screen's own ground is clear")
+	var tg := sc.map.point_of({"type": "section", "id": "F2.2"})
+	var press := InputEventMouseButton.new(); press.button_index = MOUSE_BUTTON_LEFT; press.pressed = true; press.position = tg
+	sc.map._gui_input(press)
+	var rel := InputEventMouseButton.new(); rel.button_index = MOUSE_BUTTON_LEFT; rel.pressed = false; rel.position = tg
+	sc.map._gui_input(rel); await _frames(app, 2)
+	ck.call(str(sc.sel.get("id", "")) == "F2.2", "career flow 3D: a tap on a section's place on the map picks it (%s)" % str(sc.sel))
+	var g0: Vector3 = dn._g_target; var y0: float = dn._g_yaw
+	var pick_before := sc.sel.duplicate()
+	var p2 := sc.map.point_of({"type": "section", "id": "F5.3"})
+	press.position = p2; press.pressed = true; sc.map._gui_input(press)
+	var mv := InputEventMouseMotion.new(); mv.position = p2 + Vector2(60, 0); mv.relative = Vector2(60, 0); mv.button_mask = MOUSE_BUTTON_MASK_LEFT; sc.map._gui_input(mv)
+	rel.position = p2 + Vector2(60, 0); sc.map._gui_input(rel); await _frames(app, 2)
+	ck.call(str(sc.sel.get("id", "")) == str(pick_before.get("id", "")) and not dn._g_target.is_equal_approx(g0), "career flow 3D: a drag over the district moves the camera and picks nothing")
+	var d0: float = dn._g_dist
+	var wh := InputEventMouseButton.new(); wh.button_index = MOUSE_BUTTON_WHEEL_UP; wh.pressed = true; wh.position = Vector2(400, 300); sc.map._gui_input(wh)
+	ck.call(dn._g_dist < d0, "career flow 3D: the wheel zooms the district in")
+	var oy := dn._g_yaw
+	var mo := InputEventMouseMotion.new(); mo.position = Vector2(300, 300); mo.relative = Vector2(40, 0); mo.button_mask = MOUSE_BUTTON_MASK_RIGHT; sc.map._gui_input(mo)
+	ck.call(not is_equal_approx(dn._g_yaw, oy), "career flow 3D: a right-button drag turns it")
+	sc.pad_walk(1); await _frames(app, 2)
+	ck.call(str(sc.sel.get("type", "")) != "" and sc.map._d3_mode(), "career flow 3D: LB / RB still walk the pickables")
+	var hb := _node(sc, "Colour_health") as Button
+	if hb != null: hb.pressed.emit()
+	await _frames(app, 2)
+	ck.call(dn.mode == "health", "career flow 3D: the colour chips reach the district")
+	sc.close(); await _frames(app, 3)
+	ck.call(not dn.visible and wv.visible == wv_vis and not bool(wv.career3d) and title.visible, "career flow 3D: leaving gives the world layer and the title back")
+	GridTheme.look2 = look0; CbLayout.forced = forced0; win.size = size0; win.size_changed.emit(); app.set("district3d", null); dn.queue_free(); title.queue_free()
+	await _frames(app, 2)
