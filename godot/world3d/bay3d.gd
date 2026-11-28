@@ -914,10 +914,14 @@ func reset_camera() -> void:
 		# routes and hut sites run away behind them; the box of everything the player places or lights stays in view
 		var hm: Vector2 = ((model.towns[0].pos as Vector2) + Vector2(0.5, 0.5)) * tm
 		var c := play.get_center()
-		var tg := hm.lerp(c, 0.62)
+		var two: bool = (model.towns as Array).size() > 1   # 11-28b (B17): with two hamlets, frame the whole play box; hamlet 2 sat cut at the left edge
+		var tc := Vector2.ZERO
+		for tw in model.towns: tc += ((tw.pos as Vector2) + Vector2(0.5, 0.5)) * tm
+		tc /= float(maxi(1, (model.towns as Array).size()))
+		var tg := tc.lerp(c, 0.35) if two else hm.lerp(c, 0.62)
 		var away := (c - hm); var yaw0 := atan2(-away.x, -away.y) if away.length() > tm else deg_to_rad(30.0)   # the camera stands behind the hamlet, looking over it to the work
 		_g_yaw = yaw0 - deg_to_rad(52.0); _g_pitch = deg_to_rad(29.0)
-		_dist_default = clampf(maxf(play.size.x, play.size.y) * 0.62 + 60.0 * _bs(), 120.0, mm.x * 0.8)
+		_dist_default = clampf(maxf(play.size.x, play.size.y) * (0.75 if two else 0.62) + 60.0 * _bs(), 120.0, mm.x * 0.8)
 		_g_dist = _dist_default; _g_target = Vector3(tg.x, 0.0, tg.y)
 	if title:   # from the east along the island: the hamlet in the foreground, the lighthouse at the far end, the last of the sun behind it; the menu sits over the quiet left
 		var hamlet := Vector2(mm.x * 0.8, mm.y * 0.3)

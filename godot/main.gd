@@ -198,8 +198,8 @@ func _report_soon() -> void:
 	b.add_theme_font_override("font", GridTheme.font("semi")); b.add_theme_font_size_override("font_size", GridTheme.fs(20))
 	for st in ["normal", "hover", "pressed", "focus"]: b.add_theme_stylebox_override(st, GridTheme.glass_sb(0.82, 6, 16.0))
 	b.add_theme_color_override("font_color", GridTheme.G_TEXT); b.add_theme_color_override("font_focus_color", GridTheme.G_TEXT); b.add_theme_color_override("font_hover_color", GridTheme.SODIUM)
-	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM); b.grow_horizontal = Control.GROW_DIRECTION_BOTH; b.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	b.offset_bottom = -170.0
+	b.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP); b.grow_horizontal = Control.GROW_DIRECTION_BOTH; b.grow_vertical = Control.GROW_DIRECTION_END
+	b.offset_top = 132.0   # 11-28b (B14): under the clock; at the bottom it sat on the taller trays' headers
 	var bar := ColorRect.new(); bar.color = GridTheme.SODIUM; bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bar.anchor_left = 0.0; bar.anchor_right = 0.0; bar.anchor_top = 1.0; bar.anchor_bottom = 1.0; bar.offset_top = -4.0; bar.offset_bottom = -1.0
 	b.add_child(bar)

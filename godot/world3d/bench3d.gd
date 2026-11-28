@@ -147,7 +147,7 @@ func _update_sky(mn: float) -> void:
 	if sun.visible and sun.is_inside_tree(): sun.look_at_from_position(Vector3.ZERO, -to_sun, Vector3.UP if absf(to_sun.y) < 0.99 else Vector3.FORWARD)
 	var lowk := clampf(elev / deg_to_rad(12.0), 0.0, 1.0)
 	sun.light_color = Color(1.0, 0.66, 0.40).lerp(Color(1.0, 0.95, 0.88), lowk)
-	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.0, lowk)
+	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 1.45, lowk)   # 11-28b audit: 2.0 bleached the noon ground (WO-35) to beige
 	var mdir := Vector3(-0.72, 0.42, 0.55).normalized()   # 11-28b: from the side and lower, with shadows: shapes get a lit face and a dark one (from behind the camera, night read as flat blue)
 	if moon.is_inside_tree(): moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
 	moon.light_energy = 1.0 * smoothstep(0.35, 0.85, n); moon.light_color = Color(0.80, 0.84, 0.96)
