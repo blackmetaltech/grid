@@ -86,7 +86,7 @@ func _answers(rr: Rect2, y0: float) -> void:
 		_text(_mono(), 12, Vector2(rr.position.x + 14.0, y + 16.0), (T("C8_YOURS") % (WorkOrder.num(float(mine)) + " " + T("C8_U_" + id))) if mine != null else T("C8_NO_GUESS"), Color(GridTheme.TEXT, 0.7))
 		if _revealed() and qq.get("actual") != null:
 			var ok := bool(qq.get("within5", false)); var err = qq.get("errPct")
-			_text(_mono(), 13, Vector2(rr.position.x + 14.0, y + 16.0), (T("C8_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗") + ((("  " + T("C8_OFF_BY") % WorkOrder.num(float(err)))) if err != null else ""), _good(ok), rr.size.x - 28.0, 2)
+			_text(_mono(), 13, Vector2(rr.position.x + 14.0, y + 33.0), (T("C8_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗") + ((("  " + T("C8_OFF_BY") % WorkOrder.num(float(err)))) if err != null else ""), _good(ok), rr.size.x - 28.0, 2)
 		y += 18.0
 	var made := 0
 	for qq in q.questions: if qq.get("predicted") != null: made += 1

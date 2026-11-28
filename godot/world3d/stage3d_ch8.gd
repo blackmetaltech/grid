@@ -134,11 +134,10 @@ static func tree_ok(s: Stage3D, x: float, z: float) -> float:
 
 static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist m]
 	match scn:
-		"l32": return [Vector3(30.0, 0.0, 40.0), -45.0, 17.0, 320.0]
-		"l33": return [Vector3(15.0, 0.0, 40.0), -45.0, 17.0, 300.0]
+		"l32": return [Vector3(10.0, 0.0, 40.0), -38.0, 18.0, 365.0]
+		"l33": return [Vector3(-5.0, 0.0, 40.0), -38.0, 18.0, 350.0]
 		"l34": return [Vector3(-4.0, 0.0, 2.0), -30.0, 14.0, 105.0]
-		"l36": return [Vector3(15.0, 0.0, 10.0), -45.0, 16.0, 260.0]
-	return [Vector3(15.0, 0.0, 10.0), -45.0, 16.0, 285.0]
+	return [Vector3(-20.0, 0.0, 10.0), -38.0, 17.0, 345.0]
 
 # --------------------------------------------------------------------------------------------------------------------
 # Kit: poles, conductors, villages, a farm, the substation, devices
