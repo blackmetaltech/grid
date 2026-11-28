@@ -69,4 +69,13 @@
 | J | Depth, realism of choice | L04's copper trade-off is real (Dagny). L06's cheapest pass is obvious. |
 | K | Fun, long-term play | Tension 4 to 4.5 on the benches: nothing happens during the run (1.20). |
 
+## Addendum, 2026-11-28: the interactive pass (owner plays before any release)
+Every remaining classic job and the Career went into the 3D look on look6. No release, no version change.
+- Chapter 4: Stage3D (street, works yard, hydro valley, generator hall). Chapter 5 and 6: the province with glass cards. Chapter 7: Stage7 (substation, valley feeder with relays, generating unit and breaker bay, dispatch room and plants, exam substation). Chapter 8: one countryside feeder. Career: District3D with the map drawn over it.
+- Tests: vitest 1621/1621; all 33 Godot flows pass (stage3d_truth 762, career3d_truth 993, text_flow 5721, smoke with CAREER-FLOW). Flow minimums only went up.
+- Low tier (iGPU, 1920x1080): L10 8.6 ms GPU, L16 11.1, L19 10.1, L26 9.2, L31 9.9, Career 11.0; all 60 fps.
+- **Sigrid, 6/10 overall:** ch4 7, ch5 4.5, ch6 5, ch7 6, ch8 6.5, Career 6 (was 5), low tier 6 (was 5.5). Her top three are being fixed (province framing and ground; charts off the subject; text overflow).
+- **Cut from this pass (written down):** the incident report as an opaque slab with labels ghosting through it, and failure shown in the world (her fix 4); night materials (powder-blue buildings, plastic towers; her fix 5); the L32 tile grid and KPI block as a dashboard; the Career's top strip and drawer; phone layouts for the 3D stages (phone keeps the classic stage); the L25 swing trace (engine does not record it: `studyL25` record=false; engine untouched this pass).
+- Found in passing: streets were lit from below (normal pointed down) and read as black ribbons: fixed. A 1.19 test had a type error (tsc red): fixed with a cast, asserts unchanged.
+
 Ingrid Solheim, Game Lead, GRID
