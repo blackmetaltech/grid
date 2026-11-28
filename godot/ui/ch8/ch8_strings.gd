@@ -11,10 +11,10 @@ const S := {
 	"C8_SCALE": "%s km of feeder, drawn compressed", "C8_SUB_PIN": "Substation, 11 kV", "C8_REG_PIN": "Regulator, holds %s pu", "C8_REG_STEPS": "%d steps at peak",
 	"C8_PIN_YR": "%s min a year", "C8_BLAME_PIN": "Most to blame: %s", "C8_SW_PIN": "%s switch", "C8_FUSE_PIN": "fuse on", "C8_HOMES_PIN": "%d homes",
 	"C8_SHOTS_PIN": "%d fast shots", "C8_LINK_PIN": "%s  fuse %d A", "C8_FUSE_SAVED": "saved", "C8_FUSE_BLOWN": "blown", "C8_FUSE_IDLE": "not tried",
-	"C8_TX_TRIP": "trips at %s:00", "C8_HOT_PIN": "hot spot %s C, limit %d C", "C8_BUS_PIN": "bus section, %s", "C8_DR_PIN": "demand response: %d homes dimmed", "C8_TIE_PIN": "tie: %s",
+	"C8_TX_TRIP": "trips at %s:00", "C8_HOT_PIN": "hot spot %s °C, limit %d °C", "C8_BUS_PIN": "bus section, %s", "C8_DR_PIN": "demand response: %d homes dimmed", "C8_TIE_PIN": "tie: %s",
 	"C8_OLTC_PIN": "tap changer, step %d at noon", "C8_PANELS": "%d panels", "C8_NOON_PIN": "noon %s", "C8_FAULTS_YR3": "%s/yr",
 	# L31
-	"C8_SECTION_CAP": "SECTION (N1 at the substation, N5 the far end)", "C8_WIRE_CAP": "WIRE of that section (price per km)", "C8_TAP_CAP": "TRANSFORMER TAP, % (off-load)", "C8_REG_CAP": "REGULATOR in the line to N2 / N3 (%s), set point pu",
+	"C8_SECTION_CAP": "SECTION (N5 is the far end)", "C8_WIRE_CAP": "WIRE of that section (price per km)", "C8_TAP_CAP": "TRANSFORMER TAP, % (off-load)", "C8_REG_CAP": "REGULATOR in the line to N2 / N3 (%s), set point pu",
 	"C8_PEAK": "peak", "C8_LIGHT": "light", "C8_PEAK_NAME": "evening peak", "C8_LIGHT_NAME": "light load (%d %%)", "C8_L31_TITLE": "READING THE FEEDER",
 	"C8_L31_OK": "every customer is inside the band at peak and at light load", "C8_L31_LOW": "lowest %s V at %s (floor %s V)",
 	"C8_L31_MIN": "Lowest at peak: %s V at %s (floor %s V, margin %s V).", "C8_L31_MAX": "Highest at light load: %s V at %s (ceiling %s V, margin %s V).",
@@ -39,9 +39,9 @@ const S := {
 	"C8_KIND_fuseLoad": "A fuse link is too small for its spur's load.", "C8_KIND_blind": "A fuse link is too big to melt at its spur's smallest fault.", "C8_KIND_fuseBlown": "A fast curve is slower than a fuse's melt curve: the fuse blows for a temporary fault.",
 	# L34
 	"C8_SIZE_CAP": "transformers", "C8_BUS_CAP": "bus section", "C8_TIE_XFER_CAP": "tie transfer", "C8_DR_CAP": "demand response", "C8_MVA": "%s MVA", "C8_BUS_H": "%d h", "C8_AUTO": "auto",
-	"C8_SMALL": "small", "C8_LARGE": "large", "C8_THERMO": "SURVIVOR'S THERMOMETER", "C8_LIMIT_C": "%d C", "C8_C": "%s C", "C8_HOT_AT": "peak at %s",
-	"C8_DAYS": "%s days", "C8_LOL": "life lost that day", "C8_LOL_LAMPS": "lamp 2: at most %s days. lamp 3: at most %s days.", "C8_HOUR": "hour of the day", "C8_Y_C": "temperature, C", "C8_Y_MVA": "MVA",
-	"C8_PROT": "protection trips the unit at %d C", "C8_TRIP_TAG": "trip", "C8_BACK_TAG": "all load back", "C8_LEG_HOT": "hot spot (winding)", "C8_LEG_OIL": "top oil", "C8_LEG_LOAD": "load", "C8_LEG_SERVED": "served",
+	"C8_SMALL": "small", "C8_LARGE": "large", "C8_THERMO": "SURVIVOR'S THERMOMETER", "C8_LIMIT_C": "%d °C", "C8_C": "%s °C", "C8_HOT_AT": "peak at %s",
+	"C8_DAYS": "%s days", "C8_LOL": "life lost that day", "C8_LOL_LAMPS": "lamp 2: at most %s days. lamp 3: at most %s days.", "C8_HOUR": "hour of the day", "C8_Y_C": "temperature, °C", "C8_Y_MVA": "MVA",
+	"C8_PROT": "protection trips the unit at %d °C", "C8_TRIP_TAG": "trip", "C8_BACK_TAG": "all load back", "C8_LEG_HOT": "hot spot (winding)", "C8_LEG_OIL": "top oil", "C8_LEG_LOAD": "load", "C8_LEG_SERVED": "served",
 	"C8_LIM15": "survivor carries up to 1.5 x rating = %s MVA", "C8_FIRM_TAG": "firm capacity %s MVA",
 	"C8_L34_TITLE": "READING THE DAY", "C8_FIRM_LINE": "%d units of %s MVA are %s MVA in all. Firm capacity is the total minus the largest unit, %s MVA, against a peak of %s MVA.",
 	"C8_TRIP_LINE": "At %s:00 the worst transformer trips. The survivor may carry up to %s MVA for a while; the rest of the load is shed until a bus-section close, a tie transfer or demand response brings it back.",
@@ -69,5 +69,5 @@ const S := {
 	"TH_lossMax": "Line losses \u2264\u00a0%s\u00a0%%", "TH_ensStar": "Energy not supplied \u2264\u00a0%s MWh a year", "TH_marginStar": "Every fuse saved with \u2265\u00a0%s s to spare",
 	"TH_lolMid": "Transformer life lost \u2264\u00a0%s days", "TH_lolMax": "Transformer life lost \u2264\u00a0%s days", "TH_pvStar": "Host \u2265\u00a0%s kW of rooftop solar",
 	"TH_boughtMin": "Fix the voltage with kit, not with a lower solar limit", "TH_errOk": "Every prediction within\u00a0%s\u00a0%%", "TH_whyRight": "The \u201cwhy\u201d card right",
-	"C8_LAMP_PCT": "Mean prediction error \u2264 %s\u00a0%%", "C8_LAMP_PCT3": "Mean prediction error \u2264 %s\u00a0%%%s",
+	"C8_LAMP_PCT": "Worst prediction error \u2264 %s\u00a0%%", "C8_LAMP_PCT3": "Worst prediction error \u2264 %s\u00a0%%%s",
 }

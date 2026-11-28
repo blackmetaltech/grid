@@ -14,6 +14,7 @@ func _initialize() -> void:
 	var p := Ch6Panel.new(); p.app = fake; root.add_child(p)
 	T.level("L07"); p.refresh()
 	T.check(not p.visible, "no control-room card on L07")
+	for k in ["LAMP_L22_2", "LAMP_L22_3"]: T.check(not "%%" in TranslationServer.translate(k), "%s is shown as is: one percent sign (11-28b B10)" % k)
 	T.level("L19"); p.refresh()
 	var bs: Array = []; _buttons(p, bs)
 	T.check(p.visible and bs.has("c6_spinUnit_U17"), "L19: the card offers the spare coal unit (%s)" % str(bs))

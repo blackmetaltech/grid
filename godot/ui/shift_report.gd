@@ -378,8 +378,9 @@ static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary,
 	var over_budget: bool = bud is Dictionary and float(bud.get("capexLimit", 0.0)) > 0.0 and float(bud.get("spent", 0.0)) > float(bud.get("capexLimit", 0.0)) + 1e-6
 	if not compact and not PaperKit.glass: head.add_child(Stamp.new(T("REP_STAMP_COST" if over_budget else "REP_STAMP_LOST")))   # an over-budget line may well light the market: the stamp must not say it did not
 	col.add_child(PaperKit.rule())
-	col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
-	col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))
+	if str(e.get("reason", "")) != "":   # 11-28b: a report opened before the end has no cause yet; no empty heading
+		col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
+		col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))
 	var bs = app.b.q("benchStatus")
 	if bs is Dictionary and bs.get("active", false) and bool(bs.get("powered", false)) and (bs.bench as Dictionary).get("limits", {}).get("vMinV") != null:
 		col.add_child(PaperKit.lbl(T("REP_NUMBERS") % [WorkOrder.num(snappedf(float(bs.vMinV), 0.1)), WorkOrder.num(float(bs.bench.limits.vMinV))], 18, "sans", PaperKit.INK, true))

@@ -96,6 +96,6 @@ func _draw() -> void:
 	draw_line(c, _pt(c, r - 5.0, needle_deg), GridTheme.BAD if dipping else (GridTheme.SODIUM if l2 else Color("#B3261E")), (3.0 if dipping else 1.8) if l2 else 3.0, true)
 	if dipping:
 		var ds := TranslationServer.translate("HUD_DIP") % ("%.2f" % _dip_hz)
-		GridText.ds(self, cf, Vector2(10.0, h - 6.0), ds, HORIZONTAL_ALIGNMENT_LEFT, w - 20.0, csz, GridTheme.BAD)
+		GridText.ds(self, cf, Vector2(10.0, h - 6.0), ds, HORIZONTAL_ALIGNMENT_RIGHT, w - 20.0, csz, GridTheme.BAD)   # 11-28b (B20): right-aligned; a dip pegs the needle on the left, where the caption sat
 	if l2: draw_circle(c, 4.0, GridTheme.GLASS); draw_arc(c, 4.0, 0.0, TAU, 16, GridTheme.SODIUM, 1.0, true)
 	else: draw_circle(c, 5.5, GridTheme.NIGHT); draw_circle(c, 2.0, GridTheme.SODIUM_DIM)

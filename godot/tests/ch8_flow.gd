@@ -40,6 +40,7 @@ func _initialize() -> void:
 	var T := Truth.new()
 	if not T.start(root): print("CH8-FLOW FAILED engine"); quit(1); return
 	CbRegion.refresh(T.b); GridUi.load_strings()
+	T.check(TranslationServer.translate("C8_LAMP_PCT").begins_with("Worst"), "L36 lamp names the worst error, which the engine scores (11-28b B19)")
 	T.level("L01"); T.check(not bool(T.b.q("ch8Study").get("active", true)), "L01 has no ch8 state")
 	# the host hides itself on a level that is not chapter 8 and picks the stage by scenario
 	var host := Ch8Host.new(); var happ := CbApp.new(); happ.b = T.b; host.app = happ; host.build(); root.add_child(host)

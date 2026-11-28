@@ -87,6 +87,10 @@ func refresh() -> void:
 	var w := minf(W, maxf(240.0, vw * 0.32)) if phone else W   # desktop keeps its 310 px card
 	var top := 74.0 if not phone else 70.0
 	var room := maxf(120.0, (vh - top - 195.0) if phone else (vh - 74.0 - 150.0)) - (70.0 if phone else 40.0)   # leaves the tray, the radio and the lever their rows (phone: the budget tag's top)
+	var par := get_parent()   # 11-28b audit: the L18 exam card ran under the lever and the speed buttons; stop above the breaker
+	if not phone and par != null and "breaker" in par and is_instance_valid(par.breaker) and (par.breaker as Control).is_visible_in_tree():
+		var head := maxf(0.0, size.y - _scroll.size.y) if _scroll.visible and size.y > 0.0 else 60.0
+		room = minf(room, maxf(120.0, (par.breaker as Control).position.y - 12.0 - top - head - 8.0))
 	var fold := _collapsed or GridTheme.charts_folded
 	_scroll.visible = not fold
 	size = Vector2(w, 0); custom_minimum_size = Vector2(w, 0)

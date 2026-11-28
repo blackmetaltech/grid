@@ -58,13 +58,17 @@ static func build(app: CbApp, root: Control) -> bool:
 static func _focus_first(c) -> void:
 	if is_instance_valid(c) and (c as Control).is_inside_tree(): (c as Control).grab_focus()
 
-## A new game: the first job as a Learner (the work order opens over the dimmed island), or the player's last mode if they chose Engineer before.
+## A new game: the prologue (then WO-01) as a Learner (the work order opens over the dimmed island), or the player's last mode if they chose Engineer before.
 static func new_night_shift(app: CbApp) -> void:
 	if CbSettings.last_mode == "" or CbSettings.last_mode == "sandbox": CbSettings.last_mode = "learner"
-	var id := "L01"
 	var ids: Array = Jobs.list(app).map(func(lv): return str(lv.id))
-	if not ids.has(id) and not ids.is_empty(): id = str(ids[0])
+	var id := first_job(ids)
 	GridLoading.start(app, id)
+
+## The job a new night shift opens on: the prologue (11-28b, B21, DECISIONS 30; its report leads to WO-01), else WO-01, else the first listed.
+static func first_job(ids: Array) -> String:
+	for id in ["P0", "L01"]: if ids.has(id): return id
+	return str(ids[0]) if not ids.is_empty() else "L01"
 
 static func _grad(from: Vector2, to: Vector2, alpha: float) -> TextureRect:
 	var g := Gradient.new(); g.colors = PackedColorArray([Color(GridTheme.NIGHT, alpha), Color(GridTheme.NIGHT, 0.0)]); g.offsets = PackedFloat32Array([0.0, 1.0])

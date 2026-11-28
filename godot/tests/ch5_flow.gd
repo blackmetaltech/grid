@@ -47,6 +47,15 @@ func _initialize() -> void:
 	T.level("L18"); p.refresh(); tx.clear(); _texts(p, tx)
 	T.check(not tx.any(func(s): return "Gauss-Seidel needs" in str(s)) and tx.any(func(s): return "Givens" in str(s)), "L18: the givens, not the sweep answers, before the run")
 	T.check(_find(p, "c5_p_l18_v2") != null and _find(p, "c5_vset_up") != null, "L18: prediction fields and the set-point button")
+	# 11-28b audit: the L18 card ran under the lever and the speed keys; it must end above the breaker
+	var hs := GDScript.new(); hs.source_code = "extends Control\nvar breaker: Control\n"; hs.reload()
+	var host := Control.new(); host.set_script(hs); root.add_child(host)
+	var brk := Control.new(); host.add_child(brk); host.set("breaker", brk)
+	var vpy := p.get_viewport_rect().size.y; brk.position = Vector2(0, minf(vpy - 230.0, 380.0)); brk.size = Vector2(200, 220)
+	root.remove_child(p); host.add_child(p); await process_frame
+	for i in 3: p.refresh(); await process_frame
+	T.check(p.position.y + p.size.y <= brk.position.y, "L18: the card ends above the breaker (%.0f <= %.0f)" % [p.position.y + p.size.y, brk.position.y])
+	host.remove_child(p); root.add_child(p); host.queue_free()
 	p._submit("l18.v2", "pu", "1.01334"); T.check(T.b.g.metrics.predictions.size() == 1, "the prediction is taken")
 	r = T.b.act("setVSet", ["B3", 1.07]); T.check(r.ok, "setVSet goes through the bridge")
 	T.b.act("tick", [1]); p.refresh(); tx.clear(); _texts(p, tx)

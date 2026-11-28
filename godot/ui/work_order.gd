@@ -94,7 +94,7 @@ static func lamp_texts(li: Dictionary) -> Array:
 			var tx := _th_text(str(k), float(th[k])); var lw := tx.substr(0, 1).to_lower() + tx.substr(1)
 			if not extra.has(lw): extra.append(lw)   # two conditions can share a threshold (L28)
 		var sec: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "s"
-		var pct: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "pct"   # L36: the score is the mean prediction error in percent
+		var pct: bool = str(li.get("histogram", "")) == "score" and str(li.get("scoreUnit", "money")) == "pct"   # L36: the score is the worst prediction error in percent (11-28b: the lamp said mean; the engine takes the max)
 		var scored: bool = str(li.get("histogram", "")) == "score"
 		var fa := ("%s s" % WorkOrder.num(snappedf(float(fz.starA), 0.01))) if sec else (WorkOrder.num(snappedf(float(fz.starA), 0.01)) if pct else CbRegion.money(float(fz.starA), false, 0))
 		var fb := ("%s s" % WorkOrder.num(snappedf(float(fz.starB), 0.01))) if sec else (WorkOrder.num(snappedf(float(fz.starB), 0.01)) if pct else CbRegion.money(float(fz.starB), false, 0))
