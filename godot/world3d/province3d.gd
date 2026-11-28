@@ -1518,7 +1518,7 @@ func reset_camera() -> void:
 		c /= float(subj.size())
 		var spread := 0.0
 		for q in subj: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
-		_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = maxf(_g_dist * 0.4, maxf(spread * (2.75 if subj.size() > 1 else 2.6), 900.0)); _g_pitch = deg_to_rad(29.0)   # 1128c: 3.4 left the subject a third of the frame
+		_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = maxf(_g_dist * 0.3, maxf(spread * 2.3, 700.0)); _g_pitch = deg_to_rad(25.0)   # 1128c: 3.4 left the subject a third of the frame; art review 2: 2.75 still read as a map
 	if str(model.get("level", "")) == "P0":   # 1.19 (Sigrid): the prologue opens low behind the lit coal plant, looking east over Line 7 to the city's glow
 		var plant := Vector2(INF, INF); var city := Vector2(INF, INF)
 		for u in model.get("units", []):
