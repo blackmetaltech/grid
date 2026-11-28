@@ -774,7 +774,7 @@ func _build_places(objs: Array) -> void:
 	_homes.clear(); _porch = {}
 	var wall_cols := [Color(0.86, 0.80, 0.68), Color(0.78, 0.84, 0.82), Color(0.90, 0.74, 0.60), Color(0.82, 0.82, 0.76)]
 	var roof_cols := [Color(0.50, 0.22, 0.16), Color(0.36, 0.38, 0.42), Color(0.46, 0.28, 0.18)]
-	var body_mat := StandardMaterial3D.new(); body_mat.vertex_color_use_as_albedo = true; body_mat.roughness = 0.9; body_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var body_mat := StandardMaterial3D.new(); body_mat.vertex_color_use_as_albedo = true; body_mat.roughness = 0.9; body_mat.metallic_specular = 0.2; body_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	for o in objs:
 		var t := str(o.t)
 		var p: Vector2 = o.p
@@ -960,6 +960,7 @@ func _apply_camera() -> void:
 	var pos := tg + Vector3(sin(y) * cos(p), sin(p), cos(y) * cos(p)) * dist
 	pos.y = maxf(pos.y, maxf(ground(pos.x, pos.z), 0.0) + 4.0)
 	if not cam.is_inside_tree(): return
+	pos = Kit3D.clear_eye(get_world_3d(), tg, pos)
 	cam.look_at_from_position(pos, tg, Vector3.UP)
 	cam.current = true
 
@@ -995,6 +996,12 @@ func set_camera_spec(spec: String) -> bool:
 			"ty": _g_target.z = (float(kv[1]) + 0.5) * tm; used = true
 			"zoom": _g_dist = _dist_default / maxf(0.1, float(kv[1])); used = true
 			"nodrift": drift = false; used = true
+			"node":   # QA shots: aim at the first node whose name matches the pattern (wildcards allowed), e.g. node=Home*
+				var nd := find_child(kv[1], true, false) as Node3D
+				if nd != null:
+					var c := nd.global_position
+					if nd is VisualInstance3D: c = (nd as VisualInstance3D).global_transform * (nd as VisualInstance3D).get_aabb().get_center()
+					_g_target = c; used = true
 	_clamp_goal()
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist; _apply_camera()
 	return used

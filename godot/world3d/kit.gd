@@ -199,3 +199,89 @@ static func dress_hall(parent: Node3D, c: Vector3, sz: Vector3, group := "site")
 	_reg(null, lm, 0.0, 6.0, group)
 	for k in maxi(1, int(sz.x / 12.0)):   # louvres on the back
 		_box(parent, c + Vector3(-hx + 4.0 + 12.0 * k, sz.y * 0.5, -hz - 0.05), Vector3(2.0, 1.6, 0.06), trim)
+
+## 1128c (manager: "a huge grey slab fills the lower half of the frame"): the camera must not sit inside or right behind a big solid.
+## A segment from a little way out from the target to the eye is tested against shadow-casting meshes taller than 4 m (triangles,
+## so merged town meshes count) and against multimesh buildings within 60 m of the eye. While blocked the eye swings up 5 degrees
+## about the target, at most 30 degrees over the player's pitch (a spring arm was tried: it pulled the eye into the plant).
+## The player's goal camera is not changed, so the view returns once the way is clear.
+static var _tri_cache := {}
+static var _mm_cache := {}
+static func clear_eye(world: World3D, target: Vector3, eye: Vector3) -> Vector3:
+	if world == null: return eye
+	var e := eye
+	for k in 6:
+		if not _blocked(world, target, e): return e
+		var d := e - target; var r := d.length()
+		var h := Vector2(d.x, d.z); var hl := h.length()
+		var p := atan2(d.y, hl) + deg_to_rad(5.0)
+		if p > deg_to_rad(80.0): break
+		var hd := h / maxf(hl, 0.001)
+		e = target + Vector3(hd.x * cos(p), sin(p), hd.y * cos(p)) * r
+	return e   # still blocked after 30 degrees: keep the highest view (coming in towards the target only went deeper into the plant)
+
+static func _blocked(world: World3D, target: Vector3, eye: Vector3) -> bool:
+	var d := eye - target; var r := d.length()
+	if r < 0.5: return false
+	var from := target + d / r * minf(12.0, 0.35 * r)   # the target's own building does not count
+	var near := eye - d / r * minf(60.0, r * 0.65)
+	for id in RenderingServer.instances_cull_ray(from, eye, world.scenario):
+		var ob := instance_from_id(id)
+		if ob is MultiMeshInstance3D:
+			if _mm_hit(ob as MultiMeshInstance3D, near, eye): return true
+			continue
+		var gi := ob as MeshInstance3D
+		if gi == null or gi.mesh == null or not gi.is_visible_in_tree() or gi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF: continue
+		var bb := gi.global_transform * gi.get_aabb()
+		if bb.size.y < 4.0 or bb.size.x * bb.size.z > 250000.0: continue
+		var key := gi.mesh.get_instance_id()
+		if not _tri_cache.has(key): _tri_cache[key] = gi.mesh.generate_triangle_mesh()
+		var tm: TriangleMesh = _tri_cache[key]
+		if tm == null: continue
+		var inv := gi.global_transform.affine_inverse()
+		if not tm.intersect_segment(inv * from, inv * eye).is_empty(): return true
+		if bb.grow(0.5).has_point(eye):   # inside a closed building: straight up meets a face from behind
+			var a := inv * eye; var b := inv * (eye + Vector3(0, bb.size.y + 2.0, 0))
+			var hit := tm.intersect_segment(a, b)
+			if not hit.is_empty() and (hit.normal as Vector3).dot(b - a) > 0.0: return true
+			var walls := 0   # inside a hollow (a cooling tower, open at the top): walls all round
+			var reach := minf(maxf(bb.size.x, bb.size.z), 160.0)
+			for dv in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
+				if not tm.intersect_segment(a, inv * (eye + dv * reach)).is_empty(): walls += 1
+			if walls == 4: return true
+	return false
+
+const MM_CELL := 32.0
+static func _mm_hit(mmi: MultiMeshInstance3D, a: Vector3, b: Vector3) -> bool:
+	if mmi.multimesh == null or mmi.multimesh.mesh == null or not mmi.is_visible_in_tree() or mmi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF: return false
+	var mm := mmi.multimesh
+	var key := mmi.get_instance_id()
+	var g: Dictionary = _mm_cache.get(key, {})
+	if g.get("n", -1) != mm.instance_count:   # one grid of building boxes per multimesh, built once
+		g = {"n": mm.instance_count, "cells": {}}
+		var ma := mm.mesh.get_aabb()
+		for i in mm.instance_count:
+			var bb := mmi.global_transform * mm.get_instance_transform(i) * ma
+			if bb.size.y < 4.0: continue
+			for cx in range(floori(bb.position.x / MM_CELL), floori(bb.end.x / MM_CELL) + 1):
+				for cz in range(floori(bb.position.z / MM_CELL), floori(bb.end.z / MM_CELL) + 1):
+					var ck := Vector2i(cx, cz)
+					if not g.cells.has(ck): g.cells[ck] = []
+					g.cells[ck].append(bb)
+		_mm_cache[key] = g
+	for cx in range(floori(minf(a.x, b.x) / MM_CELL), floori(maxf(a.x, b.x) / MM_CELL) + 1):
+		for cz in range(floori(minf(a.z, b.z) / MM_CELL), floori(maxf(a.z, b.z) / MM_CELL) + 1):
+			for bb in g.cells.get(Vector2i(cx, cz), []):
+				if _seg_hits((bb as AABB).grow(0.5), a, b): return true
+	return false
+
+static func _seg_hits(bb: AABB, a: Vector3, b: Vector3) -> bool:
+	var t0 := 0.0; var t1 := 1.0; var d := b - a
+	for i in 3:
+		if absf(d[i]) < 1e-6:
+			if a[i] < bb.position[i] or a[i] > bb.end[i]: return false
+		else:
+			var u := (bb.position[i] - a[i]) / d[i]; var v := (bb.end[i] - a[i]) / d[i]
+			t0 = maxf(t0, minf(u, v)); t1 = minf(t1, maxf(u, v))
+			if t0 > t1: return false
+	return true

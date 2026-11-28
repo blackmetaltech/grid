@@ -1578,6 +1578,7 @@ func _apply_camera() -> void:
 	var pos := _cam_pos(target, yaw, pitch, dist)
 	var floor_y := maxf(ground(pos.x, pos.z), 0.0) + 15.0 + dist * 0.02   # never under the hill in front
 	if pos.y < floor_y: pos.y = floor_y
+	pos = Kit3D.clear_eye(get_world_3d(), target, pos)
 	cam.look_at_from_position(pos, target, Vector3.UP)
 	cam.current = true
 

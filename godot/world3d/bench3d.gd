@@ -574,6 +574,7 @@ func _home(pos: Vector2, rot: float, v: float) -> void:
 	var cols := _house_cols(v)
 	var n := Node3D.new(); n.name = "Home%d" % _homes.size(); n.position = Vector3(pos.x, ground(pos.x, pos.y) - 0.1, pos.y); n.rotation.y = rot; _root.add_child(n)
 	var bi := MeshInstance3D.new(); bi.mesh = Bay3D.house_mesh(w, d, h, 2.0, cols[0], cols[1]); bi.material_override = _vc_mat(0.9); n.add_child(bi)
+	(bi.material_override as StandardMaterial3D).metallic_specular = 0.2   # 1128c: roofs face the sky now; full specular turned brown tile grey
 	var wi := MeshInstance3D.new(); wi.mesh = Bay3D.windows_mesh(w, d, h)
 	var wm := StandardMaterial3D.new(); wm.albedo_color = Color(0.13, 0.17, 0.25); wm.metallic = 0.3; wm.roughness = 0.2; wm.cull_mode = BaseMaterial3D.CULL_DISABLED; wm.emission_enabled = true; wm.emission = WARM; wm.emission_energy_multiplier = 0.0
 	wi.material_override = wm; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; n.add_child(wi)
@@ -970,6 +971,7 @@ func _apply_camera() -> void:
 	var pos := target + Vector3(sin(yaw) * cos(pitch), sin(pitch), cos(yaw) * cos(pitch)) * dist
 	pos.y = maxf(pos.y, maxf(ground(pos.x, pos.z), -1.2) + 2.5)
 	if cam == null or not cam.is_inside_tree(): return
+	pos = Kit3D.clear_eye(get_world_3d(), target, pos)
 	cam.look_at_from_position(pos, target, Vector3.UP)
 	cam.current = true
 
@@ -1003,6 +1005,12 @@ func set_camera_spec(spec: String) -> bool:
 			"dist": _g_dist = float(kv[1]); used = true
 			"x": _g_target.x = float(kv[1]); used = true
 			"z": _g_target.z = float(kv[1]); used = true
+			"node":   # QA shots: aim at the first node whose name matches the pattern (wildcards allowed), e.g. node=Home*
+				var nd := find_child(kv[1], true, false) as Node3D
+				if nd != null:
+					var c := nd.global_position
+					if nd is VisualInstance3D: c = (nd as VisualInstance3D).global_transform * (nd as VisualInstance3D).get_aabb().get_center()
+					_g_target = c; used = true
 			"zoom": _g_dist = _dist_default / maxf(0.1, float(kv[1])); used = true
 	_clamp_goal()
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist; _apply_camera()
