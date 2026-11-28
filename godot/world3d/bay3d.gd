@@ -119,6 +119,7 @@ func _make_env() -> void:
 		vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR; vp.fsr_sharpness = 0.35
 
 func _update_sky(mn: float) -> void:
+	mn = ShiftReport.night_hold(mn)
 	_minute = mn
 	var n := WorldMath.night(mn); var d := WorldMath.dusk(mn)
 	var zen := Color(0.20, 0.40, 0.74).lerp(Color(0.035, 0.06, 0.15), n).lerp(Color(0.09, 0.17, 0.42), d * 0.7)   # 1.18: a moonlit night sky, not a black hole above the sea (Sigrid r7-c)

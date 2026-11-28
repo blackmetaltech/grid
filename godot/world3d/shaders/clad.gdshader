@@ -8,7 +8,7 @@ uniform vec3 base : source_color = vec3(0.55, 0.58, 0.60);
 uniform vec3 roof_col : source_color = vec3(0.30, 0.31, 0.32);
 uniform float rib_m = 0.9;        // rib pitch (m)
 uniform float panel_m = 7.5;      // panel width (m)
-uniform float metal = 0.35;
+uniform float metal = 0.12;   // 1128c (art review: the hall rendered solid black at night): 0.35 metal had no diffuse left under a dark sky
 uniform sampler2D grime : filter_linear_mipmap, repeat_enable;   // any noisy greyscale (rock roughness)
 
 varying vec3 wp;

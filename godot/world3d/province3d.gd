@@ -182,6 +182,7 @@ func _sky_at(mn: float) -> Dictionary:
 	return {"n": n, "d": d, "zen": zen, "hor": hor}
 
 func _update_sky(mn: float) -> void:
+	mn = ShiftReport.night_hold(mn)
 	var s := _sky_at(mn)
 	var n: float = s.n; var d: float = s.d
 	sky_mat.set_shader_parameter("zenith", s.zen); sky_mat.set_shader_parameter("horizon", s.hor)
@@ -1322,7 +1323,7 @@ func _build_sea_cable(l: Dictionary) -> void:
 # Every model refresh: windows, lamps, yards, conductor glow, battery, lighthouse, trawler, sky
 # --------------------------------------------------------------------------------------------------------------------
 func _update_dynamic() -> void:
-	var mn := float(model.get("minute", 720.0))
+	var mn := ShiftReport.night_hold(float(model.get("minute", 720.0)))   # 1128c: a failed report holds the night (windows and lamps too)
 	var n := WorldMath.night(mn)
 	_update_sky(mn)
 	var by_id := {}

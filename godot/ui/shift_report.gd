@@ -15,6 +15,10 @@ static var _force_short := false   ## a report taller than the screen (L16's lon
 static func T(key: String) -> String: return TranslationServer.translate(key)
 
 static func is_open() -> bool: return not _d.is_empty() and is_instance_valid(_d.host) and not (_d.host as Node).is_queued_for_deletion()
+## 1128c (art review: "the DARK report renders at 08:00 in full daylight"): while a failed job's report is open, the 3D places
+## hold the night (22:30) if the clock has run into daylight, so the dark homes read as dark beside the lit ones.
+static func night_hold(mn: float) -> float:
+	return 1350.0 if is_open() and _d.get("lost", false) and WorldMath.night(mn) < 0.5 else mn
 static func host_node() -> Control: return _d.host if is_open() else null
 
 ## cfg hook: build the report and own the end state. Returns true (the kit card is skipped).
@@ -35,7 +39,7 @@ static func open(app: CbApp) -> bool:
 		w = clampf(app.vw() * 0.29, minf(560.0, app.vw() - 32.0), 600.0)   # 1128c (art review): a narrower sheet on the right; the left two thirds show what happened
 		dock.left = app.vw() - 16.0 - w
 	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.0 if PaperKit.glass else 0.34, (14.0 if compact else 22.0) if PaperKit.glass else (16.0 if compact else 30.0))
-	_d = d
+	_d = d; _d["lost"] = not won or lid == "P0"   # the prologue always ends dark
 	app.sfx("page")
 	var host: Control = d.host; var pn: PanelContainer = d.panel
 	app.end_ui = host
@@ -60,6 +64,7 @@ static func open(app: CbApp) -> bool:
 		var prow := HFlowContainer.new(); prow.add_theme_constant_override("h_separation", 12); vb.add_child(prow)
 		var again := PaperKit.btn(T("REP_P0_AGAIN"), false, func(): app.start_level("P0", true), 20); again.name = "Retry"; prow.add_child(again)
 		var go := PaperKit.btn(T("REP_P0_GO"), true, func(): app.start_level("L01", true), 20); go.name = "Next"; prow.add_child(go)
+		_hold_now(app)
 		go.call_deferred("grab_focus")
 		PaperKit.glass = false
 		return true
@@ -102,6 +107,14 @@ static func open(app: CbApp) -> bool:
 
 ## 1128c: the report covers the right of the screen; slide the world so what was in the middle of the view (the job's subject) sits
 ## in the middle of the part the sheet leaves free, and let the 3D place frame its own consequence when it knows one (report_focus).
+## Apply night_hold at once (the places otherwise redraw their sky only when the clock moves).
+static func _hold_now(app: CbApp) -> void:
+	var wv = app.get("grid_world")
+	var l3 = wv.get("look3d") if wv != null else null
+	if l3 == null or not is_instance_valid(l3): return
+	if l3.has_method("_update_sky") and l3.get("_minute") != null and float(l3._minute) >= 0.0: l3._update_sky(float(l3._minute))
+	elif l3.has_method("_update_dynamic") and l3.get("model") != null: l3._update_dynamic()
+
 static func _frame_for_report(app: CbApp, w: float) -> void:
 	var chm = app.get("chrome")
 	if chm != null and chm.get("breaker") != null: (chm.breaker as CanvasItem).visible = false
@@ -110,6 +123,7 @@ static func _frame_for_report(app: CbApp, w: float) -> void:
 	var l3 = wv.get("look3d")
 	if l3 == null or not is_instance_valid(l3) or not (l3 as Node3D).visible: return
 	if l3.has_method("report_focus") and l3.report_focus(): pass
+	_hold_now(app)
 	var c3: Camera3D = l3.get("cam")
 	if c3 == null or l3.get("_g_target") == null: return
 	# shift the goal right by the ground width that half the sheet covers, so the old centre sits mid-way in the free part
