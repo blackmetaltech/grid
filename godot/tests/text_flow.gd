@@ -7,7 +7,7 @@ extends RefCounted
 ## CB_TEXTAUDIT_ONLY=L20,career limits the screens; CB_TEXTAUDIT_MIN changes the floor (default 16).
 
 ## Overprints on the 3D screens at the handheld size that are not fixed yet (pins that meet a card, a card whose text runs past its foot): listed, not failed; a new one fails.
-const KNOWN_OVERPRINT := ["L11 3D place@1280x800|ch4_estate.gd", "L26 3D place@1280x800|ch7_merit.gd", "L32 3D place@1280x800|ch8_reliab.gd", "L33 3D place@1280x800|ch8_tcc.gd"]
+const KNOWN_OVERPRINT := []   # 11-28b: emptied; the four 1280x800 overprints were fixed
 const RESES := [[Vector2i(1920, 1080), "desktop"], [Vector2i(1280, 800), "handheld"]]
 static var fails := 0
 static var checks := 0

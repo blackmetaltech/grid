@@ -216,7 +216,7 @@ func _pin_at(wp: Vector2, lines: Array, cols: Array, lift: float, wv = null) -> 
 	if wv == null: wv = app.get("grid_world")
 	var sp := _to_local(wp, wv)
 	if not Rect2(Vector2.ZERO, Vector2(_right(), size.y)).grow(-4.0).has_point(sp): return
-	var semi := _semi(); var fz := GridTheme.fs(13)
+	var semi := _semi(); var fz := GridText.floor_size(self, GridTheme.fs(13)) if _look3() else GridTheme.fs(13)   # 11-28b: measured at the size drawn (the 16 px floor), or the text ran out of its chip
 	var cw := 0.0
 	for ln in lines: cw = maxf(cw, semi.get_string_size(str(ln), HORIZONTAL_ALIGNMENT_LEFT, -1, fz).x)
 	var lh := float(fz) + 6.0
@@ -238,6 +238,7 @@ func _pin_at(wp: Vector2, lines: Array, cols: Array, lift: float, wv = null) -> 
 			for c in _pins: if (c as Rect2).grow(4.0).intersects(r): low = maxf(low, (c as Rect2).end.y + 8.0)
 			r.position.y = low
 	if r.end.y > panel.position.y - 8.0: return
+	if _pins_hit(r.grow(-4.0)): return   # 11-28b: no free place left (small windows): leave the chip out rather than print it over a chart (L32 at 1280x800)
 	_pins.append(r)
 	var foot := Vector2(clampf(sp.x, r.position.x + 8.0, r.end.x - 8.0), r.end.y)
 	if sp.y > r.end.y + 4.0:

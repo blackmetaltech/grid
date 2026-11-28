@@ -69,8 +69,9 @@ func _draw_stage3() -> void:
 	var w := _vs().x
 	_draw_triangle(Vector2(150.0, 205.0))
 	var bw := minf(w * 0.40, w - 790.0 - 20.0)
-	if w >= 1250.0: _draw_bus_trace(Rect2(Vector2(maxf(w * 0.58, 760.0), 118.0), Vector2(bw, 190.0)))
-	else: _draw_bus_trace(Rect2(Vector2(w - 360.0 - 14.0, 118.0), Vector2(360.0, 190.0)))
+	var tr_r := Rect2(Vector2(maxf(w * 0.58, 760.0), 118.0), Vector2(bw, 190.0)) if w >= 1250.0 else Rect2(Vector2(w - 360.0 - 14.0, 118.0), Vector2(360.0, 190.0))
+	_draw_bus_trace(tr_r)
+	_pins.append(Rect2(Vector2(150.0, 205.0) + Vector2(-122.0, -98.0), Vector2(290.0, 248.0))); _pins.append(tr_r)   # 11-28b: the chips step clear of both charts (the motors chip printed over the triangle at 1280x800)
 	var dim := GridTheme.G_DIM
 	_pin("motors", [T("C4_MOTORS") % [int(q.estateKw), _f(float(q.estatePf), 2)], T("C4_BUSV") % _f(float(q.vBusPu) * 100.0, 1)], [GridTheme.G_TEXT, _good(float(q.vBusPu) >= 0.94)], 20.0)
 	var b = q.get("bank")

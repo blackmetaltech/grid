@@ -102,7 +102,9 @@ func _heat_strip(r2: Rect2) -> void:
 	var by := {}; var hmax := 1.0
 	for s in q.sections: by[str(s.id)] = s; hmax = maxf(hmax, float(s.saidiMin))
 	_card(r2)
-	_text(_semi(), 11, r2.position + Vector2(12.0, 18.0), T("C8_HEAT_CAP"), GridTheme.SODIUM)
+	var cap := T("C8_HEAT_CAP")
+	if _look3() and _semi().get_string_size(cap, HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, GridTheme.fs(11))).x > r2.size.x - 24.0: cap = cap.split(":")[0]   # 11-28b: the long caption ran past the card into the clock
+	_text(_semi(), 11, r2.position + Vector2(12.0, 18.0), cap, GridTheme.SODIUM)
 	var order := ["T1", "T2", "T3", "T4", "P1", "P2", "P3"]; var cw2 := (r2.size.x - 24.0) / 7.0
 	for k in 7:
 		var s: Dictionary = by[order[k]]; var cr := Rect2(r2.position + Vector2(12.0 + cw2 * k, 28.0), Vector2(cw2 - 6.0, 72.0))
@@ -117,6 +119,18 @@ func _indices_card(r3: Rect2) -> void:
 		[T("C8_SAIDI"), WorkOrder.num(float(ix.saidi)), T("C8_TARGET_MAX") % WorkOrder.num(float(tg.saidiMax)), float(ix.saidi) <= float(tg.saidiMax), T("C8_G_SAIDI")],
 		[T("C8_CAIDI"), WorkOrder.num(float(ix.caidi)), T("C8_CAIDI_EQ"), true, T("C8_G_CAIDI")], [T("C8_ENS"), WorkOrder.num(float(ix.ensMWh)), T("C8_STAR_MAX") % WorkOrder.num(float(tg.ensStar)), float(ix.ensMWh) <= float(tg.ensStar), T("C8_G_ENS")]]
 	var iw := (r3.size.x - 24.0) / 4.0
+	if _look3():   # 11-28b audit: rows from the sizes actually drawn (the 16 px floor): at 1280x800 the lines printed over each other and past the card
+		var ft := GridText.floor_size(self, GridTheme.fs(11)); var fn := GridText.floor_size(self, GridTheme.fs(26)); var fg := GridText.floor_size(self, GridTheme.fs(10))
+		var y1 := 10.0 + ft; var y2 := y1 + fn + 2.0; var y3 := y2 + fg + 6.0; var room := r3.end.y - 8.0 - (r3.position.y + y3 + 6.0)
+		var gl := int(floor(room / (float(fg) * 1.25)))
+		for k in 4:
+			var c: Array = cells[k]; var o := r3.position + Vector2(12.0 + iw * k, 0.0); var mf := _mono()
+			_text(_semi(), 11, o + Vector2(0, y1), str(c[0]), Color(GridTheme.TEXT, 0.75)); _text(mf, 26, o + Vector2(0, y2), str(c[1]), _good(bool(c[3])))
+			var tg_s := str(c[2])
+			if mf.get_string_size(tg_s, HORIZONTAL_ALIGNMENT_LEFT, -1, fg).x > iw - 10.0: tg_s = tg_s.replace("target: at most ", "≤ ").replace("lamp 3: at most ", "lamp 3 ≤ ").replace("= SAIDI / SAIFI", "SAIDI/SAIFI")
+			_text(mf, 10, o + Vector2(0, y3), tg_s, Color(GridTheme.TEXT, 0.65))
+			if not _phone() and gl >= 1: GridText.dm(self, mf, o + Vector2(0, y3 + 6.0 + fg), str(c[4]), HORIZONTAL_ALIGNMENT_LEFT, iw - 14.0, GridTheme.fs(10), gl, Color(GridTheme.TEXT, 0.5))
+		return
 	for k in 4:
 		var c: Array = cells[k]; var o := r3.position + Vector2(12.0 + iw * k, 14.0)
 		_text(_semi(), 11, o + Vector2(0, 8), str(c[0]), Color(GridTheme.TEXT, 0.75)); _text(_mono(), 26, o + Vector2(0, 42), str(c[1]), _good(bool(c[3])))
