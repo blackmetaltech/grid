@@ -52,7 +52,7 @@ static func conditions(app: CbApp, li: Dictionary) -> Array:
 		var t := _th_text(str(k), float(th[k]))
 		if str(k) in ["vLoadMinV", "loadBusMinPu"] and win != "": t += ", " + win
 		out.append(t)
-	if th.has("marginStar3M"): out.append(T("WO_COND_CLEARANCE"))   # route jobs: the survey refuses a span that sags too low, so clearance is a build rule the player must know up front
+	if th.has("marginStar3M"): out.append(T("WO_COND_CLEARANCE"))   # route jobs: a span that sags too low trips at the peak (the survey accepts it: 11-28b B35), so clearance is a build rule the player must know up front
 	if li.get("fogBlock") != null: out.append(T("WO_COND_FOG") % str(li.get("fogTime", "")))   # L29: the fog rolls in at a set time and every insulator is tested
 	var rules = app.b.g.get("rules", {})
 	if rules is Dictionary and rules.get("cableCutBlock") != null:   # L30: the anchor cuts the cable at a set time and the island has to ride on its battery to the end of the run
