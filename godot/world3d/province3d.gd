@@ -1490,10 +1490,10 @@ func reset_camera() -> void:
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
-## What each job of chapters 5 and 6 is about, as the engine's bus ids (the brief names it): the towns on L14's line, L15's receiving end, L16's chord (the line that overloads),
+## What each job of chapters 5 and 6 is about, as the engine's bus ids (the brief names it): the towns on L14's line, L15's receiving end, L16's loop B3-B4-B5 (the loads the chord feeds),
 ## L17's city bus, L18's load bus, the plant bus of L19-L22. The default view frames them; every other generated province (the finale, the prologue) keeps its own.
-const JOB_SUBJECT := {"L14": ["B4", "B5", "B6"], "L15": ["B2"], "L16": ["B1", "B4"], "L17": ["B3"], "L18": ["B2"], "L19": ["B1"], "L20": ["B1"], "L21": ["B1"], "L22": ["B1"]}
-const JOB_PLANT_SCALE := 2.5   # the plants of those jobs are drawn 2.5 times larger: at play distance a true-size plant is a toy on a 300 m square
+const JOB_SUBJECT := {"L14": ["B4", "B5", "B6"], "L15": ["B2"], "L16": ["B3", "B4", "B5"], "L17": ["B3"], "L18": ["B2"], "L19": ["B1"], "L20": ["B1"], "L21": ["B1"], "L22": ["B1"]}
+const JOB_PLANT_SCALE := 1.5   # the plants of those jobs are drawn 1.5 times larger (2.5 dwarfed the towns, Sigrid 11-28): at play distance a true-size plant is a toy on a 300 m square
 
 func _job_plant_scale() -> float: return JOB_PLANT_SCALE if field is GenField and JOB_SUBJECT.has(str(model.get("level", ""))) else 1.0
 
