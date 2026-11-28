@@ -22,6 +22,7 @@ var look3d = null              # the 3D layer in use: Province3D (grid levels), 
 var prov3d = null              # the province layer (look3d points at it unless a bay level is shown)
 var bay3d = null               # Bay3D: the island bay, the title backdrop and the bench levels (DECISIONS 23)
 var bench3d = null             # Bench3D: chapter 2's bench jobs (L04 the alternator, L06 the town line)
+var career3d := false          # the Career's district (world3d/district3d.gd) is up: the world layer is put away and none of the 3D scenes under it may come back until it leaves
 var stage3d = null             # Stage3D: chapter 4's jobs (L10 the street, L11 the estate, L12 Over the Hill, L13 the generator hall)
 var _drag_btn := 0
 var sld_on := true   ## LOOK2: the single-line overlay over the 3D lines (L toggles)
@@ -106,6 +107,7 @@ func refresh(b) -> void:
 
 func set_model(m: Dictionary) -> void:
 	model = m
+	if career3d: return
 	var bay_on: bool = bay3d != null and str(m.kind) == "bench" and Bay3D.LEVELS.has(str(m.level)) and OS.get_environment("CB_LOOK") != "1"
 	var bench_on: bool = bench3d != null and str(m.kind) == "bench" and Bench3D.LEVELS.has(str(m.level)) and not title_mode and OS.get_environment("CB_LOOK") != "1"
 	var stage_on: bool = stage3d != null and Stage3D.STAGES.has(str(m.level)) and not title_mode and OS.get_environment("CB_LOOK") != "1" and CbLayout.kind != "phone"   # chapter 4 (a phone keeps the classic stage)

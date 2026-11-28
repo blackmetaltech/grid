@@ -53,6 +53,10 @@ var stat_box: HBoxContainer
 var stats := {}
 var _bg: ColorRect
 var _busy := false
+var district: District3D = null   ## the 3D look: the district behind the map (main.gd builds it; a phone, the classic look and the tests have none)
+var _hidden: Array = []           ## what the 3D district covered while this screen is open: [Control or Node3D], shown again on leaving
+var _wv_was := true
+var _cam_spec_done := false
 
 func T(key: String) -> String: return TranslationServer.translate(key)
 
@@ -61,7 +65,51 @@ func _init() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_RESIZED and app != null and is_instance_valid(app) and _bg != null: _bleed()
+	if what == NOTIFICATION_RESIZED and app != null and is_instance_valid(app) and _bg != null:
+		_bleed()
+		if district != null: district.canvas_size = size; _fit_district.call_deferred()
+
+func _exit_tree() -> void: _leave_3d()
+
+## The district stands behind the map: the world layer, the title and the other 3D scenes are put away while this screen is open, the district is shown, and the
+## screen's own ground is clear glass (the strip, the info box and the drawer stay glass panels over the world).
+func _enter_3d() -> void:
+	var dn = app.get("district3d")
+	if not (dn is District3D) or CbLayout.kind == "phone" or not CareerKit.glass(): return
+	district = dn
+	var wv = app.get("grid_world")
+	if wv != null:
+		for n in [wv.prov3d, wv.bay3d, wv.bench3d, wv.stage3d]:
+			if n != null and n.visible: _hidden.append(n); n.visible = false; if n.cam != null: n.cam.current = false
+		_wv_was = wv.visible; wv.visible = false; wv.career3d = true
+	for n in app.root.get_children():   # the title and any other full-screen sheet under this one
+		if n != self and n is Control and n.has_meta("cb_modal") and n.visible: _hidden.append(n); n.visible = false
+	district.canvas_size = size; district.visible = true
+	_bg.color = Color(0, 0, 0, 0)
+
+func _leave_3d() -> void:
+	if district == null: return
+	var dn := district; district = null
+	if is_instance_valid(dn):
+		dn.visible = false
+		if dn.cam != null: dn.cam.current = false
+	for n in _hidden: if is_instance_valid(n): n.visible = true
+	_hidden.clear()
+	if app != null and is_instance_valid(app):
+		var wv = app.get("grid_world")
+		if wv != null and is_instance_valid(wv):
+			wv.career3d = false; wv.visible = _wv_was
+			if not wv.model.is_empty(): wv.set_model(wv.model)
+
+func _fit_district() -> void:
+	if district != null and is_instance_valid(district) and map != null and is_instance_valid(map): district.fit_to(map.get_global_rect())
+
+## The district follows the screen's data: the colour mode, the incidents, the structure.
+func _district_sync() -> void:
+	if district == null: return
+	district.set_district(d, colour, map.hot)
+	_fit_district()
+	if not _cam_spec_done and OS.get_environment("CB_CAM") != "": _cam_spec_done = true; district.set_camera_spec(OS.get_environment("CB_CAM"))   # desk QA: a camera for the screenshot
 
 func _bleed() -> void:
 	var ins: Vector4 = app.inset
@@ -77,6 +125,7 @@ func build() -> void:
 	theme = GridTheme.theme()
 	compact = PaperKit.compact(app)
 	_bg = ColorRect.new(); _bg.color = GridTheme.NIGHT; _bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); _bg.mouse_filter = Control.MOUSE_FILTER_STOP; add_child(_bg); _bleed()
+	_enter_3d()
 	var m := MarginContainer.new(); m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	for k in ["left", "right", "top", "bottom"]: m.add_theme_constant_override("margin_" + k, 6 if compact else 12)
 	add_child(m)
@@ -84,9 +133,12 @@ func build() -> void:
 	col.add_child(_build_strip())
 	var body := HBoxContainer.new(); body.add_theme_constant_override("separation", 6 if compact else 10); body.size_flags_vertical = Control.SIZE_EXPAND_FILL; col.add_child(body)
 	var left := VBoxContainer.new(); left.add_theme_constant_override("separation", 4 if compact else 8); left.size_flags_horizontal = Control.SIZE_EXPAND_FILL; body.add_child(left)
-	tool_row = _build_tools(); left.add_child(tool_row)
+	tool_row = _build_tools()
+	if district != null:   # over the world the row is a glass strip, so its words read on the fields
+		var tp := PanelContainer.new(); tp.name = "ToolsGlass"; tp.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.62, 4, 8.0)); tp.add_child(tool_row); left.add_child(tp)
+	else: left.add_child(tool_row)
 	map = CareerMap.new(); map.compact = compact; map.size_flags_vertical = Control.SIZE_EXPAND_FILL; map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	map.picked.connect(_on_pick); left.add_child(map)
+	map.picked.connect(_on_pick); map.d3 = district; left.add_child(map)
 	var ip := PanelContainer.new(); ip.name = "InfoPanel"; ip.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.72, 4, 14.0) if CareerKit.glass() else CareerKit.sb(GridTheme.PAPER, Color(GridTheme.PAPER_INK, 0.35), 1, 4, 14.0, 8.0)); ip.custom_minimum_size.y = 72.0 if compact else 104.0; left.add_child(ip)   # a fixed height: the map must not jump when a pick changes the text
 	info_box = VBoxContainer.new(); info_box.add_theme_constant_override("separation", 2); ip.add_child(info_box)
 	drawer = PanelContainer.new(); drawer.name = "Drawer"; drawer.add_theme_stylebox_override("panel", GridTheme.glass_sb(0.72, 4, 10.0) if CareerKit.glass() else CareerKit.sb(Color("#4A3524"), Color("#2C1E12"), 3, 10, 10.0, 10.0))   # 1.9: a clipboard of paper cards
@@ -159,7 +211,7 @@ func _tools_refresh() -> void:
 	var chips: HBoxContainer = tool_row.get_meta("chips")
 	_clear(chips)
 	for o in [["load", T("CAR_BY_LOAD")], ["health", T("CAR_BY_HEALTH")]]:
-		var c := CareerKit.chip(str(o[1]), colour == str(o[0]), func(): colour = str(o[0]); map.mode = colour; _tools_refresh(); map.queue_redraw(), 14); c.name = "Colour_" + str(o[0]); chips.add_child(c)
+		var c := CareerKit.chip(str(o[1]), colour == str(o[0]), func(): colour = str(o[0]); map.mode = colour; _district_sync(); _tools_refresh(); map.queue_redraw(), 14); c.name = "Colour_" + str(o[0]); chips.add_child(c)
 	var leg: Label = tool_row.get_node("Legend")
 	leg.text = T("CAR_LEG_LOAD") if colour == "load" else T("CAR_LEG_HEALTH")
 	leg.text += "  " + T("CAR_LEG_BADGES")
@@ -242,6 +294,7 @@ func refresh() -> void:
 	(stats.met as Label).text = T("CAR_MET_VAL") % int(d.yearsMet)
 	(stats.score as Label).text = CareerKit.num(float(d.score), 0)
 	map.mode = colour; map.sel = sel; map.hot = (d.incidents as Array).map(func(x): return str(x.feederId)) if inc else []
+	_district_sync()
 	map.set_data(d)
 	_tools_refresh(); _build_info(); _build_tabs(); _build_drawer()
 

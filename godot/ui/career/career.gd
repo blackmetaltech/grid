@@ -230,7 +230,7 @@ static func jobs_row(app: CbApp, host: Control, compact: bool) -> Button:
 	mid.add_child(PaperKit.lbl(T("CAR_TITLE"), 26, "title", PaperKit.INK))
 	var br := PaperKit.lbl(T("CAR_JOBS_SAVED") % [int(sv.year), int(sv.quarter)] if not sv.is_empty() else T("CAR_JOBS_BRIEF"), 15, "sans", Color(_ink(), 0.72), true)
 	br.max_lines_visible = 1 if compact else 2; br.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS; mid.add_child(br)
-	hb.add_child(Jobs.classic_chip())   # the Career keeps its classic look for now
+	if app.get("district3d") == null or CbLayout.kind == "phone": hb.add_child(Jobs.classic_chip())   # the district is drawn in 3D except on a phone and in the classic look
 	return b
 
 ## QA / desk hook, CB_CAREER=<what>: "1" opens the entry docket, "new[:seed[:charter]]" starts a career, "weekly" this week's district, "choose" the charter sheet, "continue" carries on from the saved code, "code:<C1/...>" loads a code.

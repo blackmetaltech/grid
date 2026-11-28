@@ -2,6 +2,7 @@ extends CbApp
 ## GRID front-end. The world (godot/world: diorama, lights, flow ribbons, day-night) comes from the engine queries; drawers arrive in M2.4+.
 ## pad, touch, smoke) comes from CbApp in addons/cobanana. The real world and drawers arrive in M2.
 var grid_world: WorldView
+var district3d: District3D = null   ## the Career's district in 3D (ui/career/career_screen.gd takes it over while the screen is open)
 var chrome: GridChrome
 var sound: GridSound   ## GridAudio wired to the screen (ui/grid_sound.gd)
 
@@ -29,6 +30,7 @@ func game_build_world(parent: Node) -> Node:
 		var b3 := Bay3D.new(); b3.name = "Bay3D"; b3.visible = false; add_child(b3); grid_world.bay3d = b3   # DECISIONS 23: the island bay under the title and L01 to L03
 		var bn := Bench3D.new(); bn.name = "Bench3D"; bn.visible = false; add_child(bn); grid_world.bench3d = bn   # chapter 2's bench jobs L04 and L06 in 3D
 		var sg3 := Stage3D.new(); sg3.name = "Stage3D"; sg3.visible = false; add_child(sg3); grid_world.stage3d = sg3   # chapter 4's jobs L10 to L13 in 3D
+		var dn := District3D.new(); dn.name = "District3D"; dn.visible = false; add_child(dn); district3d = dn   # the Career's district at night
 	return grid_world
 
 ## The prologue's cascade in bullet time: every new trip slows the clock 4x for 3.5 s and flashes the world, so the player watches each line go.
@@ -96,6 +98,7 @@ func game_camera(spec: String) -> void:
 ## The 3D look keeps moving while paused (water, clouds, smoke): the 30 fps idle cap waits 2 min, for a player who has left, not one reading a decision (1.17).
 func game_idle_ms() -> int:
 	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible: return 120000
+	if district3d != null and district3d.visible: return 120000   # the Career's district moves too
 	return 20000
 
 func game_unhandled_key(e: InputEventKey) -> bool:
