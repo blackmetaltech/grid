@@ -38,6 +38,7 @@ func _init() -> void:
 
 ## Re-read the engine and update every meter.
 func refresh() -> void:
+	if clock != null: clock.visible = not ShiftReport.holding()   # 1128c art review 2: the dial read 08:00 under the held night; the report states the hour
 	if app == null or not app.started: return
 	var c = app.b.q("clock")
 	if c is Dictionary and not c.is_empty():

@@ -1088,6 +1088,9 @@ func _build_plant(u: Dictionary) -> void:
 		# the lathe's winding is not checked: both faces; weathered darker toward the foot
 		for k in 2:
 			var tw := MeshInstance3D.new(); tw.mesh = tower; tw.material_override = tconc; tw.position = Vector3(hall_l * 0.5 + 70.0 + 95.0 * k, 0, 40.0 - 20.0 * k); n.add_child(tw)
+			var throat := MeshInstance3D.new(); var thm := CylinderMesh.new(); thm.top_radius = 26.5; thm.bottom_radius = 26.5; thm.height = 0.5; thm.radial_segments = 24; throat.mesh = thm   # 1128c art review 2: from above the hollow read as a black void
+			var thmat := StandardMaterial3D.new(); thmat.albedo_color = Color(0.62, 0.64, 0.68); thmat.roughness = 1.0; thmat.emission_enabled = true; thmat.emission = Color(0.20, 0.21, 0.24); throat.material_override = thmat
+			throat.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; throat.position = tw.position + Vector3(0, 104.0, 0); n.add_child(throat)   # a steam-filled throat
 			if quality != "low":
 				var steam := _smoke(Vector3(tw.position.x, 118.0, tw.position.z)); steam.name = "Steam%d" % k; steam.amount = 30
 				var sm2 := steam.process_material as ParticleProcessMaterial; sm2.scale_min = 40.0; sm2.scale_max = 60.0; sm2.initial_velocity_min = 3.0; sm2.initial_velocity_max = 5.0
