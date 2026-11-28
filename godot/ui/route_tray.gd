@@ -124,11 +124,30 @@ func refresh() -> void:
 			kit.insulator = "pin"; kit.coast = "pin"
 			var pr := player_routes()
 			if not pr.is_empty() and pr[0].request.has("insulatorId"): kit.insulator = str(pr[0].request.insulatorId); kit.coast = str(pr[0].request.get("coastInsulatorId", kit.insulator))
+	_sync_kit_from_line()
 	_cost_cache = {}
 	_read_yards(w); _build_items()
 	visible = true
 	if mode != "": _show_pegs()
 	layout(); _layout_items(); queue_redraw()
+
+var _kit_sig := ""
+## 11-28b (B36): after Retry the line still stands, but the tray showed the default kit (wood, pin, 60 m) and the next tile press re-strung the
+## whole line from those defaults. When the player's lines change underneath the tray (a kept design comes back), the tray takes their kit.
+func _sync_kit_from_line() -> void:
+	var pr := player_routes()
+	var sig := ""
+	for r in pr: sig += str(r.branchId) + ","
+	if sig == _kit_sig: return
+	_kit_sig = sig
+	if pr.is_empty(): return
+	var req: Dictionary = pr[0].request
+	kit.family = str(req.get("familyId", kit.family))
+	kit.crossing = str(req.crossingFamilyId) if req.get("crossingFamilyId") != null else "none"
+	kit.span = int(float(req.get("spanM", kit.span)))
+	kit.conductor = str(req.get("conductorId", "acsr-" + str(kit.conductor))).trim_prefix("acsr-")
+	kit.kv = float(req.get("kv", kit.kv))
+	if kit.has("insulator") and req.has("insulatorId"): kit.insulator = str(req.insulatorId); kit.coast = str(req.get("coastInsulatorId", kit.insulator))
 
 func _clear_all() -> void:
 	mode = ""; armed_xf = ""; armed_sea = ""; armed_isl = ""; sea_from = ""; from_id = ""; waypoints = []; hover_m = Vector2(NAN, NAN); hover_yard = ""; cursor_on = false; target_hi = -1; hover = -1

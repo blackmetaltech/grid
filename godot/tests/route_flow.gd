@@ -70,6 +70,9 @@ func _initialize() -> void:
 	var fin := tray.press_yard("B3"); sync.call()
 	T.check(fin.get("ok", false), "yard click B3 builds the line: %s" % str(fin.get("message", fin)))
 	T.check(T.b.g.routes.size() == 1 and (T.b.q("world").routes as Array).size() == 1 and spans_before == 0, "the world has exactly one route")
+	var kit_built: Dictionary = tray.kit.duplicate()
+	tray.kit = {"family": "wood-9", "crossing": "none", "span": 60, "conductor": "weasel", "kv": 0.42}; tray._kit_sig = ""; tray.refresh()   # what Retry left: the default kit over a standing line
+	T.check(tray.kit.family == "tubular-13" and tray.kit.crossing == "tubular-13" and int(tray.kit.span) == 90 and tray.kit.conductor == "rabbit" and is_equal_approx(float(tray.kit.kv), 11.0), "after Retry the tray shows the standing line's kit, not the defaults (B36: %s, built with %s)" % [str(tray.kit), str(kit_built)])
 	var rec: Dictionary = T.b.g.routes[0]
 	var want: Dictionary = T.b.q("routePreview", ["B2", "B3", "rabbit", "tubular-13", "tubular-13", 90.0, [[1525.0, 425.0], [2125.0, 425.0], [3125.0, 725.0]]])
 	T.near(float(T.b.g.budget.spent) - spent0, float(want.cost.total), 0.011, "the budget spent is the engine's route cost (%f)" % (float(T.b.g.budget.spent) - spent0))

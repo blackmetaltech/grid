@@ -39,7 +39,7 @@ func _initialize() -> void:
 	var conds: Array = WorkOrder.conditions(fake, li)
 	T.check(conds.any(func(c): return str(c) == "Survive the sea fog at 04:00 (salt on the insulators)"), "work order pass line for the fog (%s)" % str(conds))
 	var lamps: Array = WorkOrder.lamp_texts(li)
-	T.check(str(lamps[2]).contains("every support by the sea ≥ 372 mm creepage"), "third lamp names the creepage target: %s" % str(lamps[2]))
+	T.check(str(lamps[2]).contains("every support near the sea (pollution class 2 or worse) ≥ 372 mm creepage"), "third lamp names the creepage target: %s" % str(lamps[2]))
 	# ---- survey the naive line with pins ----
 	tray.select_kit("family", "pcc-11"); tray.select_kit("conductor", "rabbit"); tray.select_kit("span", "90")
 	if float(tray.kit.kv) < 1.0: tray.step_kv(1)
