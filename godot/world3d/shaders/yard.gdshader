@@ -15,7 +15,7 @@ void fragment() {
 	float px = max(fwidth(p.x), 1e-3);
 	float joint = 1.0 - smoothstep(0.06, 0.06 + px * 1.5, min(min(f.x, slab - f.x), min(f.y, slab - f.y)));
 	joint *= 1.0 - smoothstep(0.3, 1.2, px);
-	vec3 col = vec3(0.47, 0.46, 0.43) * (0.9 + 0.18 * h21(c));
+	vec3 col = vec3(0.36, 0.355, 0.335) * (0.9 + 0.18 * h21(c));
 	col *= 0.85 + 0.25 * vn(p / 3.0);
 	col *= 1.0 - 0.35 * smoothstep(0.62, 0.8, vn(p / 9.0 + 7.0));            // oil and damp
 	float track = smoothstep(0.75, 0.95, abs(sin(p.x * 0.9 + vn(p * 0.05) * 3.0))) * smoothstep(0.4, 0.7, vn(p / 40.0));

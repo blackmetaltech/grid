@@ -75,10 +75,11 @@ static func tree_ok(s: Stage3D, x: float, z: float) -> float:
 		"l24":
 			var w := absf(z - _zc24(x))
 			if w < 60.0 or absf(x) > 190.0: return 0.0
+			if z > _zc24(x) + 50.0: return 0.0   # 1128c manager: the camera side stays clear (black pines blocked the report frame)
 			return clampf(0.05 + 0.4 * smoothstep(60.0, 100.0, w) - 0.5 * smoothstep(36.0, 52.0, s.ground(x, z)), 0.0, 0.4)
 		"l25":
 			if Rect2(-20.0, -20.0, 300.0, 40.0).has_point(p): return 0.0
-			return 0.5 if z < -22.0 else 0.15
+			return 0.5 if z < -22.0 else (0.0 if z > 30.0 else 0.08)   # 1128c manager: no foreground pines on the camera side
 		"l26":
 			if Rect2(-160.0, -80.0, 260.0, 160.0).has_point(p) or CITY.grow(14.0).has_point(p) or Rect2(100.0, -30.0, 120.0, 40.0).has_point(p) or Vector2(x - 100.0, z + 92.0).length() < 52.0: return 0.0
 			return 0.45 if z < -86.0 else 0.12
@@ -88,9 +89,9 @@ static func tree_ok(s: Stage3D, x: float, z: float) -> float:
 
 static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist m]
 	match scn:
-		"l24": return [Vector3(-22.0, 0.0, 6.0), -22.0, 21.0, 138.0]   # 11-28 (Sigrid): the four relays were specks under the chart; closer, centred on them
+		"l24": return [Vector3(-22.0, 0.0, 2.0), -22.0, 27.0, 100.0]   # 1128c manager: the relays were specks; closer and higher   # 11-28 (Sigrid): the four relays were specks under the chart; closer, centred on them
 		"l27": return [Vector3(0.0, 0.0, -24.0), 16.0, 25.0, 140.0]   # the three units come down from under the exam card
-		"l25": return [Vector3(48.0, 0.0, 2.0), -34.0, 13.0, 125.0]
+		"l25": return [Vector3(30.0, 0.0, 0.0), -34.0, 22.0, 100.0]   # 1128c manager: the generator, its bay and the line large
 		"l26": return [Vector3(35.0, 0.0, -10.0), -6.0, 21.0, 300.0]
 	return [Vector3(-6.0, 0.0, 26.0), 16.0, 31.0, 175.0]   # 1128c: higher, so the transformers show over the board, and back, so the lit estate is in the frame
 
@@ -199,7 +200,7 @@ static func _site_lights(s: Stage3D) -> void:
 		if not s.anchors.has(k): continue
 		var a: Vector3 = s.anchors[k]
 		var m := Vector3(a.x + 7.0, 0.0, a.z + 7.0); m.y = s.ground(m.x, m.z)
-		Kit3D.flood_mast(s._root, m, Vector3(a.x, s.ground(a.x, a.z), a.z), s.quality, 11.0)
+		Kit3D.flood_mast(s._root, m, Vector3(a.x, s.ground(a.x, a.z), a.z), s.quality, 11.0, "site", 9.0 if s.scn == "l26" else 16.0)
 
 static func _build_board(s: Stage3D) -> void:
 	var d: Dictionary = s.d7
@@ -442,7 +443,7 @@ static func _build_l26(s: Stage3D) -> void:
 	for k in order.size():
 		var tm := s._emit_mat(PCOL[order[k]], 0.2)
 		s._box(cr, Vector3(-10.0 + 4.0 * float(k), 3.6, -6.9), Vector3(3.2, 2.2, 0.12), tm, "Tile_" + order[k]); d.tiles[order[k]] = tm
-	var rl := OmniLight3D.new(); rl.position = Vector3(0, 5.0, 2.0); rl.omni_range = 26.0; rl.light_energy = 2.4; rl.light_color = Color(0.9, 0.95, 1.0)
+	var rl := OmniLight3D.new(); rl.position = Vector3(0, 5.0, 2.0); rl.omni_range = 26.0; rl.light_energy = 1.2; rl.light_color = Color(0.9, 0.95, 1.0)
 	if s.quality != "low": cr.add_child(rl)
 	d["plants"] = {}
 	# the four thermal plants in a row behind it, each a house, stacks and a steam puff

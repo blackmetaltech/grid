@@ -103,6 +103,8 @@ static func open(app: CbApp) -> bool:
 ## 1128c: the report covers the right of the screen; slide the world so what was in the middle of the view (the job's subject) sits
 ## in the middle of the part the sheet leaves free, and let the 3D place frame its own consequence when it knows one (report_focus).
 static func _frame_for_report(app: CbApp, w: float) -> void:
+	var chm = app.get("chrome")
+	if chm != null and chm.get("breaker") != null: (chm.breaker as CanvasItem).visible = false
 	var wv = app.get("grid_world")
 	if wv == null: return
 	var l3 = wv.get("look3d")

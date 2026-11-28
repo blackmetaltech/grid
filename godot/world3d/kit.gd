@@ -52,7 +52,7 @@ static func _cyl(parent: Node3D, a: Vector3, h: float, r: float, m: Material) ->
 	mi.mesh = cm; mi.material_override = m; mi.position = a + Vector3(0, h * 0.5, 0); parent.add_child(mi); return mi
 
 ## A floodlight mast `h` m tall at `at` (ground level), its heads aimed at `aim` (a ground point). Sodium-white yard light.
-static func flood_mast(parent: Node3D, at: Vector3, aim: Vector3, quality: String, h := 14.0, group := "site") -> Node3D:
+static func flood_mast(parent: Node3D, at: Vector3, aim: Vector3, quality: String, h := 14.0, group := "site", energy := 55.0) -> Node3D:
 	var n := Node3D.new(); n.name = "FloodMast"; n.position = at; parent.add_child(n)
 	_cyl(n, Vector3.ZERO, h, 0.18, _steel())
 	_box(n, Vector3(0, h, 0), Vector3(1.6, 0.12, 0.12), _steel())
@@ -70,7 +70,7 @@ static func flood_mast(parent: Node3D, at: Vector3, aim: Vector3, quality: Strin
 		sp.spot_angle_attenuation = 1.4; sp.shadow_enabled = false; sp.light_specular = 0.4
 		n.add_child(sp); sp.position = Vector3(0, h - 0.3, 0)
 		if dir.length() > 0.1: sp.look_at_from_position(sp.position, sp.position + dir.normalized(), Vector3.UP)
-	_reg(sp, lm, 55.0, 3.0, group)   # Godot falls off as 1/d: 70 gives a lit yard 30-50 m out
+	_reg(sp, lm, energy, 3.0, group)   # Godot falls off as 1/d: 70 gives a lit yard 30-50 m out
 	return n
 
 ## A street lamp `h` m tall at `at` with its arm toward `yaw` (radians); a warm pool on the ground below.

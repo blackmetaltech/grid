@@ -821,7 +821,7 @@ func house_rect(i: int) -> Rect2:
 # Camera and motion
 # --------------------------------------------------------------------------------------------------------------------
 ## 1128c: the report frames the consequence: for a stage that names one, the camera moves to it (keeping its angle).
-const REPORT_FOCUS := {"l23": ["feeder", "estate"], "l27": ["board", "estate"], "l24": ["fault"], "l25": ["fault", "board"]}
+const REPORT_FOCUS := {"l23": ["feeder", "estate"], "l27": ["board", "estate"], "l24": ["R1", "R2", "R3", "R4"], "l25": ["gen", "breaker", "fault"], "l26": ["corridor", "control"]}
 func report_focus() -> bool:
 	var keys: Array = REPORT_FOCUS.get(scn, [])
 	var pts: Array = []

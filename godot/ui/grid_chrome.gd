@@ -253,6 +253,7 @@ func refresh() -> void:
 	if ch6 != null: ch6.refresh()
 	if chf != null: chf.refresh()
 	instruments.refresh(); breaker.sync()
+	breaker.visible = not ShiftReport.is_open()   # 1128c (manager): the lever sat over the foot of the report; the report has its own Retry
 	if tray != null: tray.refresh(); rtray.refresh(); gtray.refresh(); tags.refresh()
 	_poll_coach(act)
 	_home_drawer()

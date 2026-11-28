@@ -12,19 +12,19 @@ static func grade(env: Environment, moon: DirectionalLight3D, n: float, d: float
 	# moon: cool, side-lit, about a quarter of the sun; shadows on the high tier
 	if moon != null:
 		moon.light_color = Color(0.58, 0.70, 1.0)
-		moon.light_energy = 0.6 * nk   # 1128c sweep 1: 0.42 left the island and P0 murky
+		moon.light_energy = 0.7 * nk   # 1128c sweep 1: 0.42 left the island and P0 murky
 		moon.light_specular = 0.6
 		moon.visible = moon.light_energy > 0.01
 		moon.shadow_blur = 2.0
 	# ambient: deep blue at night, so shadow sides read as night and not as mud
-	var amb_night := Color(0.11, 0.16, 0.30)
+	var amb_night := Color(0.13, 0.19, 0.34)   # 1128c manager: outside the pools the land went black; a moonlit blue fill keeps its form
 	if env.ambient_light_source == Environment.AMBIENT_SOURCE_COLOR:
 		env.ambient_light_color = env.ambient_light_color.lerp(amb_night, nk)
-		env.ambient_light_energy = lerpf(env.ambient_light_energy, 0.55, nk)
+		env.ambient_light_energy = lerpf(env.ambient_light_energy, 0.95, nk)
 	else:
 		env.ambient_light_sky_contribution = lerpf(env.ambient_light_sky_contribution, 0.25, nk)
 		env.ambient_light_color = env.ambient_light_color.lerp(amb_night, nk)
-		env.ambient_light_energy = lerpf(env.ambient_light_energy, 0.6, nk)
+		env.ambient_light_energy = lerpf(env.ambient_light_energy, 0.95, nk)
 	env.tonemap_exposure = lerpf(lerpf(1.0, 0.86, day), 1.25, nk) * lerpf(1.0, 1.05, d * (1.0 - n))   # noon a touch under: no pastel wash
 	env.tonemap_white = lerpf(8.0, 6.0, nk)
 	# colour: some bite by day, desaturated and a little contrasty at night (warm lights still read warm against it)

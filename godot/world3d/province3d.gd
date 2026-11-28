@@ -618,6 +618,17 @@ func _build_layout() -> void:
 	var garden: Array = []   # plots left as gardens (trees)
 	if gen:
 		places = tg.places
+		var pads: Array = []   # 1128c (audit: houses stood inside the WO-22 plant yard)
+		for u in model.get("units", []):
+			if str(u.kind) in ["coal", "gas", "biomass", "nuclear", "diesel"]: pads.append(_plant_centre(u))
+		if not pads.is_empty():
+			var keep: Array = []
+			var rr := 200.0 * _job_plant_scale()
+			for pl in places:
+				var ok := true
+				for c in pads: if Vector2(float(pl[0]) - c.x, float(pl[1]) - c.z).length() < rr: ok = false; break
+				if ok: keep.append(pl)
+			places = keep
 		var sm := MeshInstance3D.new(); sm.name = "Streets"; sm.mesh = TownGen.street_mesh(tg.streets, ground)
 		_street_mat = ShaderMaterial.new(); _street_mat.shader = load("res://world3d/shaders/street.gdshader"); sm.material_override = _street_mat
 		sm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_infra.add_child(sm)
@@ -1016,6 +1027,21 @@ func _build_unit(u: Dictionary) -> void:
 ## 1.19: a thermal station where the engine has one (the prologue's two pockets, the finale's plants). Coal and nuclear: a boiler or reactor
 ## house, a long turbine hall, a tall chimney and two cooling towers; gas, diesel and biomass: a turbine hall with short stacks. Windows and
 ## the towers' steam follow the unit's `online`; the chimney carries red warning lights.
+## 1128c: where a plant's yard centre lands (the same rule _build_plant uses), so the town generator's houses stay off the pad.
+func _plant_centre(u: Dictionary) -> Vector3:
+	var p := tile_to_world(u.pos as Vector2 + Vector2(0.5, 0.5))
+	var big := str(u.kind) == "coal" or str(u.kind) == "nuclear"
+	var away := Vector2.ZERO   # behind the yard, away from the lines that leave it, so no conductor runs into a tower
+	for l in model.lines:
+		var pts: Array = l.pts
+		if pts.size() < 2: continue
+		if (pts[0] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[1] as Vector2) - (pts[0] as Vector2)).normalized()
+		elif (pts[pts.size() - 1] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[pts.size() - 2] as Vector2) - (pts[pts.size() - 1] as Vector2)).normalized()
+	away = away.normalized() if away.length() > 0.01 else Vector2(-0.8, -0.6)
+	var ps := _job_plant_scale()
+	var off := Vector3(away.x, 0.0, away.y) * 260.0 * (1.0 + 0.6 * (ps - 1.0))
+	return Vector3(p.x + off.x, 0.0, p.z + off.z)
+
 func _build_plant(u: Dictionary) -> void:
 	var p := tile_to_world(u.pos as Vector2 + Vector2(0.5, 0.5))
 	var big := str(u.kind) == "coal" or str(u.kind) == "nuclear"
@@ -1066,8 +1092,8 @@ func _build_plant(u: Dictionary) -> void:
 				var sm2 := steam.process_material as ParticleProcessMaterial; sm2.scale_min = 40.0; sm2.scale_max = 60.0; sm2.initial_velocity_min = 3.0; sm2.initial_velocity_max = 5.0
 				var g := Gradient.new(); g.set_color(0, Color(0.8, 0.82, 0.86, 0.6)); g.set_color(1, Color(0.8, 0.82, 0.86, 0.0)); var gt := GradientTexture1D.new(); gt.gradient = g; sm2.color_ramp = gt
 				win.add_child(steam)   # the steam stops with the unit
-		var heap := MeshInstance3D.new(); var hc := CylinderMesh.new(); hc.top_radius = 6.0; hc.bottom_radius = 40.0; hc.height = 14.0; heap.mesh = hc
-		var coal := StandardMaterial3D.new(); coal.albedo_color = Color(0.08, 0.08, 0.09); coal.roughness = 1.0; heap.material_override = coal; heap.position = Vector3(-40, 7, -75); n.add_child(heap)
+		var heap := MeshInstance3D.new(); var hc := CylinderMesh.new(); hc.top_radius = 3.0; hc.bottom_radius = 36.0; hc.height = 20.0; hc.radial_segments = 24; heap.mesh = hc   # 1128c: a pile, not a flat black disc on the new yard
+		var coal := StandardMaterial3D.new(); coal.albedo_color = Color(0.16, 0.15, 0.15); coal.roughness = 0.85; coal.metallic = 0.15; heap.material_override = coal; heap.position = Vector3(-40, 10, -75); n.add_child(heap)
 	else:
 		for k in 2:   # heat-recovery boilers and their stacks
 			var hr := MeshInstance3D.new(); var hb := BoxMesh.new(); hb.size = Vector3(18, 30, 26); hr.mesh = hb; hr.material_override = clad; hr.position = Vector3(hall_l * 0.5 + 14.0, 15, -18.0 + 36.0 * k); n.add_child(hr)
