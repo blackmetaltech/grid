@@ -41,29 +41,63 @@ static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uvx := 0.0
 static func _commit(st: SurfaceTool) -> ArrayMesh:
 	st.index(); return st.commit()
 
-## A conifer 1 m tall (instances scale it): trunk and three stacked cones.
+## A conifer 1 m tall (instances scale it): a trunk and six drooping tiers of branches with ragged tips. Audit 1128c: the three
+## smooth cones read as toy cut-outs; normals point out and up from the trunk (not per facet) so a crown shades round, and the
+## vertex colour is darker inside and toward the foot of each tier, which reads as self-shadow between the branch layers.
 static func conifer() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_cyl(st, Vector3.ZERO, Vector3(0, 0.25, 0), 0.025, 0.02, 5, Color(0.25, 0.17, 0.1))
-	var g := Color(0.13, 0.24, 0.12)
-	_cyl(st, Vector3(0, 0.15, 0), Vector3(0, 0.62, 0), 0.24, 0.0, 7, g * 0.9, true)
-	_cyl(st, Vector3(0, 0.38, 0), Vector3(0, 0.84, 0), 0.18, 0.0, 7, g, true)
-	_cyl(st, Vector3(0, 0.6, 0), Vector3(0, 1.0, 0), 0.12, 0.0, 7, g * 1.1, true)
-	return _commit(st)
+	_cyl(st, Vector3.ZERO, Vector3(0, 0.3, 0), 0.03, 0.02, 6, Color(0.22, 0.15, 0.10))
+	var tiers := 6; var seg := 12
+	for t in tiers:
+		var f := float(t) / float(tiers - 1)             # 0 bottom .. 1 top
+		var y0 := lerpf(0.12, 0.70, f)                   # tier skirt height
+		var y1 := y0 + lerpf(0.30, 0.30, f)              # tier top (on the trunk)
+		var r := lerpf(0.30, 0.08, f)
+		var droop := lerpf(0.06, 0.03, f)
+		var g := Color(0.11, 0.21, 0.11).lerp(Color(0.15, 0.27, 0.13), f)
+		var top := Vector3(0, y1, 0)
+		var ring := []
+		for k in seg:
+			var th := TAU * (float(k) + 0.37 * float(t)) / float(seg)
+			var rr := r * (1.0 if k % 2 == 0 else 0.72) * (1.0 + 0.08 * sin(float(k * 7 + t * 3)))
+			ring.append(Vector3(cos(th) * rr, y0 - (droop if k % 2 == 0 else droop * 0.3), sin(th) * rr))
+		var inner := Vector3(0, y0 + 0.02, 0)
+		for k in seg:
+			var p0: Vector3 = ring[k]; var p1: Vector3 = ring[(k + 1) % seg]
+			var n0 := (Vector3(p0.x, 0, p0.z).normalized() + Vector3(0, 0.9, 0)).normalized()
+			var n1 := (Vector3(p1.x, 0, p1.z).normalized() + Vector3(0, 0.9, 0)).normalized()
+			st.set_color(g * 1.12); st.set_normal(Vector3.UP); st.add_vertex(top)
+			st.set_color(g); st.set_normal(n1); st.add_vertex(p1)
+			st.set_color(g); st.set_normal(n0); st.add_vertex(p0)
+			# underside: dark, faces down and out
+			st.set_color(g * 0.35); st.set_normal(Vector3.DOWN); st.add_vertex(inner)
+			st.set_color(g * 0.55); st.set_normal((n0 - Vector3(0, 1.4, 0)).normalized()); st.add_vertex(p0)
+			st.set_color(g * 0.55); st.set_normal((n1 - Vector3(0, 1.4, 0)).normalized()); st.add_vertex(p1)
+	st.set_color(Color(0.16, 0.28, 0.14)); st.set_normal(Vector3.UP)
+	return st.commit()
 
-## A broadleaf tree 1 m tall: trunk and a lumpy crown of two squashed spheres.
+## A broadleaf tree 1 m tall: a forked trunk and a crown of seven lumpy clumps. Normals blend each clump's own with the whole
+## crown's (out from its centre), so the crown shades as one round mass with lumps, the way a tree reads from 100 m.
 static func broadleaf() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_cyl(st, Vector3.ZERO, Vector3(0, 0.45, 0), 0.035, 0.025, 5, Color(0.28, 0.2, 0.12))
-	for c in [[Vector3(0, 0.62, 0), 0.32, Color(0.2, 0.32, 0.12)], [Vector3(0.1, 0.8, 0.05), 0.24, Color(0.24, 0.36, 0.14)], [Vector3(-0.12, 0.74, -0.06), 0.22, Color(0.18, 0.3, 0.11)]]:
-		var sm := SphereMesh.new(); sm.radius = c[1]; sm.height = c[1] * 1.6; sm.radial_segments = 8; sm.rings = 5
+	_cyl(st, Vector3.ZERO, Vector3(0, 0.42, 0), 0.04, 0.028, 6, Color(0.26, 0.19, 0.12))
+	_cyl(st, Vector3(0, 0.36, 0), Vector3(0.12, 0.6, 0.04), 0.022, 0.012, 5, Color(0.26, 0.19, 0.12))
+	_cyl(st, Vector3(0, 0.36, 0), Vector3(-0.1, 0.58, -0.06), 0.022, 0.012, 5, Color(0.26, 0.19, 0.12))
+	var cc := Vector3(0, 0.68, 0)
+	var clumps := [[Vector3(0, 0.66, 0), 0.27], [Vector3(0.16, 0.62, 0.05), 0.19], [Vector3(-0.15, 0.64, -0.06), 0.2], [Vector3(0.02, 0.62, 0.17), 0.18],
+		[Vector3(-0.03, 0.63, -0.17), 0.18], [Vector3(0.07, 0.84, 0.03), 0.2], [Vector3(-0.08, 0.80, -0.04), 0.17]]
+	var sm := SphereMesh.new(); sm.radial_segments = 9; sm.rings = 5
+	for c in clumps:
+		sm.radius = c[1]; sm.height = c[1] * 1.7
 		var a := sm.get_mesh_arrays()
 		var vs: PackedVector3Array = a[Mesh.ARRAY_VERTEX]; var ns: PackedVector3Array = a[Mesh.ARRAY_NORMAL]; var ix: PackedInt32Array = a[Mesh.ARRAY_INDEX]
-		st.set_color(c[2])
 		for k in ix:
-			var jit := 1.0 + 0.12 * sin(vs[k].x * 37.0 + vs[k].y * 23.0)
-			st.set_normal(ns[k]); st.add_vertex(c[0] + vs[k] * jit)
-	return _commit(st)
+			var jit := 1.0 + 0.16 * sin(vs[k].x * 41.0 + vs[k].y * 29.0 + vs[k].z * 17.0) * cos(vs[k].z * 31.0 - vs[k].x * 13.0)
+			var p: Vector3 = c[0] + vs[k] * jit
+			var nn := (ns[k] * 0.45 + (p - cc).normalized() * 0.55).normalized()
+			var shade := clampf(0.55 + 0.6 * (p.y - 0.45) + 0.5 * (p - cc).length(), 0.45, 1.15)
+			st.set_color(Color(0.20, 0.33, 0.12) * shade); st.set_normal(nn); st.add_vertex(p)
+	return st.commit()
 
 ## A house of unit footprint (1 x 1 m, walls 1 m), gable roof (UV.x = 2 marks the roof for house.gdshader). Instances scale it.
 static func house() -> ArrayMesh:

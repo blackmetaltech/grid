@@ -147,6 +147,7 @@ func _update_sky(mn: float) -> void:
 	env.tonemap_exposure = lerpf(1.0, 1.4, n)
 	for wm in _water_mats:
 		wm.set_shader_parameter("night", n); wm.set_shader_parameter("use_sky_col", true); wm.set_shader_parameter("sky_col", hor.lerp(zen, 0.25))
+	Look3D.grade(env, moon, n, d, quality, [_terrain_mat])
 
 # --------------------------------------------------------------------------------------------------------------------
 # Model in: WorldView hands over its own tiles, heights and objects after it rebuilt them
@@ -514,8 +515,9 @@ func _mm(mesh: Mesh, xf: Array, cols: Array, nm: String, two_sided := false) -> 
 	if xf.is_empty(): return
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.mesh = mesh; mm.instance_count = xf.size()
 	for i in xf.size(): mm.set_instance_transform(i, xf[i]); mm.set_instance_color(i, cols[i])
-	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; m.roughness = 0.9
-	if two_sided: m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var m: Material = Look3D.tree_mat()
+	if two_sided or nm == "Rocks":
+		var sm := StandardMaterial3D.new(); sm.vertex_color_use_as_albedo = true; sm.roughness = 0.9; sm.cull_mode = BaseMaterial3D.CULL_DISABLED if two_sided else BaseMaterial3D.CULL_BACK; m = sm
 	var mi := MultiMeshInstance3D.new(); mi.name = nm; mi.multimesh = mm; mi.material_override = m; _root_static.add_child(mi)
 
 func _build_props(objs: Array) -> void:

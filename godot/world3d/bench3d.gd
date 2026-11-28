@@ -84,6 +84,9 @@ var _amber := false
 var _flicker := 0.0               # 0..0.85: how deep the bulbs flicker
 var _flicker_hz := 0.0
 
+var _terrain_mat: ShaderMaterial
+var _yard_gravel := 0.0   # 1128c: stages with a substation yard set 1 (paved = gravel)
+
 func _ready() -> void: _setup()
 
 func _setup() -> void:
@@ -161,6 +164,7 @@ func _update_sky(mn: float) -> void:
 	for wm in _water_mats:
 		wm.set_shader_parameter("night", n); wm.set_shader_parameter("use_sky_col", true); wm.set_shader_parameter("sky_col", hor.lerp(zen, 0.25))
 	if _fall_mat != null: _fall_mat.set_shader_parameter("night", n)
+	Look3D.grade(env, moon, n, d, quality, [_terrain_mat])
 
 # --------------------------------------------------------------------------------------------------------------------
 # Numbers in
@@ -329,7 +333,7 @@ func _build_terrain() -> void:
 	var arr := []; arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = verts; arr[Mesh.ARRAY_NORMAL] = norms; arr[Mesh.ARRAY_COLOR] = cols; arr[Mesh.ARRAY_TEX_UV2] = uv2; arr[Mesh.ARRAY_INDEX] = idx
 	var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-	var tmat := ShaderMaterial.new(); tmat.shader = load("res://world3d/shaders/terrain.gdshader")
+	var tmat := ShaderMaterial.new(); tmat.shader = load("res://world3d/shaders/terrain.gdshader"); _terrain_mat = tmat
 	for n in ["grass", "forest", "rock", "sand"]:
 		tmat.set_shader_parameter(n + "_a", _tex(n + "_albedo")); tmat.set_shader_parameter(n + "_n", _tex(n + "_normal"))
 	tmat.set_shader_parameter("mud_a", _tex("mud_albedo")); tmat.set_shader_parameter("field_a", _tex("field_albedo"))
@@ -343,6 +347,7 @@ func _build_terrain() -> void:
 	tmat.set_shader_parameter("grass_tint", _grass_tint)
 	tmat.set_shader_parameter("sand_tint", Vector3(0.95, 0.93, 0.90))
 	if quality == "low": tmat.set_shader_parameter("cheap", true)
+	tmat.set_shader_parameter("yard_gravel", _yard_gravel)
 	var mi := MeshInstance3D.new(); mi.name = "Land"; mi.mesh = mesh; mi.material_override = tmat; _root.add_child(mi)
 
 func _tex(n: String) -> Texture2D:
@@ -615,20 +620,29 @@ func _trees(ok: Callable, half: float, step: float) -> void:
 			var sl := Vector2(ground(x + 2.0, z) - ground(x - 2.0, z), ground(x, z + 2.0) - ground(x, z - 2.0)).length() / 4.0
 			if sl > 0.9: continue
 			var v := WorldMath.hash2(i, j, 74)
+			var clump := _nz.get_noise_2d(x * 1.7 + 90.0, z * 1.7 - 40.0) * 0.5 + 0.5   # 1128c: woods in clumps with clearings, not an even carpet
+			if WorldMath.hash2(i, j, 76) > smoothstep(0.25, 0.6, clump) + 0.15: continue
 			var rot := Basis(Vector3.UP, v * TAU)
-			if y > 12.0 or sl > 0.35 or WorldMath.hash2(i, j, 75) < 0.35:
-				var s := 9.0 + 9.0 * v
-				cx.append(Transform3D(rot.scaled(Vector3(s * 0.8, s, s * 0.8)), Vector3(x, y - 0.3, z))); cc.append(Color(1.15 + 0.3 * v, 1.35 + 0.15 * v, 1.1))   # 11-28b (art review): the pines read pure black at dusk and night
+			var age := 0.55 + 0.9 * WorldMath.hash2(i, j, 77) * WorldMath.hash2(i, j, 78) + 0.35 * clump   # few big old trees, many young ones
+			var sp := WorldMath.hash2(i, j, 75)
+			if y > 12.0 or sl > 0.35 or sp < 0.35:
+				var s := 13.0 * age
+				cx.append(Transform3D(rot.scaled(Vector3(s * 0.85, s, s * 0.85)), Vector3(x, y - 0.3, z))); cc.append(Color(0.9 + 0.25 * v, 1.0 + 0.1 * v, 0.95))
+			elif sp < 0.47:   # birch: slim, pale and yellow-green
+				var s := 8.0 * age
+				bx.append(Transform3D(rot.scaled(Vector3(s * 0.6, s * 1.35, s * 0.6)), Vector3(x, y - 0.2, z))); bc.append(Color(1.35, 1.45, 0.85))
 			else:
-				var s := 5.5 + 4.0 * v
-				bx.append(Transform3D(rot.scaled(Vector3(s, s, s)), Vector3(x, y - 0.2, z))); bc.append(Color(0.8 + 0.3 * v, 0.9 + 0.1 * v, 0.7))
+				var s := 7.5 * age
+				bx.append(Transform3D(rot.scaled(Vector3(s, s * (0.9 + 0.2 * v), s)), Vector3(x, y - 0.2, z))); bc.append(Color(0.85 + 0.3 * v, 0.95 + 0.1 * v, 0.8))
 	_mm(Props3D.conifer(), cx, cc, "Conifers"); _mm(Props3D.broadleaf(), bx, bc, "Trees")
 
 func _mm(mesh: Mesh, xf: Array, cols: Array, nm: String) -> void:
 	if xf.is_empty(): return
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_colors = true; mm.mesh = mesh; mm.instance_count = xf.size()
 	for i in xf.size(): mm.set_instance_transform(i, xf[i]); mm.set_instance_color(i, cols[i])
-	var m := StandardMaterial3D.new(); m.vertex_color_use_as_albedo = true; m.roughness = 0.9
+	var m: Material = Look3D.tree_mat()
+	if nm == "Rocks":
+		var sm := StandardMaterial3D.new(); sm.vertex_color_use_as_albedo = true; sm.roughness = 0.9; m = sm
 	var mi := MultiMeshInstance3D.new(); mi.name = nm; mi.multimesh = mm; mi.material_override = m; _root.add_child(mi)
 
 static func _seg_d(p: Vector2, a: Vector2, b: Vector2) -> float:

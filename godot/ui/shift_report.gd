@@ -31,7 +31,9 @@ static func open(app: CbApp) -> bool:
 	var short: bool = app.vs_h() < 920.0 or _force_short
 	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
 	var w: float = dock.w
-	if PaperKit.glass: w = clampf(app.vw() / 3.0, minf(560.0, app.vw() - 32.0), 700.0); dock.left = 16.0   # 11-28b (B03): the dock's 460 px clipped the won report (lamps, loss column, histogram)
+	if PaperKit.glass:   # 11-28b (B03): under 560 px the won report clipped (lamps, loss column, histogram)
+		w = clampf(app.vw() * 0.29, minf(560.0, app.vw() - 32.0), 600.0)   # 1128c (art review): a narrower sheet on the right; the left two thirds show what happened
+		dock.left = app.vw() - 16.0 - w
 	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.0 if PaperKit.glass else 0.34, (14.0 if compact else 22.0) if PaperKit.glass else (16.0 if compact else 30.0))
 	_d = d
 	app.sfx("page")
@@ -95,7 +97,18 @@ static func open(app: CbApp) -> bool:
 		app.get_tree().create_timer(0.45).timeout.connect(func(): if is_instance_valid(pn): pn.set_meta("rep_fit", true); _shrink_short(app, d, sbx, col))   # the world may still be refitting on the frame the job ended
 	if primary != null: primary.call_deferred("grab_focus")   # won: Next job is focused; lost: Retry
 	_stamp_lamps(app, lamps)
+	if pn.has_meta("rep_glass"): _frame_for_report(app, w)
 	return true
+
+## 1128c: the report covers the right of the screen; slide the world so what was in the middle of the view (the job's subject) sits
+## in the middle of the part the sheet leaves free, and let the 3D place frame its own consequence when it knows one (report_focus).
+static func _frame_for_report(app: CbApp, w: float) -> void:
+	var wv = app.get("grid_world")
+	if wv == null: return
+	var l3 = wv.get("look3d")
+	if l3 == null or not is_instance_valid(l3) or not (l3 as Node3D).visible: return
+	if l3.has_method("report_focus") and l3.report_focus(): pass
+	if l3.has_method("pan_px"): l3.pan_px(Vector2(-w * 0.5 * (app.get_viewport().get_visible_rect().size.x / maxf(1.0, app.vw())), 0.0))
 
 ## Where the sheet goes: {left, w} in the UI root's coordinates. It sits on the side that overlaps the built island (hamlets, hut: WorldView.object_rects) the
 ## least, and gets narrower (down to 460) when neither side is clear. No island rects (grid levels): left.
@@ -360,7 +373,7 @@ static func _note(text: String, ink: Color, title := "", compact := false) -> Co
 	sb.content_margin_left = 14 if compact else 18; sb.content_margin_right = 14 if compact else 18; sb.content_margin_top = 8 if compact else 12; sb.content_margin_bottom = 10 if compact else 14; sb.shadow_color = Color(0, 0, 0, 0.18); sb.shadow_size = 4; sb.shadow_offset = Vector2(1, 2)
 	pc.add_theme_stylebox_override("panel", sb); pc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new(); v.add_theme_constant_override("separation", 2); pc.add_child(v)
-	v.add_child(PaperKit.lbl(title if title != "" else T("REP_ADA") + " ›", 14, "mono", Color(ink, 0.8)))
+	v.add_child(PaperKit.lbl(title if title != "" else T("REP_ADA") + " ›", 16, "mono", Color(ink, 0.85)))
 	v.add_child(PaperKit.lbl(text, 15 if compact else 18, "semi", ink, true))
 	pc.rotation = 0.0 if PaperKit.glass else deg_to_rad(-0.8)
 	if PaperKit.glass: sb.shadow_size = 0
@@ -379,7 +392,7 @@ static func _lost(app: CbApp, col: VBoxContainer, e: Dictionary, li: Dictionary,
 	if not compact and not PaperKit.glass: head.add_child(Stamp.new(T("REP_STAMP_COST" if over_budget else "REP_STAMP_LOST")))   # an over-budget line may well light the market: the stamp must not say it did not
 	col.add_child(PaperKit.rule())
 	if str(e.get("reason", "")) != "":   # 11-28b: a report opened before the end has no cause yet; no empty heading
-		col.add_child(PaperKit.lbl(T("REP_CAUSE"), 14, "mono", Color(PaperKit.INK, 0.6)))
+		col.add_child(PaperKit.lbl(T("REP_CAUSE"), 16, "mono", Color(PaperKit.INK, 0.72)))
 		col.add_child(PaperKit.lbl(str(e.reason), 18 if compact else 23, "semi", PaperKit.RED, true))
 	var bs = app.b.q("benchStatus")
 	if bs is Dictionary and bs.get("active", false) and bool(bs.get("powered", false)) and (bs.bench as Dictionary).get("limits", {}).get("vMinV") != null:

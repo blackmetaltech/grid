@@ -18,7 +18,7 @@ for lv in $L; do
     *)      env=(CB_LEVEL=$lv CB_NOWORKORDER=1); seq="$A:@$lv-1open;$((A+1)):ff=$F;$((A+5)):@$lv-2mid;$((A+6)):ff=60|paper=report;$((A+12)):@$lv-3result;$((A+13)):quit" ;;
   esac
   (
-    exec 9>/tmp/cb-gpu-display.lock; flock -w 300 9 || { echo "$lv: GPU lock busy"; exit 3; }
+    exec 9>/tmp/cb-gpu-display.lock; flock -w 120 9 || { echo "$lv: GPU lock busy"; exit 3; }
     cd $G && env DISPLAY=:0.0 VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json __NV_PRIME_RENDER_OFFLOAD=1 __VK_LAYER_NV_optimus=NVIDIA_only \
       XDG_DATA_HOME=$D CB_NOAUTOSAVE=1 CB_SHOT_DIR=${O:A} CB_SEQ="$seq" $env \
       timeout ${GPU_TIMEOUT:-45} godot --path . --rendering-method forward_plus --resolution ${SIZE:-1920x1080} --position 0,0 --max-fps 60 > $D/log.txt 2>&1

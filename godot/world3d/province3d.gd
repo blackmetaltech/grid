@@ -199,7 +199,7 @@ func _update_sky(mn: float) -> void:
 	if sun.visible: sun.look_at_from_position(Vector3.ZERO, -to_sun, Vector3.UP if absf(to_sun.y) < 0.99 else Vector3.FORWARD)
 	var lowk := clampf(elev / deg_to_rad(12.0), 0.0, 1.0)
 	sun.light_color = Color(1.0, 0.66, 0.40).lerp(Color(1.0, 0.95, 0.88), lowk)   # golden, not red
-	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.2, lowk)
+	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 1.75, lowk)   # 1128c: 2.2 washed noon fields to pastel
 	var mdir := Vector3(-0.45, 0.40, -0.80).normalized()   # a low moon: long moon shadows show the relief at night   # a high moon in the north-east sky, constant through the job's evening
 	moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
 	moon.light_energy = 0.6 * smoothstep(0.35, 0.85, n)   # 11-28b: was 0.85 (with the exposure lift, night read as flat blue day)
@@ -223,6 +223,7 @@ func _update_sky(mn: float) -> void:
 	env.adjustment_contrast = lerpf(1.06, 1.14, day); env.adjustment_saturation = lerpf(1.04, 1.16, day)   # daylight colour with some bite
 	for wm in _water_mats: wm.set_shader_parameter("night", n)
 	if _terrain_mat != null: _terrain_mat.set_shader_parameter("night", n)
+	Look3D.grade(env, moon, n, d, quality, [_terrain_mat])
 
 # --------------------------------------------------------------------------------------------------------------------
 # Model in
@@ -1248,7 +1249,7 @@ func _build_tower_line(l: Dictionary, wire_mat: Material, meshes: Dictionary) ->
 	var mm := MultiMesh.new(); mm.transform_format = MultiMesh.TRANSFORM_3D; mm.mesh = tw[0]; mm.instance_count = xfs.size()
 	for k in xfs.size(): mm.set_instance_transform(k, xfs[k])
 	var mi := MultiMeshInstance3D.new(); mi.multimesh = mm; mi.material_override = tmat; _root_dyn.add_child(mi)
-	var cmat := ShaderMaterial.new(); cmat.shader = load("res://world3d/shaders/tower.gdshader"); cmat.set_shader_parameter("inflate", 0.00035); cmat.set_shader_parameter("metal", 0.8); cmat.set_shader_parameter("rough", 0.3)
+	var cmat := ShaderMaterial.new(); cmat.shader = load("res://world3d/shaders/tower.gdshader"); cmat.set_shader_parameter("inflate", 0.00028); cmat.set_shader_parameter("metal", 0.5); cmat.set_shader_parameter("rough", 0.55); cmat.set_shader_parameter("tint", Vector3(0.42, 0.43, 0.45))   # 1128c: dark threads, not chalk lines (a polished metal tube mirrored the bright sky)
 	var wi := MeshInstance3D.new(); wi.mesh = st.commit(); wi.material_override = cmat; wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; _root_dyn.add_child(wi)
 	var gm := _glow_mat(Color(0.4, 0.85, 1.0, 1.0), 1.0, 0.6); gm.set_shader_parameter("inflate", 0.00045)
 	var gi := MeshInstance3D.new(); gi.mesh = sg.commit(); gi.material_override = gm
@@ -1323,15 +1324,19 @@ func _update_dynamic() -> void:
 	for id in _wire_glow:
 		var l := _line_by_id(id)
 		var gi: MeshInstance3D = _wire_glow[id]
-		var live := not l.is_empty() and bool(l.in_service) and int(l.dir) != 0
-		gi.visible = live and n > 0.3
+		var live := not l.is_empty() and bool(l.in_service) and (int(l.dir) != 0 or float(l.get("overload", 0.0)) > 0.0)
+		gi.visible = live   # 1128c (art review): by day the loading was invisible (the glow showed only at night)
 		if live:
 			var m: ShaderMaterial = gi.material_override
 			var kv := float(l.get("kv", 11.0))   # voltage colour (400 kV violet, 220 kV teal, 132 kV green, below amber); the loading band colour takes over above 90 %
 			var vc := Color(0.62, 0.55, 1.0) if kv >= 300.0 else (Color(0.3, 0.85, 0.95) if kv >= 200.0 else (Color(0.45, 0.95, 0.55) if kv >= 66.0 else Color(1.0, 0.75, 0.4)))
-			if float(l.get("loading", 0.0)) > 0.9 or field is TerrainField and not field is GenField: vc = Color(l.color)
+			if float(l.get("loading", 0.0)) > 0.9 or field is TerrainField and not field is GenField or (n <= 0.3 and float(l.get("loading", 0.0)) > 0.5): vc = Color(l.color)
 			m.set_shader_parameter("tint", Color(vc, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
-			m.set_shader_parameter("power", (0.35 + 0.3 * n) * (0.35 if field is GenField else 1.0))
+			var pw := (0.35 + 0.3 * n) * (0.35 if field is GenField else 1.0)
+			if n <= 0.3: pw = 1.3 + 1.5 * clampf(float(l.get("loading", 0.0)) - 0.5, 0.0, 0.5)   # 1128c: additive over sunlit fields: enough to read as a coloured ribbon, more as it loads
+			if float(l.get("loading", 0.0)) > 1.0 or float(l.get("overload", 0.0)) > 0.0:   # 1128c: an overloaded line is plainly red
+				m.set_shader_parameter("tint", Color(1.0, 0.16, 0.08, 1.0)); pw = maxf(pw, 2.6)
+			m.set_shader_parameter("power", pw)
 	if not _cable.is_empty():
 		var l := _line_by_id(str(_cable.id))
 		var ok := not l.is_empty() and bool(l.in_service)
@@ -1478,7 +1483,7 @@ func reset_camera() -> void:
 		c /= float(subj.size())
 		var spread := 0.0
 		for q in subj: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
-		_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = maxf(_g_dist * 0.4, maxf(spread * (3.4 if subj.size() > 1 else 2.6), 900.0)); _g_pitch = deg_to_rad(26.0)
+		_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = maxf(_g_dist * 0.4, maxf(spread * (2.75 if subj.size() > 1 else 2.6), 900.0)); _g_pitch = deg_to_rad(29.0)   # 1128c: 3.4 left the subject a third of the frame
 	if str(model.get("level", "")) == "P0":   # 1.19 (Sigrid): the prologue opens low behind the lit coal plant, looking east over Line 7 to the city's glow
 		var plant := Vector2(INF, INF); var city := Vector2(INF, INF)
 		for u in model.get("units", []):
@@ -1495,7 +1500,7 @@ func reset_camera() -> void:
 
 ## What each job of chapters 5 and 6 is about, as the engine's bus ids (the brief names it): the towns on L14's line, L15's receiving end, L16's loop B3-B4-B5 (the loads the chord feeds),
 ## L17's city bus, L18's load bus, the plant bus of L19-L22. The default view frames them; every other generated province (the finale, the prologue) keeps its own.
-const JOB_SUBJECT := {"L07": ["B2"], "L08": ["B2"], "L09": ["B2"], "L14": ["B4", "B5", "B6"], "L15": ["B2"], "L16": ["B3", "B4", "B5"], "L17": ["B3"], "L18": ["B2"], "L19": ["B1"], "L20": ["B1"], "L21": ["B1"], "L22": ["B1"]}
+const JOB_SUBJECT := {"L07": ["B2"], "L08": ["B2"], "L09": ["B2"], "L14": ["B4", "B5", "B6"], "L15": ["B2"], "L16": ["B1", "B2", "B3", "B4", "B5", "B6"], "L17": ["B3"], "L18": ["B2"], "L19": ["B1"], "L20": ["B1"], "L21": ["B1"], "L22": ["B1"]}
 const JOB_PLANT_SCALE := 1.5   # the plants of those jobs are drawn 1.5 times larger (2.5 dwarfed the towns, Sigrid 11-28): at play distance a true-size plant is a toy on a 300 m square
 
 func _job_plant_scale() -> float: return JOB_PLANT_SCALE if field is GenField and JOB_SUBJECT.has(str(model.get("level", ""))) else 1.0

@@ -54,6 +54,19 @@ vec3 tex2f(sampler2D t, vec2 p, float m, float g_mid, float g_far) {
 }
 vec3 nrm2(sampler2D t, vec2 p) { return texture(t, p).rgb; }
 
+uniform float yard_gravel = 0.0;   // 1128c: 1 = paved areas are a gravel substation yard (crushed stone, tyre tracks, damp patches)
+// paved ground: town gardens (dark green-grey) or a gravel yard: rock texture desaturated to stone grey, a fine speckle, wheel tracks
+vec3 yard(vec2 xz, vec2 p, float m, float m2, float g_mid, float g_far) {
+	vec3 town = mix(vec3(0.22, 0.27, 0.16), vec3(0.33, 0.32, 0.29), m2 * 0.6);
+	if (yard_gravel < 0.5) return town;
+	vec3 r = tex2f(rock_a, p * 2.4, m, g_mid, g_far);
+	float l = dot(r, vec3(0.333));
+	float sp = h21(floor(xz * 9.0));
+	vec3 g = vec3(0.30, 0.298, 0.29) * (0.65 + 0.7 * l) * (0.8 + 0.4 * sp);
+	float damp = smoothstep(0.55, 0.75, texture(macro_noise, xz / 30.0).r);
+	g *= 1.0 - 0.25 * damp;
+	return g;
+}
 void fragment() {
 	float vd = length(VERTEX);
 	float g_mid = smoothstep(250.0, 1400.0, vd) * 0.7; float g_far = smoothstep(1800.0, 6000.0, vd);
@@ -106,25 +119,32 @@ void fragment() {
 	vec3 g = tex2f(grass_a, p, m, g_mid, g_far);
 	vec3 plot = g;
 	float lum = dot(g, vec3(0.33));
-	if (crop < 0.30) plot = vec3(0.30, 0.46, 0.18) * (0.75 + lum);                                                  // pasture: no rows
-	else if (crop < 0.50) plot = vec3(0.74, 0.60, 0.27) * (0.8 + 0.6 * lum) * (1.0 - 0.10 * rows - 0.22 * tram);    // ripe grain
-	else if (crop < 0.64) plot = mix(vec3(0.40, 0.30, 0.20), tex2f(field_a, r / 14.0, m, g_mid, g_far) * vec3(0.8, 0.66, 0.5), 0.5) * (1.0 - 0.22 * rows - 0.15 * tram);   // plough
-	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum) * (1.0 - 0.12 * rows - 0.25 * tram);          // green crop
-	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum) * (1.0 - 0.08 * rows - 0.2 * tram);                      // stubble
+	// 1128c: an aerial-photo palette (the pastel creams read as a board game): deeper greens, honest soil browns, muted gold;
+	// inside each field a sprayer/moisture streak along the rows and a colour drift, so a field is not one flat swatch
+	vec2 rr = vec2(r.x / 9.0, ry / 140.0);
+	float streak = texture(macro_noise, rr * 0.11 + cell * 0.21).r;
+	float drift = texture(macro_noise, wpos.xz / 160.0 + cell * 0.13).r;
+	if (crop < 0.26) plot = vec3(0.25, 0.38, 0.14) * (0.8 + 0.7 * lum);                                                 // pasture
+	else if (crop < 0.42) plot = vec3(0.60, 0.51, 0.28) * (0.75 + 0.6 * lum) * (1.0 - 0.12 * rows - 0.22 * tram);   // ripe grain
+	else if (crop < 0.58) plot = mix(vec3(0.30, 0.23, 0.16), tex2f(field_a, r / 14.0, m, g_mid, g_far) * vec3(0.72, 0.58, 0.44), 0.55) * (1.0 - 0.25 * rows - 0.15 * tram);   // plough
+	else if (crop < 0.86) plot = mix(vec3(0.20, 0.34, 0.11), vec3(0.30, 0.42, 0.13), h21(cell + 3.0)) * (0.8 + 0.7 * lum) * (1.0 - 0.14 * rows - 0.25 * tram);   // green crops
+	else plot = vec3(0.52, 0.47, 0.33) * (0.8 + 0.6 * lum) * (1.0 - 0.1 * rows - 0.2 * tram);                       // stubble
+	plot *= 0.84 + 0.3 * streak;
+	plot *= mix(vec3(0.94, 1.0, 0.94), vec3(1.05, 0.98, 0.92), drift);
 	float en = texture(macro_noise, wpos.xz / 55.0).r;
 	plot *= 0.9 + 0.22 * texture(macro_noise, wpos.xz / 23.0 + cell * 0.37).r;
 	plot = mix(g * grass_tint * 1.05, plot, smoothstep(2.0, 5.0 + 7.0 * en, edge));   // a grass headland of uneven width
-	vec3 hedge_c = vec3(0.15, 0.25, 0.10) * (0.8 + lum);
+	vec3 hedge_c = vec3(0.10, 0.18, 0.07) * (0.8 + lum);
 	float tuft = smoothstep(0.3, 0.6, texture(macro_noise, wpos.xz / 9.0).r);
 	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 2.6, edge)) * 0.75 * tuft);   // hedges with gaps
-	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.7 * night));   // 11-28b: calmer at night (the quilt was loud under the moon)   // field colours calm down with distance and at night: no quilt from the air
+	vec3 grass = mix(g * grass_tint, plot, 0.85 * fields * (1.0 - 0.5 * g_far) * (1.0 - 0.7 * night));   // 11-28b: calmer at night (the quilt was loud under the moon)   // field colours calm down with distance and at night: no quilt from the air
 
 	vec3 col = grass * w.r
 		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g
 		+ tex2f(rock_a, p * 0.6, m, g_mid, g_far) * w.b
 		+ tex2f(sand_a, p * 1.5, m, g_mid, g_far) * sand_tint * w.a
 		+ tex2f(mud_a, p, m, g_mid, g_far) * vec3(0.85, 0.9, 0.8) * mud
-		+ mix(vec3(0.22, 0.27, 0.16), vec3(0.33, 0.32, 0.29), m2 * 0.6) * paved;   // gardens and yards between the houses: a town reads darker than the fields around it, not as a pale disc
+		+ yard(wpos.xz, p, m, m2, g_mid, g_far) * paved;   // gardens and yards between the houses: a town reads darker than the fields around it, not as a pale disc
 	// macro colour drift: some hillsides drier, some lusher
 	col *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
 	// wet sand / mud darkens near the waterline

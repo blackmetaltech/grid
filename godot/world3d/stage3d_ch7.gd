@@ -92,14 +92,18 @@ static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist 
 		"l27": return [Vector3(0.0, 0.0, -24.0), 16.0, 25.0, 140.0]   # the three units come down from under the exam card
 		"l25": return [Vector3(48.0, 0.0, 2.0), -34.0, 13.0, 125.0]
 		"l26": return [Vector3(35.0, 0.0, -10.0), -6.0, 21.0, 300.0]
-	return [Vector3(0.0, 0.0, 14.0), 16.0, 25.0, 150.0]
+	return [Vector3(0.0, 0.0, 6.0), 16.0, 31.0, 150.0]   # 1128c: higher, so the transformers show over the board
 
 # --------------------------------------------------------------------------------------------------------------------
 # Small shared pieces
 # --------------------------------------------------------------------------------------------------------------------
 static func _flash(s: Stage3D, parent: Node3D, at: Vector3, r: float, nm: String) -> MeshInstance3D:
-	var sm := SphereMesh.new(); sm.radius = r; sm.height = r * 2.0
-	var f := s._inst(parent, sm, s._glow_mat(Color(1.0, 0.9, 0.55, 1.0), 0.0), nm, at, false); f.visible = false; return f
+	var sm := SphereMesh.new(); sm.radius = r * 0.6; sm.height = r * 1.2; sm.radial_segments = 24; sm.rings = 12
+	var am := ShaderMaterial.new(); am.shader = load("res://world3d/shaders/arc.gdshader"); am.set_shader_parameter("power", 0.0)
+	var f := s._inst(parent, sm, am, nm, at, false); f.visible = false
+	var lt := OmniLight3D.new(); lt.name = "ArcLight"; lt.light_color = Color(0.85, 0.80, 1.0); lt.light_energy = 18.0; lt.omni_range = r * 12.0; lt.omni_attenuation = 1.0
+	lt.shadow_enabled = s.quality == "high"; f.add_child(lt)
+	return f
 
 static func _plume(s: Stage3D, parent: Node3D, at: Vector3, r: float, nm: String) -> MeshInstance3D:
 	var sm := SphereMesh.new(); sm.radius = r; sm.height = r * 2.0; sm.radial_segments = 14; sm.rings = 8
@@ -188,8 +192,8 @@ static func _build_board(s: Stage3D) -> void:
 		var tx := -28.0 if i == 0 else 28.0
 		var n := Node3D.new(); n.name = "Transformer%d" % (i + 1); n.position = Vector3(tx, s.ground(tx, -20.0), -20.0); s._root.add_child(n)
 		s._box(n, Vector3(0, 0.1, 0), Vector3(10.0, 0.3, 9.0), s._soft_mat("sand", Color(0.52, 0.50, 0.46), 0.3, 0.3, 0.0, 0.2))
-		var tk := s._inst(n, Props3D.transformer(), s._vc_mat(0.55), "Tank"); tk.scale = Vector3.ONE * 2.4
-		for c in 3: s._inst(s._root, s._run([Vector3(tx - 0.0, 13.6, -39.0 + 3.0 * c), n.position + Vector3(0.7, 7.0, (c - 1) * 0.96)], 0.07, 0.4), hv, "Drop%d_%d" % [i, c], Vector3.ZERO, false)
+		Kit3D.power_transformer(n, Vector3(0, 0.2, 0), 0.0, 1.0)   # 1128c: a ribbed tank with radiators, bushings and a conservator (was a toy box)
+		for c in 3: s._inst(s._root, s._run([Vector3(tx - 0.0, 13.6, -39.0 + 3.0 * c), n.position + Vector3(-1.6 + 1.6 * c, 7.95, -0.6)], 0.07, 0.4), hv, "Drop%d_%d" % [i, c], Vector3.ZERO, false)
 		s._box(n, Vector3(-2.4, 2.6, 0.5), Vector3(0.7, 5.0, 0.7), cu, "LvBus")   # the secondary leads down to the board
 		s._box(s._root, Vector3(tx - 2.4, 2.2, -10.0), Vector3(0.7, 0.7, 12.0), cu, "LvDuct%d" % i)
 		d.tx.append(n)
@@ -199,6 +203,7 @@ static func _build_board(s: Stage3D) -> void:
 		s._box(s._root, Vector3(bx, 2.6, 0.0), Vector3(42.0, 5.2, 8.0), s._clad_mat(Color(0.56, 0.58, 0.58), 0.5, 3.0), "Section" + ("A" if i == 0 else "B"))   # 11-28b: cladding, not a mirror-steel box
 		for k in 14: s._box(s._root, Vector3(bx - 19.5 + 3.0 * k, 2.4, 4.05), Vector3(2.4, 3.6, 0.1), dark, "Panel")
 		s._box(s._root, Vector3(bx, 5.4, 0.0), Vector3(40.0, 0.3, 7.0), s._mat(Color(0.4, 0.42, 0.45), 0.6, 0.3), "Roof")
+		Kit3D.dress_hall(s._root, Vector3(bx, 0.0, 0.0), Vector3(42.0, 5.2, 8.0))
 	d["coupler"] = Node3D.new(); (d.coupler as Node3D).name = "Coupler"; s._root.add_child(d.coupler); (d.coupler as Node3D).position = Vector3(0.0, 0.0, 0.0)
 	d["ckey"] = ""
 	# the breakers' cabinets along the board's front
@@ -230,7 +235,7 @@ static func _build_board(s: Stage3D) -> void:
 		var ex := -34.0 + 14.0 * float(k % 3); var ez := 74.0 + 18.0 * float(k / 3)
 		var w := 11.0; var dd := 8.0; var h := 4.5
 		var n := Node3D.new(); n.name = "Shed%d" % k; n.position = Vector3(ex, s.ground(ex, ez) - 0.1, ez); n.rotation.y = PI if k < 3 else 0.0; s._root.add_child(n)
-		s._inst(n, Bay3D.house_mesh(w, dd, h, 2.0, Color(0.74, 0.72, 0.66), Color(0.36, 0.38, 0.42)), s._vc_mat(0.9), "Body")
+		s._inst(n, Bay3D.house_mesh(w, dd, h, 2.0, Color(0.56, 0.53, 0.48), Color(0.30, 0.31, 0.34)), s._vc_mat(0.9), "Body")
 		s._inst(n, Bay3D.windows_mesh(w, dd, h), win, "Windows", Vector3.ZERO, false)
 	d["flash_t"] = 0.0
 	# L27: three dispatchable units behind the transformers, a stack and a steam puff each
@@ -243,6 +248,18 @@ static func _build_board(s: Stage3D) -> void:
 			var gen := s._inst(hall, gm, s._mat(Color(0.2, 0.34, 0.5), 0.4, 0.3), "Generator", Vector3(0, 2.0, 0)); gen.rotation.z = PI * 0.5
 			_stack(s, hall, Vector3(4.0, 7.0, -2.0), 12.0, 0.7, Color(0.34, 0.34, 0.36))
 			var pl := _plume(s, hall, Vector3(4.0, 21.0, -2.0), 3.0, "Steam"); d.units.append({"plume": pl, "share": 0.0})
+	# 1128c: site dressing: the yard fence with a gate on the road, floodlight masts, the tower's aviation lamp, street lamps down
+	# the estate road (they go dark with the estate), two crew vans
+	var gyf := func(x: float, z: float) -> float: return s.ground(x, z)
+	Kit3D.fence(s._root, Rect2(-92.0, -46.0, 184.0, 60.0), gyf, [Vector2(-20.0, 14.0)])
+	for mp in [Vector2(-90.0, -44.0), Vector2(90.0, -44.0), Vector2(-90.0, 12.0), Vector2(90.0, 12.0), Vector2(0.0, -44.0)]:
+		Kit3D.flood_mast(s._root, Vector3(mp.x, s.ground(mp.x, mp.y), mp.y), Vector3(mp.x * 0.55, 0.0, mp.y * 0.4 - 12.0), s.quality, 16.0)
+	Kit3D.aviation(s._root, tw.position + Vector3(0, 24.6, 0))
+	for k in 6:
+		var lz := 22.0 + 14.0 * float(k); var lx := -26.0 if k % 2 == 0 else -14.0
+		Kit3D.street_lamp(s._root, Vector3(lx, s.ground(lx, lz) - 0.1, lz), PI * 0.5 if k % 2 == 0 else -PI * 0.5, s.quality, "estate")
+	Kit3D.van(s._root, Vector3(-8.0, s.ground(-8.0, 9.0), 9.0), 0.3)
+	Kit3D.van(s._root, Vector3(52.0, s.ground(52.0, 10.0), 10.0), -1.4, Color(0.92, 0.55, 0.12))
 	s.anchors["incomer"] = tw.position + Vector3(0, 26.0, 0)
 	s.anchors["xfmr"] = (d.tx[0] as Node3D).position + Vector3(0, 11.0, 0)
 	s.anchors["board"] = Vector3(-30.0, 8.5, 0.0)
@@ -480,6 +497,7 @@ static func apply(s: Stage3D) -> void:
 				var ov: bool = bool(over.get(id, false)) if is23 else (rev and not ok)
 				_set_kiosk(d.kiosk[id], rev, ov)
 			(d.estate as StandardMaterial3D).emission_energy_multiplier = 0.0 if (rev and not ok) else 4.0
+			Kit3D.set_group("estate", not (rev and not ok))
 			d["dark"] = rev and not ok
 			d["rev"] = rev
 			if s.scn == "l27":

@@ -101,6 +101,7 @@ func _build_stage() -> void:
 	_rotor_key = ""; _coil_key = ""; _bank_key = ""; _plat_key = ""; _bank_root = null; _bank_wire = null; _pump_blade = null; _pump_lamp = null; _city_mat = null; _exc_mat = null; _line_nodes = null
 	_plats = 0
 	_grass_tint = Vector3(0.62, 0.92, 0.50) if scn == "l11" else Vector3(0.86, 0.95, 0.70)
+	_yard_gravel = 1.0 if scn in ["l23", "l25", "l27"] else 0.0
 	match scn:
 		"l10": _play = Rect2(-200.0, -70.0, 400.0, 140.0)
 		"l11": _play = Rect2(-100.0, -60.0, 220.0, 120.0)
@@ -818,6 +819,20 @@ func house_rect(i: int) -> Rect2:
 # --------------------------------------------------------------------------------------------------------------------
 # Camera and motion
 # --------------------------------------------------------------------------------------------------------------------
+## 1128c: the report frames the consequence: for a stage that names one, the camera moves to it (keeping its angle).
+const REPORT_FOCUS := {"l23": ["feeder", "estate"], "l27": ["board", "estate"], "l24": ["fault"], "l25": ["fault", "board"]}
+func report_focus() -> bool:
+	var keys: Array = REPORT_FOCUS.get(scn, [])
+	var pts: Array = []
+	for k in keys: if anchors.has(k): pts.append(anchors[k])
+	if pts.is_empty(): return false
+	var c := Vector3.ZERO
+	for p in pts: c += p
+	c /= float(pts.size())
+	_g_target = Vector3(c.x, ground(c.x, c.z), c.z)
+	_clamp_goal()
+	return true
+
 func reset_camera() -> void:
 	match scn:
 		"l10": _g_target = Vector3(-8.0, 0.0, 6.0); _g_yaw = deg_to_rad(-42.0); _g_pitch = deg_to_rad(11.0); _g_dist = 82.0

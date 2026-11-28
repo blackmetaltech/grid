@@ -17,14 +17,14 @@ void vertex() {
 	float nn_v = smoothstep(0.35, 0.9, night);
 	// main streets stay about one pixel wide at any distance past 3.5 km at night, where they carry the sodium line; by day the widening is a
 	// third of that (owner review 11-28 of chapters 5-6: widened asphalt read as thick black ribbons across the fields)
-	VERTEX.xz += lat * side * d * 0.0007 * far * UV.y * mix(0.33, 1.0, nn_v);
+	VERTEX.xz += lat * side * d * 0.0007 * far * UV.y * mix(0.0, 1.0, nn_v);   // 1128c: 0.33 still drew far towns as grey scribbles
 	VERTEX.y += far * d * 0.0002;
 }
 void fragment() {
 	float nn = smoothstep(0.35, 0.9, night);
 	// by day a far street fades toward a dusty road tone instead of staying black asphalt
-	ALBEDO = mix(vec3(0.15, 0.15, 0.16), vec3(0.30, 0.29, 0.27), far * (1.0 - nn)) * (1.0 - 0.6 * far * nn);
-	ROUGHNESS = 0.92;
+	ALBEDO = mix(vec3(0.10, 0.10, 0.11), vec3(0.12, 0.12, 0.115), far * (1.0 - nn)) * (1.0 - 0.6 * far * nn);   // 1128c: the dusty far tone read as chalk scribbles over the towns
+	ROUGHNESS = 0.95; SPECULAR = 0.06;   // 1128c: default specular at a grazing view mirrored the sky: far streets read as pale scribbles
 	// 11-28: the ribbon's own normal pointed down, so by day a street was lit like the underside of the ground (near black); light it as flat ground
 	NORMAL = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
 	// 1.18 (lead's review: orange stubs like glowing rods at dusk): up close the street is asphalt lit by its own lamps; only far away, where a
