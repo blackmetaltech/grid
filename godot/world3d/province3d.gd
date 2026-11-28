@@ -478,7 +478,7 @@ func _clear_of_infra(x: float, z: float) -> bool:
 	return true
 
 func _build_forests(near: Rect2) -> void:
-	var tmat := ShaderMaterial.new(); tmat.shader = load("res://world3d/shaders/tree.gdshader")
+	var tmat := Look3D.tree_mat()   # 1128c: registered, so the night reaches it
 	var con := Props3D.conifer(); var brd := Props3D.broadleaf()
 	var xc: Array = []; var cc: Array = []; var xb: Array = []; var cb: Array = []
 	var dens := 1.0 if quality == "high" else (0.55 if quality == "medium" else 0.12)
@@ -755,7 +755,7 @@ func _build_layout() -> void:
 				var sc := 7.0 + 6.0 * _h(k, q, 612)
 				gm.set_instance_transform(k * 2 + q, Transform3D(Basis(Vector3.UP, TAU * _h(k, q, 613)).scaled(Vector3(sc, sc, sc)), Vector3(gp.x, ground(gp.x, gp.z) - 0.3, gp.z)))
 				gm.set_instance_color(k * 2 + q, Color(0.9 + 0.2 * _h(k, q, 614), 1.0, 0.85))
-		var gmi := MultiMeshInstance3D.new(); gmi.multimesh = gm; var tm3 := ShaderMaterial.new(); tm3.shader = load("res://world3d/shaders/tree.gdshader"); gmi.material_override = tm3
+		var gmi := MultiMeshInstance3D.new(); gmi.multimesh = gm; var tm3 := Look3D.tree_mat(); gmi.material_override = tm3
 		_root_infra.add_child(gmi)
 	_tp("houses")
 	if gen: _build_town_lamps(tg.lamps)
@@ -1333,9 +1333,14 @@ func _update_dynamic() -> void:
 			if float(l.get("loading", 0.0)) > 0.9 or field is TerrainField and not field is GenField or (n <= 0.3 and float(l.get("loading", 0.0)) > 0.5): vc = Color(l.color)
 			m.set_shader_parameter("tint", Color(vc, 1.0)); m.set_shader_parameter("pulse", 0.25 + float(l.speed) * 0.8 * float(l.dir))
 			var pw := (0.35 + 0.3 * n) * (0.35 if field is GenField else 1.0)
-			if n <= 0.3: pw = 1.3 + 1.5 * clampf(float(l.get("loading", 0.0)) - 0.5, 0.0, 0.5)   # 1128c: additive over sunlit fields: enough to read as a coloured ribbon, more as it loads
+			var ld := float(l.get("loading", 0.0))
+			if n <= 0.3:   # 1128c: by day a ramp the eye reads: teal when light, amber at 70 %, red at 100 %; brighter and wider as it loads
+				pw = 1.3 + 1.5 * clampf(ld - 0.5, 0.0, 0.5)
+				var rc := Color(0.3, 0.85, 0.95).lerp(Color(1.0, 0.68, 0.15), smoothstep(0.35, 0.7, ld)).lerp(Color(1.0, 0.16, 0.08), smoothstep(0.8, 1.0, ld))
+				m.set_shader_parameter("tint", Color(rc, 1.0))
 			if float(l.get("loading", 0.0)) > 1.0 or float(l.get("overload", 0.0)) > 0.0:   # 1128c: an overloaded line is plainly red
-				m.set_shader_parameter("tint", Color(1.0, 0.16, 0.08, 1.0)); pw = maxf(pw, 2.6)
+				m.set_shader_parameter("tint", Color(1.0, 0.16, 0.08, 1.0)); pw = maxf(pw, 2.6); m.set_shader_parameter("inflate", 0.0011)
+			else: m.set_shader_parameter("inflate", lerpf(0.00035, 0.0009, clampf(ld, 0.0, 1.0)))
 			m.set_shader_parameter("power", pw)
 	if not _cable.is_empty():
 		var l := _line_by_id(str(_cable.id))

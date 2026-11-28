@@ -108,7 +108,16 @@ static func _frame_for_report(app: CbApp, w: float) -> void:
 	var l3 = wv.get("look3d")
 	if l3 == null or not is_instance_valid(l3) or not (l3 as Node3D).visible: return
 	if l3.has_method("report_focus") and l3.report_focus(): pass
-	if l3.has_method("pan_px"): l3.pan_px(Vector2(-w * 0.5 * (app.get_viewport().get_visible_rect().size.x / maxf(1.0, app.vw())), 0.0))
+	var c3: Camera3D = l3.get("cam")
+	if c3 == null or l3.get("_g_target") == null: return
+	# shift the goal right by the ground width that half the sheet covers, so the old centre sits mid-way in the free part
+	var vr := app.get_viewport().get_visible_rect().size
+	var aspect := vr.x / maxf(1.0, vr.y)
+	var half_w := float(l3._g_dist) * tan(deg_to_rad(c3.fov) * 0.5) * aspect   # ground half-width at the goal distance
+	var frac := (w * 0.5) / maxf(1.0, app.vw())
+	var yw := float(l3._g_yaw)
+	l3._g_target += Vector3(cos(yw), 0.0, -sin(yw)) * (2.0 * half_w * frac)
+	if l3.has_method("_clamp_goal"): l3._clamp_goal()
 
 ## Where the sheet goes: {left, w} in the UI root's coordinates. It sits on the side that overlaps the built island (hamlets, hut: WorldView.object_rects) the
 ## least, and gets narrower (down to 460) when neither side is clear. No island rects (grid levels): left.

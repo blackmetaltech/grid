@@ -32,6 +32,6 @@ void fragment() {
 	AO_LIGHT_AFFECT = 0.3;
 	// far away a wood averages to a lit canopy green (each tree is a pixel: its dark underside and AO read as black dots)
 	float fd = smoothstep(700.0, 3500.0, length(VERTEX));
-	ALBEDO = mix(ALBEDO, COLOR.rgb * hue * 1.15 + vec3(0.02, 0.03, 0.0), fd);
+	ALBEDO = mix(ALBEDO, (COLOR.rgb * hue * 1.15 + vec3(0.02, 0.03, 0.0)) * (1.0 - 0.55 * night), fd);
 	AO = mix(AO, 1.0, fd);
 }

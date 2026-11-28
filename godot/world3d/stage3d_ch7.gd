@@ -92,7 +92,7 @@ static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist 
 		"l27": return [Vector3(0.0, 0.0, -24.0), 16.0, 25.0, 140.0]   # the three units come down from under the exam card
 		"l25": return [Vector3(48.0, 0.0, 2.0), -34.0, 13.0, 125.0]
 		"l26": return [Vector3(35.0, 0.0, -10.0), -6.0, 21.0, 300.0]
-	return [Vector3(0.0, 0.0, 6.0), 16.0, 31.0, 150.0]   # 1128c: higher, so the transformers show over the board
+	return [Vector3(-6.0, 0.0, 26.0), 16.0, 31.0, 175.0]   # 1128c: higher, so the transformers show over the board, and back, so the lit estate is in the frame
 
 # --------------------------------------------------------------------------------------------------------------------
 # Small shared pieces
@@ -104,6 +104,22 @@ static func _flash(s: Stage3D, parent: Node3D, at: Vector3, r: float, nm: String
 	var lt := OmniLight3D.new(); lt.name = "ArcLight"; lt.light_color = Color(0.85, 0.80, 1.0); lt.light_energy = 18.0; lt.omni_range = r * 12.0; lt.omni_attenuation = 1.0
 	lt.shadow_enabled = s.quality == "high"; f.add_child(lt)
 	return f
+
+## 1128c: a failed clearance burns: orange sparks and a smoke column under the arc (children of the flash: they show with it).
+static func _fault_fx(s: Stage3D, f: Node3D) -> void:
+	var sp := CPUParticles3D.new(); sp.name = "Sparks"; sp.amount = 60; sp.lifetime = 0.9; sp.explosiveness = 0.15
+	sp.direction = Vector3(0, 1, 0); sp.spread = 70.0; sp.initial_velocity_min = 4.0; sp.initial_velocity_max = 9.0; sp.gravity = Vector3(0, -12, 0)
+	var sm := SphereMesh.new(); sm.radius = 0.06; sm.height = 0.12; sm.radial_segments = 4; sm.rings = 2; sp.mesh = sm
+	var spm := StandardMaterial3D.new(); spm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; spm.albedo_color = Color(1.0, 0.6, 0.2); spm.emission_enabled = true; spm.emission = Color(1.0, 0.55, 0.15); spm.emission_energy_multiplier = 6.0
+	sp.material_override = spm; f.add_child(sp)
+	var sk := CPUParticles3D.new(); sk.name = "Smoke"; sk.amount = 40; sk.lifetime = 7.0; sk.preprocess = 7.0
+	sk.direction = Vector3(0.2, 1, 0); sk.spread = 12.0; sk.initial_velocity_min = 1.5; sk.initial_velocity_max = 2.5; sk.gravity = Vector3(0.4, 0.3, 0)
+	sk.scale_amount_min = 2.0; sk.scale_amount_max = 4.0
+	var cv := Curve.new(); cv.add_point(Vector2(0, 0.4)); cv.add_point(Vector2(1, 2.2)); sk.scale_amount_curve = cv
+	var km := SphereMesh.new(); km.radius = 1.0; km.height = 2.0; km.radial_segments = 8; km.rings = 4; sk.mesh = km
+	var kmat := StandardMaterial3D.new(); kmat.albedo_color = Color(0.07, 0.07, 0.08, 0.5); kmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; kmat.roughness = 1.0
+	kmat.emission_enabled = true; kmat.emission = Color(0.9, 0.35, 0.1); kmat.emission_energy_multiplier = 0.03   # the fire under it lights its base
+	sk.material_override = kmat; sk.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; f.add_child(sk)
 
 static func _plume(s: Stage3D, parent: Node3D, at: Vector3, r: float, nm: String) -> MeshInstance3D:
 	var sm := SphereMesh.new(); sm.radius = r; sm.height = r * 2.0; sm.radial_segments = 14; sm.rings = 8
@@ -228,14 +244,16 @@ static func _build_board(s: Stage3D) -> void:
 	_wires3(s, pts, 0.05, hv, "Feeder")
 	d["fault_at"] = Vector3(-20.0, s.ground(-20.0, 11.0) + 1.5, 11.0)
 	d["flash"] = _flash(s, s._root, d.fault_at, 3.0, "FaultFlash")
+	_fault_fx(s, d.flash as Node3D)
 	# the estate: sheds in two rows, their windows lit by one material
 	var win := StandardMaterial3D.new(); win.albedo_color = Color(0.13, 0.17, 0.25); win.metallic = 0.3; win.roughness = 0.2; win.cull_mode = BaseMaterial3D.CULL_DISABLED; win.emission_enabled = true; win.emission = Bench3D.WARM; win.emission_energy_multiplier = 0.0
 	d["estate"] = win
+	var body := s._vc_mat(0.9); d["estate_body"] = body   # 1128c: one material for the estate walls, darkened in a blackout
 	for k in 6:
 		var ex := -34.0 + 14.0 * float(k % 3); var ez := 74.0 + 18.0 * float(k / 3)
 		var w := 11.0; var dd := 8.0; var h := 4.5
 		var n := Node3D.new(); n.name = "Shed%d" % k; n.position = Vector3(ex, s.ground(ex, ez) - 0.1, ez); n.rotation.y = PI if k < 3 else 0.0; s._root.add_child(n)
-		s._inst(n, Bay3D.house_mesh(w, dd, h, 2.0, Color(0.56, 0.53, 0.48), Color(0.30, 0.31, 0.34)), s._vc_mat(0.9), "Body")
+		s._inst(n, Bay3D.house_mesh(w, dd, h, 2.0, Color(0.56, 0.53, 0.48), Color(0.30, 0.31, 0.34)), body, "Body")
 		s._inst(n, Bay3D.windows_mesh(w, dd, h), win, "Windows", Vector3.ZERO, false)
 	d["flash_t"] = 0.0
 	# L27: three dispatchable units behind the transformers, a stack and a steam puff each
@@ -498,6 +516,8 @@ static func apply(s: Stage3D) -> void:
 				_set_kiosk(d.kiosk[id], rev, ov)
 			(d.estate as StandardMaterial3D).emission_energy_multiplier = 0.0 if (rev and not ok) else 4.0
 			Kit3D.set_group("estate", not (rev and not ok))
+			d["failed"] = rev and not ok
+			(d.estate_body as StandardMaterial3D).albedo_color = Color(0.42, 0.44, 0.52) if (rev and not ok) else Color.WHITE
 			d["dark"] = rev and not ok
 			d["rev"] = rev
 			if s.scn == "l27":
@@ -585,6 +605,9 @@ static func process(s: Stage3D, dt: float) -> void:
 			var f: MeshInstance3D = d.flash
 			f.visible = bool(d.get("rev", false)) and s.scn == "l23"
 			if f.visible: (f.material_override as ShaderMaterial).set_shader_parameter("power", 2.2 * pulse)
+			if f.visible:   # sparks and smoke only when the breaker failed to clear; a cleared fault is a short flash
+				var bad := bool(d.get("failed", false))
+				(f.get_node("Smoke") as CPUParticles3D).emitting = bad; (f.get_node("Sparks") as CPUParticles3D).emitting = bad
 		"l24":
 			if not bool(d.rev) or (d.order as Array).is_empty():
 				for f in d.fault_pos: (d.fault_pos[f].flash as MeshInstance3D).visible = false

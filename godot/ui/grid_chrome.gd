@@ -238,7 +238,12 @@ func refresh() -> void:
 	sync_look2()
 	var li = app.b.q("levelInfo"); var act: bool = li is Dictionary and li.get("active", false)
 	var id: String = str(li.id) if act else ""
-	if id != _level: _level = id; radio.clear(); _coach_id = "<unset>"
+	if id != _level:
+		_level = id; radio.clear(); _coach_id = "<unset>"
+		# 1128c (manager, art review): chapters 4, 7 and 8 open with the charts folded so the place fills the screen; V or the chip
+		# shows them. Other chapters open unfolded. Headless flow tests keep them open (they audit the chart layout).
+		var fold_ch := Jobs.chapter_of(id) in ["4", "7", "8"] and GridTheme.look2 and DisplayServer.get_name() != "headless" and not OS.has_environment("CB_CHARTS_OPEN")
+		if fold_ch != GridTheme.charts_folded and id != "": toggle_charts()
 	if ch4 != null: ch4.refresh()
 	if ch7 != null: ch7.refresh()
 	if ch8 != null: ch8.refresh()

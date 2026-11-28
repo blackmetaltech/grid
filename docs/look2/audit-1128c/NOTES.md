@@ -21,5 +21,20 @@ director, then roll out, re-shoot every job, iterate to every job >= 7 and mean 
 ## Shot tools
 - `scripts/audit-shots.sh <dir> L23 ...` (throwaway data dir per window). Quick one-shot: scratch `shot.sh`.
 
+- Report (shift_report.gd): glass sheet 560-600 px docked right; `_frame_for_report` calls the 3D place's `report_focus()`
+  (Stage3D.REPORT_FOCUS anchors per stage) then shifts the camera goal right by the ground width half the sheet covers.
+
 ## Status
-- Benchmarks: first AD score pending (see below).
+- e90cda2 pushed (kit, grade, trees, report dock). make test and make flows passed before it.
+- Sigrid round 1: WO-23 open 5.5 / result 4.0; WO-16 4.5 / 4.5 / 4.5. Her list: report hides the consequence (fixed),
+  blackout lit by moon (estate darker, lamps off), substation boxes (transformer kit, hall dressing), flat ground,
+  tags/givens wall (not done), line loading invisible by day (fixed), towns frost (far house grow), fields flat/wedges,
+  edge of world sea (not done).
+- Round 2 pending on bench3/.
+
+## Not done yet / next
+- Roll-out: Kit3D lights + transformer + hall dressing into ch4 (stage3d l10-l13), ch7 l24-l26, ch8 (stage3d_ch8),
+  district3d, bench3d (ch2), bay3d (island: street lamps by the hamlets), province yards (floods, aviation lamps).
+- Charts folded by default on ch4/7/8 (GridTheme.charts_folded), exam compact sheets (WO-18/27/36), jobs list, Career.
+- Low tier check (LOW=1) and 4K.
+- Lesson: every command needs `timeout`; GPU lock `flock -w 120`. A bash call once hung 70 minutes.

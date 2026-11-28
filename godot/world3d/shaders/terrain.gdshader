@@ -131,6 +131,7 @@ void fragment() {
 	else plot = vec3(0.52, 0.47, 0.33) * (0.8 + 0.6 * lum) * (1.0 - 0.1 * rows - 0.2 * tram);                       // stubble
 	plot *= 0.84 + 0.3 * streak;
 	plot *= mix(vec3(0.94, 1.0, 0.94), vec3(1.05, 0.98, 0.92), drift);
+	plot = mix(vec3(dot(plot, vec3(0.3, 0.55, 0.15))), plot, 0.72);   // 1128c (art review): the quilt was loud; a third less saturation
 	float en = texture(macro_noise, wpos.xz / 55.0).r;
 	plot *= 0.9 + 0.22 * texture(macro_noise, wpos.xz / 23.0 + cell * 0.37).r;
 	plot = mix(g * grass_tint * 1.05, plot, smoothstep(2.0, 5.0 + 7.0 * en, edge));   // a grass headland of uneven width
