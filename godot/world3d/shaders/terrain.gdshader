@@ -117,7 +117,7 @@ void fragment() {
 	vec3 hedge_c = vec3(0.15, 0.25, 0.10) * (0.8 + lum);
 	float tuft = smoothstep(0.3, 0.6, texture(macro_noise, wpos.xz / 9.0).r);
 	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 2.6, edge)) * 0.75 * tuft);   // hedges with gaps
-	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.45 * night));   // field colours calm down with distance and at night: no quilt from the air
+	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.7 * night));   // 11-28b: calmer at night (the quilt was loud under the moon)   // field colours calm down with distance and at night: no quilt from the air
 
 	vec3 col = grass * w.r
 		+ tex2f(forest_a, p * 1.3, m, g_mid, g_far) * vec3(0.55, 0.62, 0.45) * w.g

@@ -1,18 +1,30 @@
 # Play this (branch look6, not released)
 
-## Start
+## Start: play from the beginning
 ```
-make run SAVE=tour
+make run SAVE=fresh
 ```
-The game opens on the RTX 4090 in its own 1920x1080 window, on the main screen. `WIN=1600x900` picks another size.
-Keep the window at 1280x800 or larger: smaller than that the panels crowd and text overlaps (a 1080-wide portrait screen is too narrow).
-`SAVE=tour` is a separate save with every job open. Your own save is not touched.
-Without it you play your own save, and jobs open in campaign order.
+A new, empty save of its own (in build/fresh-data). Your own save is not touched.
+Each `SAVE=fresh` starts over. To go on later from where you stopped: `make run SAVE=continue`.
+
+The game opens on the RTX 4090 in its own 1920x1080 window. `WIN=2560x1440` picks another size; fullscreen works too.
+Keep the window at 1280x800 or larger.
+Title: **Take the night shift** starts the campaign at WO-01.
+
+`make run SAVE=tour` is another separate save with every job open, if you want to jump around.
 
 Other ways to start:
 - `make run LEVEL=L10` goes straight into one job.
 - `make run LOW=1` is the low tier on the integrated GPU.
 - `make run CLASSIC=1` is the classic 2D look.
+
+## New today (11-28, after "this is still the old graphics")
+- The province (prologue, chapters 3, 5 and 6, the finale) has a new ground: fields in strips with tramlines and hedges, not the old patchwork. Plants, towers, trees and towns have new materials.
+- Nights are dark land with warm lights, lit from the side, not a flat blue.
+- The pause menu and the chapter cards are glass over the scene (they were cream paper).
+- The incident report fits its text and keeps the place visible.
+- **V** (or "Hide charts" beside the job title) folds every chart away so the place fills the screen. Press again to bring them back.
+- WO-25 now records the rotor swing, so its chart can draw it.
 
 ## New since 1.18.1
 - Every job is now in the 3D look: the prologue and chapters 1 to 8.

@@ -215,9 +215,11 @@ class CueBox extends Control:
 		var f := GridTheme.font("mono"); var fs := GridTheme.fs(15); var txt := TranslationServer.translate("UI_MORE")
 		var ts := f.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
 		var cx := sz.x * 0.5; var by := sz.y - 8.0
-		GridText.ds(ov, f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK if fade_col.get_luminance() > 0.5 else GridTheme.G_TEXT, 0.85))
+		var ink_c := Color(INK if fade_col.get_luminance() > 0.5 else GridTheme.G_TEXT, 0.85)
+		ov.draw_rect(Rect2(Vector2(cx - ts.x * 0.5 - 18.0, by - 4.0 - float(fs) - 2.0), Vector2(ts.x + 46.0, float(fs) + 10.0)), Color(fade_col, 1.0))   # 11-28b (B07): a solid chip, so the list under the fade does not print through the cue
+		GridText.ds(ov, f, Vector2(cx - ts.x * 0.5 - 8.0, by - 4.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, ink_c)
 		var ax := cx + ts.x * 0.5 + 6.0
-		ov.draw_colored_polygon(PackedVector2Array([Vector2(ax, by - 14.0), Vector2(ax + 14.0, by - 14.0), Vector2(ax + 7.0, by - 4.0)]), Color(INK, 0.85))
+		ov.draw_colored_polygon(PackedVector2Array([Vector2(ax, by - 14.0), Vector2(ax + 14.0, by - 14.0), Vector2(ax + 7.0, by - 4.0)]), ink_c)
 
 ## Pencilled check mark inside the chosen chip.
 class ChipCheck extends Control:

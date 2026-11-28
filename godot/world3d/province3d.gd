@@ -1029,7 +1029,8 @@ func _build_plant(u: Dictionary) -> void:
 	var conc := StandardMaterial3D.new(); conc.albedo_color = Color(0.74, 0.73, 0.7); conc.roughness = 0.95
 	var clad := ShaderMaterial.new(); clad.shader = load("res://world3d/shaders/clad.gdshader")   # 11-28b: ribbed, seamed, streaked cladding (was a flat grey box)
 	clad.set_shader_parameter("base", Color(0.46, 0.50, 0.53) if big else Color(0.58, 0.60, 0.61)); clad.set_shader_parameter("grime", _tex("rock_rough"))
-	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.5, 0.49, 0.46); dark.roughness = 1.0
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.34, 0.33, 0.31); dark.roughness = 1.0   # 11-28b audit: the yard read as a pale untextured slab
+	dark.albedo_texture = _tex("rock_albedo"); dark.uv1_triplanar = true; dark.uv1_scale = Vector3.ONE * 0.04
 	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.material_override = dark; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
 	var hall_l := 110.0 if big else 70.0
 	var hall := MeshInstance3D.new(); var hm := BoxMesh.new(); hm.size = Vector3(hall_l, 26, 34); hall.mesh = hm; hall.material_override = clad; hall.position = Vector3(0, 13, 0); n.add_child(hall)
@@ -1486,7 +1487,7 @@ func reset_camera() -> void:
 			var dir := Vector2(cw.x - pw.x, cw.z - pw.z).normalized()
 			var t := Vector2(pw.x, pw.z) + dir * 250.0
 			_g_target = Vector3(t.x, maxf(ground(t.x, t.y), 0.0), t.y)
-			_g_yaw = atan2(-dir.x, -dir.y); _g_pitch = deg_to_rad(15.0); _g_dist = 1150.0
+			_g_yaw = atan2(-dir.x, -dir.y); _g_pitch = deg_to_rad(14.0); _g_dist = 1750.0   # 11-28b audit: the towers were cut by the frame at 1150 m
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
 
