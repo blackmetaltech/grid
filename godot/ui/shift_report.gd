@@ -31,7 +31,7 @@ static func open(app: CbApp) -> bool:
 	var short: bool = app.vs_h() < 920.0 or _force_short
 	var dock := _dock(app, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94)))   # {left, w}: the side that keeps the built island visible
 	var w: float = dock.w
-	if PaperKit.glass: w = clampf(app.vw() / 3.0, 360.0, w); dock.left = 16.0
+	if PaperKit.glass: w = clampf(app.vw() / 3.0, minf(560.0, app.vw() - 32.0), 700.0); dock.left = 16.0   # 11-28b (B03): the dock's 460 px clipped the won report (lamps, loss column, histogram)
 	var d := PaperKit.sheet(app, "end", w, (app.vs_h() - 24.0) if short and not compact else 0.0, 0.0 if PaperKit.glass else 0.34, (14.0 if compact else 22.0) if PaperKit.glass else (16.0 if compact else 30.0))
 	_d = d
 	app.sfx("page")
@@ -89,7 +89,10 @@ static func open(app: CbApp) -> bool:
 	(host as PaperHost).primary = primary
 	app.focus_dialog()
 	for i in 2: app.get_tree().process_frame.connect(func(): _redock(app, d, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94))), CONNECT_ONE_SHOT)
-	if short and sbx != null and pn.has_meta("rep_glass"): app.get_tree().create_timer(0.45).timeout.connect(func(): _shrink_short(app, d, sbx, col))   # 11-28b audit: the scrolling layout was a full-height slab of empty glass   # the world may still be refitting on the frame the job ended
+	if short and sbx != null and pn.has_meta("rep_glass"):   # 11-28b audit: the scrolling layout was a full-height slab of empty glass; fit it to its text
+		pn.set_meta("rep_full_h", app.vs_h() - 24.0)
+		col.resized.connect(func(): if pn.has_meta("rep_fit"): _shrink_short(app, d, sbx, col))   # re-fit whenever the text lays out late (a slow machine: B02); never during the slide-in (it fought the tween)
+		app.get_tree().create_timer(0.45).timeout.connect(func(): if is_instance_valid(pn): pn.set_meta("rep_fit", true); _shrink_short(app, d, sbx, col))   # the world may still be refitting on the frame the job ended
 	if primary != null: primary.call_deferred("grab_focus")   # won: Next job is focused; lost: Retry
 	_stamp_lamps(app, lamps)
 	return true
@@ -131,13 +134,20 @@ static func _fit_v(app: CbApp, d: Dictionary, left: float, w: float) -> void:
 	var top := maxf(10.0, (bottom - h) * 0.5)
 	pn.anchor_top = 0.0; pn.anchor_bottom = 0.0; pn.grow_vertical = Control.GROW_DIRECTION_END; pn.offset_top = top; pn.offset_bottom = top + h
 
+## Pure part of `_shrink_short` (tests/island_flow.gd): the panel's new height, or -1 to leave it. `content` under 40 px means the text is not laid
+## out yet (B02: on a slow machine the first fit cut the report down to its buttons); the result never passes `full`.
+static func fit_height(cur_h: float, scroll_h: float, content: float, full: float) -> float:
+	if content < 40.0: return -1.0
+	var need := minf(full, cur_h - scroll_h + content + 4.0)
+	return -1.0 if absf(need - cur_h) < 2.0 else need
+
 ## The scrolling layout fills the window's height; once laid out, a report shorter than that shrinks to its content (the top stays where it was).
 static func _shrink_short(app: CbApp, d: Dictionary, sbx: Control, col: Control) -> void:
 	if not is_instance_valid(d.get("panel")) or not is_instance_valid(sbx) or not is_instance_valid(col) or _d != d: return
 	var pn: Control = d.panel
-	var need := pn.size.y - sbx.size.y + col.get_combined_minimum_size().y + 4.0
-	if need >= pn.size.y - 8.0: return
-	var top := pn.global_position.y
+	var need := fit_height(pn.size.y, sbx.size.y, maxf(col.get_combined_minimum_size().y, col.size.y), float(pn.get_meta("rep_full_h", app.vs_h() - 24.0)))
+	if need < 0.0: return
+	var top := minf(pn.global_position.y, app.vs_h() - 12.0 - need)
 	pn.anchor_top = 0.0; pn.anchor_bottom = 0.0; pn.grow_vertical = Control.GROW_DIRECTION_END
 	pn.offset_top = top; pn.offset_bottom = top + need
 

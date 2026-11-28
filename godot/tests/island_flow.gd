@@ -170,6 +170,10 @@ func _initialize() -> void:
 	var out: Array = []; _texts(col, out)
 	var all := " | ".join(out)
 	T.check(all.contains("At 21:00 the island went dark") and all.contains("No battery stood on the island") and all.contains("From the cut at 21:00") and all.contains("WO-30"), "incident report: cause, lesson, hint and the job (%s)" % all.left(200))
+	# ---- B02 (11-28b): the glass report fits its text, and a report whose text is not laid out yet keeps its full height ----
+	T.check(ShiftReport.fit_height(1056.0, 900.0, 0.0, 1056.0) < 0.0, "a report with no laid-out text is not shrunk to its buttons (B02)")
+	T.check(is_equal_approx(ShiftReport.fit_height(1056.0, 900.0, 300.0, 1056.0), 460.0), "a short report shrinks to its text (156 + 300 + 4)")
+	T.check(is_equal_approx(ShiftReport.fit_height(460.0, 304.0, 1400.0, 1056.0), 1056.0), "a report that grows never passes the window")
 	# ---- the chapter-end card is wired ----
 	T.check(ShiftReport.CHAPTER_END.get("L30", "") == "L07" and GridStrings.S.has("CH2_TOBI") and GridStrings.S["CH2_TOBI"] == "Island's on the grid. Mind the anchor.", "L30 opens the chapter 2 card, Tobi has the last word")
 	T.finish("ISLAND-FLOW", self)

@@ -307,6 +307,11 @@ func _process(dt: float) -> void:
 			if open_rep:
 				if c.visible: c.visible = false; c.set_meta("rep_hid", true)
 			elif c.has_meta("rep_hid"): c.visible = true; c.remove_meta("rep_hid")
+		var veil := open_rep or modal() != null   # 11-28b audit (B04, B05): charts, tags and world labels showed through the report's glass and the dialogs
+		for c in [chrome.ch2, chrome.ch3, chrome.ch4, chrome.ch5, chrome.ch6, chrome.ch7, chrome.ch8, chrome.chf, chrome.tags, chrome.fold_btn]:
+			if c == null: continue
+			var want := 0.0 if veil else 1.0
+			if not is_equal_approx(c.modulate.a, want): c.modulate.a = want
 	if _pin_kind != "" and chrome != null and chrome.pin != null and started:
 		_skin_pin()   # GridChrome may have rewritten the labels
 		if _pin_kind == "lost": chrome.pin.modulate = Color.WHITE.darkened(0.06 * (0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)))   # a slow breathing so the way back is noticed
