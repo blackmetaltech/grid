@@ -9,7 +9,7 @@ ch2_flow 37
 ch2_pad_truth 60
 ch3_flow 23
 ch4_flow 24
-ch5_flow 21
+ch5_flow 22
 ch6_flow 25
 ch7_flow 25
 ch8_flow 51

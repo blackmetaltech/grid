@@ -1022,8 +1022,9 @@ func _build_plant(u: Dictionary) -> void:
 		if (pts[0] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[1] as Vector2) - (pts[0] as Vector2)).normalized()
 		elif (pts[pts.size() - 1] as Vector2).distance_to(u.pos) < 0.6: away -= ((pts[pts.size() - 2] as Vector2) - (pts[pts.size() - 1] as Vector2)).normalized()
 	away = away.normalized() if away.length() > 0.01 else Vector2(-0.8, -0.6)
-	var off := Vector3(away.x, 0.0, away.y) * 260.0
-	var n := Node3D.new(); n.name = "Plant_%s" % u.id; n.position = Vector3(p.x + off.x, ground(p.x + off.x, p.z + off.z) - 0.5, p.z + off.z); n.rotation.y = -atan2(away.y, away.x); _root_infra.add_child(n)
+	var ps := _job_plant_scale()
+	var off := Vector3(away.x, 0.0, away.y) * 260.0 * (1.0 + 0.6 * (ps - 1.0))
+	var n := Node3D.new(); n.name = "Plant_%s" % u.id; n.scale = Vector3.ONE * ps; n.position = Vector3(p.x + off.x, ground(p.x + off.x, p.z + off.z) - 0.5, p.z + off.z); n.rotation.y = -atan2(away.y, away.x); _root_infra.add_child(n)
 	var conc := StandardMaterial3D.new(); conc.albedo_color = Color(0.74, 0.73, 0.7); conc.roughness = 0.95
 	var clad := StandardMaterial3D.new(); clad.albedo_color = Color(0.48, 0.52, 0.55) if big else Color(0.6, 0.62, 0.63); clad.roughness = 0.6; clad.metallic = 0.3
 	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.5, 0.49, 0.46); dark.roughness = 1.0
@@ -1047,7 +1048,9 @@ func _build_plant(u: Dictionary) -> void:
 			wl.position = Vector3(-hall_l * 0.5 - 70.0 + 5.0, h * (1.0 - 0.45 * k) - 3.0, 30); n.add_child(wl); _warn.append(wl)
 		if quality != "low": n.add_child(_smoke(Vector3(-hall_l * 0.5 - 70.0, h + 2.0, 30)))
 		var tower := _cooling_tower_mesh()
-		var tconc: StandardMaterial3D = conc.duplicate(); tconc.cull_mode = BaseMaterial3D.CULL_DISABLED; tconc.vertex_color_use_as_albedo = true; tconc.albedo_color = Color.WHITE   # the lathe's winding is not checked: both faces; weathered darker toward the foot
+		var tconc: StandardMaterial3D = conc.duplicate(); tconc.cull_mode = BaseMaterial3D.CULL_DISABLED; tconc.vertex_color_use_as_albedo = true; tconc.albedo_color = Color.WHITE
+		tconc.roughness_texture = _tex("rock_rough"); tconc.uv1_triplanar = true; tconc.uv1_scale = Vector3.ONE * 0.05; tconc.roughness = 1.0; tconc.metallic_specular = 0.15   # poured concrete: grain in the roughness and no sky sheen (it read pale blue)
+		# the lathe's winding is not checked: both faces; weathered darker toward the foot
 		for k in 2:
 			var tw := MeshInstance3D.new(); tw.mesh = tower; tw.material_override = tconc; tw.position = Vector3(hall_l * 0.5 + 70.0 + 95.0 * k, 0, 40.0 - 20.0 * k); n.add_child(tw)
 			if quality != "low":
@@ -1079,7 +1082,7 @@ static func _cooling_tower_mesh() -> ArrayMesh:
 			var a0 := TAU * float(k) / seg; var a1 := TAU * float(k + 1) / seg
 			var p00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0); var p01 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
 			var p10 := Vector3(cos(a0) * r1, y1, sin(a0) * r1); var p11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
-			var c0 := Color(0.34, 0.34, 0.33).lerp(Color(0.56, 0.55, 0.53), y0 / H); var c1 := Color(0.34, 0.34, 0.33).lerp(Color(0.56, 0.55, 0.53), y1 / H)   # weathered concrete, not porcelain (Sigrid)
+			var c0 := Color(0.40, 0.38, 0.35).lerp(Color(0.60, 0.57, 0.52), y0 / H); var c1 := Color(0.40, 0.38, 0.35).lerp(Color(0.60, 0.57, 0.52), y1 / H)   # weathered concrete, not porcelain (Sigrid)
 			if i == rings - 1: c1 = Color(0.42, 0.42, 0.42)   # the soot-dark lip
 			for q in [[p00, p10, p11], [p00, p11, p01]]:
 				for v in q:
@@ -1464,6 +1467,14 @@ func reset_camera() -> void:
 				var spread := 0.0
 				for q in pts: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
 				_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = clampf(spread * 2.4, 2400.0, 9000.0); _g_pitch = deg_to_rad(30.0)
+	var subj := _job_subject_pts()   # 11-28 (Sigrid): a grid job of chapters 5 and 6 opens on what its brief is about, at about 40 % of the old distance
+	if not subj.is_empty():
+		var c := Vector3.ZERO
+		for q in subj: c += q
+		c /= float(subj.size())
+		var spread := 0.0
+		for q in subj: spread = maxf(spread, Vector2(q.x - c.x, q.z - c.z).length())
+		_g_target = Vector3(c.x, maxf(ground(c.x, c.z), 0.0), c.z); _g_dist = maxf(_g_dist * 0.4, maxf(spread * (3.4 if subj.size() > 1 else 2.6), 900.0)); _g_pitch = deg_to_rad(26.0)
 	if str(model.get("level", "")) == "P0":   # 1.19 (Sigrid): the prologue opens low behind the lit coal plant, looking east over Line 7 to the city's glow
 		var plant := Vector2(INF, INF); var city := Vector2(INF, INF)
 		for u in model.get("units", []):
@@ -1477,6 +1488,26 @@ func reset_camera() -> void:
 			_g_yaw = atan2(-dir.x, -dir.y); _g_pitch = deg_to_rad(15.0); _g_dist = 1150.0
 	target = _g_target; yaw = _g_yaw; pitch = _g_pitch; dist = _g_dist
 	_apply_camera()
+
+## What each job of chapters 5 and 6 is about, as the engine's bus ids (the brief names it): the towns on L14's line, L15's receiving end, L16's chord (the line that overloads),
+## L17's city bus, L18's load bus, the plant bus of L19-L22. The default view frames them; every other generated province (the finale, the prologue) keeps its own.
+const JOB_SUBJECT := {"L14": ["B4", "B5", "B6"], "L15": ["B2"], "L16": ["B1", "B4"], "L17": ["B3"], "L18": ["B2"], "L19": ["B1"], "L20": ["B1"], "L21": ["B1"], "L22": ["B1"]}
+const JOB_PLANT_SCALE := 2.5   # the plants of those jobs are drawn 2.5 times larger: at play distance a true-size plant is a toy on a 300 m square
+
+func _job_plant_scale() -> float: return JOB_PLANT_SCALE if field is GenField and JOB_SUBJECT.has(str(model.get("level", ""))) else 1.0
+
+## World points of the job's subject: its buses; a plant that stands at a lone subject bus replaces the bus (the plant is what the brief means).
+func _job_subject_pts() -> Array:
+	var pts: Array = []
+	if not field is GenField: return pts
+	var ids: Array = JOB_SUBJECT.get(str(model.get("level", "")), [])
+	for sb in model.subs + model.towns:   # a bus with load is a town in the world model, any other a substation
+		if str(sb.id) in ids: pts.append(tile_to_world((sb.pos as Vector2) + Vector2(0.5, 0.5)))
+	if pts.size() == 1 and _root_infra != null:
+		for n in _root_infra.get_children():
+			if (n as Node).name.begins_with("Plant_") and Vector2((n as Node3D).position.x - pts[0].x, (n as Node3D).position.z - pts[0].z).length() < 1200.0:
+				pts[0] = (n as Node3D).position; break
+	return pts
 
 ## The prologue's cascade: the camera eases round to the largest town, close enough to see its streets go dark.
 func turn_to_city() -> void:

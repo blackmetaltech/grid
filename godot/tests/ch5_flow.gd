@@ -12,6 +12,7 @@ func _find(n: Node, nm: String):
 func _texts(n: Node, out: Array) -> void:
 	if n is Label: out.append((n as Label).text)
 	if n is Button: out.append((n as Button).text)
+	if n is HBoxContainer: out.append(" ".join(n.get_children().filter(func(c): return c is Label).map(func(c): return (c as Label).text)).strip_edges())   # a row of fixed columns reads as one line
 	for c in n.get_children(): _texts(c, out)
 
 func _initialize() -> void:
@@ -35,6 +36,10 @@ func _initialize() -> void:
 	T.check(tx.any(func(s): return "switching operations" in str(s)), "L15: the switching counter")
 	T.level("L16"); T.b.act("tick", [34]); p.refresh(); tx.clear(); _texts(p, tx)
 	T.check(tx.any(func(s): return "T7" in str(s) and "N-1" in str(s)), "L16: the chord's loading with its N-1 figure (%s)" % str(tx.slice(0, 12)))
+	var wide := 0.0
+	for c in p._box.get_children():   # each line row of the card is one row of fixed columns: its columns fit the card's width, so a value never wraps under its line
+		if c is HBoxContainer and c.get_child_count() == 3: wide = maxf(wide, (c as HBoxContainer).get_combined_minimum_size().x)
+	T.check(wide > 100.0 and wide <= p._box.custom_minimum_size.x, "L16: the line rows fit the card on one row each (%.0f px of %.0f)" % [wide, p._box.custom_minimum_size.x])
 	T.level("L17"); p.refresh(); tx.clear(); _texts(p, tx)
 	T.check(tx.any(func(s): return "Press Run" in str(s)), "L17 before the first block says what will appear")
 	T.b.act("tick", [2]); p.refresh(); tx.clear(); _texts(p, tx)

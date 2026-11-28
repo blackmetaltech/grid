@@ -104,10 +104,10 @@ void fragment() {
 	float en = texture(macro_noise, wpos.xz / 55.0).r;
 	float edge = d2 - d1;
 	plot *= 0.9 + 0.22 * texture(macro_noise, wpos.xz / 23.0 + cell * 0.37).r;
-	plot = mix(g * grass_tint * 1.05, plot, smoothstep(0.015, 0.07 + 0.09 * en, edge));
+	plot = mix(g * grass_tint * 1.05, plot, smoothstep(0.008, 0.035 + 0.045 * en, edge));   // 11-28 (Sigrid: cracked mud): the headland and the hedge are half as wide
 	vec3 hedge_c = vec3(0.17, 0.27, 0.11) * (0.8 + lum);   // 1.17: field edges are green hedges, not brown cracks
 	float tuft = smoothstep(0.35, 0.65, texture(macro_noise, wpos.xz / 9.0).r);
-	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.035, edge)) * 0.8 * tuft);
+	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.018, edge)) * 0.4 * tuft);
 	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.45 * night));   // field colours calm down with distance and at night: no quilt from the air
 
 	vec3 col = grass * w.r

@@ -1544,10 +1544,7 @@ func _draw_labels() -> void:
 	var fs := 13 if size.x < 1400.0 else 15
 	if _l3(): fs += 3   # LOOK2 chips at the 16 px floor
 	_note_rect = Rect2()
-	if _l3() and look3d.field is GenField and _cover.size.x <= 0.0:   # the generated province is drawn at a presentation scale: say so (docs/LOOK2.md)
-		var note := tr("WORLD_SCALE_NOTE"); var nfs := GridText.floor_size(_ci, 14); var nw := font.get_string_size(note, HORIZONTAL_ALIGNMENT_LEFT, -1, nfs).x   # 1.16 (Sigrid): measured at the floored size, below the clock
-		var nr := Rect2(Vector2(16.0, 128.0), Vector2(nw + 20.0, nfs + 8.0)); _note_rect = nr
-		_dr(nr, Color(0.03, 0.05, 0.08, 0.62)); _bt_flush(); GridText.ds(_ci, font, nr.position + Vector2(10, nfs + 2.0), note, HORIZONTAL_ALIGNMENT_LEFT, -1, nfs, Color(0.82, 0.87, 0.92))
+	# 11-28 (Sigrid): the scale note (1 square = 4 km drawn as 300 m) is off the screen; WORLD_SCALE_NOTE stays in the strings and docs/LOOK2.md
 	var taken: Array[Vector2] = []   # town label anchors: a short service line's loading % must not sit on the market's name
 	var site_seen := {}
 	var placed: Array[Rect2] = []; _town_boxes = placed   # (kept for the pegs, which leave a town name readable) grid-level town and yard labels already drawn: a bus at 400, 220 and 132 kV on one site must not print three labels on top of each other

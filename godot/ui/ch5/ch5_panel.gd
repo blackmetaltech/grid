@@ -4,7 +4,7 @@ extends PanelContainer
 ## instrument of each level: the tap and switching counts (L14, L15), the loading of every line with the loading after losing each one (L16), the P-V curve with the
 ## operating point and the nose (L17), the Gauss-Seidel sweeps beside Newton, the predictions and the set-point of the PV bus (L18). Display and input only: every number
 ## comes from the engine query `ch5Panel`, every refusal is the engine's.
-const W := 310.0
+const W := 340.0   # L16's rows are three fixed columns (line and bar, loading of rating, after the worst outage): 308 px at the 16 px floor
 const LEVELS := ["L14", "L15", "L16", "L17", "L18"]
 const PRED := [["l18.v2gs1", "pu", "C5_P_GS1"], ["l18.v2", "pu", "C5_P_V2"], ["l18.pslack", "MW", "C5_P_PS"]]
 var app: CbApp
@@ -148,11 +148,13 @@ func _l16(q: Dictionary) -> void:
 	_line(tx("C5_L16_HEAD"), 12, "sans")
 	for ln in q.lines:
 		var n = ln.get("n1Pct"); var pct := int(ln.loadingPct)
-		var bar := "#".repeat(clampi(int(round(pct / 10.0)), 0, 14))
-		var t := "%s %-14s %3d%% of %d MVA" % [str(ln.id), bar, pct, int(round(float(ln.ratingMVA)))]
-		if n != null: t += "  N-1 %d%%" % int(n)
-		var l := _line(t if ln.inService else str(ln.id) + "  " + tx("C5_OPEN"), 12)
-		if pct > 100: l.add_theme_color_override("font_color", Ch5Panel.bad_col())
+		if not ln.inService: _line(str(ln.id) + "  " + tx("C5_OPEN"), 12); continue
+		var bar := "#".repeat(clampi(int(round(pct / 20.0)), 0, 5))
+		var row := HBoxContainer.new(); row.add_theme_constant_override("separation", 2); _box.add_child(row)   # fixed columns: a value never wraps under its line
+		var cols := [["%s %s" % [str(ln.id), bar], 84.0], ["%3d%% of %d MVA" % [pct, int(round(float(ln.ratingMVA)))], 146.0], [("N-1 %d%%" % int(n)) if n != null else "", 78.0]]
+		for cd in cols:
+			var l := GridTheme.label(str(cd[0]), 12, GridTheme.chit_ink(), "mono"); l.custom_minimum_size = Vector2(float(cd[1]), 0); row.add_child(l)
+			if pct > 100 and cd == cols[1]: l.add_theme_color_override("font_color", Ch5Panel.bad_col())
 	var tr: Dictionary = q.track
 	if tr.has("peakLoadingN1"): _line(tx("C5_L16_DAYWORST") % [int(round(float(tr.peakLoadingN1) * 100.0)), _hm(int(tr.get("peakLoadingBlock", 0)))], 13, "sans")   # the report's number, with its time, beside the "now" table
 	if tr.has("n1Max"): _line(tx("C5_N1") % int(round(float(tr.n1Max) * 100.0)) + tx("C5_AT") % _hm(int(tr.get("n1MaxBlock", 0))), 13, "sans")
