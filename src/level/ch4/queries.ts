@@ -38,7 +38,7 @@ export function ch4Lesson(s: GridState, lessonKey: string): string {
   if (c.l11) {
     const l = c.l11, f0 = s.region === 'in' ? 50 : 50, r = solvePfc(l.bank, l.starter, f0), need = qcNeeded(EST.kw, EST.pf, 0.95) / 1000;
     const b = l.bank;
-    return t(lessonKey, {
+    return t(b ? lessonKey : 'level.L11.lessonNoBank', {   // 11-28b: no bank, no bank sentence (it printed '0 V of a rating of 0 V')
       pf0: EST.pf, kw: EST.kw, need: r1(need), cy: Math.round(cPerPhaseUF(need * 1000, f0, 'Y')), cd: Math.round(cPerPhaseUF(need * 1000, f0, 'D')), q: r1(r.qBankKvar), pf: r2(r.pf),
       conn: b ? (b.conn === 'Y' ? 'star' : 'delta') : '-', cph: b ? b.unitUF * b.count : 0, canv: b ? Math.round(canVolts(b.conn)) : 0, rated: b ? b.ratedV : 0,
       mult: STARTERS[l.starter].mult, ist: Math.round(r.iStartA), ifl: Math.round(r.iFullA), dip: r1(r.dipPct),

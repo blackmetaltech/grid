@@ -218,6 +218,8 @@ describe('the report and determinism', () => {
     expect(q(l12, 'levelInfo').tryHint).toMatch(/excitation/); expect(q(l12, 'levelInfo').lesson).toMatch(/E′ = 0\.96 pu/);
     const l11 = fresh('L11'); act(l11, 'setBank', 100, 72, 'Y', 250); expect(q(l11, 'levelInfo').lesson).toMatch(/345\.8 kVAr.*6879 µF per phase wired in star or 2293 µF per phase in delta/);
     const l13 = fresh('L13'); expect(q(l13, 'levelInfo').lesson).toMatch(/= 1\.97 pu at δ = 29\.2°/);
+    const l11n = fresh('L11'); const ln = String(q(l11n, 'levelInfo').lesson);   // 11-28b playtest: with no bank it printed '(0 µF per phase, -, cans at 0 V of a rating of 0 V)'
+    expect(ln).toMatch(/No capacitor bank stood on the bus/); expect(ln).not.toMatch(/0 V of a rating of 0 V|, -,/); expect(ln).toMatch(/345\.8 kVAr/);
   });
   it('the same design twice gives the same state (the swing, the street and the exam are deterministic)', () => {
     for (const id of ['L10', 'L11', 'L12', 'L13']) {
