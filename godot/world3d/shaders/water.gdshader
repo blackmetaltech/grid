@@ -77,7 +77,7 @@ void fragment() {
 	}
 	ALBEDO = col * (1.0 - refl);
 	ALPHA = clamp(max(0.55 + 0.45 * k + fres * 0.3, refl), 0.0, 1.0);
-	ROUGHNESS = mix(0.06, 0.42, night);   // a rougher sea at night: the moon path was a hard white slab (art review 1.15)
+	ROUGHNESS = mix(0.06, 0.6, night);   // a rougher sea at night: the moon path was a hard white slab (art review 1.15; 11-28b B18: still a white strip at 0.42)
 	METALLIC = 0.0;
-	SPECULAR = mix(0.55, 0.18, night);
+	SPECULAR = mix(0.55, 0.06, night);
 }
