@@ -170,8 +170,9 @@ func _make_env() -> void:
 		get_viewport().msaa_3d = Viewport.MSAA_2X
 		get_viewport().use_taa = true
 	else:   # low: the 3D view renders at 60 % and is scaled up; the UI stays at full resolution
-		get_viewport().scaling_3d_scale = 0.6
+		get_viewport().scaling_3d_scale = 0.8   # 11-28: was 0.6; at 0.6 the conductors were sub-pixel and striped; the iGPU has the headroom (L16 11 ms at 0.6)
 		get_viewport().scaling_3d_mode = Viewport.SCALING_3D_MODE_FSR; get_viewport().fsr_sharpness = 0.35   # FSR 1 upscale with sharpening, not a bilinear blur
+		get_viewport().screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA   # 11-28 (Sigrid): with no AA the lattice towers and thin lines aliased into zebra stripes on the closer chapter 5-6 cameras
 
 ## Palette by minute of the day (docs/LOOK2.md "Light"): day, golden hour, blue hour, night.
 func _sky_at(mn: float) -> Dictionary:
