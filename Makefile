@@ -5,11 +5,11 @@
 #   make run CLASSIC=1       the classic 2D look
 #   make run SAVE=tour       a separate save with every job open (Engineer mode); your own save is not touched
 #   make run LEVEL=L10       straight into one job
-#   make run WIN=1920x1080   another window size (default 1080x608)
+#   make run WIN=1600x900    a window size (default: the game's own 1920x1080 window; below 1280x800 the panels crowd)
 
 SHELL := /bin/bash
 GODOT ?= godot
-WIN ?= 1080x608
+WIN ?=
 SIDECAR := godot/sidecar/bridge.mjs
 ENGINE_SRC := $(shell find src core/ts -name '*.ts' -not -name '*.test.ts' 2>/dev/null) vite.bridge.config.ts
 
@@ -41,7 +41,7 @@ help:
 	@echo ""
 	@echo "  make run          Play the game in a window on the RTX 4090."
 	@echo "                    LOW=1 low tier on the integrated GPU, CLASSIC=1 classic look,"
-	@echo "                    SAVE=tour every job open in a separate save, LEVEL=L10 one job, WIN=1920x1080 window size."
+	@echo "                    SAVE=tour every job open in a separate save, LEVEL=L10 one job, WIN=1600x900 window size."
 	@echo "  make test         Type check and unit tests."
 	@echo "  make flows        The Godot flow tests (headless)."
 	@echo "  make build        Build the engine sidecar and import the Godot project."
@@ -63,7 +63,7 @@ tour-save:
 	@if [ "$(SAVE)" = "tour" ]; then bash scripts/tour-save.sh build/tour-data; fi
 
 run: sidecar tour-save
-	cd godot && env $(RUN_ENV) $(GODOT) --path . --rendering-method forward_plus --resolution $(WIN)
+	cd godot && env $(RUN_ENV) $(GODOT) --path . --rendering-method forward_plus $(if $(WIN),--resolution $(WIN),)
 
 test:
 	pnpm -s typecheck

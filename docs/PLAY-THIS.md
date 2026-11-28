@@ -4,7 +4,8 @@
 ```
 make run SAVE=tour
 ```
-The game opens on the RTX 4090 in a 1080x608 window. Drag it bigger, or use `WIN=1920x1080`.
+The game opens on the RTX 4090 in its own 1920x1080 window, on the main screen. `WIN=1600x900` picks another size.
+Keep the window at 1280x800 or larger: smaller than that the panels crowd and text overlaps (a 1080-wide portrait screen is too narrow).
 `SAVE=tour` is a separate save with every job open. Your own save is not touched.
 Without it you play your own save, and jobs open in campaign order.
 
@@ -42,6 +43,8 @@ Open Jobs from the title. Left-drag moves the view, right-drag (or Shift-drag) t
 - WO-25's swing chart shows only the verdict after the run: the engine does not record the swing trace.
 - Opening the Career stalls about 2 seconds while the district is built.
 - The Career's top strip and project drawer are still dense panels.
+- Windows smaller than 1280x800 (for example 1080x608) overlap text on the 3D jobs.
+- Low tier: lattice towers and thin lines shimmer on the closer province views.
 - Sound: nobody has listened to it.
 
 ## Classic look
