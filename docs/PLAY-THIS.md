@@ -19,6 +19,7 @@ Other ways to start:
 - Chapters 5 and 6 play on the 3D map, with glass cards.
 - Chapter 7 is five places: a substation, a feeder with four relays, a generator and its breaker, a dispatch room with its plants, and the exam substation.
 - Chapter 8 is one country feeder with villages, poles, fuses, a recloser and a substation.
+- The Career map is a night district in 3D: two substations, nine feeders, a street of homes per section. The map's lines lie over it.
 - From 1.19 (also unreleased): the prologue and the chapter 2 benches in 3D, pad play on the benches, the prediction counts once.
 - Streets by day were almost black. Fixed.
 
@@ -31,6 +32,7 @@ Open Jobs from the title. Left-drag moves the view, right-drag (or Shift-drag) t
 5. **WO-26 Merit Order** (1 min). The dispatch room in front, the plants behind. Run and watch which plants steam.
 6. **WO-31 The Long Feeder** (2 min). Put a regulator at N3 and run. The far villages light up.
 7. **WO-35 Sun on the Roofs** (1 min). Change the PV limit and count the panels.
+8. **Career** from the title (1 min). New career. Drag the district, zoom in on a street, click a section.
 
 ## Known to be rough
 - Charts still cover the top of the screen on several jobs (WO-12, WO-24, WO-26, chapter 8).
@@ -38,6 +40,8 @@ Open Jobs from the title. Left-drag moves the view, right-drag (or Shift-drag) t
 - WO-34: demand response dims only a few homes, hard to see.
 - On a phone, chapters 4 to 8 keep the classic look.
 - WO-25's swing chart shows only the verdict after the run: the engine does not record the swing trace.
+- Opening the Career stalls about 2 seconds while the district is built.
+- The Career's top strip and project drawer are still dense panels.
 - Sound: nobody has listened to it.
 
 ## Classic look

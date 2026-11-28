@@ -386,7 +386,7 @@ function controlsPage(): string {
 /** Not built yet, written plainly. Review with each release: src/wiki.test.ts checks the counts and look lists around it, not this prose. */
 export const PLANNED: string[] = [
   'The new 3D look on a phone. On a phone, chapters 4 to 8 still draw in the classic 2D look.',
-  'A Career screen laid over the district, with the board as a drawer. Today the Career has the glass panels of the new look on a flat map.',
+  'A lighter Career screen: the district is in 3D, the top strip and the project drawer are still dense panels.',
   'A busier first day in the finale. This is an open item from the 1.18 review.',
 ];
 export const NOT_CHECKED: string[] = [
