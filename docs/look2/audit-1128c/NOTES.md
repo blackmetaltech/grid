@@ -25,6 +25,14 @@ director, then roll out, re-shoot every job, iterate to every job >= 7 and mean 
   (Stage3D.REPORT_FOCUS anchors per stage) then shifts the camera goal right by the ground width half the sheet covers.
 
 ## Status (latest first)
+- Art director (Sigrid) per-job scores: round 1 on sweep 4 (6a97062) mean 3.89, 0 of 37 at 7; round 2 on sweep 5
+  (ca1f8e0) mean 4.38, 0 of 37 at 7. Highest: L01, L10, L19, L23 at 6. Lowest: L14, L16, L18, L22, L24, L29, L30, L35, L36 at 3.
+  Shared causes still open (her ranking): people and lit towns with a visible blackout; house textures and window bloom;
+  daytime ochre/olive grade; patchwork terrain; result frames that point at the cause; Career and Jobs layout.
+- Owner bug "slashed roofs" (C02, high): fixed 9e2eacd at the root (Props3D._tri, _cyl, Bay3D._quad, window strips,
+  bench ring, farm boxes) + tests/mesh_winding_truth.gd. Evidence docs/look2/audit-1128c/roofs/.
+- Perf (CB_NOTHROTTLE; unfocused windows cap at 10 fps by design): low tier iGPU 1080p 44-61 fps on P0, L01, L10, L16,
+  L23, L26; high tier 4090 at 3840x2160 60 fps (vsync) on P0, L01, L10, L16, L23.
 - 6676498: manager notes (night fill 0.95, moon 0.7; WO-24/25 framing and clear foreground; lever hidden under the
   report; plant pads clear of houses; coal pile). Sweep 3 into scratch, sheets to docs/look2/audit-1128c/after/.
 - e3fbd61 roll-out 1 (shared transformer mesh, plant yard shader + floods, cooling-tower concrete, ch7 site lights,

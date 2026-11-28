@@ -19,14 +19,15 @@ Other ways to start:
 - `make run CLASSIC=1` is the classic 2D look.
 
 ## New today (11-28, second pass on the look)
-- Night is night: a cold moon from the side, a blue fill, warm windows, street lamps and floodlit yards with pools of light.
-- When a job fails, the place goes dark: windows and street lamps go out. A breaker that fails to clear burns, with sparks and smoke.
-- New trees (layered pines, round broadleaf, birch) in clumps with clearings. Calmer farm colours.
-- WO-23 is a fenced, floodlit substation with transformers, lit switch-houses and vans.
-- On the province map a line turns teal, amber, then red as it loads, by day too. An overloaded line is red.
-- The report sits on the right; the camera moves so you see what happened.
-- Chapters 4, 7 and 8 open with the charts folded. V shows them.
-- Still rough: the Career map and the Jobs list keep the old look; far towns are sparse; some chapter 7 subjects are small.
+- Roofs are whole again. Houses, barns, poles, chimneys and silos were drawn inside out ("slashed from the top"). Fixed in the shared builders, with a test.
+- Night is night: a cold moon from the side, a blue fill, warm windows, street lamps and floodlit yards.
+- When a night job fails, the report keeps the place at night, so the dark homes show against the lit ones. A noon failure keeps its sun. The clock hides while the night is held; the report gives the hour.
+- A breaker that fails to clear burns, with sparks and smoke. On the map a line turns teal, amber, then red as it loads.
+- Power stations: the halls no longer go black at night; cooling towers have steam in the throat.
+- The camera tilts up instead of sitting inside a building.
+- New trees in clumps, calmer farm colours, a river surface on the province.
+- WO-18's exam sheet fits on one screen. At 1280x800 the gauges step aside for the report.
+- Still rough (art director, round 2: mean 4.4 of 10, no job at 7): no people in the towns, houses untextured, noon grade too yellow, far towns sparse, Career and the Jobs list unchanged.
 
 ## New since 1.18.1
 - Every job is now in the 3D look: the prologue and chapters 1 to 8.
