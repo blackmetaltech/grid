@@ -3,6 +3,8 @@
 #   make run                 play on the RTX 4090 (Forward+), in a window
 #   make run LOW=1           the low tier, on the integrated GPU
 #   make run CLASSIC=1       the classic 2D look
+#   make run SAVE=fresh      play from the beginning: a new empty separate save (wiped at each SAVE=fresh start); your own save is not touched
+#   make run SAVE=continue   go on with that separate save where you stopped
 #   make run SAVE=tour       a separate save with every job open (Engineer mode); your own save is not touched
 #   make run LEVEL=L10       straight into one job
 #   make run WIN=1600x900    a window size (default: the game's own 1920x1080 window; below 1280x800 the panels crowd)
@@ -29,6 +31,9 @@ endif
 ifeq ($(SAVE),tour)
   RUN_ENV += XDG_DATA_HOME=$(CURDIR)/build/tour-data
 endif
+ifneq ($(filter $(SAVE),fresh continue),)
+  RUN_ENV += XDG_DATA_HOME=$(CURDIR)/build/fresh-data
+endif
 ifneq ($(LEVEL),)
   RUN_ENV += CB_LEVEL=$(LEVEL)
 endif
@@ -41,6 +46,7 @@ help:
 	@echo ""
 	@echo "  make run          Play the game in a window on the RTX 4090."
 	@echo "                    LOW=1 low tier on the integrated GPU, CLASSIC=1 classic look,"
+	@echo "                    SAVE=fresh play from the beginning on a new separate save, SAVE=continue go on with it,"
 	@echo "                    SAVE=tour every job open in a separate save, LEVEL=L10 one job, WIN=1600x900 window size."
 	@echo "  make test         Type check and unit tests."
 	@echo "  make flows        The Godot flow tests (headless)."
@@ -61,6 +67,7 @@ build: sidecar import
 
 tour-save:
 	@if [ "$(SAVE)" = "tour" ]; then bash scripts/tour-save.sh build/tour-data; fi
+	@if [ "$(SAVE)" = "fresh" ]; then rm -rf build/fresh-data; mkdir -p build/fresh-data; echo "New empty save in build/fresh-data (your own save is not touched)."; fi
 
 run: sidecar tour-save
 	cd godot && env $(RUN_ENV) $(GODOT) --path . --rendering-method forward_plus $(if $(WIN),--resolution $(WIN),)
@@ -76,5 +83,5 @@ shots: sidecar
 	bash scripts/shots.sh docs/look2/shots
 
 clean:
-	rm -rf build/tour-data dist
+	rm -rf build/tour-data build/fresh-data dist
 	rm -f $(SIDECAR)

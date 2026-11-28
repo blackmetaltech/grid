@@ -162,6 +162,12 @@ static func _mouse_through(n: Node) -> void:
 static func qa(app: CbApp, what: String) -> void:
 	match what:
 		"menu": app.open_menu()
+		"settings": app.open_settings()
+		"codex": app.show_screen("codex")
+		"close":   # QA: close every open dialog (so the next QA screen is shot alone)
+			app.menus.close_menu()
+			for n in app.get_tree().root.find_children("*", "", true, false): if n.has_meta("cb_modal") and is_instance_valid(n): n.queue_free()
+			app.show_screen(app.home)
 		"jobs": Jobs.open(app)
 		"workorder": WorkOrder.open(app)
 		"report", "look":   # a fresh report once the world has settled (the job may already have ended and opened one while the QA ticks ran); `look` then presses Look around

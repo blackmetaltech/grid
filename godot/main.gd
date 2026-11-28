@@ -13,7 +13,8 @@ func game_config() -> Dictionary:
 		"title": str(ProjectSettings.get_setting("application/config/name", "GRID")),
 		"tagline": tr("GRID_TAGLINE"),
 		"blurb": tr("GRID_BLURB"),
-		"accent": Color("#39E1FF"), "accent2": Color("#FFB020"),
+		"accent": Color("#39E1FF") if OS.get_environment("CB_LOOK") == "1" else GridTheme.SODIUM,   # 11-28b audit: the shell's Settings and codex drew in cyan, a colour the new look has nowhere else
+		"accent2": Color("#FFB020"),
 		"modes": [["learner", tr("MODE_LEARNER"), tr("MODE_LEARNER_DESC")], ["engineer", tr("MODE_ENGINEER"), tr("MODE_ENGINEER_DESC")], ["sandbox", tr("MODE_SANDBOX"), tr("MODE_SANDBOX_DESC")]],
 		"dock": [["home", tr("DOCK_HOME"), Color("#39E1FF"), tr("DOCK_HOME")]],   # the shell wants a home id; it is blank (ui/home_blank.gd), the old Operator Clock drawer is gone
 		"screens": {"home": "res://ui/home_blank.gd"},
@@ -95,6 +96,22 @@ func game_camera(spec: String) -> void:
 	if later != "" and spec != later:
 		get_tree().create_timer(float(OS.get_environment("CB_CAM_LATER_AT")) if OS.get_environment("CB_CAM_LATER_AT") != "" else 4.0).timeout.connect(func(): game_camera(later))
 
+## CB_SEQ for audit captures (debug builds): steps "secs:what" separated by ';', each run that many seconds after start.
+## what = @name (save the window to $CB_SHOT_DIR/name.png), quit, or a CB_CAM spec (act=..., ff=n, paper=report, camera words).
+func _qa_seq(seq: String) -> void:
+	var dir := OS.get_environment("CB_SHOT_DIR") if OS.get_environment("CB_SHOT_DIR") != "" else ProjectSettings.globalize_path("user://seq")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for step in seq.split(";", false):
+		var i := step.find(":")
+		if i < 0: continue
+		var at := float(step.left(i)); var what := step.substr(i + 1)
+		get_tree().create_timer(at).timeout.connect(func():
+			if what == "quit": get_tree().quit()
+			elif what.begins_with("@"):
+				await RenderingServer.frame_post_draw
+				get_viewport().get_texture().get_image().save_png("%s/%s.png" % [dir, what.substr(1)]); print("CB_SEQ shot ", what.substr(1))
+			else: game_camera(what))
+
 ## The 3D look keeps moving while paused (water, clouds, smoke): the 30 fps idle cap waits 2 min, for a player who has left, not one reading a decision (1.17).
 func game_idle_ms() -> int:
 	if grid_world != null and grid_world.look3d != null and grid_world.look3d.visible: return 120000
@@ -116,7 +133,8 @@ func game_build_chrome(r: Control) -> void:
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
 	chrome.pin_pressed.connect(_on_pin)
 	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: (func(id: int): var c = instance_from_id(id); if c is Control: GridText.floor_control(c)).call_deferred(n.get_instance_id()))   # by id: a node freed before the deferred call ran   # a node freed before the deferred call ran raised "Cannot convert argument 1"   # 1.9: 16 px floor
-	if OS.get_environment("CB_SHOT_DIR") != "":   # QA hand play on a GPU window: save the viewport every CB_SHOT_EVERY seconds (default 5) as NNNN.png, no quit
+	if OS.is_debug_build() and OS.get_environment("CB_SEQ") != "": _qa_seq(OS.get_environment("CB_SEQ"))   # audit captures: timed steps in one window
+	if OS.get_environment("CB_SHOT_DIR") != "" and OS.get_environment("CB_SEQ") == "":   # QA hand play on a GPU window: save the viewport every CB_SHOT_EVERY seconds (default 5) as NNNN.png, no quit
 		var dir := OS.get_environment("CB_SHOT_DIR"); DirAccess.make_dir_recursive_absolute(dir)
 		var every := float(OS.get_environment("CB_SHOT_EVERY")) if OS.get_environment("CB_SHOT_EVERY") != "" else 5.0
 		var t := Timer.new(); t.wait_time = every; t.autostart = true; add_child(t)
