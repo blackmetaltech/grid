@@ -948,7 +948,7 @@ func _clamp_goal() -> void:
 	_g_target.x = clampf(_g_target.x, -0.1 * mm.x, 1.1 * mm.x); _g_target.z = clampf(_g_target.z, -0.1 * mm.y, 1.1 * mm.y)
 	_g_target.y = maxf(ground(_g_target.x, _g_target.z), 0.0)
 	_g_pitch = clampf(_g_pitch, PITCH_MIN, PITCH_MAX)
-	_g_dist = clampf(_g_dist, 25.0, _dist_default * 1.8)
+	_g_dist = clampf(_g_dist, 25.0, _dist_default * 1.35)   # 11-28b (B01): farther out than 1.35x, the sea plane's edge showed
 
 func _apply_camera() -> void:
 	var y := yaw + (deg_to_rad(4.0) * sin(_t * 0.05) if drift else 0.0)
@@ -972,12 +972,12 @@ func orbit_px(rel: Vector2) -> void:
 
 func zoom_at(sp: Vector2, f: float) -> void:
 	var g := ground_point(sp)
-	var nd := clampf(_g_dist / f, 25.0, _dist_default * 1.8)
+	var nd := clampf(_g_dist / f, 25.0, _dist_default * 1.35)
 	if not is_nan(g.x): _g_target = _g_target.lerp(g, (1.0 - nd / _g_dist) * 0.9)
 	_g_dist = nd; _clamp_goal()
 
 func center_on_tile(p: Vector2, z := 1.0) -> void:
-	_g_target = Vector3((p.x + 0.5) * tm, 0.0, (p.y + 0.5) * tm); _g_dist = clampf(_dist_default / z, 25.0, _dist_default * 1.8); _clamp_goal()
+	_g_target = Vector3((p.x + 0.5) * tm, 0.0, (p.y + 0.5) * tm); _g_dist = clampf(_dist_default / z, 25.0, _dist_default * 1.35); _clamp_goal()
 
 ## CB_CAM camera words for screenshots: yaw=deg, pitch=deg, dist=m, tx / ty (tiles), zoom (1 = the opening framing). They apply at once.
 func set_camera_spec(spec: String) -> bool:

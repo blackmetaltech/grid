@@ -107,6 +107,11 @@ func _qa_seq(seq: String) -> void:
 		var at := float(step.left(i)); var what := step.substr(i + 1)
 		get_tree().create_timer(at).timeout.connect(func():
 			if what == "quit": get_tree().quit()
+			elif what.begins_with("win="):   # QA: live resize (win=WxH) or fullscreen (win=full) / back (win=window)
+				var v := what.substr(4)
+				if v == "full": DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+				elif v == "window": DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+				else: var wh := v.split("x"); DisplayServer.window_set_size(Vector2i(int(wh[0]), int(wh[1])))
 			elif what.begins_with("@"):
 				await RenderingServer.frame_post_draw
 				get_viewport().get_texture().get_image().save_png("%s/%s.png" % [dir, what.substr(1)]); print("CB_SEQ shot ", what.substr(1))
