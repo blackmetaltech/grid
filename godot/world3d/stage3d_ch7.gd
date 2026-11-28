@@ -170,7 +170,7 @@ static func _city(s: Stage3D, rc: Rect2, seed_: int) -> StandardMaterial3D:
 				var o := Vector3(cx - w * 0.5 - 0.05, y0 + 2.5 + 3.5 * float(rr), cz - d * 0.5 + 1.3 + 2.6 * float(cc))
 				var pp := [o, o + Vector3(0, 0, 1.2), o + Vector3(0, 1.8, 1.2), o + Vector3(0, 1.8, 0)]
 				win.set_normal(Vector3.LEFT)
-				for t in [0, 1, 2, 0, 2, 3]: win.add_vertex(pp[t])
+				for t in [0, 2, 1, 0, 3, 2]: win.add_vertex(pp[t])   # 1128c: front faces out (-X)
 	s._inst(s._root, st.commit(), s._vc_mat(0.8), "CityBlocks")
 	var m := s._emit_mat(Color(1.0, 0.82, 0.5), 3.5); m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	s._inst(s._root, win.commit(), m, "CityWindows", Vector3.ZERO, false)

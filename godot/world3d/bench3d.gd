@@ -473,12 +473,12 @@ static func _ring(st: SurfaceTool, r0: float, r1: float, z0: float, z1: float, s
 			var r: float = face[0]; var sg: float = face[1]
 			var p := [c0 * r + Vector3(0, 0, z0), c1 * r + Vector3(0, 0, z0), c1 * r + Vector3(0, 0, z1), c0 * r + Vector3(0, 0, z1)]
 			var ns := [c0 * sg, c1 * sg, c1 * sg, c0 * sg]
-			for k in ([0, 1, 2, 0, 2, 3] if sg > 0.0 else [0, 2, 1, 0, 3, 2]): st.set_normal(ns[k]); st.add_vertex(p[k])
+			for k in ([0, 2, 1, 0, 3, 2] if sg > 0.0 else [0, 1, 2, 0, 2, 3]): st.set_normal(ns[k]); st.add_vertex(p[k])   # 1128c: front faces along ns (was inside out)
 		for end in [[z1, 1.0], [z0, -1.0]]:
 			var z: float = end[0]; var sg: float = end[1]
 			var p := [c0 * r0 + Vector3(0, 0, z), c1 * r0 + Vector3(0, 0, z), c1 * r1 + Vector3(0, 0, z), c0 * r1 + Vector3(0, 0, z)]
 			st.set_normal(Vector3(0, 0, sg))
-			for k in ([0, 2, 1, 0, 3, 2] if sg > 0.0 else [0, 1, 2, 0, 2, 3]): st.add_vertex(p[k])
+			for k in ([0, 1, 2, 0, 2, 3] if sg > 0.0 else [0, 2, 1, 0, 3, 2]): st.add_vertex(p[k])   # 1128c: front faces along the end normal
 
 ## The alternator at `at` (local to `parent`), shaft along z: the turbine casing behind, the stator ring, the rotor. Rotor and coils are rebuilt by _apply.
 func _build_alternator(parent: Node3D, at: Vector3) -> void:

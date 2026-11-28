@@ -12,10 +12,12 @@ static func _cyl(st: SurfaceTool, a: Vector3, b: Vector3, ra: float, rb: float, 
 		var t0 := TAU * s / seg; var t1 := TAU * (s + 1) / seg
 		var d0 := u * cos(t0) + v * sin(t0); var d1 := u * cos(t1) + v * sin(t1)
 		var p0 := a + d0 * ra; var p1 := a + d1 * ra; var p2 := b + d1 * rb; var p3 := b + d0 * rb
-		st.set_normal(d0); st.add_vertex(p0); st.set_normal(d1); st.add_vertex(p1); st.set_normal(d1); st.add_vertex(p2)
-		st.set_normal(d0); st.add_vertex(p0); st.set_normal(d1); st.add_vertex(p2); st.set_normal(d0); st.add_vertex(p3)
+		# 1128c (owner roof bug, same fault): clockwise from outside, so the front faces out (was inside out: every pole,
+		# bushing and chimney showed its far inner wall). tests/mesh_winding_truth.gd guards it.
+		st.set_normal(d0); st.add_vertex(p0); st.set_normal(d1); st.add_vertex(p2); st.set_normal(d1); st.add_vertex(p1)
+		st.set_normal(d0); st.add_vertex(p0); st.set_normal(d0); st.add_vertex(p3); st.set_normal(d1); st.add_vertex(p2)
 		if cap and rb > 0.0:
-			st.set_normal(ax); st.add_vertex(b); st.add_vertex(p3); st.add_vertex(p2)
+			st.set_normal(ax); st.add_vertex(b); st.add_vertex(p2); st.add_vertex(p3)
 
 static func _box(st: SurfaceTool, c: Vector3, s: Vector3, col: Color, uvx := 0.0) -> void:
 	var h := s * 0.5
@@ -33,10 +35,14 @@ static func _box(st: SurfaceTool, c: Vector3, s: Vector3, col: Color, uvx := 0.0
 			var pv: Vector3 = p[k]
 			st.set_uv(Vector2(uvx, (pv.y - (c.y - h.y)) / 100.0)); st.add_vertex(pv)
 
+## A triangle whose outward normal is (b - a) x (c - a). Godot draws clockwise faces as the front, and that cross product points
+## the other way, so the vertices go out as a, c, b. 1128c (owner: "the roofs look like the house is slashed from the top"):
+## they went out as a, b, c, so every roof slope and gable was a back face from outside; with back-face culling the near slope
+## and the gables vanished and the dark inside of the far slope showed down to the windows. tests/mesh_winding_truth.gd guards it.
 static func _tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uvx := 0.0) -> void:
 	var n := (b - a).cross(c - a).normalized()
 	st.set_normal(n)
-	for p in [a, b, c]: st.set_uv(Vector2(uvx, 0)); st.add_vertex(p)
+	for p in [a, c, b]: st.set_uv(Vector2(uvx, 0)); st.add_vertex(p)
 
 static func _commit(st: SurfaceTool) -> ArrayMesh:
 	st.index(); return st.commit()
@@ -245,7 +251,6 @@ static func transformer() -> ArrayMesh:
 		_cyl(st, Vector3(0.35, 2.95, z), Vector3(0.35, 3.0, z), 0.06, 0.06, 6, Color(0.55, 0.56, 0.58), true)
 	for z in [-0.35, 0.0, 0.35]: _cyl(st, Vector3(-0.45, 2.16, z), Vector3(-0.45, 2.5, z), 0.05, 0.04, 6, por, true)
 	_cyl(st, Vector3(-0.85, 2.55, -0.3), Vector3(-0.85, 2.55, 0.5), 0.17, 0.17, 12, g, true)
-	_cyl(st, Vector3(-0.85, 2.55, 0.5), Vector3(-0.85, 2.55, -0.3), 0.17, 0.17, 12, g, true)
 	for z in [-0.2, 0.4]: _box(st, Vector3(-0.85, 2.3, z), Vector3(0.06, 0.4, 0.06), g)
 	_box(st, Vector3(-0.92, 0.9, 0), Vector3(0.18, 0.6, 0.6), Color(0.2, 0.21, 0.22))
 	return st.commit()

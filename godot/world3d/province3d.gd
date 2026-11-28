@@ -352,7 +352,7 @@ func _build_farms() -> void:
 			any = true
 	if not any: return
 	st.generate_normals()
-	var mat := StandardMaterial3D.new(); mat.vertex_color_use_as_albedo = true; mat.roughness = 0.9; mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mat := StandardMaterial3D.new(); mat.vertex_color_use_as_albedo = true; mat.roughness = 0.9   # 1128c: closed and wound outward, so it culls like the rest
 	var mi := MeshInstance3D.new(); mi.name = "Farms"; mi.mesh = st.commit(); mi.material_override = mat; _root_static.add_child(mi)
 
 ## A box with a gable roof, at offset `off` (x along ax, z along az) from o, for _build_farms.
@@ -363,16 +363,16 @@ func _farm_box(st: SurfaceTool, o: Vector3, ax: Vector3, az: Vector3, off: Vecto
 	st.set_color(wall)
 	for k in 4:
 		var p0: Vector3 = b[k]; var p1: Vector3 = b[(k + 1) % 4]
-		st.add_vertex(p0); st.add_vertex(p1 + up); st.add_vertex(p1)
-		st.add_vertex(p0); st.add_vertex(p0 + up); st.add_vertex(p1 + up)
+		st.add_vertex(p0); st.add_vertex(p1); st.add_vertex(p1 + up)   # 1128c: walls and roofs were inside out (hidden by CULL_DISABLED, lit from inside)
+		st.add_vertex(p0); st.add_vertex(p1 + up); st.add_vertex(p0 + up)
 	var r0 := c - hx + up + Vector3(0, rh, 0); var r1 := c + hx + up + Vector3(0, rh, 0)
 	st.set_color(wall)   # gable ends
 	st.add_vertex(b[0] + up); st.add_vertex(r0); st.add_vertex(b[3] + up)
 	st.add_vertex(b[1] + up); st.add_vertex(b[2] + up); st.add_vertex(r1)
 	st.set_color(roof)
 	for q in [[b[0] + up, b[1] + up, r1, r0], [b[2] + up, b[3] + up, r0, r1]]:
-		st.add_vertex(q[0]); st.add_vertex(q[2]); st.add_vertex(q[1])
-		st.add_vertex(q[0]); st.add_vertex(q[3]); st.add_vertex(q[2])
+		st.add_vertex(q[0]); st.add_vertex(q[1]); st.add_vertex(q[2])
+		st.add_vertex(q[0]); st.add_vertex(q[2]); st.add_vertex(q[3])
 
 func _build_water() -> void:
 	_water_mats.clear()

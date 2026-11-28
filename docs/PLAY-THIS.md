@@ -18,17 +18,15 @@ Other ways to start:
 - `make run LOW=1` is the low tier on the integrated GPU.
 - `make run CLASSIC=1` is the classic 2D look.
 
-## New today (11-28, after "this is still the old graphics")
-- The province (prologue, chapters 3, 5 and 6, the finale) has a new ground: fields in strips with tramlines and hedges, not the old patchwork. Plants, towers, trees and towns have new materials.
-- Nights are dark land with warm lights, lit from the side, not a flat blue.
-- The pause menu and the chapter cards are glass over the scene (they were cream paper).
-- The incident report fits its text and keeps the place visible.
-- **V** (or "Hide charts" beside the job title) folds every chart away so the place fills the screen. Press again to bring them back.
-- WO-25 now records the rotor swing, so its chart can draw it.
-- A new night shift opens on the prologue (one breaker, two minutes). Its report's "Start on the island" leads to WO-01.
-- The pause menu has Save and quit. Continue on the title picks up where you stopped.
-- At 1280x800 the chapter 4, 7 and 8 trays no longer run under the speed keys.
-- Still below the bar: night scenes read dark and flat, and the report keeps the play camera. See docs/look2/audit-1128b/AUDIT.md.
+## New today (11-28, second pass on the look)
+- Night is night: a cold moon from the side, a blue fill, warm windows, street lamps and floodlit yards with pools of light.
+- When a job fails, the place goes dark: windows and street lamps go out. A breaker that fails to clear burns, with sparks and smoke.
+- New trees (layered pines, round broadleaf, birch) in clumps with clearings. Calmer farm colours.
+- WO-23 is a fenced, floodlit substation with transformers, lit switch-houses and vans.
+- On the province map a line turns teal, amber, then red as it loads, by day too. An overloaded line is red.
+- The report sits on the right; the camera moves so you see what happened.
+- Chapters 4, 7 and 8 open with the charts folded. V shows them.
+- Still rough: the Career map and the Jobs list keep the old look; far towns are sparse; some chapter 7 subjects are small.
 
 ## New since 1.18.1
 - Every job is now in the 3D look: the prologue and chapters 1 to 8.

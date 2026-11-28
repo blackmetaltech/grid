@@ -743,7 +743,7 @@ static func house_mesh(w: float, d: float, h: float, rh: float, wall: Color, roo
 
 static func _quad(st: SurfaceTool, c: Vector3, ex: Vector3, ey: Vector3, n: Vector3) -> void:
 	st.set_normal(n)
-	for p in [c - ex - ey, c + ex - ey, c + ex + ey, c - ex - ey, c + ex + ey, c - ex + ey]: st.add_vertex(p)
+	for p in [c - ex - ey, c + ex + ey, c + ex - ey, c - ex - ey, c - ex + ey, c + ex + ey]: st.add_vertex(p)   # 1128c: clockwise from the side n points to (was inside out)
 
 static func windows_mesh(w: float, d: float, h: float) -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)

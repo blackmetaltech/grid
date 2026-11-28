@@ -583,7 +583,7 @@ func _build_city() -> void:
 				if WorldMath.hash2(k * 100 + rr, cc, 82) < 0.25: continue
 				var wy := y0 + 3.0 + 4.0 * float(rr); var wz := cz - d * 0.5 + 1.5 + 3.0 * float(cc)
 				var o := Vector3(cx - w * 0.5 - 0.05, wy, wz)
-				for tri in [[0, 1, 2], [0, 2, 3]]:
+				for tri in [[0, 2, 1], [0, 3, 2]]:   # 1128c: front faces out (-X), was into the wall
 					var pp := [o, o + Vector3(0, 0, 1.4), o + Vector3(0, 2.0, 1.4), o + Vector3(0, 2.0, 0)]
 					win.set_normal(Vector3.LEFT)
 					for t in tri: win.add_vertex(pp[t])

@@ -24,17 +24,22 @@ director, then roll out, re-shoot every job, iterate to every job >= 7 and mean 
 - Report (shift_report.gd): glass sheet 560-600 px docked right; `_frame_for_report` calls the 3D place's `report_focus()`
   (Stage3D.REPORT_FOCUS anchors per stage) then shifts the camera goal right by the ground width half the sheet covers.
 
-## Status
-- e90cda2 pushed (kit, grade, trees, report dock). make test and make flows passed before it.
-- Sigrid round 1: WO-23 open 5.5 / result 4.0; WO-16 4.5 / 4.5 / 4.5. Her list: report hides the consequence (fixed),
-  blackout lit by moon (estate darker, lamps off), substation boxes (transformer kit, hall dressing), flat ground,
-  tags/givens wall (not done), line loading invisible by day (fixed), towns frost (far house grow), fields flat/wedges,
-  edge of world sea (not done).
-- Round 2 pending on bench3/.
+## Status (latest first)
+- 6676498: manager notes (night fill 0.95, moon 0.7; WO-24/25 framing and clear foreground; lever hidden under the
+  report; plant pads clear of houses; coal pile). Sweep 3 into scratch, sheets to docs/look2/audit-1128c/after/.
+- e3fbd61 roll-out 1 (shared transformer mesh, plant yard shader + floods, cooling-tower concrete, ch7 site lights,
+  ch8 street lamps, stage lamp falloff). 8207172 benchmark rounds 2-3. e90cda2 the kit.
+- Sigrid: round 1 WO-23 5.5/4.0, WO-16 4.5; round 2 WO-23 6.0/5.0/5.0, WO-16 5.0/5.0/6.5. Not at 7.5.
+- Decision (Ingrid): the root fixes (grade, trees, report, line loading, charts fold) apply to every job by
+  construction, so I rolled out before the benchmarks reached 7.5. What is left is per-scene subject detail, which
+  the benchmark cannot buy for the other 35 jobs anyway. The benchmark gap is written down, not hidden.
+- make test and make flows passed on e90cda2, flows on e3fbd61 and after the pad change.
 
-## Not done yet / next
-- Roll-out: Kit3D lights + transformer + hall dressing into ch4 (stage3d l10-l13), ch7 l24-l26, ch8 (stage3d_ch8),
-  district3d, bench3d (ch2), bay3d (island: street lamps by the hamlets), province yards (floods, aviation lamps).
-- Charts folded by default on ch4/7/8 (GridTheme.charts_folded), exam compact sheets (WO-18/27/36), jobs list, Career.
-- Low tier check (LOW=1) and 4K.
-- Lesson: every command needs `timeout`; GPU lock `flock -w 120`. A bash call once hung 70 minutes.
+## Not done / next (in order)
+- Career map and the Jobs list: untouched in 1128c (old look).
+- Exam text walls (WO-18/27/36) compact sheet: not done.
+- Towns from afar are still sparse ribbon villages (TownGen); far houses grow, but there is no dense core.
+- WO-26 plants are small plain boxes; WO-24 relays still small.
+- Low tier and 4K not re-measured in 1128c.
+- Every command needs `timeout`; the GPU lock `flock -w 120`. A bash call once hung 70 minutes.
+- Do not edit game scripts while a sweep runs: each window loads them fresh (one window caught a parse error).
