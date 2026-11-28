@@ -11,6 +11,10 @@ var mode := "load"                ## "load" | "health"
 var sel: Dictionary = {}          ## the picked target: {type, id, feeder?}
 var hot: Array = []               ## feeder ids with an open incident
 var compact := false
+var d3: District3D = null         ## the 3D look: the district stands behind this control, which then draws only strokes, badges and labels at its projected places and picks through them
+var _cam_key := ""
+var _press := Vector2(-1, -1)     ## 3D: where a left press began, and whether it has become a drag
+var _dragged := false
 
 var _prim: Dictionary = {}        ## primary id -> centre
 var _pts: Dictionary = {}         ## feeder id -> PackedVector2Array (head ... tip, one point per section boundary)
@@ -33,6 +37,7 @@ func _sc() -> float: return 0.8 if compact else 1.0
 ## Feeders left to right grouped by primary; each feeder runs from its primary to a column at the bottom, one point per section boundary (spaced by km), with a gentle bend.
 func _layout(force := false) -> void:
 	if d.is_empty() or size.x < 40.0: return
+	if _d3_mode(): _layout3(); return
 	var feeders: Array = d.get("feeders", []); var prims: Array = d.get("primaries", [])
 	var key := "%s|%d|%d|%d" % [str(size), feeders.size(), prims.size(), (feeders.map(func(f): return (f.sections as Array).size()) as Array).reduce(func(a, b): return a + b, 0)]
 	if not force and key == _key: return
@@ -73,6 +78,30 @@ func _layout(force := false) -> void:
 			var bend := sin(t * PI) * (12.0 if k < secs.size() - 1 else 0.0) * _sc() * (1.0 if idx % 2 == 0 else -1.0)
 			pts.append(base + perp * bend)
 		_pts[fid] = pts; _tip_of[fid] = pts[pts.size() - 1]
+
+## 3D look: a screen point of the district's plan (the wire's height over a ground point), in this control's coordinates; (-99999, -99999) behind the camera.
+func _proj(p: Vector3) -> Vector2:
+	var v := d3.project(p)
+	return v - get_global_rect().position if v.x > -9000.0 else v
+
+func _d3_mode() -> bool: return d3 != null and is_instance_valid(d3) and d3.visible and d3.field != null and not d3.plan_d.is_empty()
+
+## 3D: the same pieces the 2D layout makes (primary centres, one point per section boundary), read off the district's plan through the camera.
+func _layout3() -> void:
+	_prim.clear(); _pts.clear(); _order.clear(); _tip_of.clear()
+	var pl: Dictionary = d3.plan_d
+	_order = (pl.order as Array).duplicate()
+	for pid in pl.prim: _prim[pid] = _proj(d3.yard_point(str(pid)))
+	for fid in pl.pts:
+		var out := PackedVector2Array(); var ok := true
+		for p in pl.pts[fid]:
+			var v := _proj(d3.wire_point(p as Vector2))
+			if v.x < -9000.0: ok = false
+			out.append(v)
+		if not ok: continue
+		_pts[fid] = out; _tip_of[fid] = out[out.size() - 1]
+
+func _cam_sig() -> String: return "%s|%.3f|%.3f|%.1f|%s|%s" % [str(d3.target), d3.yaw, d3.pitch, d3.dist, str(size), str(get_global_rect().position)]
 
 ## 1.12 Harbour City: a street grid running down to the waterfront. Each feeder is a cable route under the streets: down from the
 ## primary, across along its own street, down again and a short jog toward its ring partner, all on the street lines.
@@ -254,15 +283,16 @@ func _draw_ground() -> void:
 		yy += cell * 0.8; r2 += 1
 
 func _draw_place(feeders: Array) -> void:
-	_draw_ground()
+	var is3 := _d3_mode()
+	if not is3: _draw_ground()
 	var rv := PackedVector2Array()   # the river (an estuary in the city, a beck on the moor)
 	for k in 41:
 		var x := size.x * float(k) / 40.0
 		rv.append(Vector2(x, size.y * 0.42 + sin(float(k) * 0.35) * 26.0 * _sc() + float(k) * 0.9))
 	var rw := 14.0 if _geo() == "moor" else 22.0
-	if _geo() != "city":   # the city's water is the harbour along the bottom
+	if _geo() != "city" and not is3:   # the city's water is the harbour along the bottom
 		draw_polyline(rv, RIVER, rw * _sc(), true); draw_polyline(rv, RIVER.lightened(0.2), rw * 0.35 * _sc(), true)
-	if _geo() == "moor":   # each long feeder runs down its own valley floor
+	if _geo() == "moor" and not is3:   # each long feeder runs down its own valley floor
 		for f in feeders:
 			var vp: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
 			if vp.size() > 1: draw_polyline(vp, Color("#2E3A28", 0.85), 46.0 * _sc(), true)
@@ -272,7 +302,7 @@ func _draw_place(feeders: Array) -> void:
 		var f: Dictionary = feeders[fi]
 		var pts: PackedVector2Array = _pts.get(str(f.id), PackedVector2Array())
 		if pts.size() < 2: continue
-		draw_polyline(pts, ROAD, 16.0 * _sc(), true)
+		if not is3: draw_polyline(pts, ROAD, 16.0 * _sc(), true)
 		for k in pts.size() - 1: _segs.append([pts[k], pts[k + 1]])
 		var secs: Array = f.sections
 		var out_feeder := hot.has(str(f.id))
@@ -281,6 +311,7 @@ func _draw_place(feeders: Array) -> void:
 			var a := pts[k]; var b := pts[k + 1]; var nrm := (b - a).normalized().orthogonal()
 			var lit := not out_feeder and not (bool(secs[k].failed) and float(secs[k].get("outQ", 0)) > 0.0)
 			var mid := a.lerp(b, 0.55)
+			if is3: continue   # the district's streets and joint bays are 3D
 			for h in per:   # a cluster: a village street either side of the road
 				var side := 1.0 if h % 2 == 0 else -1.0
 				var along := (float(h / 2) - float(per) * 0.25) * 15.0 * _sc()
@@ -313,6 +344,11 @@ func _place(pl: Dictionary) -> void:
 	var at: Vector2 = pts[2] if kind == "hospital" else (pts[pts.size() - 1] if kind == "villages" else pts[3])
 	var lit := not hot.has(str(pl.feeder))
 	var p := at + Vector2(-58.0, -30.0) * _sc() if kind != "villages" else pts[pts.size() - 3] + Vector2(64.0, -10.0) * _sc()
+	if _d3_mode():   # the building stands in the district: its label hangs over it
+		for i in d3.plan_d.places.size():
+			if str(d3.plan_d.places[i].kind) == kind and str(d3.plan_d.places[i].feeder) == str(pl.feeder): p = _proj(d3.place_point(i))
+		if p.x < -9000.0: return
+		_place_label(p, pl); return
 	p.x = clampf(p.x, 40.0 * _sc(), size.x - 40.0 * _sc()); p.y = clampf(p.y, 30.0 * _sc(), size.y - 60.0 * _sc())   # 1.12 the street layouts put a feeder at the edge: keep the building on the map
 	match kind:
 		"hospital":
@@ -325,6 +361,9 @@ func _place(pl: Dictionary) -> void:
 			draw_line(p + Vector2(0, 14) * _sc(), p + Vector2(0, -14) * _sc(), Color("#D8DCE4"), 2.5)
 			for k in 3: draw_line(p + Vector2(0, -14) * _sc(), p + Vector2(0, -14) * _sc() + Vector2.from_angle(Time.get_ticks_msec() * 0.002 + k * TAU / 3.0) * 13.0 * _sc(), Color("#D8DCE4"), 2.0)
 		_: pass
+	_place_label(p, pl)
+
+func _place_label(p: Vector2, pl: Dictionary) -> void:
 	var fz := GridTheme.fs(14)
 	var f := GridTheme.font("semi"); var tw := f.get_string_size(str(pl.name), HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, fz)).x
 	_obst.append(Rect2(p - Vector2(24, 16) * _sc(), Vector2(48, 32) * _sc()))   # the building itself
@@ -350,10 +389,12 @@ func _house(p: Vector2, lit: bool, seed_i: int) -> void:
 	if lit: draw_circle(p, w * 1.1, Color(WIN_LIT, 0.035))   # the glow of a lit street at night
 
 func _draw() -> void:
+	var is3 := _d3_mode()
+	if is3 and (d.is_empty() or _pts.is_empty()): return   # 3D: nothing of the district is in front of the camera
 	if d.is_empty() or _pts.is_empty(): draw_rect(Rect2(Vector2.ZERO, size), Color("#0F1A22")); return
 	_late.clear(); _obst.clear(); _segs.clear(); _req.clear()
 	_draw_place(d.get("feeders", []))
-	if CareerKit.glass(): draw_rect(Rect2(Vector2.ZERO, size), Color(GridTheme.GLASS, 0.6))   # glass: the ground sits back, dark, so the lines and light labels carry
+	if CareerKit.glass() and not is3: draw_rect(Rect2(Vector2.ZERO, size), Color(GridTheme.GLASS, 0.6))   # glass: the ground sits back, dark, so the lines and light labels carry
 	var f_bold := GridTheme.font("semi"); var f_mono := GridTheme.font("mono")
 	var fs_l := GridTheme.fs(13 if compact else 15)
 	var feeders: Array = d.get("feeders", [])
@@ -362,7 +403,7 @@ func _draw() -> void:
 	for f in feeders:
 		if not bool(f.tie): continue
 		var i := _order.find(str(f.id)); var j := i + 1 if i + 1 < _order.size() else i - 1
-		if j < 0: continue
+		if j < 0 or not _tip_of.has(_order[i]) or not _tip_of.has(_order[j]): continue
 		var a: Vector2 = _tip_of[_order[i]]; var b: Vector2 = _tip_of[_order[j]]
 		var ky := "%d-%d" % [mini(i, j), maxi(i, j)]
 		if done.has(ky): continue
@@ -388,7 +429,8 @@ func _draw() -> void:
 			var same_feeder := str(sel.get("feeder", "")) == fid and str(sel.get("type", "")) == "section"
 			if selected: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.5), w + 9.0 * _sc(), true)
 			elif same_feeder: draw_line(pts[k], pts[k + 1], Color(1, 1, 1, 0.14), w + 6.0 * _sc(), true)
-			_span(pts[k], pts[k + 1], col, w, str(f.get("kind", "")) == "cable")
+			if is3: _stroke3(pts[k], pts[k + 1], col, w, str(f.get("kind", "")) == "cable")
+			else: _span(pts[k], pts[k + 1], col, w, str(f.get("kind", "")) == "cable")
 			var mid := (pts[k] + pts[k + 1]) * 0.5
 			if bool(sec.failed):   # a patch: the section is in service but wearing; replacing it is the proper fix (red when it is out of service)
 				var pc: Color = GridTheme.BAD if float(sec.outQ) > 0.0 else GridTheme.WARN
@@ -431,15 +473,23 @@ func _draw() -> void:
 		var rect := Rect2(c - Vector2(ts2.x * 0.5 + 12.0, 17.0 * _sc()), Vector2(ts2.x + 24.0, 34.0 * _sc() + (fs_l + 4.0 if two else 0.0)))
 		var chosen := str(sel.get("type", "")) == "primary" and str(sel.get("id", "")) == str(pid)
 		var yard := Rect2(c + Vector2(-60.0, -6.0) * _sc(), Vector2(120.0, 40.0) * _sc() + Vector2(0, fs_l + 4.0))   # the substation yard behind its name plate: fence, two transformers
-		draw_rect(yard, Color("#1E2A2A")); draw_rect(yard, Color("#6E7A86", 0.8), false, 1.5)
-		for tx in [-28.0, 28.0]: draw_rect(Rect2(c + Vector2(tx - 10.0, 14.0) * _sc() + Vector2(0, fs_l + 4.0), Vector2(20.0, 14.0) * _sc()), Color("#55606E"))
+		if not is3:   # (in the 3D look the yard is the district's own)
+			draw_rect(yard, Color("#1E2A2A")); draw_rect(yard, Color("#6E7A86", 0.8), false, 1.5)
+			for tx in [-28.0, 28.0]: draw_rect(Rect2(c + Vector2(tx - 10.0, 14.0) * _sc() + Vector2(0, fs_l + 4.0), Vector2(20.0, 14.0) * _sc()), Color("#55606E"))
 		draw_rect(rect, Color(GridTheme.GLASS, 0.92) if CareerKit.glass() else Color("#1C2547")); draw_rect(rect, GridTheme.SODIUM if chosen else (GridTheme.HAIR if CareerKit.glass() else Color(GridTheme.SODIUM_DIM, 0.8)), false, 3.0 if chosen else (1.0 if CareerKit.glass() else 2.0))
 		GridText.ds(self, f_bold, Vector2(rect.position.x + 12.0, rect.position.y + 17.0 * _sc() + fs_l * 0.35), nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs_l, GridTheme.SODIUM if chosen else GridTheme.TEXT)
 		if pi >= 0 and not compact:
 			var mp := float(d.primaries[pi].firmMarginPct)
 			var s2 := T("CAR_FIRM_TAG") % CareerKit.num(0.0 if absf(mp) < 0.5 else mp, 0)
 			GridText.ds(self, f_mono, Vector2(rect.position.x + 12.0, rect.end.y - 8.0), s2, HORIZONTAL_ALIGNMENT_LEFT, -1, GridTheme.fs(13), CareerKit.load_col(100.0 - mp) if mp < 100.0 else GridTheme.GOOD)
-	if CareerKit.glass(): draw_rect(Rect2(Vector2.ZERO, size), GridTheme.HAIR, false, 1.0)   # the hairline frame
+	if CareerKit.glass() and not is3: draw_rect(Rect2(Vector2.ZERO, size), GridTheme.HAIR, false, 1.0)   # the hairline frame
+
+## 3D look: a section's stroke over the lit wire, a dark edge under it so it reads against fields and sky; a cable is dashed.
+func _stroke3(a: Vector2, b: Vector2, col: Color, w: float, cable: bool) -> void:
+	var ww := maxf(2.0, w * 0.85 * clampf(d3.dist / 650.0, 0.5, 1.0))   # closer in, the stroke thins so the wire under it shows
+	draw_line(a, b, Color(0.03, 0.04, 0.07, 0.6), ww + 3.0, true)
+	if cable: draw_dashed_line(a, b, col, ww, 8.0 * _sc(), true)
+	else: draw_line(a, b, Color(col, 0.92), ww, true)
 
 ## 1.14 the primary's name plate, where _draw puts it (labels keep clear of it)
 func _prim_rect(pid: String) -> Rect2:
@@ -560,12 +610,48 @@ func point_of(s: Dictionary) -> Vector2:
 	return Vector2(-1, -1)
 
 func _gui_input(e: InputEvent) -> void:
+	if _d3_mode(): _input3(e); return
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		var s := pick_at(e.position)
 		if not s.is_empty(): picked.emit(s)
 		accept_event()
 
+## 3D look: a tap picks the nearest section or primary; a drag over the district pans it (right or middle button, or shift, orbits it); the wheel zooms.
+func _input3(e: InputEvent) -> void:
+	var org := get_global_rect().position
+	if e is InputEventMouseButton:
+		var mb := e as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT:
+			if mb.pressed: _press = mb.position; _dragged = false
+			else:
+				if _press.x >= 0.0 and not _dragged:
+					var s := pick_at(mb.position)
+					if not s.is_empty(): picked.emit(s)
+				_press = Vector2(-1, -1)
+			accept_event()
+		elif mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if mb.pressed: d3.zoom_at(mb.position + org, 1.15 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / 1.15)
+			accept_event()
+		elif mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE: accept_event()
+	elif e is InputEventMouseMotion:
+		var mm := e as InputEventMouseMotion
+		if mm.button_mask & MOUSE_BUTTON_MASK_LEFT != 0 and _press.x >= 0.0:
+			if not _dragged and mm.position.distance_to(_press) > 8.0: _dragged = true
+			if _dragged:
+				if mm.shift_pressed: d3.orbit_px(mm.relative)
+				else: d3.pan_px(mm.relative)
+			accept_event()
+		elif mm.button_mask & (MOUSE_BUTTON_MASK_RIGHT | MOUSE_BUTTON_MASK_MIDDLE) != 0:
+			d3.orbit_px(mm.relative); accept_event()
+	elif e is InputEventMagnifyGesture:
+		d3.zoom_at((e as InputEventMagnifyGesture).position + org, (e as InputEventMagnifyGesture).factor); accept_event()
+
 func _process(_dt: float) -> void:
+	if _d3_mode():   # the camera moved (or the control did): the strokes and labels follow the scene
+		var sg := _cam_sig()
+		if sg != _cam_key: _cam_key = sg; d3.fit_to(get_global_rect()); _layout(true); queue_redraw()
+		elif not hot.is_empty() and visible and PaperKit.animate(): queue_redraw()
+		return
 	if not hot.is_empty() and visible and PaperKit.animate(): queue_redraw()
 
 func _grp_n(f: Dictionary, feeders: Array) -> int:

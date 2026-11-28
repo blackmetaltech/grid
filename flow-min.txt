@@ -3,6 +3,7 @@ bay_lights_truth 131
 bay_relief_truth 49
 bench3d_truth 253
 bench_geometry_truth 487
+career3d_truth 993
 career_map_truth 5483
 ch2_flow 37
 ch2_pad_truth 60
