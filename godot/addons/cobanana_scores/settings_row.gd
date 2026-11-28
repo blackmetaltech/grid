@@ -16,10 +16,12 @@ func _ready() -> void:
 	_check = CheckButton.new()
 	_check.button_pressed = client != null and client.is_enabled()
 	_check.disabled = client == null
+	_check.text = "On" if _check.button_pressed else "Off"   # 11-28b (B06): the theme hides the switch art; the word shows the state
 	_check.toggled.connect(_on_toggled)
 	add_child(_check)
 
 
 func _on_toggled(on: bool) -> void:
+	_check.text = "On" if on else "Off"
 	if client != null:
 		client.set_enabled(on)
