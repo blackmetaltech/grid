@@ -78,3 +78,34 @@ Early reports (before f8005c2) were seen on an older working tree; I replayed th
 - Result screens of WO-07 and WO-28 (both logged "Level passed"; reports not captured). Their idle and replay results are covered above.
 
 Ravi, QA Engineer
+
+## WO-29 and WO-05 by hand (second pass)
+
+Second pass by the playtester, branch look6, slot e (1920x1080, LP_NUM_THREADS=4, load 6 to 8). Clicks and keys only, no CB_CAM hook, throwaway save. I read neither l29.ts nor l05.ts: the in-game text and the engine's live refusals were enough to find both designs. Shots: /home/ixaxaar/src/ORGS/cobanana/.qa/grid/e/shots/ (a*.png to e7.png for WO-29, f*.png to h5.png for WO-05).
+
+| Job | Reached | Done | Result | Min | Bugs | Notes |
+|---|---|---|---|---|---|---|
+| WO-29 Salt Wind | Hand, CB_LEVEL=L29 | yes | won 3/3. First run lost: evening trip at 19:30 (span 1 sag, wood poles, 6.517 m over road, rule 7 m). Second run 2 of 3 ($48,059, concrete, 60 m). Third run 2 of 3 ($41,974, 70 m, fog discs on coast only). Fourth run 3 of 3: $45,964, line loss 4 %, village 414 V, harbour 414 V | 13 (4 runs, about 3 min of real time each on the software desk) | B35 B36 B37 B38 B39 B41 | Route: Village yard, then bend (1300,760), bend (1250,890), Harbour yard (town sits just north of the beach; the live preview refuses a straight line across it with "A line may not run overhead across the town. Go around it."). Kit: Concrete poles, 70 m span, inland and coast both Fog disc 430 mm, Weasel wire, one 250 kVA transformer at the harbour pair |
+| WO-05 The River Line | Hand, CB_LEVEL=L05 | yes | won 3/3 first run: $133,504, line loss 3.2 %, market 433 V, clearance +0.5 m, 45 supports (preview said 42 poles). 2 % of the 44 sample designs cost the same or less | 8 (one run) | B34 B35 B40 B41 | Kit: 11 kV tile, Concrete poles, H-frame bank structures at the river, 90 m span, Weasel, 250 kVA at powerhouse and at village. Route: Hydro yard, bend (1100,480) south of the rock patch, Village yard |
+
+### What I did (WO-29, in order)
+1. Take the job; Survey; Village yard; click bends; Harbour yard. Direct line refused (town); detour around the beach accepted: 1.5 km, 28 poles, $25,709 with a salt warning and clearance -0.3 m.
+2. Tobi (radio) says pick a stronger insulator and place a transformer. Clicked the Fog disc tiles: did not apply (B37). Re-surveyed with fog discs: $31,589, clearance -0.5 m.
+3. 250 kVA transformer at the harbour pair ($36.6K). Run at 4x: trip at 19:30. Ada says exactly what failed and gives three fixes (taller family, shorter span, a bend).
+4. Concrete poles, inland Pin, coast Fog disc, re-survey: +1.2 m, $43,059; with transformer $48.1K. Won 2 of 3 ($48,059).
+5. Retry, 70 m span, coast Fog disc: 23 poles, +1.0 m, $41,974, still 2 of 3 (B38). Added inland Fog disc: $45,964, 3 of 3.
+
+### What I did (WO-05)
+1. Take the job. Tried the straight Hydro to Village line first at 0.42 kV: refused, "river 155 m wide, a wood pole spans 70 m". Clicked the 0.42 kV tile: became 11 kV, Tobi's hint appeared (B34).
+2. Probed four more targets: river 154 to 179 m wide everywhere, so no narrower place. Used H-frame banks: accepted, but the straight line hit rock ("A wood pole cannot stand on rock without rock anchors") and swamp near the bank. Right-click cleared the route. Bent around the rock at (1100,480).
+3. Wood poles accepted with clearance -0.3 m (B35). Concrete: refused on the river until the H-frame tile was re-picked (the pole click had unset it), then +1.2 m, 67 poles, $149,354. Span 70 m: 45 poles, +0.5 m, $137.6K. Span 90 m: 42 poles, +0.5 m, $123.5K.
+4. 250 kVA at Powerhouse, 250 kVA at Village ($133.5K). Run at 4x. Won.
+
+### Could a first-time player find the design from the text?
+- WO-29: yes, with effort. The radio steps (Tobi), the live refusals (town, creepage, clearance) and Ada's incident report named every fix. Weak spots: B37 to B39 (the fix for lamp 3 is not stated, the insulator tile sometimes does nothing, wrong transformer hint). The 2-lamp win is easy; the 3rd lamp needs trial.
+- WO-05: not from the work order. The voltage tile is the hidden step (B34); the work order never says "11 kV and transformers". Once on 11 kV the refusals (river, rock, swamp, concrete limit "Change the bank structure to: H-frame crossing structure") lead to the design. The clearance step relies on the gauge turning red, not on a refusal (B35).
+
+### Not checked
+Wood plus H-frame with a shorter span for a cheaper clearance fix; Steel poles and Steel banks (refused at 160 m: "span at most 130 m"); the Dog and Rabbit conductors; the 'why?' button; hand play of any other job; the 3D look on the 4090, sound, pad, phone; the "Copy design code" button; the score upload (queued offline).
+
+The playtester
