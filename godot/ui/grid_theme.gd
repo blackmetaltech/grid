@@ -77,6 +77,7 @@ const G_TEXT := Color(0.90, 0.93, 0.96)
 const G_DIM := Color(0.60, 0.66, 0.72)
 const G_TICK := Color(0.82, 0.90, 0.97, 0.85)
 static var look2 := false
+static var charts_folded := false   ## 11-28b audit: V (or the chip under the job title) folds every chart and text card away, so the place fills the screen
 
 ## Dark glass panel: 1 px hairline, radius 4, no shadow.
 static func glass_sb(alpha := 0.72, r := 4, pad := 12.0) -> StyleBoxFlat:

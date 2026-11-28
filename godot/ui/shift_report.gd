@@ -46,7 +46,8 @@ static func open(app: CbApp) -> bool:
 	var vb: VBoxContainer = d.vb
 	if compact: vb.add_theme_constant_override("separation", 6)
 	var col := VBoxContainer.new(); col.add_theme_constant_override("separation", 6 if compact else 12); col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	if short: vb.add_child(PaperKit.scroll_box(col))
+	var sbx: Control = null
+	if short: sbx = PaperKit.scroll_box(col); vb.add_child(sbx)
 	else: vb.add_child(col)
 	var lamps: Array = []
 	if lid == "P0":   # the prologue is a scene, not a job: no lamps, no cost; Ada's line and the way to the island
@@ -87,7 +88,8 @@ static func open(app: CbApp) -> bool:
 	PaperKit.slide_in(d, 60.0)
 	(host as PaperHost).primary = primary
 	app.focus_dialog()
-	for i in 2: app.get_tree().process_frame.connect(func(): _redock(app, d, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94))), CONNECT_ONE_SHOT)   # the world may still be refitting on the frame the job ended
+	for i in 2: app.get_tree().process_frame.connect(func(): _redock(app, d, minf(700.0, app.vw() * (0.52 if app.vw() >= 1000.0 else 0.94))), CONNECT_ONE_SHOT)
+	if short and sbx != null and pn.has_meta("rep_glass"): app.get_tree().create_timer(0.45).timeout.connect(func(): _shrink_short(app, d, sbx, col))   # 11-28b audit: the scrolling layout was a full-height slab of empty glass   # the world may still be refitting on the frame the job ended
 	if primary != null: primary.call_deferred("grab_focus")   # won: Next job is focused; lost: Retry
 	_stamp_lamps(app, lamps)
 	return true
@@ -128,6 +130,16 @@ static func _fit_v(app: CbApp, d: Dictionary, left: float, w: float) -> void:
 	if h > bottom - 20.0 or bottom <= 0.0: return
 	var top := maxf(10.0, (bottom - h) * 0.5)
 	pn.anchor_top = 0.0; pn.anchor_bottom = 0.0; pn.grow_vertical = Control.GROW_DIRECTION_END; pn.offset_top = top; pn.offset_bottom = top + h
+
+## The scrolling layout fills the window's height; once laid out, a report shorter than that shrinks to its content (the top stays where it was).
+static func _shrink_short(app: CbApp, d: Dictionary, sbx: Control, col: Control) -> void:
+	if not is_instance_valid(d.get("panel")) or not is_instance_valid(sbx) or not is_instance_valid(col) or _d != d: return
+	var pn: Control = d.panel
+	var need := pn.size.y - sbx.size.y + col.get_combined_minimum_size().y + 4.0
+	if need >= pn.size.y - 8.0: return
+	var top := pn.global_position.y
+	pn.anchor_top = 0.0; pn.anchor_bottom = 0.0; pn.grow_vertical = Control.GROW_DIRECTION_END
+	pn.offset_top = top; pn.offset_bottom = top + need
 
 static func _overlap(a: Rect2, b: Rect2) -> float:
 	var l := maxf(a.position.x, b.position.x); var r := minf(a.end.x, b.end.x)
@@ -417,7 +429,8 @@ static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	app.end_ui = null; app.end_seen = true
 	_d = {}
 	var compact := PaperKit.compact(app)
-	var d := PaperKit.sheet(app, "chapter", minf(780.0, app.vw() - 24.0), 0.0, 0.55, 14.0 if compact else 30.0)
+	PaperKit.glass = GridTheme.look2   # 11-28 audit: the chapter card was cream paper over the 3D scene (the old look); glass like the report
+	var d := PaperKit.sheet(app, "chapter", minf(780.0, app.vw() - 24.0), 0.0, 0.45 if PaperKit.glass else 0.55, 14.0 if compact else 30.0)
 	_chapter = d
 	app.sfx("page")
 	var host: PaperHost = d.host
@@ -446,7 +459,7 @@ static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	for id in jobs: earned += GridSettings.stars(id)
 	var lr := PaperKit.lbl(T(p + "LAMPS") % [earned, jobs.size() * 3], 16 if compact else 20, "semi", PaperKit.INK, true); lr.name = "ChapterLamps"; col.add_child(lr)
 	var soon := PanelContainer.new(); soon.name = "Soon"; soon.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new(); sb.draw_center = false; sb.border_color = Color(PaperKit.INK, 0.55); sb.set_border_width_all(2); sb.set_corner_radius_all(6)
+	var sb := StyleBoxFlat.new(); sb.draw_center = false; sb.border_color = GridTheme.HAIR if PaperKit.glass else Color(PaperKit.INK, 0.55); sb.set_border_width_all(1 if PaperKit.glass else 2); sb.set_corner_radius_all(6)
 	sb.content_margin_left = 14; sb.content_margin_right = 14; sb.content_margin_top = 6 if compact else 10; sb.content_margin_bottom = 6 if compact else 10
 	soon.add_theme_stylebox_override("panel", sb)
 	var sv := VBoxContainer.new(); sv.add_theme_constant_override("separation", 0); soon.add_child(sv)
@@ -462,6 +475,7 @@ static func chapter_end(app: CbApp, preview_id: String, lid := "") -> void:
 	PaperKit.slide_in(d, 60.0)
 	app.focus_dialog()
 	pv.call_deferred("grab_focus")
+	PaperKit.glass = false
 
 static func _chapter_close(app: CbApp, d: Dictionary) -> void:
 	if is_instance_valid(d.host): (d.host as Node).queue_free()
@@ -485,9 +499,10 @@ class PaperPen:
 
 ## Doodle of Saltmarsh at night with every window lit: a mound of island, palm, huts with sodium windows, a lighthouse with its beam, stars and waves.
 class IslandDoodle extends Control:
+	var _ink := PaperKit.ink(PaperKit.INK)   # captured at build: light ink on glass
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8)
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(_ink, 0.8)
 		draw_set_transform(Vector2((size.x - 300.0 * k) * 0.5, (size.y - 150.0 * k) * 0.5), 0.0, Vector2(k, k))
 		var sod := GridTheme.SODIUM
 		for p in [Vector2(22, 18), Vector2(70, 34), Vector2(262, 22), Vector2(214, 40), Vector2(120, 12)]:   # stars
@@ -522,10 +537,11 @@ class IslandDoodle extends Control:
 ## and the trawler's anchor that did not get the cable (crossed out).
 ## Chapters 3-7: a pencil doodle of the chapter's idea (a phasor pair, three phases, a P-V nose, a frequency dip, a relay curve).
 class ChapterDoodle extends Control:
+	var _ink := PaperKit.ink(PaperKit.INK)   # captured at build: light ink on glass
 	var chapter := 3
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8); var o := Vector2(20, 20) * k; var w := 260.0 * k; var h := 110.0 * k
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(_ink, 0.8); var o := Vector2(20, 20) * k; var w := 260.0 * k; var h := 110.0 * k
 		draw_line(o + Vector2(0, h), o + Vector2(w, h), ink, 2.0); draw_line(o, o + Vector2(0, h), ink, 2.0)
 		var pts := PackedVector2Array()
 		for i in 61:
@@ -544,9 +560,10 @@ class ChapterDoodle extends Control:
 			draw_polyline(p2, Color("#2F6FB5"), 3.0, true)
 
 class CableDoodle extends Control:
+	var _ink := PaperKit.ink(PaperKit.INK)   # captured at build: light ink on glass
 	func _init() -> void: mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(PaperKit.INK, 0.8)
+		var k := minf(size.x / 300.0, size.y / 150.0); var ink := Color(_ink, 0.8)
 		draw_set_transform(Vector2((size.x - 300.0 * k) * 0.5, (size.y - 150.0 * k) * 0.5), 0.0, Vector2(k, k))
 		var sod := GridTheme.SODIUM
 		for p in [Vector2(30, 16), Vector2(96, 30), Vector2(190, 14), Vector2(268, 24), Vector2(150, 40)]:   # stars

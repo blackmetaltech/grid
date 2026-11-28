@@ -58,6 +58,8 @@ func build() -> void:
 	_style_pin()
 	pin.gui_input.connect(func(e): if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT: pin_pressed.emit(); pin.accept_event())
 	add_child(pin)
+	fold_btn = Button.new(); fold_btn.name = "FoldCharts"; fold_btn.focus_mode = Control.FOCUS_NONE; fold_btn.visible = false   # 11-28b audit: fold every chart away so the place fills the screen
+	fold_btn.add_theme_font_size_override("font_size", 16); fold_btn.pressed.connect(toggle_charts); add_child(fold_btn)
 	_build_tools()
 	menu_btn = Button.new(); menu_btn.name = "Menu"; menu_btn.text = "☰"; menu_btn.flat = true; menu_btn.focus_mode = CbKit.focus_mode()
 	menu_btn.tooltip_text = TranslationServer.translate("MENU_TIP"); menu_btn.add_theme_font_size_override("font_size", GridTheme.fs(22))
@@ -175,6 +177,7 @@ func _input(e: InputEvent) -> void:
 
 ## QA screenshots (CB_CAM "ui=..."): hut | reel/2.5 | hover/2.5 | peg/2 | run/0 | tag/cable/main | tag/hamlet/h1
 func qa_ui(spec: String) -> void:
+	if spec == "fold": toggle_charts(); return
 	if tray == null: return
 	var f := spec.split("/")
 	match f[0]:
@@ -212,6 +215,24 @@ func _codex(id: String) -> void:
 		if (c is Dictionary and str(c.get("id", "")) == id) or str(c) == id: app.learn(id); return
 
 ## Engine state changed: update everything.
+var fold_btn: Button = null
+## True on a job whose 3D place has charts or a text card over it (chapters 4 to 8).
+func _has_charts() -> bool:
+	for c in [ch4, ch5, ch6, ch7, ch8]: if c != null and c.visible: return true
+	return false
+
+## Fold or unfold every chart and text card (V, or the chip under the job title).
+func toggle_charts() -> void:
+	GridTheme.charts_folded = not GridTheme.charts_folded
+	for c in [ch4, ch5, ch6, ch7, ch8]:
+		if c == null: continue
+		if c.has_method("layout"): c.layout()
+		c.queue_redraw()
+		for k in c.get_children(): if k is CanvasItem: (k as CanvasItem).queue_redraw()
+	if ch5 != null: ch5.refresh()
+	if ch6 != null and ch6.has_method("_apply_collapse"): ch6._apply_collapse()
+	layout()
+
 func refresh() -> void:
 	if app == null or not app.started or instruments == null: return
 	sync_look2()
@@ -267,6 +288,7 @@ func coach(step: Dictionary, index: int, _total: int) -> void:
 ## Space toggles the breaker, "." steps once. Returns true when the key was used.
 func key(e: InputEventKey) -> bool:
 	if ch6 != null and ch6.editing(): return false   # a number being typed into the exam or prediction field is not a tray shortcut
+	if e.keycode == KEY_V and _has_charts() and not (get_viewport().gui_get_focus_owner() is LineEdit): toggle_charts(); return true
 	if tray != null and (rtray.key(e) if rtray.visible else (gtray.key(e) if gtray.visible else tray.key(e))): return true
 	match e.keycode:
 		KEY_SPACE:
@@ -321,6 +343,10 @@ func layout() -> void:
 		if disc != null: menu_btn.add_theme_stylebox_override(st, disc)
 		else: menu_btn.remove_theme_stylebox_override(st)
 	pin.position = Vector2(M, M); pin.size = Vector2(0, 0)
+	if fold_btn != null:
+		fold_btn.visible = _has_charts()
+		fold_btn.text = (tr("FOLD_SHOW") if GridTheme.charts_folded else tr("FOLD_HIDE")) + "   V"
+		fold_btn.reset_size(); fold_btn.position = Vector2(M + pin.get_combined_minimum_size().x + 8.0, M + 4.0)   # beside the job title: the top-left charts start under it
 
 var _pad_seen := false
 func _process(_dt: float) -> void:

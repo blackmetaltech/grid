@@ -101,8 +101,9 @@ func _make_env() -> void:
 	env.glow_intensity = 0.8; env.glow_bloom = 0.05; env.glow_hdr_threshold = 1.0
 	env.glow_blend_mode = Environment.GLOW_BLEND_MODE_SOFTLIGHT
 	env.fog_enabled = true; env.fog_mode = Environment.FOG_MODE_DEPTH
-	env.fog_depth_begin = 500.0; env.fog_depth_end = 9000.0; env.fog_depth_curve = 1.6
-	env.fog_sky_affect = 0.3; env.fog_density = 1.0
+	env.fog_depth_begin = 400.0; env.fog_depth_end = 7000.0; env.fog_depth_curve = 1.4
+	env.fog_sky_affect = 0.75;   # 11-28b audit: the sea met the sky in a hard line (fogged sea and clear sky disagreed); the haze now reaches the sky low down
+	env.fog_density = 1.0
 	env.adjustment_enabled = true; env.adjustment_contrast = 1.06; env.adjustment_saturation = 1.06
 	if quality != "low": env.ssao_enabled = true; env.ssao_radius = 1.5; env.ssao_intensity = 1.4
 	sun = DirectionalLight3D.new(); sun.name = "Sun"; sun.shadow_enabled = quality != "low"
@@ -135,15 +136,15 @@ func _update_sky(mn: float) -> void:
 	var lowk := clampf(elev / deg_to_rad(12.0), 0.0, 1.0)
 	sun.light_color = Color(1.0, 0.66, 0.40).lerp(Color(1.0, 0.95, 0.88), lowk)
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.0, lowk)
-	var mdir := Vector3(0.40, 0.55, 0.75).normalized()   # behind the camera, high: the bay is lit from the front and the sea's glint stays out of the frame
+	var mdir := Vector3(-0.55, 0.5, 0.67).normalized()   # 11-28b: from the side, not straight behind the camera: the island gets a lit flank and a shadowed one (front light read as flat blue)
 	if moon.is_inside_tree(): moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 0.85 * smoothstep(0.35, 0.85, n)   # 1.18 (manager review): moonlight enough that the island, the hut and the cable route read at night; moon.visible = moon.light_energy > 0.01
+	moon.light_energy = 0.95 * smoothstep(0.35, 0.85, n); moon.light_color = Color(0.80, 0.84, 0.96)   # 1.18 (manager review): moonlight enough that the island, the hut and the cable route read at night; moon.visible = moon.light_energy > 0.01
 	sky_mat.set_shader_parameter("moon_dir", mdir)
-	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.20, 0.28, 0.46), n * 0.8)
-	env.ambient_light_energy = lerpf(0.9, 0.75, n)   # 1.17: a dark night, so the first lamps carry the scene; 1.18: lifted, the island read as a void
+	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.15, 0.18, 0.26), n * 0.8)
+	env.ambient_light_energy = lerpf(0.9, 0.6, n)   # 1.17: a dark night, so the first lamps carry the scene; 1.18: lifted, the island read as a void
 	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.08, 0.12, 0.22), n * 0.6)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
-	env.tonemap_exposure = lerpf(1.0, 1.5, n)
+	env.tonemap_exposure = lerpf(1.0, 1.4, n)
 	for wm in _water_mats:
 		wm.set_shader_parameter("night", n); wm.set_shader_parameter("use_sky_col", true); wm.set_shader_parameter("sky_col", hor.lerp(zen, 0.25))
 
@@ -473,7 +474,7 @@ func _build_terrain(tiles: Array) -> void:
 	var mi := MeshInstance3D.new(); mi.name = "Land"; mi.mesh = mesh; mi.material_override = _terrain_mat; _root_static.add_child(mi)
 	# the sea
 	var sea := MeshInstance3D.new(); sea.name = "Sea"
-	var pm := PlaneMesh.new(); pm.size = Vector2(24000, 24000); pm.subdivide_width = 0; pm.subdivide_depth = 0
+	var pm := PlaneMesh.new(); pm.size = Vector2(60000, 60000); pm.subdivide_width = 0; pm.subdivide_depth = 0
 	sea.mesh = pm; sea.position = Vector3(float(_W) * tm * 0.5, 0.0, float(_H) * tm * 0.5)
 	sea.material_override = _water_mat(); sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_root_static.add_child(sea)

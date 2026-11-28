@@ -95,7 +95,7 @@ const S := {
 	"TAG_YARD": "%s %s kV", "TAG_YARD_VOLT": "Voltage", "TAG_YARD_VOLT_V": "%s kV · %s V", "TAG_YARD_XF": "Transformer", "TAG_YARD_XF_V": "%s kVA to %s", "TAG_YARD_XF_NONE": "none yet", "TAG_YARD_LIVE": "Now", "TAG_YARD_LIVE_V": "%s V · %s pu",
 	"CUTE_LABEL": "Cute mode", "CUTE_ON": "Cute mode: on", "CUTE_OFF": "Cute mode: off", "CUTE_HINT": "Bulb faces, villagers and island life. The numbers never change.",
 	"MODE_CHIP_LEARNER": "Learner", "MODE_CHIP_ENGINEER": "Engineer",
-	"METER_VOLT_CAPTION": "WORST HOME", "METER_VOLT_UNITS": "V", "PIN_TITLE": "WO-%s  %s", "PIN_PROGRESS": "Step %d of %d", "MENU_TIP": "Menu", "METER_LOSS_CAPTION": "LINE LOSS", "METER_LOSS_UNITS": "%", "TEST_REFUSED": "Refused: test",
+	"METER_VOLT_CAPTION": "WORST HOME", "METER_VOLT_UNITS": "V", "PIN_TITLE": "WO-%s  %s", "PIN_PROGRESS": "Step %d of %d", "FOLD_HIDE": "Hide charts", "FOLD_SHOW": "Show charts", "MENU_TIP": "Menu", "METER_LOSS_CAPTION": "LINE LOSS", "METER_LOSS_UNITS": "%", "TEST_REFUSED": "Refused: test",
 	# ---- the grid tray (godot/ui/grid_tray.gd): GT_ keys only
 	"GT_LOCKED": "Pause the night first to change the grid", "GT_LOCKED_ENDED": "The job is over. Pull the lever (Retry the job) or tap the pin top left: your build stays, change what you need and run again.",
 	"GT_MISS": "Not there. It goes on one of the glowing pegs: %s", "GT_HINT_PUTDOWN": " · Esc or right-click puts it down", "GT_HINT_bus": "Click a bus for the %s", "GT_HINT_bus2": "Click the other end", "GT_HINT_branch": "Click a line", "GT_HINT_line": "Click a line", "GT_HINT_xfmr": "Click a transformer",

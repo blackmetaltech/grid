@@ -151,6 +151,8 @@ func _draw() -> void:
 func layout() -> void:
 	rows.clear()
 	super.layout()
+	if GridTheme.charts_folded and _look3():   # 11-28b: the stage's answer boxes fold with the charts; the panel's stay
+		for e in edits.values(): if not panel.grow(4.0).has_point((e as LineEdit).position): (e as LineEdit).visible = false
 	if _phone() and visible and not _collapsed:   # the levels place their answer boxes in panel coordinates: map them into the scaled slot
 		for e in edits.values():
 			var le := e as LineEdit

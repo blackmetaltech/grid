@@ -77,7 +77,7 @@ func refresh() -> void:
 func _phone() -> bool: return CbLayout.kind == "phone"
 
 func _apply_collapse() -> void:
-	_scroll.visible = not (_phone() and _collapsed)
+	_scroll.visible = not ((_phone() and _collapsed) or GridTheme.charts_folded)
 	_toggle_btn.visible = _phone()
 	_toggle_btn.text = ("▸ " if _collapsed else "▾ ") + tx("C6_TITLE_" + _level) if _level != "" else ""
 	_layout()

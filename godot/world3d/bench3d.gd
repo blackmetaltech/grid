@@ -148,15 +148,16 @@ func _update_sky(mn: float) -> void:
 	var lowk := clampf(elev / deg_to_rad(12.0), 0.0, 1.0)
 	sun.light_color = Color(1.0, 0.66, 0.40).lerp(Color(1.0, 0.95, 0.88), lowk)
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.0, lowk)
-	var mdir := Vector3(0.35, 0.6, 0.72).normalized()   # behind the opening camera, high: the faces the player looks at are moonlit
+	var mdir := Vector3(-0.72, 0.42, 0.55).normalized()   # 11-28b: from the side and lower, with shadows: shapes get a lit face and a dark one (from behind the camera, night read as flat blue)
 	if moon.is_inside_tree(): moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 0.85 * smoothstep(0.35, 0.85, n)
+	moon.light_energy = 1.0 * smoothstep(0.35, 0.85, n); moon.light_color = Color(0.80, 0.84, 0.96)
+	moon.shadow_enabled = quality == "high" and not sun.visible
 	sky_mat.set_shader_parameter("moon_dir", mdir)
-	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.20, 0.28, 0.46), n * 0.8)
-	env.ambient_light_energy = lerpf(0.9, 0.75, n)
+	env.ambient_light_color = Color(0.20, 0.27, 0.42).lerp(Color(0.34, 0.40, 0.55), d * (1.0 - n)).lerp(Color(0.15, 0.18, 0.26), n * 0.8)   # 11-28b: a neutral night, not blue
+	env.ambient_light_energy = lerpf(0.9, 0.5, n)
 	env.fog_light_color = hor.lerp(Color(0.46, 0.55, 0.72), 0.7 * d * (1.0 - n)).lerp(Color(0.08, 0.12, 0.22), n * 0.6)
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
-	env.tonemap_exposure = lerpf(1.0, 1.5, n)
+	env.tonemap_exposure = lerpf(1.0, 1.4, n)
 	for wm in _water_mats:
 		wm.set_shader_parameter("night", n); wm.set_shader_parameter("use_sky_col", true); wm.set_shader_parameter("sky_col", hor.lerp(zen, 0.25))
 	if _fall_mat != null: _fall_mat.set_shader_parameter("night", n)

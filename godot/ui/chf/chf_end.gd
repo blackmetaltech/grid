@@ -11,6 +11,7 @@ static func open(app: CbApp) -> void:
 	if app.end_ui != null and is_instance_valid(app.end_ui): app.end_ui.queue_free()
 	app.end_ui = null; app.end_seen = true
 	var compact := PaperKit.compact(app)
+	PaperKit.glass = GridTheme.look2   # 11-28 audit: glass over the 3D scene, not cream paper
 	var d := PaperKit.sheet(app, "chapter", minf(780.0, app.vw() - 24.0), 0.0, 0.55, 14.0 if compact else 30.0)
 	node = d.host
 	app.sfx("page")
@@ -34,6 +35,7 @@ static func open(app: CbApp) -> void:
 	PaperKit.slide_in(d, 60.0)
 	app.focus_dialog()
 	st.call_deferred("grab_focus")
+	PaperKit.glass = false
 
 static func close(app: CbApp) -> void:
 	if is_open(): node.queue_free()

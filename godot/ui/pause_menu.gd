@@ -12,6 +12,7 @@ static func toggle(app: CbApp) -> bool:
 	GridUi.load_strings()
 	app.get_viewport().gui_release_focus()
 	var compact := PaperKit.compact(app)   # landscape phone: the card must fit the safe area, so the entries sit in two columns under a small title
+	PaperKit.glass = GridTheme.look2   # 11-28 audit: the pause card was cream paper over the 3D scene (the old look)
 	var d := PaperKit.sheet(app, "menu", 640.0 if compact else 440.0, 0.0, 0.6, 16.0 if compact else 28.0)
 	app.menu_ui = d.host
 	var vb: VBoxContainer = d.vb; vb.add_theme_constant_override("separation", 6 if compact else 10)
@@ -42,6 +43,7 @@ static func toggle(app: CbApp) -> bool:
 	app.audio.play("open")
 	(d.host as PaperHost).primary = first
 	app.focus_dialog()
+	PaperKit.glass = false
 	return true
 
 static func _restart(app: CbApp) -> void:

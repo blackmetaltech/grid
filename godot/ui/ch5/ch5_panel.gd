@@ -87,10 +87,11 @@ func refresh() -> void:
 	var w := minf(W, maxf(240.0, vw * 0.32)) if phone else W   # desktop keeps its 310 px card
 	var top := 74.0 if not phone else 70.0
 	var room := maxf(120.0, (vh - top - 195.0) if phone else (vh - 74.0 - 150.0)) - (70.0 if phone else 40.0)   # leaves the tray, the radio and the lever their rows (phone: the budget tag's top)
-	_scroll.visible = not _collapsed
+	var fold := _collapsed or GridTheme.charts_folded
+	_scroll.visible = not fold
 	size = Vector2(w, 0); custom_minimum_size = Vector2(w, 0)
 	_box.custom_minimum_size.x = w - 26.0
-	_scroll.custom_minimum_size = Vector2(w - 20.0, minf(_box.get_combined_minimum_size().y + 4.0, room) if not _collapsed else 0.0)
+	_scroll.custom_minimum_size = Vector2(w - 20.0, minf(_box.get_combined_minimum_size().y + 4.0, room) if not fold else 0.0)
 	reset_size()
 	position = Vector2(minf(vw - w - 14.0, vw - size.x - 8.0), top)   # wholly inside the screen, whatever the font scale made of the content
 

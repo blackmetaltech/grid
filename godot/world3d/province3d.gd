@@ -155,7 +155,7 @@ func _make_env() -> void:
 	sun.light_angular_distance = 0.6
 	add_child(sun)
 	moon = DirectionalLight3D.new(); moon.name = "Moon"; moon.shadow_enabled = quality == "high"
-	moon.directional_shadow_max_distance = 6000.0; moon.light_color = Color(0.62, 0.72, 1.0)
+	moon.directional_shadow_max_distance = 6000.0; moon.light_color = Color(0.78, 0.82, 0.95)   # 11-28b: a silver moon (the saturated blue turned every wall and tower lavender)
 	add_child(moon)
 	# 1.18: the sun and moon lit the haze only inside their shadow range, so a disc of brighter haze sat round the town in view (Sigrid, r7-d);
 	# proven by switching it off alone (CB_FX_OFF=sunfog). The haze keeps its ambient light.
@@ -202,17 +202,17 @@ func _update_sky(mn: float) -> void:
 	sun.light_energy = clampf((elev + deg_to_rad(4.0)) / deg_to_rad(10.0), 0.0, 1.0) * lerpf(0.9, 2.2, lowk)
 	var mdir := Vector3(-0.45, 0.40, -0.80).normalized()   # a low moon: long moon shadows show the relief at night   # a high moon in the north-east sky, constant through the job's evening
 	moon.look_at_from_position(Vector3.ZERO, -mdir, Vector3.UP)
-	moon.light_energy = 0.85 * smoothstep(0.35, 0.85, n)
+	moon.light_energy = 0.6 * smoothstep(0.35, 0.85, n)   # 11-28b: was 0.85 (with the exposure lift, night read as flat blue day)
 	moon.visible = moon.light_energy > 0.01
 	if moon.visible and sun.visible: moon.shadow_enabled = false
 	elif quality == "high": moon.shadow_enabled = true
 	sky_mat.set_shader_parameter("moon_dir", mdir)
 	env.ambient_light_sky_contribution = lerpf(1.0, 0.45, n) * (1.0 - 0.55 * d)   # golden hour: cool shadows against the warm sun, not a maroon wash
-	env.ambient_light_color = Color(0.13, 0.17, 0.30).lerp(Color(0.30, 0.38, 0.55), d * (1.0 - n))
-	env.ambient_light_energy = lerpf(1.0, 1.1, n)
+	env.ambient_light_color = Color(0.12, 0.14, 0.20).lerp(Color(0.30, 0.38, 0.55), d * (1.0 - n))   # 11-28b: was (0.13, 0.17, 0.30), a blue night
+	env.ambient_light_energy = lerpf(1.0, 0.75, n)
 	env.fog_light_color = (s.hor as Color).lerp(Color(0.46, 0.55, 0.72), 0.75 * d * (1.0 - n)).lerp(Color(0.05, 0.08, 0.15), n * 0.6)   # haze stays cool at golden hour
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
-	env.tonemap_exposure = lerpf(1.0, 1.55, n)
+	env.tonemap_exposure = lerpf(1.0, 1.3, n)
 	if env.volumetric_fog_enabled:
 		env.volumetric_fog_albedo = Color(0.9, 0.85, 0.8).lerp(Color(0.5, 0.55, 0.7), n)
 		# 1.18 (manager review: L05 washed out under white haze): thin haze by day, the full haze only at dusk and night
@@ -604,7 +604,7 @@ func _build_layout() -> void:
 	_town_inst.clear(); _town_lampmm.clear(); _wave.clear(); _warn.clear(); _night_lights.clear()
 	var hmat := ShaderMaterial.new(); hmat.shader = load("res://world3d/shaders/house.gdshader"); _hmat = hmat
 	var house := Props3D.house(); var block := Props3D.block()
-	var walls := [Color(0.86, 0.82, 0.74), Color(0.78, 0.72, 0.62), Color(0.9, 0.88, 0.84), Color(0.72, 0.62, 0.52), Color(0.82, 0.8, 0.76), Color(0.66, 0.6, 0.55)]
+	var walls := [Color(0.56, 0.34, 0.26), Color(0.62, 0.40, 0.30), Color(0.64, 0.60, 0.52), Color(0.80, 0.74, 0.62), Color(0.58, 0.58, 0.56), Color(0.72, 0.64, 0.52), Color(0.50, 0.30, 0.24)]   # 11-28b audit: brick, stone, cream and grey render (all pale creams read as sugar cubes)
 	if field is GenField: walls = [Color(0.78, 0.72, 0.62), Color(0.62, 0.36, 0.26), Color(0.84, 0.8, 0.72), Color(0.55, 0.32, 0.24), Color(0.7, 0.66, 0.6), Color(0.74, 0.6, 0.46), Color(0.5, 0.48, 0.46)]   # stone, brick, render
 	var places: Array = []   # [x, z, w, d, h, rot, town_id, idx, block?]
 	var gen := field is GenField
@@ -1027,7 +1027,8 @@ func _build_plant(u: Dictionary) -> void:
 	var off := Vector3(away.x, 0.0, away.y) * 260.0 * (1.0 + 0.6 * (ps - 1.0))
 	var n := Node3D.new(); n.name = "Plant_%s" % u.id; n.scale = Vector3.ONE * ps; n.position = Vector3(p.x + off.x, ground(p.x + off.x, p.z + off.z) - 0.5, p.z + off.z); n.rotation.y = -atan2(away.y, away.x); _root_infra.add_child(n)
 	var conc := StandardMaterial3D.new(); conc.albedo_color = Color(0.74, 0.73, 0.7); conc.roughness = 0.95
-	var clad := StandardMaterial3D.new(); clad.albedo_color = Color(0.48, 0.52, 0.55) if big else Color(0.6, 0.62, 0.63); clad.roughness = 0.6; clad.metallic = 0.3
+	var clad := ShaderMaterial.new(); clad.shader = load("res://world3d/shaders/clad.gdshader")   # 11-28b: ribbed, seamed, streaked cladding (was a flat grey box)
+	clad.set_shader_parameter("base", Color(0.46, 0.50, 0.53) if big else Color(0.58, 0.60, 0.61)); clad.set_shader_parameter("grime", _tex("rock_rough"))
 	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.5, 0.49, 0.46); dark.roughness = 1.0
 	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.material_override = dark; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
 	var hall_l := 110.0 if big else 70.0
@@ -1042,15 +1043,14 @@ func _build_plant(u: Dictionary) -> void:
 		var boiler := MeshInstance3D.new(); var bx := BoxMesh.new(); bx.size = Vector3(44, 68, 40); boiler.mesh = bx; boiler.material_override = clad; boiler.position = Vector3(-hall_l * 0.5 - 22.0, 34, 0); n.add_child(boiler)
 		var bl := MeshInstance3D.new(); var blm := BoxMesh.new(); blm.size = Vector3(0.3, 50, 1.4); bl.mesh = blm; bl.material_override = lit; bl.position = Vector3(-hall_l * 0.5 - 44.2, 34, 0); win.add_child(bl)
 		var h := 165.0
-		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 4.5; cy.bottom_radius = 8.0; cy.height = h; ch.mesh = cy; ch.material_override = conc
+		var ch := MeshInstance3D.new(); var cy := CylinderMesh.new(); cy.top_radius = 4.5; cy.bottom_radius = 8.0; cy.height = h; ch.mesh = cy; var chm := ShaderMaterial.new(); chm.shader = load("res://world3d/shaders/concrete.gdshader"); chm.set_shader_parameter("grime", _tex("rock_rough")); chm.set_shader_parameter("top_y", h * 0.5); chm.set_shader_parameter("tint", Color(0.66, 0.65, 0.62)); ch.material_override = chm
 		ch.position = Vector3(-hall_l * 0.5 - 70.0, h * 0.5, 30); n.add_child(ch)
 		for k in 2:   # red aviation lights near the top and half way
 			var wl := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 2.2; sm.height = 4.4; wl.mesh = sm; wl.material_override = _glow_mat(Color(1.0, 0.12, 0.08), 4.0)
 			wl.position = Vector3(-hall_l * 0.5 - 70.0 + 5.0, h * (1.0 - 0.45 * k) - 3.0, 30); n.add_child(wl); _warn.append(wl)
 		if quality != "low": n.add_child(_smoke(Vector3(-hall_l * 0.5 - 70.0, h + 2.0, 30)))
 		var tower := _cooling_tower_mesh()
-		var tconc: StandardMaterial3D = conc.duplicate(); tconc.cull_mode = BaseMaterial3D.CULL_DISABLED; tconc.vertex_color_use_as_albedo = true; tconc.albedo_color = Color.WHITE
-		tconc.roughness_texture = _tex("rock_rough"); tconc.uv1_triplanar = true; tconc.uv1_scale = Vector3.ONE * 0.05; tconc.roughness = 1.0; tconc.metallic_specular = 0.15   # poured concrete: grain in the roughness and no sky sheen (it read pale blue)
+		var tconc := ShaderMaterial.new(); tconc.shader = load("res://world3d/shaders/concrete.gdshader"); tconc.set_shader_parameter("grime", _tex("rock_rough"))   # 11-28b: pour lifts, rain streaks, a soot band (it read as pale plastic)
 		# the lathe's winding is not checked: both faces; weathered darker toward the foot
 		for k in 2:
 			var tw := MeshInstance3D.new(); tw.mesh = tower; tw.material_override = tconc; tw.position = Vector3(hall_l * 0.5 + 70.0 + 95.0 * k, 0, 40.0 - 20.0 * k); n.add_child(tw)
@@ -1074,7 +1074,7 @@ static var _ct_mesh: ArrayMesh
 static func _cooling_tower_mesh() -> ArrayMesh:
 	if _ct_mesh != null: return _ct_mesh
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var rings := 14; var seg := 28; var H := 115.0; var yt := 0.78 * H; var rt := 26.0; var c := 50.0
+	var rings := 28; var seg := 72; var H := 115.0; var yt := 0.78 * H; var rt := 26.0; var c := 50.0
 	var r := func(y: float) -> float: return rt * sqrt(1.0 + pow((y - yt) / c, 2.0))
 	for i in rings:
 		var y0 := H * float(i) / rings; var y1 := H * float(i + 1) / rings
@@ -1083,12 +1083,12 @@ static func _cooling_tower_mesh() -> ArrayMesh:
 			var a0 := TAU * float(k) / seg; var a1 := TAU * float(k + 1) / seg
 			var p00 := Vector3(cos(a0) * r0, y0, sin(a0) * r0); var p01 := Vector3(cos(a1) * r0, y0, sin(a1) * r0)
 			var p10 := Vector3(cos(a0) * r1, y1, sin(a0) * r1); var p11 := Vector3(cos(a1) * r1, y1, sin(a1) * r1)
-			var c0 := Color(0.40, 0.38, 0.35).lerp(Color(0.60, 0.57, 0.52), y0 / H); var c1 := Color(0.40, 0.38, 0.35).lerp(Color(0.60, 0.57, 0.52), y1 / H)   # weathered concrete, not porcelain (Sigrid)
+			var c0 := Color(0.44, 0.42, 0.39).lerp(Color(0.66, 0.64, 0.60), y0 / H); var c1 := Color(0.44, 0.42, 0.39).lerp(Color(0.66, 0.64, 0.60), y1 / H)   # weathered concrete, not porcelain (Sigrid)
 			if i == rings - 1: c1 = Color(0.42, 0.42, 0.42)   # the soot-dark lip
 			for q in [[p00, p10, p11], [p00, p11, p01]]:
 				for v in q:
 					st.set_color(c1 if v.y > (y0 + y1) * 0.5 else c0); st.add_vertex(v)
-	st.generate_normals()
+	st.index(); st.generate_normals()   # 11-28b: shared vertices, smooth normals
 	var m := st.commit()
 	_ct_mesh = m; return m
 

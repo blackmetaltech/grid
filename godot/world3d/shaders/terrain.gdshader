@@ -79,35 +79,44 @@ void fragment() {
 		cc *= mix(vec3(0.86, 0.92, 0.80), vec3(1.10, 1.04, 0.92), m1);
 		ALBEDO = cc * mix(0.62, 1.0, smoothstep(0.2, wet_top, wpos.y)) * cloud_shade(wpos.xz); ROUGHNESS = 0.92; SPECULAR = 0.25;
 	} else {
-	// fields: Voronoi plots (~170 m), each with its own crop; hedgerows where two plots meet
-	vec2 fq = wpos.xz / 170.0 + 0.32 * vec2(sin(wpos.z / 97.0 + sin(wpos.x / 233.0) * 2.0), cos(wpos.x / 113.0 + sin(wpos.z / 251.0) * 2.0));   // 1.16: warped, so plots are not a hex board
-	vec2 fi = floor(fq); vec2 ff = fract(fq);
-	float d1 = 8.0; float d2 = 8.0; vec2 cell = vec2(0.0);
-	for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
-		vec2 o = vec2(float(x), float(y));
-		vec2 pt = o + vec2(h21(fi + o), h21(fi + o + 17.3)) * 0.85;
-		float dd = length(pt - ff);
-		if (dd < d1) { d2 = d1; d1 = dd; cell = fi + o; } else if (dd < d2) { d2 = dd; }
-	}
+	// 11-28b (audit: the Voronoi plots read as the old low-poly map): farmland as rectangular strip fields, the way a field system looks
+	// from the air. Each ~0.7 km block (warped edges) has one heading; inside it, staggered rectangles 75-150 m wide and 260-420 m long,
+	// tramlines every 24 m and crop rows along the long side, grass headlands and broken hedges at every edge.
+	vec2 bq = wpos.xz / 720.0 + 0.22 * vec2(sin(wpos.z / 330.0), cos(wpos.x / 390.0));
+	vec2 bc = floor(bq);
+	float bang = (h21(bc * 1.7 + 4.0) - 0.5) * 1.6 + step(0.5, h21(bc)) * 1.5708;
+	mat2 R = mat2(vec2(cos(bang), -sin(bang)), vec2(sin(bang), cos(bang)));
+	vec2 r = R * wpos.xz;
+	float colw = mix(110.0, 170.0, h21(bc + 2.0));   // each block its own field width
+	float ci = floor(r.x / colw);
+	float rowl = 260.0 + 160.0 * h21(vec2(ci, bc.x * 3.0 + bc.y));
+	float ry = r.y + h21(vec2(ci, 9.0)) * rowl;
+	float ri = floor(ry / rowl);
+	vec2 cell = vec2(ci, ri) + bc * 131.0;
+	float fx = fract(r.x / colw);
+	if (h21(cell + 5.0) < 0.45) { cell.x += step(0.5, fx) * 0.5; fx = fract(fx * 2.0); colw *= 0.5; }   // some fields split in two strips
+	float fy = fract(ry / rowl);
+	vec2 bf = fract(bq);
+	float edge = min(min(min(fx, 1.0 - fx) * colw, min(fy, 1.0 - fy) * rowl), min(min(bf.x, 1.0 - bf.x), min(bf.y, 1.0 - bf.y)) * 720.0);   // metres to the nearest field edge
 	float crop = h21(cell * 1.31);
+	float px = max(fwidth(r.x), 1e-3);                       // metres per pixel across the rows
+	float tram_d = abs(fract(r.x / 24.0 + 0.5) - 0.5) * 24.0;  // metres to the nearest tramline
+	float tram = clamp((0.9 - tram_d) / px + 0.5, 0.0, 1.0) * min(1.0, 1.8 / px) * (1.0 - smoothstep(1500.0, 4500.0, vd));
+	float rows = (0.5 + 0.5 * sin(r.x * 6.2832 / 2.5)) * (1.0 - smoothstep(0.25, 1.0, px));   // crop rows, only where a pixel is smaller than a row
 	vec3 g = tex2f(grass_a, p, m, g_mid, g_far);
 	vec3 plot = g;
-	// 1.16 (manager): a day palette, not one olive wash: green pasture, golden crop, brown plough, darker meadow
 	float lum = dot(g, vec3(0.33));
-	if (crop < 0.34) plot = vec3(0.30, 0.46, 0.18) * (0.75 + lum);
-	else if (crop < 0.52) plot = vec3(0.74, 0.60, 0.27) * (0.8 + 0.6 * lum);
-	else if (crop < 0.64) { float ang = h21(cell + 3.0) * 3.14; vec2 rp = mat2(vec2(cos(ang), -sin(ang)), vec2(sin(ang), cos(ang))) * wpos.xz; plot = mix(vec3(0.40, 0.30, 0.20), tex2f(field_a, rp / 14.0, m, g_mid, g_far) * vec3(0.8, 0.66, 0.5), 0.5); }
-	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum);
-	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum);
-	// 1.19 (Sigrid: hard cut-out polygons, camouflage at night): a crop thins out toward its edge into a grass headland of uneven width,
-	// the hedge along the edge is broken into tufts and gaps, each plot has a little grain of its own, and the patchwork calms down at night.
+	if (crop < 0.30) plot = vec3(0.30, 0.46, 0.18) * (0.75 + lum);                                                  // pasture: no rows
+	else if (crop < 0.50) plot = vec3(0.74, 0.60, 0.27) * (0.8 + 0.6 * lum) * (1.0 - 0.10 * rows - 0.22 * tram);    // ripe grain
+	else if (crop < 0.64) plot = mix(vec3(0.40, 0.30, 0.20), tex2f(field_a, r / 14.0, m, g_mid, g_far) * vec3(0.8, 0.66, 0.5), 0.5) * (1.0 - 0.22 * rows - 0.15 * tram);   // plough
+	else if (crop < 0.84) plot = vec3(0.24, 0.38, 0.15) * (0.8 + lum) * (1.0 - 0.12 * rows - 0.25 * tram);          // green crop
+	else plot = vec3(0.62, 0.62, 0.30) * (0.8 + 0.6 * lum) * (1.0 - 0.08 * rows - 0.2 * tram);                      // stubble
 	float en = texture(macro_noise, wpos.xz / 55.0).r;
-	float edge = d2 - d1;
 	plot *= 0.9 + 0.22 * texture(macro_noise, wpos.xz / 23.0 + cell * 0.37).r;
-	plot = mix(g * grass_tint * 1.05, plot, smoothstep(0.008, 0.035 + 0.045 * en, edge));   // 11-28 (Sigrid: cracked mud): the headland and the hedge are half as wide
-	vec3 hedge_c = vec3(0.17, 0.27, 0.11) * (0.8 + lum);   // 1.17: field edges are green hedges, not brown cracks
-	float tuft = smoothstep(0.35, 0.65, texture(macro_noise, wpos.xz / 9.0).r);
-	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 0.018, edge)) * 0.4 * tuft);
+	plot = mix(g * grass_tint * 1.05, plot, smoothstep(2.0, 5.0 + 7.0 * en, edge));   // a grass headland of uneven width
+	vec3 hedge_c = vec3(0.15, 0.25, 0.10) * (0.8 + lum);
+	float tuft = smoothstep(0.3, 0.6, texture(macro_noise, wpos.xz / 9.0).r);
+	plot = mix(plot, hedge_c, (1.0 - smoothstep(0.0, 2.6, edge)) * 0.75 * tuft);   // hedges with gaps
 	vec3 grass = mix(g * grass_tint, plot, 0.55 * fields * (1.0 - 0.6 * g_far) * (1.0 - 0.45 * night));   // field colours calm down with distance and at night: no quilt from the air
 
 	vec3 col = grass * w.r
