@@ -164,5 +164,5 @@ func river_mesh() -> ArrayMesh:
 			var d := (p1 - p0).normalized(); var o := Vector2(-d.y, d.x) * 70.0
 			var y := RIVER_LEVEL
 			var v := [Vector3(p0.x + o.x, y, p0.y + o.y), Vector3(p1.x + o.x, y, p1.y + o.y), Vector3(p1.x - o.x, y, p1.y - o.y), Vector3(p0.x - o.x, y, p0.y - o.y)]
-			for idx in [0, 1, 2, 0, 2, 3]: st.add_vertex(v[idx])
+			for idx in [0, 2, 1, 0, 3, 2]: st.add_vertex(v[idx])   # 1128c C03: faces up (it faced down and the water shader culls it away)
 	return st.commit()
