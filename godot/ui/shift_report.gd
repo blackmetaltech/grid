@@ -120,6 +120,7 @@ static func open(app: CbApp) -> bool:
 static func _hold_now(app: CbApp) -> void:
 	var chm = app.get("chrome")
 	if chm != null and chm.get("instruments") != null and chm.instruments.clock != null: chm.instruments.clock.visible = not holding()
+	if chm != null and chm.get("instruments") != null: chm.instruments.visible = app.vw() >= 1500.0
 	var wv = app.get("grid_world")
 	var l3 = wv.get("look3d") if wv != null else null
 	if l3 == null or not is_instance_valid(l3): return

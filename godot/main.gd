@@ -136,6 +136,7 @@ func game_build_chrome(r: Control) -> void:
 	audio.headless = true   # the shell's generated music stays off: GridAudio plays the music (the shell's sfx cues still work)
 	sound = GridSound.new(); sound.name = "GridSound"; add_child(sound); sound.setup(self)
 	chrome = GridChrome.new(); chrome.app = self; r.add_child(chrome); chrome.build()
+	get_window().size_changed.connect(func(): if chrome != null and is_instance_valid(chrome): chrome.call_deferred("refresh"))   # 1128c: a resized window (or one the window manager enlarged) left the cards where the old size put them
 	chrome.pin_pressed.connect(_on_pin)
 	get_tree().node_added.connect(func(n: Node): if n is Label or n is Button or n is LineEdit or n is RichTextLabel: (func(id: int): var c = instance_from_id(id); if c is Control: GridText.floor_control(c)).call_deferred(n.get_instance_id()))   # by id: a node freed before the deferred call ran   # a node freed before the deferred call ran raised "Cannot convert argument 1"   # 1.9: 16 px floor
 	if OS.is_debug_build() and OS.get_environment("CB_SEQ") != "": _qa_seq(OS.get_environment("CB_SEQ"))   # audit captures: timed steps in one window
