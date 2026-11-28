@@ -87,7 +87,7 @@ func _draw_stage3() -> void:
 
 func _draw_rated(r: Rect2) -> void:
 	draw_style_box(_box_sb(0.82), r)
-	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_RATED_CASE"), Color(GridTheme.TEXT, 0.7))
+	_tw(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_RATED_CASE"), Color(GridTheme.TEXT, 0.7), r.size.x - 24.0)
 	var s := 112.0; var o := r.position + Vector2(48.0, r.size.y * 0.55)
 	var V := Vector2(s, 0.0); var a := deg_to_rad(36.87); var I := Vector2(cos(a), sin(a)) * s * 0.9   # screen y down: I lags V, so it points below the axis
 	_arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V * 0.5 + Vector2(-20, 18), "V = 1", Color.WHITE)
@@ -105,12 +105,14 @@ func _draw_rated(r: Rect2) -> void:
 		draw_arc(o + V, 22.0, -deg_to_rad(53.13), deg_to_rad(36.87) if false else 0.0, 12, Color("#FF9A3E", 0.6), 1.5)
 		_text(_mono(), 11, o + V + Vector2(-110.0, -34.0), T("C4_J_HINT"), Color("#FF9A3E", 0.85))
 		_text(_semi(), 14, o + Vector2(0.0, -r.size.y * 0.32), T("C4_E_HIDDEN"), Color(GridTheme.TEXT, 0.7))
-		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 52.0), T("C4_GLOSS_PU"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 34.0), T("C4_GLOSS_XS"), Color(GridTheme.TEXT, 0.6))
-		_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.7))
+		if _look3(): _tw(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_GLOSS_L3") + "\n" + T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.65), r.size.x - 24.0, true)   # 3D: one block, wrapped inside the card
+		else:
+			_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 52.0), T("C4_GLOSS_PU"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 34.0), T("C4_GLOSS_XS"), Color(GridTheme.TEXT, 0.6))
+			_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 14.0), T("C4_RATED_NOTE"), Color(GridTheme.TEXT, 0.7))
 
 func _draw_night(r: Rect2) -> void:
 	draw_style_box(_box_sb(0.82), r)
-	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_NIGHT") % WorkOrder.num(float(q.night.p)), Color(GridTheme.TEXT, 0.7))
+	_tw(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_NIGHT") % WorkOrder.num(float(q.night.p)), Color(GridTheme.TEXT, 0.7), r.size.x - 24.0)
 	var s := 150.0 if not _look3() else 118.0; var o := r.position + Vector2(48.0, r.size.y * 0.55); var n: Dictionary = q.night
 	var V := Vector2(s, 0.0); _arrow(o, o + V, Color.WHITE, 3.0); _text(_mono(), 12, o + V + Vector2(6, 4), "V", Color.WHITE)
 	if n.excitation == null or n.deltaDeg == null:
@@ -118,7 +120,9 @@ func _draw_night(r: Rect2) -> void:
 		for k in 10: draw_line(o + ghost * (float(k) / 10.0), o + ghost * ((float(k) + 0.5) / 10.0), Color(GridTheme.SODIUM, 0.45), 2.0)
 		_text(_mono(), 12, o + ghost + Vector2(4, -6), "E ?", Color(GridTheme.SODIUM, 0.6))
 		_text(_semi(), 14, o + ghost + Vector2(-60, -34), T("C4_SET_EXC") if n.excitation == null else T("C4_NO_STEADY"), Color(GridTheme.TEXT, 0.7))
-		_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 30.0), T("C4_NIGHT_HINT1"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6)); return
+		if _look3(): _tw(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_NIGHT_HINT1") + "\n" + T("C4_QRULE"), Color(GridTheme.TEXT, 0.6), r.size.x - 24.0, true)   # one wrapped block, anchored at the card's foot
+		else: _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 30.0), T("C4_NIGHT_HINT1"), Color(GridTheme.TEXT, 0.6)); _text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6))
+		return
 	var e := float(n.excitation); var d := deg_to_rad(float(n.deltaDeg))
 	var E := Vector2(cos(-d), sin(-d)) * e * s; _arrow(o, o + E, Color(GridTheme.GOOD) if bool(n.taskDone) else Color(GridTheme.SODIUM), 4.0); _text(_mono(), 12, o + E + Vector2(4, -6), "E = %s" % _f(e, 3), GridTheme.SODIUM)
 	draw_arc(o, 44.0, -d, 0.0, 16, GridTheme.SODIUM, 2.0); _text(_mono(), 12, o + Vector2(50, -12), "δ = %s°" % _f(float(n.deltaDeg), 1), GridTheme.SODIUM)
@@ -128,13 +132,19 @@ func _draw_night(r: Rect2) -> void:
 	_text(_mono(), 12, r.position + Vector2(12.0, r.size.y - 30.0), T("C4_P_Q") % [WorkOrder.num(float(n.p)), _f(float(n.q), 3)], _good(bool(n.taskDone)))
 	_text(_mono(), 11, r.position + Vector2(12.0, r.size.y - 12.0), T("C4_QRULE"), Color(GridTheme.TEXT, 0.6))
 
+## 3D: text that is wider than its card wraps inside it (upward from `at` when `up`: the lines anchored at the card's foot); the classic stage draws it as before.
+func _tw(font: Font, fsz: int, at: Vector2, s: String, col: Color, w: float, up := false) -> void:
+	if not _look3(): _text(font, fsz, at, s, col); return
+	var fs := GridText.floor_size(self, GridTheme.fs(fsz)); var h := font.get_multiline_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, w, fs).y
+	_wrap(font, fsz, at - Vector2(0.0, (h - fs * 1.2) if up else 0.0), s, col, w)
+
 func _draw_gauges(r: Rect2) -> void:
 	draw_style_box(_box_sb(0.82), r)
 	var n: Dictionary = q.night; var x := r.position.x + 20.0; var wd := r.size.x - 40.0
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_QGAUGE"), Color(GridTheme.TEXT, 0.7))
 	var qlo := -0.6; var qhi := 0.4
 	var X := func(v: float) -> float: return x + wd * (clampf(v, qlo, qhi) - qlo) / (qhi - qlo)
-	var gy := r.position.y + 70.0; draw_rect(Rect2(Vector2(x, gy), Vector2(wd, 22.0)), Color("#0B1026"))
+	var gy := r.position.y + 70.0; draw_rect(Rect2(Vector2(x, gy), Vector2(wd, 22.0)), _bg(Color("#0B1026")))
 	var tol := float(n.qTolPu); var tg := float(n.qTarget)
 	draw_rect(Rect2(Vector2(X.call(tg - tol), gy), Vector2(X.call(tg + tol) - X.call(tg - tol), 22.0)), Color(GridTheme.GOOD, 0.45))
 	draw_line(Vector2(X.call(0.0), gy - 4.0), Vector2(X.call(0.0), gy + 26.0), Color(1, 1, 1, 0.4), 1.0)
@@ -144,13 +154,13 @@ func _draw_gauges(r: Rect2) -> void:
 		var xx: float = X.call(float(n.q)); draw_colored_polygon(PackedVector2Array([Vector2(xx, gy + 22.0), Vector2(xx - 8, gy + 36.0), Vector2(xx + 8, gy + 36.0)]), _good(bool(n.taskDone)))
 		_text(_mono(), 14, Vector2(x, gy + 68.0), "Q = %s pu" % _f(float(n.q), 3), _good(bool(n.taskDone)))
 		var dy := gy + 110.0; var dm := 90.0
-		draw_rect(Rect2(Vector2(x, dy), Vector2(wd, 16.0)), Color("#0B1026"))
+		draw_rect(Rect2(Vector2(x, dy), Vector2(wd, 16.0)), _bg(Color("#0B1026")))
 		draw_rect(Rect2(Vector2(x, dy), Vector2(wd * float(n.deltaDeg) / dm, 16.0)), _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
 		draw_line(Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy - 4.0), Vector2(x + wd * float(n.deltaMaxDeg) / dm, dy + 20.0), Color.WHITE, 2.0)
 		_text(_mono(), 12, Vector2(x, dy + 38.0), T("C4_DELTA_LIM") % [_f(float(n.deltaDeg), 1), int(n.deltaMaxDeg)], _good(float(n.deltaDeg) < float(n.deltaMaxDeg)))
 	_draw_pdelta(Rect2(Vector2(x, gy + 184.0), Vector2(wd, maxf(r.end.y - gy - 184.0 - 62.0, 80.0))))
 	if n.q == null:
-		_text(_mono(), 12, Vector2(x, gy + 74.0), T("C4_GAUGE_HINT1"), Color(GridTheme.TEXT, 0.65)); _text(_mono(), 12, Vector2(x, gy + 94.0), T("C4_GAUGE_HINT2"), Color(GridTheme.TEXT, 0.65))
+		_tw(_mono(), 12, Vector2(x, gy + 74.0), T("C4_GAUGE_HINT1"), Color(GridTheme.TEXT, 0.65), wd); _tw(_mono(), 12, Vector2(x, gy + (114.0 if _look3() else 94.0)), T("C4_GAUGE_HINT2"), Color(GridTheme.TEXT, 0.65), wd)
 	if bool(q.done):
 		var ans = q.get("answers"); var y := r.position.y + r.size.y - 54.0
 		if ans is Dictionary: _text(_mono(), 12, Vector2(x, y), T("C4_ANS_E") % _f(float(n.answerE), 3), Color(GridTheme.SODIUM))
@@ -161,7 +171,7 @@ func _draw_pdelta(r: Rect2) -> void:
 	var n: Dictionary = q.night; var e := float(n.excitation) if n.excitation != null else 1.0
 	var xs := float(q.xs); var pmax := e / xs; var ymax := maxf(pmax, float(n.p) * 1.4) * 1.12
 	_text(_semi(), 11, r.position + Vector2(0, -6.0), T("C4_PD_TITLE") % [_f(e, 3), _f(pmax, 3)], Color(GridTheme.TEXT, 0.7) if n.excitation != null else Color(GridTheme.TEXT, 0.45))
-	draw_rect(r, Color("#0B1026"))
+	draw_rect(r, _bg(Color("#0B1026")))
 	var X := func(d: float) -> float: return r.position.x + r.size.x * d / 180.0
 	var Y := func(p: float) -> float: return r.end.y - r.size.y * clampf(p, 0.0, ymax) / ymax
 	draw_rect(Rect2(Vector2(X.call(float(n.deltaMaxDeg)), r.position.y), Vector2(X.call(180.0) - X.call(float(n.deltaMaxDeg)), r.size.y)), Color(GridTheme.BAD, 0.12))

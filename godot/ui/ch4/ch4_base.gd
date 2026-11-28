@@ -52,6 +52,9 @@ func _fold_rect() -> Rect2: return Rect2()
 func _tag_rect() -> Rect2:
 	return Rect2(Vector2(panel.end.x - 260.0, panel.position.y - 56.0), Vector2(260.0, 56.0)) if _narrow() else Rect2()
 
+## The fill behind a plot: a light tint over the glass in 3D (the world shows through), the stage's own navy otherwise. Charts in 3D are all one glass.
+func _bg(c: Color) -> Color: return Color(0.0, 0.0, 0.0, 0.2) if _look3() else c
+
 ## A chart box: glass over the 3D place, the navy ink of the classic stage otherwise.
 func _box_sb(a: float) -> StyleBoxFlat:
 	return GridTheme.glass_sb(0.78, 4, 0.0) if _look3() else GridTheme.ink_sb(a, 10, 0.0)
@@ -103,6 +106,7 @@ func layout() -> void:
 		hits.clear()
 		if not _collapsed: _layout_panel()
 		else: _on_collapsed()
+		_layout_extra()
 		hits.append({"rect": Rect2(Vector2(_p0.x + w - 40.0, _p0.y), Vector2(40.0, 26.0)), "kind": "fold", "id": "fold", "arg": "", "screen": true})
 		return
 	_sc = 1.0
@@ -111,7 +115,11 @@ func layout() -> void:
 	_p0 = panel.position
 	hits.clear()
 	_layout_panel()
+	_layout_extra()
 
+## A stage's own hits on the screen (the chip that opens the charts it keeps shut in 3D).
+func _layout_extra() -> void: pass
+func _tog(_id: String) -> void: pass
 func _layout_panel() -> void: pass
 func _on_collapsed() -> void: pass
 func _draw_stage() -> void: pass
@@ -130,6 +138,7 @@ func _gui_input(e: InputEvent) -> void:
 				if _phone(): _panning = true; accept_event()
 				return
 			if str(h.kind) == "fold": _collapsed = not _collapsed; layout(); queue_redraw(); accept_event(); return
+			if str(h.kind) == "tog": _tog(str(h.id)); layout(); queue_redraw(); app.sfx("click"); accept_event(); return   # a view toggle works while the clock runs
 			if _locked(): app.toast(T("C4_LOCKED"), "warn"); app.sfx("bad"); accept_event(); return
 			h = h.duplicate(); h["right"] = e.button_index == MOUSE_BUTTON_RIGHT or e.shift_pressed
 			drag_id = str(h.id) if str(h.kind) == "slider" and on_track(h.rect, _local(h, e.position)) else ""   # a press on − / + or the caption never starts a drag
@@ -239,14 +248,26 @@ func _pin_at(wp: Vector2, lines: Array, cols: Array, lift: float, wv = null) -> 
 
 # ---- drawing helpers --------------------------------------------------------------------------------------------------------------
 func _text(font: Font, fsz: int, at: Vector2, s: String, col: Color, w := -1.0, align := 0) -> void:
-	var f := GridTheme.fs(fsz); var tw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x
+	var l3 := _look3()   # the fixes below are for the 3D place; the classic stage keeps its drawing
+	var f := GridText.floor_size(self, GridTheme.fs(fsz)) if l3 else GridTheme.fs(fsz); var tw := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x   # measured at the size that is drawn (the 16 px floor)
+	if l3 and w > 0.0 and tw > w and "$" in s: s = _short_money(s); tw = font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, f).x   # "$900,000" in a narrow chip ran into its neighbour: "$0.9M"
 	var x := at.x
-	if w > 0.0: x = at.x + (w - tw) * (0.5 if align == 1 else 1.0 if align == 2 else 0.0)
+	if w > 0.0: x = at.x + (maxf(w - tw, 0.0) if l3 else (w - tw)) * (0.5 if align == 1 else 1.0 if align == 2 else 0.0)   # too wide for its box: it starts at the box's edge, never spills left
 	GridText.ds(self, font, Vector2(x, at.y), s, HORIZONTAL_ALIGNMENT_LEFT, -1, f, col)
 
 ## Text wrapped to the width w (the boxes of the estate are 220 px wide; a long gloss ran out of its box at 1080p).
 func _wrap(font: Font, fsz: int, at: Vector2, s: String, col: Color, w: float) -> void:
 	GridText.dm(self, font, at, s, HORIZONTAL_ALIGNMENT_LEFT, w, GridTheme.fs(fsz), -1, col)
+
+static var _money_re: RegEx
+## "$1,000,000" -> "$1.0M" for every full dollar amount in a string (CbRegion.money's short form).
+static func _short_money(s: String) -> String:
+	if _money_re == null: _money_re = RegEx.new(); _money_re.compile("\\$[0-9]{1,3}(,[0-9]{3})+")
+	var out := s
+	for m in _money_re.search_all(s):
+		var digits := m.get_string().replace("$", "").replace(",", "")
+		out = out.replace(m.get_string(), CbRegion.money(float(digits), true))
+	return out
 
 func _money(x: float) -> String: return CbRegion.money(x, false, 0)
 func _f(x: float, d: int) -> String: return String.num(x, d)
@@ -275,8 +296,9 @@ func _chip(r: Rect2, label: String, sub := "", on := false, id := "", arg = "", 
 	if sub == "":
 		_text(mono, 13, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + 5.0), label, col, r.size.x, 1)
 	else:
-		_text(mono, 13, Vector2(r.position.x, r.position.y + r.size.y * 0.5 - 1.0), label, col, r.size.x, 1)
-		_text(mono, 10 if sub.length() < 10 else 9, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + 12.0), sub, Color(GridTheme.TEXT, 0.6), r.size.x, 1)
+		var l3 := _look3()   # 3D: two lines at the 16 px floor need 18 px between baselines (the label and its price printed over each other)
+		_text(mono, 13, Vector2(r.position.x, r.position.y + r.size.y * 0.5 - (5.0 if l3 else 1.0)), label, col, r.size.x, 1)
+		_text(mono, 10 if sub.length() < 10 else 9, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + (13.0 if l3 else 12.0)), sub, Color(GridTheme.TEXT, 0.6), r.size.x, 1)
 
 func _add_chip(r: Rect2, id: String, arg) -> void: hits.append({"rect": r, "kind": "chip", "id": id, "arg": arg})
 

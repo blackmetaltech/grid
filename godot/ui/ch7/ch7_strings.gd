@@ -43,7 +43,7 @@ const S := {
 	"C7_RELAY_CAP2": "RELAY", "C7_BREAKER_CAP": "BREAKER (cycles)", "C7_RECLOSE_CAP": "AUTO-RECLOSE", "C7_CLEAR": "clears at %d ms", "C7_TCR": "critical %d ms", "C7_MARGIN_MS": "margin %d ms", "C7_STABLE": "keeps step", "C7_SLIPS": "slips a pole",
 	"C7_SWING": "Rotor angle against time",
 	# L26
-	"C7_MODE_CAP": "DISPATCH RULE", "C7_WINDOW_CAP": "COMMITMENT (click to change the hours)", "C7_STACK": "Generation by hour, MW", "C7_DEMAND": "demand", "C7_FLOW": "corridor flow", "C7_LAMBDA": "lambda, $/MWh",
+	"C7_MODE_CAP": "DISPATCH RULE", "C7_WINDOW_CAP": "COMMITMENT: hours and $ per MWh (click to change the hours)", "C7_STACK": "Generation by hour, MW", "C7_DEMAND": "demand", "C7_FLOW": "corridor flow", "C7_LAMBDA": "lambda, $/MWh",
 	"C7_LAM_G": "north", "C7_LAM_S": "city", "C7_COST": "day cost %s", "C7_TRIP": "corridor tripped at %s", "C7_OFF": "off", "C7_HYDRO": "hydro", "C7_SOLAR": "solar", "C7_CORRIDOR": "corridor limit %d MW",
 	"C7_LEG_STACK": "generation", "C7_PLANT_coalsub": "sub coal", "C7_PLANT_coalsc": "super coal", "C7_PLANT_ccgt": "CCGT", "C7_PLANT_ocgt": "OCGT",
 	"C7_MODE_merit": "cheapest first", "C7_MODE_lambda": "equal lambda", "C7_MODE_corridor": "lambda + corridor",

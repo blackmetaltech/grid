@@ -136,7 +136,7 @@ static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist 
 	match scn:
 		"l32": return [Vector3(10.0, 0.0, 40.0), -38.0, 18.0, 365.0]
 		"l33": return [Vector3(-5.0, 0.0, 40.0), -38.0, 18.0, 350.0]
-		"l34": return [Vector3(-4.0, 0.0, 2.0), -30.0, 14.0, 105.0]
+		"l34": return [Vector3(-12.0, 0.0, 0.0), -30.0, 14.0, 105.0]   # 11-28: the village comes out from behind the charts
 	return [Vector3(-20.0, 0.0, 10.0), -38.0, 17.0, 345.0]
 
 # --------------------------------------------------------------------------------------------------------------------

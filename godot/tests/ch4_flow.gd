@@ -60,6 +60,14 @@ func _initialize() -> void:
 	var s12: Dictionary = T.b.q("ch4Status")
 	T.check(float(s12.build.vref) == 1.05 and int(s12.build.reduceMW) == 20 and bool(s12.swing.stable), "L12 chips: V_ref 1.05 and -20 MW hold the swing (peak %s)" % str(s12.swing.peak))
 	T.b.act("tick", [10]); T.check(str(T.b.g.get("status")) == "won" and int(T.b.g.get("stars", 0)) == 3, "L12 reference: 3 lamps")
+	# the 3D layout of L12: two charts (P-delta left of the clock, the swing trace right of it) and a chip; the rotor and the numbers wait behind the chip
+	hy.size = Vector2(1920, 1080)
+	var rc: Dictionary = hy._l12_rects(); var mid := 1920.0 * 0.5
+	T.check(rc.has("pdelta") and rc.has("swing") and rc.has("more") and not rc.has("rotor") and not rc.has("numbers"), "L12 in 3D: only the P-delta chart and the swing trace until the chip is pressed (%s)" % str(rc.keys()))
+	T.check((rc.pdelta as Rect2).end.x < mid - 90.0 and (rc.swing as Rect2).position.x > mid + 90.0, "L12 in 3D: no chart stands under the clock")
+	hy._tog("more"); rc = hy._l12_rects()
+	T.check(rc.has("rotor") and rc.has("numbers") and (rc.rotor as Rect2).position.y > (rc.pdelta as Rect2).end.y, "L12 in 3D: the chip brings the rotor wheel and the numbers, in a second row")
+	hy._tog("more"); T.check(not hy._l12_rects().has("rotor"), "L12 in 3D: and the chip puts them away again")
 	# ---- L13: text predictions and the slider ----
 	T.level("L13"); var ex := _stage(T, Ch4Exam); _sync(T, ex)
 	T.check(T.b.q("ch4Status").answers == null, "the answers are hidden before the exam")

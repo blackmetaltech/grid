@@ -44,18 +44,40 @@ func _draw_stage() -> void:
 	_draw_swing(Rect2(Vector2(732.0, top), Vector2(minf(400.0, w - 732.0 - 220.0), bh)))
 	_draw_numbers(Rect2(Vector2(maxf(732.0 + 410.0, w - 214.0), top), Vector2(200.0, bh)))
 
-## The 3D hydro: the plant, the circuits over the ridge and the city are Stage3D's; the four charts line up under the work order, in glass.
-func _draw_stage3() -> void:
-	var w := _right()
-	var top := TOP; var bh := 200.0
+## The 3D hydro: the plant, the circuits over the ridge and the city are Stage3D's. Two charts stand in glass under the work order, the P-delta chart and the swing trace;
+## the rotor wheel and the numbers are one glass chip away (off by default: four charts across the top read as a dashboard and hid the line).
+var _more := false
+
+func _l12_rects() -> Dictionary:
+	var w := _right(); var top := TOP; var bh := 200.0
 	var f := clampf((w - 60.0 - 42.0) / 1140.0, 0.8, 1.25)
 	var x := 30.0 if w < 1400.0 else M
-	var ws := [220.0 * f, 380.0 * f, 340.0 * f, 200.0 * f]
-	_draw_rotor(Rect2(Vector2(x, top), Vector2(ws[0], bh))); x += ws[0] + 14.0
-	_draw_pdelta(Rect2(Vector2(x, top), Vector2(ws[1], bh))); x += ws[1] + 14.0
-	_draw_swing(Rect2(Vector2(x, top), Vector2(ws[2], bh))); x += ws[2] + 14.0
-	_draw_numbers(Rect2(Vector2(x, top), Vector2(ws[3], bh)))
-	_top_y = top + bh + 10.0
+	var cx := w * 0.5   # the clock and its time stand in the middle of the top edge: the charts keep clear of it (the P-delta chart left of it, the swing trace right of it)
+	var out := {}
+	out["pdelta"] = Rect2(Vector2(x, top), Vector2(minf(380.0 * f, cx - 100.0 - x), bh))
+	var sx := cx + 100.0
+	out["swing"] = Rect2(Vector2(sx, top), Vector2(minf(340.0 * f, w - sx - M), bh))
+	var mx: float = (out.swing as Rect2).end.x + 14.0
+	out["more"] = Rect2(Vector2(mx, top), Vector2(maxf(minf(230.0, w - mx - M), 150.0), 40.0))
+	if _more:   # the rotor wheel and the numbers: a second row, under the first
+		out["rotor"] = Rect2(Vector2(x, top + bh + 10.0), Vector2(220.0 * f, bh)); out["numbers"] = Rect2(Vector2(x + 234.0 * f, top + bh + 10.0), Vector2(200.0 * f, bh))
+	return out
+
+func _layout_extra() -> void:
+	if _look3(): hits.append({"rect": _l12_rects().more, "kind": "tog", "id": "more", "arg": "", "screen": true})
+func _tog(id: String) -> void: if id == "more": _more = not _more
+func _stage_rects() -> Array: return [_l12_rects().more] if _look3() else []
+
+func _draw_stage3() -> void:
+	var top := TOP; var bh := 200.0
+	var rc := _l12_rects()
+	if rc.has("rotor"): _draw_rotor(rc.rotor)
+	_draw_pdelta(rc.pdelta); _draw_swing(rc.swing)
+	if rc.has("numbers"): _draw_numbers(rc.numbers)
+	var mr: Rect2 = rc.more; var hv := hover == "more/"
+	draw_style_box(GridTheme.glass_cell_sb(Color(GridTheme.SODIUM, 0.22) if _more else Color(GridTheme.GLASS, 0.78), _more or hv), mr)
+	_text(_semi(), 13, Vector2(mr.position.x, mr.position.y + mr.size.y * 0.5 + 5.0), T("C4_L12_LESS") if _more else T("C4_L12_MORE"), GridTheme.SODIUM if _more else GridTheme.G_TEXT, mr.size.x, 1)
+	_top_y = top + bh + 10.0 + (bh + 10.0 if _more else 0.0)
 	var n := int(q.circuits); var sg := GridTheme.G_TEXT
 	_pin("plant", [T("C4_KESTREL")], [sg], 20.0)
 	_pin("line", [T("C4_LINE") % [n, _f(float(q.pm) * 100.0, 0)]], [sg], 20.0)
@@ -126,7 +148,7 @@ func _draw_pdelta(r: Rect2) -> void:
 	var plot := Rect2(r.position + Vector2(38.0, 30.0), r.size - Vector2(54.0, 58.0)); var pmaxy := 4.4
 	var X := func(d: float) -> float: return plot.position.x + plot.size.x * d / 180.0
 	var Y := func(p: float) -> float: return plot.end.y - plot.size.y * clampf(p, 0.0, pmaxy) / pmaxy
-	draw_rect(plot, Color("#0B1026"))
+	draw_rect(plot, _bg(Color("#0B1026")))
 	for k in [1.0, 2.0, 3.0, 4.0]: draw_line(Vector2(plot.position.x, Y.call(k)), Vector2(plot.end.x, Y.call(k)), Color(1, 1, 1, 0.07), 1.0); _text(_mono(), 10, Vector2(r.position.x + 4.0, Y.call(k) + 4.0), _f(k, 0), Color(GridTheme.TEXT, 0.5))
 	for k in [0, 90, 180]: _text(_mono(), 10, Vector2(X.call(float(k)) - 10.0, plot.end.y + 14.0), "%d°" % k, Color(GridTheme.TEXT, 0.5))
 	var pre := PackedVector2Array(); var post := PackedVector2Array()
@@ -143,8 +165,8 @@ func _draw_pdelta(r: Rect2) -> void:
 func _draw_swing(r: Rect2) -> void:
 	draw_style_box(_box_sb(0.82), r)
 	_text(_semi(), 11, r.position + Vector2(12.0, 17.0), T("C4_SWING"), Color(GridTheme.TEXT, 0.7))
-	var plot := Rect2(r.position + Vector2(38.0, 30.0), r.size - Vector2(54.0, 58.0)); var sw: Dictionary = q.swing
-	draw_rect(plot, Color("#0B1026"))
+	var l3 := _look3(); var plot := Rect2(r.position + Vector2(38.0, 48.0 if l3 else 30.0), r.size - Vector2(54.0, 76.0 if l3 else 58.0)); var sw: Dictionary = q.swing   # 3D: the result has its own line under the title (they printed over each other)
+	draw_rect(plot, _bg(Color("#0B1026")))
 	var tS: Array = sw.tS; var dd: Array = sw.deltaDeg; if tS.size() < 2: return
 	var tmax := maxf(float(tS[tS.size() - 1]), 0.5); var dmax := maxf(150.0, float(sw.deltaU) + 10.0)
 	var X := func(t: float) -> float: return plot.position.x + plot.size.x * t / tmax
@@ -156,7 +178,7 @@ func _draw_swing(r: Rect2) -> void:
 	draw_polyline(pts, _good(bool(sw.stable)), 2.5, true)
 	_text(_mono(), 10, Vector2(plot.position.x, plot.end.y + 14.0), "0", Color(GridTheme.TEXT, 0.5)); _text(_mono(), 10, Vector2(plot.end.x - 40.0, plot.end.y + 14.0), "%s s" % _f(tmax, 1), Color(GridTheme.TEXT, 0.5))
 	var txt := T("C4_SW_OK") % _f(float(sw.peak), 0) if bool(sw.stable) else (T("C4_SW_NOEQ") if bool(sw.noEquilibrium) else T("C4_SW_SLIP") % _f(float(sw.peak), 0))
-	_text(_mono(), 12, r.position + Vector2(0.0, 17.0), txt, _good(bool(sw.stable)), r.size.x - 12.0, 2)
+	_text(_mono(), 12, r.position + Vector2(0.0, 17.0 + (19.0 if l3 else 0.0)), txt, _good(bool(sw.stable)), r.size.x - 12.0, 2)
 
 func _draw_numbers(r: Rect2) -> void:
 	draw_style_box(_box_sb(0.82), r)

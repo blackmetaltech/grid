@@ -12,14 +12,15 @@ func _build_panel(ip: Rect2) -> void:
 	var d: Dictionary = q.design
 	var caps2 := [T("C8_SIZE_CAP"), T("C8_BUS_CAP"), T("C8_TIE_XFER_CAP"), T("C8_DR_CAP")]
 	for r in 4: _cap(ip, 0, 26.0 + 40.0 * r, caps2[r])
+	var x0 := 140.0 if _look3() else 108.0   # 3D: the captions are at the 16 px floor and "demand response" ran under the first chip
 	var sizes: Array = kit.get("sizes", [])
-	for k in sizes.size(): _c(ip, 108.0 + 86.0 * k, 4, 82, 36, T("C8_MVA") % WorkOrder.num(float(sizes[k].mva)), "size", float(sizes[k].mva), is_equal_approx(float(d.sizeMva), float(sizes[k].mva)), str(sizes[k].each))
-	_c(ip, 108, 44, 82, 36, T("C8_MANUAL"), "bus", "manual", str(d.bus) == "manual", T("C8_BUS_H") % int(kit.get("bus", {}).get("manualH", 1)))
-	_c(ip, 194, 44, 82, 36, T("C8_AUTO"), "bus", "auto", str(d.bus) == "auto", str(kit.get("bus", {}).get("auto", "")))
+	for k in sizes.size(): _c(ip, x0 + 86.0 * k, 4, 82, 36, T("C8_MVA") % WorkOrder.num(float(sizes[k].mva)), "size", float(sizes[k].mva), is_equal_approx(float(d.sizeMva), float(sizes[k].mva)), str(sizes[k].each))
+	_c(ip, x0, 44, 82, 36, T("C8_MANUAL"), "bus", "manual", str(d.bus) == "manual", T("C8_BUS_H") % int(kit.get("bus", {}).get("manualH", 1)))
+	_c(ip, x0 + 86.0, 44, 82, 36, T("C8_AUTO"), "bus", "auto", str(d.bus) == "auto", str(kit.get("bus", {}).get("auto", "")))
 	var ties: Array = kit.get("ties", [])
-	for k in ties.size(): _c(ip, 108.0 + 86.0 * k, 84, 82, 36, T("C8_" + str(ties[k].id).to_upper()), "tie", str(ties[k].id), str(d.tie) == str(ties[k].id), str(ties[k].price))
+	for k in ties.size(): _c(ip, x0 + 86.0 * k, 84, 82, 36, T("C8_" + str(ties[k].id).to_upper()), "tie", str(ties[k].id), str(d.tie) == str(ties[k].id), str(ties[k].price))
 	var drs: Array = kit.get("dr", [])
-	for k in drs.size(): _c(ip, 108.0 + 86.0 * k, 124, 82, 36, T("C8_" + str(drs[k].id).to_upper()), "dr", str(drs[k].id), str(d.dr) == str(drs[k].id), str(drs[k].price))
+	for k in drs.size(): _c(ip, x0 + 86.0 * k, 124, 82, 36, T("C8_" + str(drs[k].id).to_upper()), "dr", str(drs[k].id), str(d.dr) == str(drs[k].id), str(drs[k].price))
 
 func _pressed(h: Dictionary, _p: Vector2) -> void:
 	match str(h.id):
@@ -30,7 +31,7 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 
 func _body(ip: Rect2) -> void:
 	var ok := not bool(q.overheat) and not bool(q.notRestored)
-	GridText.dm(self, _mono(), ip.position + Vector2(390.0, 22.0), T("C8_L34_OK") if ok else (T("C8_L34_HOT") if bool(q.overheat) else T("C8_L34_LATE")), HORIZONTAL_ALIGNMENT_LEFT, 240.0, GridTheme.fs(11), 5, _good(ok))
+	GridText.dm(self, _mono(), ip.position + Vector2(424.0 if _look3() else 390.0, 22.0), T("C8_L34_OK") if ok else (T("C8_L34_HOT") if bool(q.overheat) else T("C8_L34_LATE")), HORIZONTAL_ALIGNMENT_LEFT, 240.0, GridTheme.fs(11), 5, _good(ok))
 
 func _draw_stage() -> void:
 	if _look3(): _draw_stage3(); return
@@ -101,8 +102,8 @@ func _charts(box: Rect2) -> void:
 
 ## The 3D substation: the two day charts and the readings stay as glass cards; the transformers, the bus section, the tie and the town carry the thermometer's numbers as chips.
 func _draw_stage3() -> void:
-	var w := _right(); var bh := _cards3_h(520.0)
-	var cwid := minf(w * 0.37, 700.0)
+	var w := _right(); var bh := _cards3_h(440.0)
+	var cwid := minf(minf(w * 0.28, 540.0), w * 0.5 - 110.0)   # 11-28 (Sigrid): narrower and shorter, so the village shows; clear of the clock
 	var cr := Rect2(Vector2(M, TOP), Vector2(cwid, bh)); _charts(cr)
 	var rw := minf(w * 0.3, 440.0)
 	var rr := Rect2(Vector2(w - M - rw, TOP), Vector2(rw, minf(bh, 380.0))); _readings(rr)

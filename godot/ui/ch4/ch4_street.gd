@@ -213,20 +213,20 @@ func _draw_instruments() -> void:
 	var vx := 850.0; var vy := 158.0; var vw := 330.0
 	if w < 1250.0: vx = 640.0; vw = w - vx - 20.0
 	if _look3(): vx = 900.0; vy = 196.0; vw = minf(330.0, _right() - vx - 40.0)   # under the clock, clear of the currents box
-	draw_style_box(_box_sb(0.82), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 150.0)))
+	draw_style_box(_box_sb(0.82), Rect2(Vector2(vx - 14.0, vy - 30.0), Vector2(vw + 28.0, 160.0 if _look3() else 150.0)))
 	_text(_semi(), 11, Vector2(vx, vy - 12.0), T("C4_VFAR"), Color(GridTheme.TEXT, 0.7))
 	var vmin := 185.0; var vmax := 265.0
 	var X := func(v: float) -> float: return vx + vw * (clampf(v, vmin, vmax) - vmin) / (vmax - vmin)
-	draw_rect(Rect2(Vector2(vx, vy + 16.0), Vector2(vw, 18.0)), Color("#0B1026"))
+	draw_rect(Rect2(Vector2(vx, vy + 16.0), Vector2(vw, 18.0)), _bg(Color("#0B1026")))
 	draw_rect(Rect2(Vector2(X.call(float(q.loV)), vy + 16.0), Vector2(X.call(float(q.hiV)) - X.call(float(q.loV)), 18.0)), Color(GridTheme.GOOD, 0.35))
 	for k in [200.0, 230.0, 260.0]: _text(_mono(), 10, Vector2(X.call(k) - 14.0, vy + 50.0), "%d" % int(k), Color(GridTheme.TEXT, 0.55), 28.0, 1)
 	draw_line(Vector2(X.call(230.0), vy + 12.0), Vector2(X.call(230.0), vy + 38.0), Color(1, 1, 1, 0.5), 1.0)
 	for k in 3:
 		var p: String = PH[k]; var v := float(q.vFar[p]); var xx: float = X.call(v)
 		draw_colored_polygon(PackedVector2Array([Vector2(xx, vy + 36.0), Vector2(xx - 7.0, vy + 22.0 - 2.0), Vector2(xx + 7.0, vy + 22.0 - 2.0)]), PH_COL[p])
-		_text(_mono(), 12, Vector2(vx + 100.0 * k, vy + 76.0), "%s  %s V" % [String(p), _f(v, 1)], _good(v >= float(q.loV) and v <= float(q.hiV)))
+		_text(_mono(), 12, Vector2(vx + (vw + 28.0) / 3.0 * k, vy + 76.0) if _look3() else Vector2(vx + 100.0 * k, vy + 76.0), "%s  %s V" % [String(p), _f(v, 1)], _good(v >= float(q.loV) and v <= float(q.hiV)))
 	_text(_mono(), 11, Vector2(vx, vy + 98.0), T("C4_BAND") % [int(q.loV), int(q.hiV)], Color(GridTheme.GOOD, 0.9))
-	_text(_mono(), 11, Vector2(vx, vy + 114.0), T("C4_LOSS") % _f(float(q.lossPct), 2), _good(bool(q.starLoss)))
+	_text(_mono(), 11, Vector2(vx, vy + (122.0 if _look3() else 114.0)), T("C4_LOSS") % _f(float(q.lossPct), 2), _good(bool(q.starLoss)))
 
 func _draw_panel_body() -> void:
 	var inner := Rect2(panel.position + Vector2(12.0, 8.0), panel.size - Vector2(24.0, 16.0))

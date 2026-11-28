@@ -12,18 +12,19 @@ func _head_wire() -> String:
 
 func _build_panel(ip: Rect2) -> void:
 	var d: Dictionary = q.design
-	_cap(ip, 0, 28, T("C8_PV_CAP")); _cap(ip, 0, 72, T("C8_OLTC_CAP")); _cap(ip, 0, 116, T("C8_INV_CAP")); _cap(ip, 188, 116, T("C8_HEAD_CAP"))
+	var dx := 44.0 if _look3() else 0.0   # 3D: the captions are at the 16 px floor; the chips start right of the longest ("set point, pu")
+	_cap(ip, 0, 28, T("C8_PV_CAP")); _cap(ip, 0, 72, T("C8_OLTC_CAP")); _cap(ip, 0, 116, T("C8_INV_CAP")); _cap(ip, 188 + dx, 116, T("C8_HEAD_CAP"))
 	var pvs: Array = kit.get("pvLimitsKw", [])
-	for k in pvs.size(): _c(ip, 84.0 + 56.0 * k, 4, 52, 38, WorkOrder.num(float(pvs[k])), "pv", float(pvs[k]), is_equal_approx(float(d.pvLimitKw), float(pvs[k])))
+	for k in pvs.size(): _c(ip, 84.0 + dx + 56.0 * k, 4, 52, 38, WorkOrder.num(float(pvs[k])), "pv", float(pvs[k]), is_equal_approx(float(d.pvLimitKw), float(pvs[k])))
 	var sets: Array = kit.get("oltcSetOptions", [])
-	for k in sets.size(): _c(ip, 84.0 + 56.0 * k, 48, 52, 38, "%.2f" % float(sets[k]), "oltc", float(sets[k]), is_equal_approx(float(d.oltcSetPu), float(sets[k])))
-	_c(ip, 270, 48, 130, 38, T("C8_LDC"), "ldc", "", bool(d.ldc), str(kit.get("ldcPrice", "")))
-	_c(ip, 84, 92, 100, 38, T("C8_VOLTVAR"), "vv", "", bool(d.voltVar), str(kit.get("voltVarPrice", "")))
+	for k in sets.size(): _c(ip, 84.0 + dx + 56.0 * k, 48, 52, 38, "%.2f" % float(sets[k]), "oltc", float(sets[k]), is_equal_approx(float(d.oltcSetPu), float(sets[k])))
+	_c(ip, 270 + dx, 48, 130, 38, T("C8_LDC"), "ldc", "", bool(d.ldc), str(kit.get("ldcPrice", "")))
+	_c(ip, 84 + dx, 92, 100, 38, T("C8_VOLTVAR"), "vv", "", bool(d.voltVar), str(kit.get("voltVarPrice", "")))
 	var cs: Array = kit.get("conductors", [])
 	var x := 0
 	for c in cs:
 		if str(c.id) in (kit.get("parts", {}) as Dictionary).get("setConductor", ["Rabbit", "Hyena"]):   # the level's conductors (ch8Kit.parts)
-			_c(ip, 298.0 + 80.0 * x, 92, 76, 38, str(c.id), "head", str(c.id), _head_wire() == str(c.id), T("C8_PER_KM") % str(c.perKm)); x += 1
+			_c(ip, 298.0 + dx + (60.0 if _look3() else 0.0) + 80.0 * x, 92, 76, 38, str(c.id), "head", str(c.id), _head_wire() == str(c.id), T("C8_PER_KM") % str(c.perKm)); x += 1
 
 func _pressed(h: Dictionary, _p: Vector2) -> void:
 	match str(h.id):
@@ -35,7 +36,7 @@ func _pressed(h: Dictionary, _p: Vector2) -> void:
 			if _act("setConductor", ["N1", str(h.arg)]): _act("setConductor", ["N2", str(h.arg)])
 
 func _body(ip: Rect2) -> void:
-	GridText.dm(self, _mono(), ip.position + Vector2(420.0, 70.0), T("C8_HOST_LINE") % [WorkOrder.num(float(q.design.pvLimitKw)), WorkOrder.num(float(q.hostingKw))], HORIZONTAL_ALIGNMENT_LEFT, 210.0, GridTheme.fs(11), 4, _good(float(q.design.pvLimitKw) <= float(q.hostingKw) + 0.5))
+	GridText.dm(self, _mono(), ip.position + Vector2(660.0 if _look3() else 420.0, 70.0), T("C8_HOST_LINE") % [WorkOrder.num(float(q.design.pvLimitKw)), WorkOrder.num(float(q.hostingKw))], HORIZONTAL_ALIGNMENT_LEFT, 210.0, GridTheme.fs(11), 4, _good(float(q.design.pvLimitKw) <= float(q.hostingKw) + 0.5))
 
 func _draw_stage() -> void:
 	if _look3(): _draw_stage3(); return

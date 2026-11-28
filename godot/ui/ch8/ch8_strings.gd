@@ -22,7 +22,7 @@ const S := {
 	"C8_L31_REG": "Regulator at %s holds %s pu: %d steps of 0.625 %% at peak, %d at light load (of %d).",
 	"C8_L31_GLOSS_TAP": "A tap moves a customer by the same % at peak and at light load: it only fits the spread between them.", "C8_L31_GLOSS_REG": "Wire and a regulator shrink the drop itself. Wire costs by the km; the regulator is one price, and it does not cut losses.",
 	# L32
-	"C8_KIND_CAP": "SWITCH TYPE (price each), then tap a site", "C8_SITE_CAP": "SITE: head of T2 / T3 / T4 (at most %d switches)", "C8_FREE": "free", "C8_NONE": "none", "C8_MANUAL": "manual", "C8_REMOTE": "remote", "C8_FUSE_CAP": "FUSE on a spur (%s)", "C8_TIE_CAP": "TIE to the next feeder", "C8_TIE": "tie",
+	"C8_KIND_CAP": "SWITCH (price each), tap a site", "C8_SITE_CAP": "SITE: head of T2-T4 (at most %d)", "C8_FREE": "free", "C8_NONE": "none", "C8_MANUAL": "manual", "C8_REMOTE": "remote", "C8_FUSE_CAP": "FUSE a spur (%s)", "C8_TIE_CAP": "TIE to the next feeder", "C8_TIE": "tie",
 	"C8_SAIFI": "SAIFI", "C8_SAIDI": "SAIDI", "C8_CAIDI": "CAIDI", "C8_ENS": "ENS, MWh", "C8_L32_USED": "sectionalisers used: %d of %d",
 	"C8_FUSE_SHORT": "fuse", "C8_BARE": "bare", "C8_NEXT_FEEDER": "next feeder", "C8_TIE_INFO": "tie: %d kW back in %d min", "C8_NO_TIE": "no tie: wait for the repair",
 	"C8_L32_NOTE": "a fault is repaired in %s h; a manual switch takes %d h, a remote one %d min (five minutes or less is not counted)", "C8_HEAT_CAP": "EXPECTED OUTAGE PER SECTION: minutes a year added to SAIDI, and faults a year (redder = more to blame)",

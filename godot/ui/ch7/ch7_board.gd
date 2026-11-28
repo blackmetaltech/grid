@@ -108,7 +108,10 @@ func _draw_table(tr: Rect2) -> void:
 			cl.append([(T("C7_N1_OK") % WorkOrder.num(float(n1p.vPu))) if secp else T("C7_N1_BAD"), _good(secp)])
 		_card_text(tr, cl, 11, 8.0, 36.0)
 	var n1: Dictionary = q.n1; var sec := bool(n1.secure) and float(n1.vPu) >= 0.94
-	if not (_phone() and not _revealed()): _text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD"), _good(sec))
+	if not (_phone() and not _revealed()):
+		var n1t := (T("C7_N1_OK") % WorkOrder.num(float(n1.vPu))) if sec else T("C7_N1_BAD")
+		if _look3(): _wrap(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 40), n1t, _good(sec), tr.size.x - 24.0)   # 3D: wrapped inside the card (it ran past its right edge)
+		else: _text(_semi(), 11, Vector2(tr.position.x + 12, tr.end.y - 14), n1t, _good(sec))
 
 ## The 3D substation: the place is Stage3D's; the givens / duty table stays in glass on the right and each part of the board gets a chip.
 func _draw_stage3() -> void:

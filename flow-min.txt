@@ -8,7 +8,7 @@ career_map_truth 5483
 ch2_flow 37
 ch2_pad_truth 60
 ch3_flow 23
-ch4_flow 24
+ch4_flow 28
 ch5_flow 22
 ch6_flow 25
 ch7_flow 25

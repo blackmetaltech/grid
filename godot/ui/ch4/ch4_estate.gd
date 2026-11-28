@@ -138,7 +138,7 @@ func _draw_bank(c: Vector2, ground: float) -> void:
 		_text(_mono(), 11, c + Vector2(-100.0, 6.0), T("C4_BANK_TXT") % [int(b.count), int(b.unitUF), int(b.cPhaseUF)], Color(GridTheme.TEXT, 0.85))
 		var cv := float(b.canV); var rv := float(b.ratedV)
 		var gx := c.x - 100.0; var gy := c.y + 28.0; var gw := 200.0
-		draw_rect(Rect2(Vector2(gx, gy), Vector2(gw, 10.0)), Color("#0B1026"))
+		draw_rect(Rect2(Vector2(gx, gy), Vector2(gw, 10.0)), _bg(Color("#0B1026")))
 		draw_rect(Rect2(Vector2(gx, gy), Vector2(gw * minf(cv / 450.0, 1.0), 10.0)), _good(not burst))
 		draw_line(Vector2(gx + gw * rv / 450.0, gy - 4.0), Vector2(gx + gw * rv / 450.0, gy + 14.0), Color.WHITE, 2.0)
 		var per := float(b.qKvar) / maxf(3.0 * float(b.count), 1.0) if str(b.conn) == "Y" else float(b.qKvar) / maxf(3.0 * float(b.count), 1.0)

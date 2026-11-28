@@ -73,7 +73,8 @@ func _draw_stage() -> void:
 		if _revealed() and qq.get("actual") != null:
 			var ok := bool(qq.get("within", false)); _text(_mono(), 13, Vector2(r.position.x + (480 if not _phone() else 466), y + 24 if not _phone() else y + 19), (T("C7_ANSWER") % WorkOrder.num(float(qq.actual))) + ("  ✓" if ok else "  ✗"), _good(ok))
 		_text(_mono(), 12, Vector2(r.position.x + 428, y + 20), str(UNITS[id]) if false else T("C7_UNIT_" + ("kA" if id in ["ps17", "ps18"] else "s" if id == "ps24" else "usd")), Color(GridTheme.TEXT, 0.7))
-		if not _revealed() and not _phone(): _text(_mono(), 9, Vector2(r.position.x + 480, y + 24), T("C7_FN_" + id), Color(GridTheme.TEXT, 0.5))
+		var hint := T("C7_FN_" + id)   # 11-28: the hint ran past the card's edge in 3D (the card is narrower there); "show formulas" has them all, so it is left out when it does not fit
+		if not _revealed() and not _phone() and (not l3 or r.position.x + 480.0 + _mono().get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, GridText.floor_size(self, GridTheme.fs(9))).x <= r.end.x - 8.0): _text(_mono(), 9, Vector2(r.position.x + 480, y + 24), hint, Color(GridTheme.TEXT, 0.5))
 		y += _row(); i += 1
 	var cr := Rect2(Vector2(30.0, 412.0), Vector2(minf(w - 60.0, 800.0), maxf(panel.position.y - 412.0 - 12.0, 60.0)))
 	if not _phone() and (not l3 or show_card):

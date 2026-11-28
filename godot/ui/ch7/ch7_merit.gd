@@ -40,7 +40,7 @@ func _draw_panel_body() -> void:
 	var x := inner.position.x
 	for p in q.plants:
 		var w: Array = p.window; var on: bool = int(w[0]) != int(w[1])
-		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(112, 46)), T("C7_PLANT_" + str(p.id)), ("%d-%d  " % [int(w[0]), int(w[1])] + T("C7_MWH") % WorkOrder.num(float(p.b))) if on else T("C7_OFF"), on, "win", str(p.id)); x += 118.0
+		_chip(Rect2(Vector2(x, inner.position.y + 84.0), Vector2(112, 46)), T("C7_PLANT_" + str(p.id)), (("%d-%d  $%s" % [int(w[0]), int(w[1]), WorkOrder.num(float(p.b))]) if _look3() else ("%d-%d  " % [int(w[0]), int(w[1])] + T("C7_MWH") % WorkOrder.num(float(p.b)))) if on else T("C7_OFF"), on, "win", str(p.id)); x += 118.0
 	if _revealed():
 		var ok := str(q.get("kind", "")) == "" or q.get("kind") == null
 		_text(_mono(), 12, inner.position + Vector2(480, 84), T("C7_COST") % str(q.costText), _good(ok))
@@ -52,8 +52,8 @@ func _draw_panel_body() -> void:
 func _draw_stage() -> void:
 	var l3 := _look3()
 	var w := _right() if l3 else size.x; var top := _stage_top(); var bh := _stage_h(240.0)
-	if l3: bh = clampf(_stage_bottom() - top - 12.0, 300.0, 400.0)
-	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w * 0.62, 420.0) if not l3 else minf(w * 0.46, 760.0), bh))
+	if l3: bh = 300.0   # 11-28 (Sigrid): the chart covered the three plants; it is short now and ends before the clock
+	var r := Rect2(Vector2(30.0, top), Vector2(maxf(w * 0.62, 420.0) if not l3 else minf(minf(w * 0.46, 760.0), w * 0.5 - 130.0), bh))
 	_frame(r, 0.0, 24.0, 0.0, 1600.0, false, false, "h", T("C7_STACK"))
 	var pr: Rect2 = plot.r; var bw := pr.size.x / 24.0
 	var rev := _revealed()
@@ -101,10 +101,19 @@ func _draw_stage() -> void:
 			_card_text(Rect2(sr.position + Vector2(0, bh * 0.5 + 6.0), Vector2(sr.size.x, bh * 0.5 - 6.0)), [[T("C7_G26_LAMBDA"), Color(GridTheme.TEXT, 0.75)], [T("C7_G26_CORR"), Color(GridTheme.TEXT, 0.75)]], 11, 6.0, 8.0)
 			(edits["lambda20"] as LineEdit).position = _scr(_home) if _phone() else _home   # phone: the panel is drawn scaled into the slot
 		else:
-			GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
-			GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
-			_text(_semi(), 11, sr.position + Vector2(14, bh * 0.5 + 138.0), T("C7_PREDICT_LAM"), GridTheme.SODIUM)
-			(edits["lambda20"] as LineEdit).position = sr.position + Vector2(14, bh * 0.5 + 146.0)
+			if l3:
+				var gy := sr.position.y + bh * 0.5 + 56.0   # the two glosses stack by their measured heights (they wrapped onto each other)
+				for g in ["C7_G26_LAMBDA", "C7_G26_CORR"]:
+					var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridText.floor_size(self, GridTheme.fs(11))).y
+					GridText.dm(self, _mono(), Vector2(sr.position.x + 14.0, gy), T(g), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75)); gy += gh + 8.0
+				_text(_semi(), 11, Vector2(sr.position.x + 14.0, gy + 12.0), T("C7_PREDICT_LAM"), GridTheme.SODIUM)
+				(edits["lambda20"] as LineEdit).position = Vector2(sr.position.x + 14.0, gy + 20.0)
+				_pins.append(r); _pins.append(Rect2(sr.position, Vector2(sr.size.x, gy + 60.0 - sr.position.y)))   # the chips on the place step round the chart and this text
+			else:
+				GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 56.0), T("C7_G26_LAMBDA"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
+				GridText.dm(self, _mono(), sr.position + Vector2(14, bh * 0.5 + 92.0), T("C7_G26_CORR"), HORIZONTAL_ALIGNMENT_LEFT, sr.size.x - 28.0, GridTheme.fs(11), -1, Color(GridTheme.TEXT, 0.75))
+				_text(_semi(), 11, sr.position + Vector2(14, bh * 0.5 + 138.0), T("C7_PREDICT_LAM"), GridTheme.SODIUM)
+				(edits["lambda20"] as LineEdit).position = sr.position + Vector2(14, bh * 0.5 + 146.0)
 	if l3: _top_y = top + 64.0 + bh + 8.0 if false else top + bh + 8.0; _pins3()
 
 ## The 3D dispatch: a chip on the control room (the rule), on each plant (its output this hour once run) and on the corridor.

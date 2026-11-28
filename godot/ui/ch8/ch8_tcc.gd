@@ -102,6 +102,9 @@ func _bracket(c1: Array, c2: Array, lo: float, hi: float, col: Color, margin: fl
 	if not (plot.r as Rect2).grow(2.0).has_point(p1) or not (plot.r as Rect2).grow(2.0).has_point(p2): return
 	var good := margin >= 0.0
 	draw_line(p1, p2, _good(good), 2.0); draw_circle(p1, 3.0, col); draw_circle(p2, 3.0, col)
+	if _look3():   # 3D: one decimal, above the bracket's upper end and off the curves (the labels sat on them)
+		_text(_mono(), 10, Vector2(minf(p1.x, p2.x) + 8.0, maxf(minf(p1.y, p2.y) - 8.0, (plot.r as Rect2).position.y + 40.0)), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.1)), _good(good))
+		return
 	_text(_mono(), 10, (p1 + p2) * 0.5 + Vector2(6.0, 4.0), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.001)), _good(good))
 
 ## The 3D feeder: the time-current chart and its legend stay as glass cards over the sky; the recloser and each spur's fuse carry chips, and after the run a fuse says saved or blown.

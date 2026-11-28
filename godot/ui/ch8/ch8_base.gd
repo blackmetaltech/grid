@@ -105,8 +105,9 @@ func _chip8(r: Rect2, label: String, sub: String, on: bool, id: String, arg, ena
 	var col := GridTheme.SODIUM if on else (GridTheme.TEXT if enabled else GridTheme.DIM)
 	if sub == "": _text(_mono(), 12, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + 4.0), label, col, r.size.x, 1)
 	else:
-		_text(_mono(), 12, Vector2(r.position.x, r.position.y + r.size.y * 0.5 - 4.0), label, col, r.size.x, 1)
-		_text(_mono(), 9, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + 12.0), sub, Color(GridTheme.TEXT, 0.6), r.size.x, 1)
+		var l3 := _look3()   # 3D: 18 px between the baselines of the two lines at the 16 px floor
+		_text(_mono(), 12, Vector2(r.position.x, r.position.y + r.size.y * 0.5 - (5.0 if l3 else 4.0)), label, col, r.size.x, 1)
+		_text(_mono(), 9, Vector2(r.position.x, r.position.y + r.size.y * 0.5 + (13.0 if l3 else 12.0)), sub, Color(GridTheme.TEXT, 0.6), r.size.x, 1)
 
 ## A status line in the panel's lower-left corner (the bottom-right belongs to the price tag).
 func _status(ip: Rect2, text: String, col: Color, y := 124.0, w := 440.0) -> void:

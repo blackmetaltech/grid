@@ -88,7 +88,8 @@ static func tree_ok(s: Stage3D, x: float, z: float) -> float:
 
 static func camera(scn: String) -> Array:   # [target, yaw deg, pitch deg, dist m]
 	match scn:
-		"l24": return [Vector3(-28.0, 0.0, 4.0), -24.0, 22.0, 160.0]
+		"l24": return [Vector3(-22.0, 0.0, 6.0), -22.0, 21.0, 138.0]   # 11-28 (Sigrid): the four relays were specks under the chart; closer, centred on them
+		"l27": return [Vector3(0.0, 0.0, -24.0), 16.0, 25.0, 140.0]   # the three units come down from under the exam card
 		"l25": return [Vector3(48.0, 0.0, 2.0), -34.0, 13.0, 125.0]
 		"l26": return [Vector3(35.0, 0.0, -10.0), -6.0, 21.0, 300.0]
 	return [Vector3(0.0, 0.0, 14.0), 16.0, 25.0, 150.0]
