@@ -26,6 +26,7 @@ static func toggle(app: CbApp) -> bool:
 	entries.append(["PAUSE_SETTINGS", false, func(): app.menus.close_menu(); app.open_settings()])
 	entries.append(["PAUSE_JOBS", false, func(): app.menus.close_menu(); Jobs.open(app)])
 	entries.append(["PAUSE_TITLE_BTN", false, func(): app.menus.close_menu(); app.to_title()])
+	if OS.has_feature("pc") and not OS.has_feature("web"): entries.append(["PAUSE_SAVE_QUIT", false, func(): app.quit_game()])   # 11-28b (B30): only Ctrl+Q did it; a new player never found it
 	var holder: Container = vb
 	if compact:
 		var gr := GridContainer.new(); gr.columns = 2; gr.add_theme_constant_override("h_separation", 10); gr.add_theme_constant_override("v_separation", 6); gr.size_flags_horizontal = Control.SIZE_EXPAND_FILL; vb.add_child(gr); holder = gr

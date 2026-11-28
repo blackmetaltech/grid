@@ -47,8 +47,15 @@ static func run(app: CbApp) -> void:
 	var go: Button = _button(title, "Line_night") if title != null else null
 	if go == null: go = _button(title, "Line_continue")
 	ck.call(go != null, "paper flow: the first menu line is Take the night shift (or Continue)")
+	var go_name := str(go.name) if go != null else ""   # the title frees its lines once pressed
 	if go != null: go.pressed.emit()
 	await _frames(app, 4)
+	if go_name == "Line_night":   # 11-28b (DECISIONS 30): a new night shift opens on the prologue; its report's "Start on the island" leads to WO-01
+		var li0 = app.b.q("levelInfo")
+		ck.call(li0 is Dictionary and str(li0.get("id", "")) == "P0", "paper flow: a new night shift opens on the prologue (%s)" % str(li0.get("id", "") if li0 is Dictionary else li0))
+		await _frames(app, 12)
+		if WorkOrder.is_open(): WorkOrder.close_now(); await _frames(app, 4)
+		GridLoading.start(app, "L01"); await _frames(app, 16)
 	ck.call(app.started and WorkOrder.is_open() and app.modal() != null and app.modal().name == "workorder", "paper flow: starting the job opens the work order on top")
 	if WorkOrder.is_open():
 		var wo := WorkOrder.host_node(); var t := _texts(wo)
