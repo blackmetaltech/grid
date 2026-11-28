@@ -210,6 +210,8 @@ func _update_sky(mn: float) -> void:
 	env.ambient_light_sky_contribution = lerpf(1.0, 0.45, n) * (1.0 - 0.55 * d)   # golden hour: cool shadows against the warm sun, not a maroon wash
 	env.ambient_light_color = Color(0.12, 0.14, 0.20).lerp(Color(0.30, 0.38, 0.55), d * (1.0 - n))   # 11-28b: was (0.13, 0.17, 0.30), a blue night
 	env.ambient_light_energy = lerpf(1.0, 0.75, n)
+	if quality == "low":   # 11-28b (B09): the low tier takes its ambient from this colour alone, and by day it was the night colour: towers and walls went black on their shadow side
+		env.ambient_light_color = Color(0.58, 0.62, 0.70).lerp(Color(0.30, 0.38, 0.55), d).lerp(Color(0.12, 0.14, 0.20), n)
 	env.fog_light_color = (s.hor as Color).lerp(Color(0.46, 0.55, 0.72), 0.75 * d * (1.0 - n)).lerp(Color(0.05, 0.08, 0.15), n * 0.6)   # haze stays cool at golden hour
 	env.fog_light_energy = lerpf(1.0, 0.5, n)
 	env.tonemap_exposure = lerpf(1.0, 1.3, n)
