@@ -50,5 +50,5 @@ func _initialize() -> void:
 			else: up_s += 1
 	if up_n < 2 or up_s < 2: fails.append("Props3D.house: roof slopes north %d / south %d front faces (want 2 each)" % [up_n, up_s])
 	for f in fails.slice(0, 20): print("  FAIL ", f)
-	if fails.is_empty(): print("MESH-WINDING-TRUTH PASS meshes=%d triangles=%d" % [meshes.size(), total]); quit(0)
+	if fails.is_empty(): print("MESH-WINDING-TRUTH OK meshes=%d triangles=%d" % [meshes.size(), total]); quit(0)
 	else: print("MESH-WINDING-TRUTH FAILED %d faults" % fails.size()); quit(1)
