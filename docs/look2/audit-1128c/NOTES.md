@@ -24,6 +24,26 @@ director, then roll out, re-shoot every job, iterate to every job >= 7 and mean 
 - Report (shift_report.gd): glass sheet 560-600 px docked right; `_frame_for_report` calls the 3D place's `report_focus()`
   (Stage3D.REPORT_FOCUS anchors per stage) then shifts the camera goal right by the ground width half the sheet covers.
 
+## Asset pass plan (manager decision 11-28 evening: change the lever from tuning to CC0 assets)
+Why: two art rounds moved the mean 3.89 -> 4.38 with 0 of 37 at 7. The ceiling is asset quality.
+Sources checked reachable 11-28: Poly Haven API (models, textures, HDRIs), ambientCG API, Kenney, Quaternius. All CC0;
+each licence page is checked before commit; every file goes into docs/ASSETS.md with URL, author, licence.
+- Trees: Poly Haven photogrammetry (fir_tree_01, pine_tree_01, tree_small_02) are 0.3-17 M triangles. Blender is on
+  this machine (/usr/bin/blender): decimate to LOD0 about 4-8 k and LOD1 about 800 triangles, bake to .glb, MultiMesh.
+  Fallback: Quaternius stylized nature (low poly) if the decimated cards read badly.
+- Houses: no Poly Haven houses; use a CC0 kit (Kenney City Kit Suburban or Quaternius buildings), 4-6 models, with an
+  emissive window mask so the engine's lit/dark state still drives the windows.
+- Props round the electrical kit (which stays generated, it carries the physics): Poly Haven street_lamp_01/02,
+  flood_lights, modular_chainlink_fence, utility_box_01/02, security_light, covered_car, concrete_road_barrier.
+- Materials: PBR sets (albedo/normal/roughness, 1-2 K, mipmapped) for gravel, concrete, asphalt, roof tiles, brick,
+  painted metal; terrain splat (grass, crop, dirt, rock, shore) with macro variation.
+- Sky: Poly Haven HDRIs for day, dusk and night, matched to the sun and moon.
+- Order: benchmark WO-23 (night substation + estate) first, then WO-16/17 province day and night; the art director
+  scores; roll out only when a benchmark reaches 7, then by scene family.
+- Guards: the mesh-winding and mipmap tests cover imported assets; the low tier holds 60 fps (LOD, fewer instances);
+  repo growth under about 80 MB.
+- Before the pass: playtest regression sweep (one helper) closed and committed.
+
 ## Status (latest first)
 - Art director (Sigrid) per-job scores: round 1 on sweep 4 (6a97062) mean 3.89, 0 of 37 at 7; round 2 on sweep 5
   (ca1f8e0) mean 4.38, 0 of 37 at 7. Highest: L01, L10, L19, L23 at 6. Lowest: L14, L16, L18, L22, L24, L29, L30, L35, L36 at 3.

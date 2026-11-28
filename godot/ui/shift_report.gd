@@ -237,6 +237,8 @@ static func _look(app: CbApp, won: bool) -> void:
 
 ## Retry keeps the player's design: the job restarts at dusk with the same hut, reels, junction and converters already laid (the work order
 ## stays folded in the pin), so a failed night costs one swap and a breaker pull, not a rebuild. "Start over" (pause menu) still clears it.
+## Jobs whose choices (sliders, ratios, phases, fuses, taps, conductors) Retry does not replay yet (QA 1128c Q01).
+const RETRY_RESETS := ["L04", "L06", "L09", "L10", "L11", "L31", "L33", "L34", "L35"]
 static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	if lid == "": app.new_game(mode); return
 	var design := design_of(app)
@@ -249,6 +251,7 @@ static func _retry(app: CbApp, lid: String, mode: String) -> void:
 	app.game_on_changed()
 	var ch = app.get("chrome")
 	var grid_job: bool = design.any(func(a): return str(a[0]) == "buildRoute")
+	if RETRY_RESETS.has(lid) and refused == 0 and ch != null: ch.radio.say("TOBI", T("REP_RETRY_RESET")); return   # 1128c Q01: these jobs' settings are not replayed; do not claim the build stands
 	if not design.is_empty() and ch != null: ch.radio.say("TOBI", T("REP_RETRY_PARTIAL") % refused if refused > 0 else T("REP_RETRY_KEPT_GRID" if grid_job else ("REP_RETRY_KEPT" if bench_job else "REP_RETRY_KEPT_BUILD")))
 
 ## The bench design now on the table as a list of [action, args] (empty on grid levels or before anything is built).
