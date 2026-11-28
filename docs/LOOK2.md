@@ -113,7 +113,7 @@ Asset gaps: none blocking. CC0 textures cover the ground. Lattice towers, plants
 
 ## Phase B (2026-11-23)
 
-**Decision: presentation scale.** L28's province stays compressed: 300 m on screen for each 4 km engine tile. A note on screen says so (`WORLD_SCALE_NOTE`). At true scale (400 x 176 km) a town would be a few pixels at any zoom where two towns are in view, and the slice is about towns lighting up. Every number (line km, MW, pu) is the engine's. This can be reversed: one constant in `Province3D.set_model`.
+**Decision: presentation scale.** L28's province stays compressed: 300 m on screen for each 4 km engine tile. Until 11-28 a note on screen said so (`WORLD_SCALE_NOTE`); Sigrid had it taken off the screen, the string stays in `godot/locales/strings.csv` and this page is where the fact is written. At true scale (400 x 176 km) a town would be a few pixels at any zoom where two towns are in view, and the slice is about towns lighting up. Every number (line km, MW, pu) is the engine's. This can be reversed: one constant in `Province3D.set_model`.
 
 **Grainy textures (owner, 11-22).** Cause: all 18 terrain textures were imported without mipmaps, because `.import` files were git-ignored and the defaults won. Fix:
 - mipmaps on and VRAM compression for every texture under `world3d/`, with normal maps as RGTC;

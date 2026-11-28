@@ -192,7 +192,7 @@ func _draw_panel_body() -> void:
 					var pr := ""; for s in kit.get("l11", {}).get("starters", []): if str(s.id) == str(arg): pr = str(s.price)
 					_chip(h.rect, T("C4_ST_" + str(arg).to_upper()), pr, str(q.starter) == str(arg), id, arg, not lock)
 		elif k == "slider":
-			var n := _count(); _stepper(h.rect, T("C4_CANS"), "%d" % n, float(n) / 140.0, "count")
+			var n := _count(); _stepper(h.rect, T("C4_CANS").split(" (")[0] if _look3() else T("C4_CANS"), "%d" % n, float(n) / 140.0, "count")
 	var y := inner.position.y + 160.0
 	var hv := hover.get_slice("/", 1) if hover.begins_with("starter/") else str(q.starter)
 	_text(mono, 11, inner.position + Vector2(0, 140.0), T("C4_HINT_" + hv.to_upper()), Color(GridTheme.SODIUM, 0.85))

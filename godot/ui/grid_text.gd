@@ -6,6 +6,8 @@ extends RefCounted
 static var audit := false
 static var seen := {}   # script file -> [smallest px, sample text]
 static var clipped := {}   # script file -> sample text that runs past its control's right edge (audit only)
+static var overlaps := {}   # script file -> two different strings of one control that print over each other (audit only)
+static var _drawn := {}     # canvas item id -> [[Rect2 of a string's glyphs, text], ...] drawn since the audit began
 
 const MIN_PX := 16.0   # the owner's floor: no text under 16 px on screen, at 1920x1080 or 1280x800
 
@@ -23,6 +25,27 @@ static func _note(ci: CanvasItem, size: int, text: String) -> void:
 	var key := str(ci.get_script().resource_path.get_file()) if ci.get_script() != null else ci.get_class()
 	if not seen.has(key) or px < float(seen[key][0]): seen[key] = [px, text.left(40)]
 
+## Audit only: the glyph box of a string just drawn at `pos` (a baseline); a second, different string of the same control whose box covers more than a fifth of
+## the smaller one is recorded as an overprint (the same string twice is a shadow or an outline, not an overprint).
+static func _overlap(ci: CanvasItem, font: Font, pos: Vector2, text: String, align: int, width: float, size: int) -> void:
+	if not audit or text.strip_edges() == "" or not ci.is_visible_in_tree(): return
+	var tw := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+	var x := pos.x
+	if width > 0.0: x += maxf(width - tw, 0.0) * (0.5 if align == HORIZONTAL_ALIGNMENT_CENTER else 1.0 if align == HORIZONTAL_ALIGNMENT_RIGHT else 0.0)
+	var r := Rect2(Vector2(x, pos.y - float(size) * 0.8), Vector2(tw, float(size)))
+	var id := ci.get_instance_id()
+	if not _drawn.has(id): _drawn[id] = []
+	for e in _drawn[id]:   # a string that was drawn before means a new frame has begun: the control's list starts again
+		if str(e[1]) == text: _drawn[id] = []; break
+	for e in _drawn[id]:
+		var o: Rect2 = e[0]
+		if str(e[1]) == text: continue
+		var ix := o.intersection(r)
+		if ix.get_area() > 0.2 * minf(o.get_area(), r.get_area()):
+			var key := str(ci.get_script().resource_path.get_file()) if ci.get_script() != null else ci.get_class()
+			overlaps[key] = "'%s' over '%s'" % [text.left(28).replace("\n", " "), str(e[1]).left(28).replace("\n", " ")]
+	(_drawn[id] as Array).append([r, text])
+
 static func ds(ci: CanvasItem, font: Font, pos: Vector2, text: String, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, size := 16, col := Color.WHITE) -> void:
 	size = floor_size(ci, size); _note(ci, size, text)
 	if width < 0.0 and ci is Control and (ci as Control).size.x > 8.0 and text.strip_edges() != "":
@@ -33,6 +56,7 @@ static func ds(ci: CanvasItem, font: Font, pos: Vector2, text: String, align := 
 		if audit and tw > cw + 3.0 and ci.is_visible_in_tree():
 			var key := str(ci.get_script().resource_path.get_file()) if ci.get_script() != null else ci.get_class()
 			clipped[key] = "'%s' is %.0f px wide in %.0f" % [text.left(40), tw, cw]
+	_overlap(ci, font, pos, text, align, width, size)
 	ci.draw_string(font, pos, text, align, width, size, col)
 
 static func dm(ci: CanvasItem, font: Font, pos: Vector2, text: String, align := HORIZONTAL_ALIGNMENT_LEFT, width := -1.0, size := 16, max_lines := -1, col := Color.WHITE) -> void:

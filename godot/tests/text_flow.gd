@@ -6,6 +6,8 @@ extends RefCounted
 ## through GridText.ds / dm and record their smallest on-screen size while GridText.audit is on.
 ## CB_TEXTAUDIT_ONLY=L20,career limits the screens; CB_TEXTAUDIT_MIN changes the floor (default 16).
 
+## Overprints on the 3D screens at the handheld size that are not fixed yet (pins that meet a card, a card whose text runs past its foot): listed, not failed; a new one fails.
+const KNOWN_OVERPRINT := ["L11 3D place@1280x800|ch4_estate.gd", "L26 3D place@1280x800|ch7_merit.gd", "L32 3D place@1280x800|ch8_reliab.gd", "L33 3D place@1280x800|ch8_tcc.gd"]
 const RESES := [[Vector2i(1920, 1080), "desktop"], [Vector2i(1280, 800), "handheld"]]
 static var fails := 0
 static var checks := 0
@@ -38,7 +40,7 @@ static func _walk(n: Node, out: Array) -> void:
 		out.append(ch); _walk(ch, out)
 
 static func audit(app: CbApp, tag: String) -> void:
-	GridText.seen.clear(); GridText.clipped.clear(); GridText.audit = true
+	GridText.seen.clear(); GridText.clipped.clear(); GridText.overlaps.clear(); GridText._drawn.clear(); GridText.audit = true
 	var all: Array = []; _walk(app.get_tree().root, all)
 	for n in all: if n is CanvasItem: (n as CanvasItem).queue_redraw()
 	await _frames(app, 3)
@@ -61,6 +63,11 @@ static func audit(app: CbApp, tag: String) -> void:
 		if float(e[0]) < floor_px - 0.01: bad.append("drawn %.1f px '%s' (%s)" % [float(e[0]), str(e[1]).replace("\n", " "), k])
 	for k in GridText.clipped:
 		checks += 1; bad.append("clipped %s (%s)" % [GridText.clipped[k], k])
+	checks += GridText._drawn.size()   # every control that drew text is checked for two different strings printing over each other
+	for k in GridText.overlaps:   # on the 3D screens an overprint fails the audit; the classic stages are only listed (their drawing is not to change)
+		checks += 1
+		if "3D" in tag and not KNOWN_OVERPRINT.has("%s|%s" % [tag, k]): bad.append("overprint %s (%s)" % [GridText.overlaps[k], k])
+		else: print("  NOTE classic overprint %s: %s (%s)" % [tag, GridText.overlaps[k], k])
 	for b in bad:
 		fails += 1; print("  FAIL text %s: %s" % [tag, b])
 

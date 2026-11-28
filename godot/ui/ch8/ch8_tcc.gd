@@ -43,6 +43,7 @@ func _draw_stage() -> void:
 	var lg := Rect2(Vector2(r.end.x + 12.0, top), Vector2(maxf(w - r.end.x - 42.0, 240.0), bh)); _legend(lg)
 
 func _tcc(r: Rect2) -> void:
+	_lab_boxes.clear()   # the margin labels of this drawing stagger against each other only
 	var xlo := 80.0; var xhi := 6000.0
 	_frame(r, xlo, xhi, 0.01, 300.0, true, true, T("C8_TC_X"), T("C8_TC_Y"))
 	var pr: Rect2 = plot.r; var rc: Dictionary = q.recloser
@@ -86,6 +87,8 @@ func _legend(lg: Rect2) -> void:
 	lines.append([T("C8_L33_GLOSS1"), Color(GridTheme.TEXT, 0.6)]); lines.append([T("C8_L33_GLOSS2"), Color(GridTheme.TEXT, 0.6)])
 	var cr := Rect2(lg.position + Vector2(0, 108.0), Vector2(lg.size.x, lg.size.y - 108.0)); _card_lines(cr, lines, 10, 6.0, 0.0)
 
+var _lab_boxes: Array = []
+
 ## A vertical bracket between two curves at the current (inside [lo, hi]) where they are closest, with the engine's margin beside it.
 func _bracket(c1: Array, c2: Array, lo: float, hi: float, col: Color, margin: float, slow: bool) -> void:
 	var best := INF; var at := 0.0; var ya := 0.0; var yb := 0.0
@@ -102,8 +105,16 @@ func _bracket(c1: Array, c2: Array, lo: float, hi: float, col: Color, margin: fl
 	if not (plot.r as Rect2).grow(2.0).has_point(p1) or not (plot.r as Rect2).grow(2.0).has_point(p2): return
 	var good := margin >= 0.0
 	draw_line(p1, p2, _good(good), 2.0); draw_circle(p1, 3.0, col); draw_circle(p2, 3.0, col)
-	if _look3():   # 3D: one decimal, above the bracket's upper end and off the curves (the labels sat on them)
-		_text(_mono(), 10, Vector2(minf(p1.x, p2.x) + 8.0, maxf(minf(p1.y, p2.y) - 8.0, (plot.r as Rect2).position.y + 40.0)), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.1)), _good(good))
+	if _look3():   # 3D: one decimal, above the bracket's upper end and off the curves (the labels sat on them); a label that would touch the one before moves down a row
+		var ly := maxf(minf(p1.y, p2.y) - 8.0, (plot.r as Rect2).position.y + 40.0)
+		var lx := minf(p1.x, p2.x) + 8.0; var tries := 0
+		while tries < 8:   # clear of every label already put down in this drawing (the glyph box of a label is about 130 x 17 px)
+			var box := Rect2(Vector2(lx, ly - 13.0), Vector2(130.0, 17.0)); var hit := false
+			for o in _lab_boxes: if (o as Rect2).intersects(box): hit = true
+			if not hit: break
+			ly += 19.0; tries += 1
+		_lab_boxes.append(Rect2(Vector2(lx, ly - 13.0), Vector2(130.0, 17.0)))
+		_text(_mono(), 10, Vector2(minf(p1.x, p2.x) + 8.0, ly), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.1)), _good(good))
 		return
 	_text(_mono(), 10, (p1 + p2) * 0.5 + Vector2(6.0, 4.0), (T("C8_SLOW_TAG") if slow else T("C8_FAST_TAG")) + " " + ("+" if margin >= 0.0 else "") + WorkOrder.num(snappedf(margin, 0.001)), _good(good))
 

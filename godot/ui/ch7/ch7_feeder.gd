@@ -69,10 +69,12 @@ func _draw_stage() -> void:
 	for g in (["C7_G24_PICK", "C7_G24_TMS", "C7_G24_CT", "C7_G24_CURVE"] if not _phone() and not l3 else []):
 		var gh := _mono().get_multiline_string_size(T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10)).y
 		GridText.dm(self, _mono(), Vector2(lx2, gy + 10.0), T(g), HORIZONTAL_ALIGNMENT_LEFT, gw, GridTheme.fs(10), -1, Color(GridTheme.TEXT, 0.7)); gy += gh + 3.0
+	var fi := -1
 	for f in q.faults:
+		fi += 1
 		var x := _pt(float(f.amps), 0.01).x; var pr: Rect2 = plot.r
 		draw_line(Vector2(x, pr.position.y), Vector2(x, pr.end.y), Color(GridTheme.TEXT, 0.35), 1.0)
-		_text(_mono(), 10, Vector2(x - 12.0, pr.position.y + 11.0), str(f.id), GridTheme.TEXT, 24.0, 1)
+		_text(_mono(), 10, Vector2(x - 12.0, pr.position.y + 11.0 + (18.0 * float(fi % 2) if l3 else 0.0)), str(f.id), GridTheme.TEXT, 24.0, 1)   # 3D: neighbouring fault labels alternate rows (F5 over F4)
 		for j in f.times.size():
 			if f.times[j] == null: continue
 			var dp := _pt(float(f.amps), float(f.times[j])); draw_circle(dp, 5.0 if j == f.times.size() - 1 else 3.5, COLS[j])

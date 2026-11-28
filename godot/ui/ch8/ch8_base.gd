@@ -237,7 +237,7 @@ func _profile(r: Rect2, tree: Array, xs_km: Array, series: Array) -> void:
 	draw_rect(Rect2(_pt(0.0, hi), Vector2(pr.size.x, _pt(0.0, lo).y - _pt(0.0, hi).y)), Color(GridTheme.GOOD, 0.10))
 	draw_line(_pt(0.0, lo), _pt(total, lo), Color(GridTheme.BAD, 0.7), 1.5); draw_line(_pt(0.0, hi), _pt(total, hi), Color(GridTheme.BAD, 0.7), 1.5)
 	_text(_mono(), 10, _pt(total, lo) + Vector2(-190, 12), T("C8_BAND_LO") % WorkOrder.num(float(band.loV)), Color(GridTheme.BAD, 0.9))
-	_text(_mono(), 10, _pt(total, hi) + Vector2(-190, -4), T("C8_BAND_HI") % WorkOrder.num(float(band.hiV)), Color(GridTheme.BAD, 0.9))
+	_text(_mono(), 10, _pt(total, hi) + Vector2(-190, 18 if _look3() else -4), T("C8_BAND_HI") % WorkOrder.num(float(band.hiV)), Color(GridTheme.BAD, 0.9))
 	var lgx := 0.0
 	for s in series:
 		var pts := [[0.0, float(band.nominalV)]]
