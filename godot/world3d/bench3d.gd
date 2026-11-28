@@ -618,7 +618,7 @@ func _trees(ok: Callable, half: float, step: float) -> void:
 			var rot := Basis(Vector3.UP, v * TAU)
 			if y > 12.0 or sl > 0.35 or WorldMath.hash2(i, j, 75) < 0.35:
 				var s := 9.0 + 9.0 * v
-				cx.append(Transform3D(rot.scaled(Vector3(s * 0.8, s, s * 0.8)), Vector3(x, y - 0.3, z))); cc.append(Color(0.75 + 0.3 * v, 0.85 + 0.15 * v, 0.75))
+				cx.append(Transform3D(rot.scaled(Vector3(s * 0.8, s, s * 0.8)), Vector3(x, y - 0.3, z))); cc.append(Color(1.15 + 0.3 * v, 1.35 + 0.15 * v, 1.1))   # 11-28b (art review): the pines read pure black at dusk and night
 			else:
 				var s := 5.5 + 4.0 * v
 				bx.append(Transform3D(rot.scaled(Vector3(s, s, s)), Vector3(x, y - 0.2, z))); bc.append(Color(0.8 + 0.3 * v, 0.9 + 0.1 * v, 0.7))
