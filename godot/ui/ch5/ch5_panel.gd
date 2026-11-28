@@ -84,7 +84,7 @@ func refresh() -> void:
 	var phone: bool = CbLayout.kind == "phone"
 	var vw: float = float(app.vw()) if app.is_inside_tree() else vp.x
 	var vh: float = float(app.vs_h()) if app.is_inside_tree() else vp.y
-	var w := minf(W, maxf(240.0, vw * 0.32)) if phone else W   # desktop keeps its 310 px card
+	var w := minf(W, maxf(240.0, vw * 0.32)) if phone else (440.0 if _level == "L18" and vw >= 1500.0 else W)   # desktop keeps its card; 1128c: the L18 exam sheet is wider on big screens so each given fits one line (units wrapped alone)
 	var top := 74.0 if not phone else 70.0
 	var room := maxf(120.0, (vh - top - 195.0) if phone else (vh - 74.0 - 150.0)) - (70.0 if phone else 40.0)   # leaves the tray, the radio and the lever their rows (phone: the budget tag's top)
 	var par := get_parent()   # 11-28b audit: the L18 exam card ran under the lever and the speed buttons; stop above the breaker
