@@ -25,6 +25,10 @@ Other ways to start:
 - The incident report fits its text and keeps the place visible.
 - **V** (or "Hide charts" beside the job title) folds every chart away so the place fills the screen. Press again to bring them back.
 - WO-25 now records the rotor swing, so its chart can draw it.
+- A new night shift opens on the prologue (one breaker, two minutes). Its report's "Start on the island" leads to WO-01.
+- The pause menu has Save and quit. Continue on the title picks up where you stopped.
+- At 1280x800 the chapter 4, 7 and 8 trays no longer run under the speed keys.
+- Still below the bar: night scenes read dark and flat, and the report keeps the play camera. See docs/look2/audit-1128b/AUDIT.md.
 
 ## New since 1.18.1
 - Every job is now in the 3D look: the prologue and chapters 1 to 8.
