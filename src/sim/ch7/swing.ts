@@ -19,7 +19,8 @@ export function simulate(tClear: number, reclose: boolean, tEnd: number = SC.l25
   const bps = tRec !== null ? [tClear, tRec] : [tClear];
   const out: Swing = { stable: true, tLossS: null, maxDeg: 0, t: [], deltaDeg: [], omega: [], clearAtDeg: 0 };
   let n = 0;
-  if (record) { out.t.push(0); out.deltaDeg.push((d * 180) / Math.PI); out.omega.push(w); }
+  const rec = (): void => { if (out.t.length && out.t[out.t.length - 1] === t) return; out.t.push(t); out.deltaDeg.push((d * 180) / Math.PI); out.omega.push(w); };   // one point per instant (the loss of step could land on a sample)
+  if (record) rec();
   while (t < tEnd - 1e-12) {
     let h = dtS;
     for (const bp of bps) if (t < bp - 1e-12 && t + h > bp - 1e-12) h = bp - t;
@@ -29,9 +30,9 @@ export function simulate(tClear: number, reclose: boolean, tEnd: number = SC.l25
     if (Math.abs(t - tClear) < 1e-9) out.clearAtDeg = (d * 180) / Math.PI;
     if (d > maxd) maxd = d;
     n++;
-    if (record && (n % 10 === 0 || bps.some((bp) => Math.abs(t - bp) < 1e-9))) { out.t.push(t); out.deltaDeg.push((d * 180) / Math.PI); out.omega.push(w); }
+    if (record && (n % 10 === 0 || bps.some((bp) => Math.abs(t - bp) < 1e-9))) rec();
     const P2 = stage(t + 1e-12), du = P2 > c.Pm ? Math.PI - dmath.asin(c.Pm / P2) : Math.PI;
-    if (t >= tClear - 1e-12 && d > du && w > 1) { out.stable = false; out.tLossS = t; if (record) { out.t.push(t); out.deltaDeg.push((d * 180) / Math.PI); out.omega.push(w); } break; }
+    if (t >= tClear - 1e-12 && d > du && w > 1) { out.stable = false; out.tLossS = t; if (record) rec(); break; }
   }
   out.maxDeg = (maxd * 180) / Math.PI;
   return out;
@@ -59,7 +60,7 @@ export function studyL25(d: L25Design): L25Study {
   if (!r) throw new Error('unknown relay ' + d.relay);
   const relayS = r.kind === 'idmt' ? idmtTime(r.curve!, r.tms!, c.faultKA * 1000, c.ctA) : r.delayS!;
   const breakerS = d.cycles / c.f0, clearS = relayS + breakerS;
-  const cr = critical(), sw = simulate(clearS, d.reclose);
+  const cr = critical(), sw = simulate(clearS, d.reclose, c.tEndS, true);   // 11-28b: record the trace (it was never recorded, so the swing chart had nothing to draw)
   return {
     relayS, breakerS, clearS, swing: sw, stable: sw.stable, marginMs: (cr.tCrS - clearS) * 1000, tCrS: cr.tCrS, deltaCrDeg: cr.deltaCrDeg, delta0Deg: cr.delta0Deg, deltaUDeg: cr.deltaUDeg,
     capexUSD: r.price + c.breakerPrice[String(d.cycles)]! + (d.reclose ? c.reclosePrice : 0), relayLabel: d.relay,

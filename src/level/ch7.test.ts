@@ -49,6 +49,23 @@ describe('L25 oracle', () => {
     }
   });
 });
+describe('L25 swing trace (11-28b: the study never recorded it, so the swing chart showed only the verdict)', () => {
+  it('every design carries a trace from t = 0 to the end or the loss of step, and recording changes no number', () => {
+    for (const k of Object.keys(E.l25.designs)) {
+      const [relay, cy, rc] = k.split('/');
+      const st = studyL25({ relay: relay!, cycles: +cy!, reclose: rc === '1' });
+      const tr = st.swing;
+      expect(tr.t.length, k).toBeGreaterThan(10);
+      expect(tr.t.length).toBe(tr.deltaDeg.length); expect(tr.t.length).toBe(tr.omega.length);
+      expect(tr.t[0]).toBe(0);
+      for (let i = 1; i < tr.t.length; i++) expect(tr.t[i]!, k).toBeGreaterThan(tr.t[i - 1]!);
+      if (!st.stable) near(tr.t[tr.t.length - 1]!, tr.tLossS!, 1e-12);
+      near(Math.max(...tr.deltaDeg), tr.maxDeg, 1e-2);
+      const v = E.l25.designs[k];
+      expect(st.stable, k).toBe(v.stable); near(st.marginMs, v.marginMs, 1e-6);
+    }
+  });
+});
 describe('L26 oracle', () => {
   it('water value and the 1296 designs', () => {
     near(hydroSchedule().nu, E.l26.nu, 1e-4);
