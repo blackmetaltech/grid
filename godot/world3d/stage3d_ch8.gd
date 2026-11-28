@@ -210,12 +210,18 @@ static func _village(s: Stage3D, key: String, cx: float, n: int, per_home := fal
 	var lz := zc(cx) if is_nan(lane_z) else lane_z
 	if s.quality != "low":
 		lt = OmniLight3D.new(); lt.omni_range = 46.0; lt.omni_attenuation = 1.2; lt.light_specular = 0.2; lt.position = Vector3(cx, s.ground(cx, lz) + 7.0, lz + cz_off); lt.light_energy = 0.0; vn.add_child(lt)
-	return {"node": vn, "mats": mats, "homes": homes, "light": lt, "cx": cx, "cz": lz + cz_off}
+	var grp := "v8_%s_%d" % [key, int(cx)]   # 1128c: street lamps on the lane, on and off with the village
+	for sx in [-1.0, 1.0]:
+		var lx: float = cx + float(sx) * float(per) * 3.2
+		var lzz: float = (zc(lx) if is_nan(lane_z) else lane_z) + 6.0 + cz_off
+		Kit3D.street_lamp(vn, Vector3(lx, s.ground(lx, lzz) - 0.1, lzz), PI, s.quality, grp)
+	return {"node": vn, "mats": mats, "homes": homes, "light": lt, "cx": cx, "cz": lz + cz_off, "group": grp}
 
 static func _set_village(vg: Dictionary, e: float, col: Color) -> void:
 	for m in vg.mats: (m as StandardMaterial3D).emission = col; (m as StandardMaterial3D).emission_energy_multiplier = e
 	var lt: OmniLight3D = vg.light
 	if lt != null: lt.light_energy = e / WINDOW_E * Bench3D.HOME_LIGHT_E * 1.6; lt.light_color = col; lt.visible = e > 0.02
+	if vg.has("group"): Kit3D.set_group(str(vg.group), e > 0.02)
 
 ## The lamp a customer voltage makes: [window emission, colour].
 static func _lamp(v: float, nom: float, lo: float) -> Array:
@@ -275,6 +281,9 @@ static func _head(s: Stage3D, nm: String) -> Dictionary:
 		var a: Vector3 = tw.position + (sp[1][c] as Vector3)
 		var b := n.position + Vector3(-8.0 + 2.5 * (c - 1), 6.8, -6.0)
 		s._inst(s._root, s._run([a, b], 0.07, 1.2), hv, "Incomer%d" % c, Vector3.ZERO, false)
+	Kit3D.flood_mast(n, Vector3(-17.5, 0.0, 13.5), Vector3(0, 0, -2.0), s.quality, 12.0)   # 1128c
+	Kit3D.flood_mast(n, Vector3(17.5, 0.0, -13.5), Vector3(0, 0, 2.0), s.quality, 12.0)
+	Kit3D.aviation(s._root, tw.position + Vector3(0, 24.6, 0))
 	# the feeder breaker's lead out to the first pole
 	return {"node": n, "tank": tk, "gantry": gt, "breaker": bk, "pos": n.position}
 

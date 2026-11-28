@@ -1034,7 +1034,10 @@ func _build_plant(u: Dictionary) -> void:
 	clad.set_shader_parameter("base", Color(0.46, 0.50, 0.53) if big else Color(0.58, 0.60, 0.61)); clad.set_shader_parameter("grime", _tex("rock_rough"))
 	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.34, 0.33, 0.31); dark.roughness = 1.0   # 11-28b audit: the yard read as a pale untextured slab
 	dark.albedo_texture = _tex("rock_albedo"); dark.uv1_triplanar = true; dark.uv1_scale = Vector3.ONE * 0.04
-	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.material_override = dark; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
+	var pad := MeshInstance3D.new(); var pbm := BoxMesh.new(); pbm.size = Vector3(300, 0.6, 210); pad.mesh = pbm; pad.position = Vector3(20, 0.3, 0); n.add_child(pad)
+	var ym := ShaderMaterial.new(); ym.shader = load("res://world3d/shaders/yard.gdshader"); pad.material_override = ym   # 1128c: slabs, stains, tracks (the flat box went black at night)
+	for cx in [-128.0, 168.0]:   # 1128c: yard floodlights at the pad corners (the plant stood unlit at night)
+		for cz in [-102.0, 102.0]: Kit3D.flood_mast(n, Vector3(cx, 0.6, cz), Vector3(20.0, 0.0, 0.0), quality, 28.0, "plant")
 	var hall_l := 110.0 if big else 70.0
 	var hall := MeshInstance3D.new(); var hm := BoxMesh.new(); hm.size = Vector3(hall_l, 26, 34); hall.mesh = hm; hall.material_override = clad; hall.position = Vector3(0, 13, 0); n.add_child(hall)
 	var lit := StandardMaterial3D.new(); lit.albedo_color = Color(0.2, 0.17, 0.12); lit.emission_enabled = true; lit.emission = Color(1.0, 0.8, 0.5); lit.emission_energy_multiplier = 2.2

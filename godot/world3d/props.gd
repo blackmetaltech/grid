@@ -221,13 +221,33 @@ static func breaker() -> ArrayMesh:
 
 ## A distribution transformer on a plinth (about 2 x 1.6 x 2.2 m) with cooling fins.
 static func transformer() -> ArrayMesh:
+	# 1128c (art review: "the transformer is a toy"): same envelope (plinth 2.6 x 2.0, tank 1.8 x 1.8 x 1.3, bushings to 2.9 m),
+	# now with stiffener ribs, two radiator banks of thin fins with headers, HV bushings with porcelain sheds, LV bushings,
+	# a conservator on brackets and a dark cable box. Every call site scales it.
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var g := Color(0.42, 0.47, 0.44)
-	_box(st, Vector3(0, 0.15, 0), Vector3(2.6, 0.3, 2.0), Color(0.55, 0.54, 0.5))
+	var g := Color(0.36, 0.41, 0.39); var fin := Color(0.31, 0.35, 0.33); var por := Color(0.45, 0.27, 0.19); var conc := Color(0.52, 0.51, 0.48)
+	_box(st, Vector3(0, 0.15, 0), Vector3(2.6, 0.3, 2.0), conc)
 	_box(st, Vector3(0, 1.2, 0), Vector3(1.8, 1.8, 1.3), g)
-	for k in 6: _box(st, Vector3(-0.75 + 0.3 * k, 1.1, 0.75), Vector3(0.08, 1.4, 0.3), g * 0.9)
-	for z in [-0.4, 0.0, 0.4]: _cyl(st, Vector3(0.3, 2.1, z), Vector3(0.3, 2.9, z), 0.07, 0.05, 5, Color(0.6, 0.35, 0.25))
-	st.generate_normals()
+	_box(st, Vector3(0, 2.13, 0), Vector3(1.9, 0.06, 1.4), g * 0.9)
+	for k in 5:
+		var x := -0.72 + 0.36 * k
+		_box(st, Vector3(x, 1.2, 0.66), Vector3(0.05, 1.6, 0.04), g * 0.85)
+		_box(st, Vector3(x, 1.2, -0.66), Vector3(0.05, 1.6, 0.04), g * 0.85)
+	for side in [-1.0, 1.0]:
+		for k in 9: _box(st, Vector3(-0.72 + 0.18 * k, 1.1, side * 0.86), Vector3(0.025, 1.3, 0.38), fin)
+		_box(st, Vector3(0, 1.78, side * 0.72), Vector3(1.6, 0.06, 0.06), fin)
+		_box(st, Vector3(0, 0.45, side * 0.72), Vector3(1.6, 0.06, 0.06), fin)
+	for z in [-0.4, 0.0, 0.4]:
+		_cyl(st, Vector3(0.35, 2.16, z), Vector3(0.35, 2.95, z), 0.05, 0.04, 8, por)
+		for j in 5:
+			var y := 2.3 + 0.13 * j
+			_cyl(st, Vector3(0.35, y, z), Vector3(0.35, y + 0.04, z), 0.11, 0.11, 10, por, true)
+		_cyl(st, Vector3(0.35, 2.95, z), Vector3(0.35, 3.0, z), 0.06, 0.06, 6, Color(0.55, 0.56, 0.58), true)
+	for z in [-0.35, 0.0, 0.35]: _cyl(st, Vector3(-0.45, 2.16, z), Vector3(-0.45, 2.5, z), 0.05, 0.04, 6, por, true)
+	_cyl(st, Vector3(-0.85, 2.55, -0.3), Vector3(-0.85, 2.55, 0.5), 0.17, 0.17, 12, g, true)
+	_cyl(st, Vector3(-0.85, 2.55, 0.5), Vector3(-0.85, 2.55, -0.3), 0.17, 0.17, 12, g, true)
+	for z in [-0.2, 0.4]: _box(st, Vector3(-0.85, 2.3, z), Vector3(0.06, 0.4, 0.06), g)
+	_box(st, Vector3(-0.92, 0.9, 0), Vector3(0.18, 0.6, 0.6), Color(0.2, 0.21, 0.22))
 	return st.commit()
 
 ## A busbar gantry 8 m wide, 7 m tall.

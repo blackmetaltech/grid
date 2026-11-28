@@ -12,7 +12,7 @@ static func grade(env: Environment, moon: DirectionalLight3D, n: float, d: float
 	# moon: cool, side-lit, about a quarter of the sun; shadows on the high tier
 	if moon != null:
 		moon.light_color = Color(0.58, 0.70, 1.0)
-		moon.light_energy = 0.42 * nk
+		moon.light_energy = 0.6 * nk   # 1128c sweep 1: 0.42 left the island and P0 murky
 		moon.light_specular = 0.6
 		moon.visible = moon.light_energy > 0.01
 		moon.shadow_blur = 2.0

@@ -25,6 +25,16 @@ void fragment() {
 	vec3 c = COLOR.rgb * tint * 0.86 * (0.66 + 0.5 * streak) * (0.88 + 0.2 * blot);
 	c *= 1.0 - 0.10 * lift;
 	c = mix(c, c * 0.45, soot * 0.7);
+	// 1128c (art review: smooth plastic towers): rain streaks in vertical runs, pour lifts at every distance, the open foot
+	float run = fract(sin(floor(u / 1.4) * 91.7) * 4375.5);
+	float rain = smoothstep(0.55, 1.0, run) * (0.6 + 0.4 * texture(grime, vec2(u / 3.0, lp.y / 40.0)).r) * smoothstep(top_y, top_y * 0.3, lp.y);
+	c *= 1.0 - 0.28 * rain;
+	c *= 1.0 - 0.06 * smoothstep(0.9, 1.0, fract(lp.y / 1.5));
+	if (lp.y < 9.0) {   // the air inlet: a dark ring behind diagonal columns
+		float col = abs(fract(u / 4.0 + lp.y / 9.0 * 0.5) - 0.5) < 0.09 || abs(fract(u / 4.0 - lp.y / 9.0 * 0.5) - 0.5) < 0.09 ? 1.0 : 0.0;
+		c = mix(vec3(0.03, 0.03, 0.035), c * 0.8, col);
+	}
+	c *= 0.85;
 	ALBEDO = c;
-	ROUGHNESS = 0.92; SPECULAR = 0.2;
+	ROUGHNESS = 0.95; SPECULAR = 0.12;
 }

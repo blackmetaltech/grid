@@ -286,7 +286,8 @@ func _lamp_post(p: Vector2, h := 7.0) -> Dictionary:
 	bulb.position = Vector3(1.5, h - 0.1, 0); bulb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF; mi.add_child(bulb)
 	var lt: OmniLight3D = null
 	if quality != "low":
-		lt = OmniLight3D.new(); lt.omni_range = 24.0; lt.omni_attenuation = 1.3; lt.light_color = Color(1.0, 0.86, 0.62); lt.position = Vector3(1.5, h - 0.6, 0); lt.light_energy = 0.0; mi.add_child(lt)
+		lt = OmniLight3D.new(); lt.omni_range = 26.0; lt.omni_attenuation = 0.55;   # 1128c: a visible pool
+		lt.light_energy = 0.0; lt.light_color = Color(1.0, 0.86, 0.62); lt.position = Vector3(1.5, h - 0.6, 0); lt.light_energy = 0.0; mi.add_child(lt)
 	var d := {"mat": bm, "light": lt}
 	_lamps.append(d); return d
 

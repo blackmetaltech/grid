@@ -288,6 +288,8 @@ func _build_yard(pid: String) -> void:
 		_box(n, Vector3(0, 9.4, -14.0 + 1.0 * float(k)), Vector3(yw - 20.0, 0.12, 0.12), hv, "Bus%d" % k)
 		_inst(_root, _run([tw.position + (sp[1][k] as Vector3), Vector3(c.x, gy + 9.4, c.y - 14.0 + 1.0 * float(k))], 0.07, 1.2), hv, "Incomer%d_%d" % [k, int(c.x)], Vector3.ZERO, false)
 	for sx in [-hw - 6.0, hw + 6.0]: _lamp_post(Vector2(c.x + sx, c.y + 22.0))
+	for k in 2: Kit3D.flood_mast(n, Vector3((-hw + 1.0) if k == 0 else (hw - 1.0), 0.0, 19.0 if k == 0 else -19.0), Vector3.ZERO, quality, 14.0)   # 1128c
+	Kit3D.aviation(_root, tw.position + Vector3(0, 24.6, 0))
 	dd.yard[pid] = {"node": n, "tanks": txs, "units": units, "pos": n.position, "shed_win": wm}
 	anchors["yard_" + pid] = Vector3(c.x, gy + 14.0, c.y)
 

@@ -187,6 +187,19 @@ static func build(s: Stage3D) -> void:
 		"l25": _build_l25(s)
 		"l26": _build_l26(s)
 	s._trees(func(x: float, z: float) -> float: return Stage7.tree_ok(s, x, z), 320.0, 8.0)
+	if s.scn in ["l24", "l25", "l26"]: _site_lights(s)
+
+## 1128c (audit sweep: the night subjects of WO-24 to WO-26 were specks on a dark hill): a floodlight mast beside each named
+## piece of equipment, aimed at it, so the subject is lit at night and the far woods are not.
+const SITE_LIT := ["R1", "R2", "R3", "R4", "gen", "breaker", "hydro", "solar", "control"]
+static func _site_lights(s: Stage3D) -> void:
+	var keys: Array = SITE_LIT.duplicate()
+	if s.d7.has("plants"): for id in s.d7.plants: if not keys.has(id): keys.append(id)
+	for k in keys:
+		if not s.anchors.has(k): continue
+		var a: Vector3 = s.anchors[k]
+		var m := Vector3(a.x + 7.0, 0.0, a.z + 7.0); m.y = s.ground(m.x, m.z)
+		Kit3D.flood_mast(s._root, m, Vector3(a.x, s.ground(a.x, a.z), a.z), s.quality, 11.0)
 
 static func _build_board(s: Stage3D) -> void:
 	var d: Dictionary = s.d7
