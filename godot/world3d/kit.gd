@@ -206,9 +206,18 @@ static func dress_hall(parent: Node3D, c: Vector3, sz: Vector3, group := "site")
 ## about the target, at most 30 degrees over the player's pitch (a spring arm was tried: it pulled the eye into the plant).
 ## The player's goal camera is not changed, so the view returns once the way is clear.
 static var _tri_cache := {}
+static var _no_eye := OS.has_environment("CB_NOEYE")   # QA: time the scene without the guard
 static var _mm_cache := {}
 static func clear_eye(world: World3D, target: Vector3, eye: Vector3) -> Vector3:
-	if world == null: return eye
+	if world == null or _no_eye: return eye
+	if target.distance_squared_to(_eye_in[0]) < 0.0025 and eye.distance_squared_to(_eye_in[1]) < 0.0025: return _eye_out   # the camera has not moved
+	_eye_in = [target, eye]; _eye_out = _clear_eye(world, target, eye)
+	return _eye_out
+
+static var _eye_in := [Vector3.INF, Vector3.INF]
+static var _eye_out := Vector3.ZERO
+static var _mesh_seen := {}   # instance id -> [mesh id, changes]: meshes rebuilt every frame (live lines) are not buildings
+static func _clear_eye(world: World3D, target: Vector3, eye: Vector3) -> Vector3:
 	var e := eye
 	for k in 6:
 		if not _blocked(world, target, e): return e
@@ -235,7 +244,13 @@ static func _blocked(world: World3D, target: Vector3, eye: Vector3) -> bool:
 		var bb := gi.global_transform * gi.get_aabb()
 		if bb.size.y < 4.0 or bb.size.x * bb.size.z > 250000.0: continue
 		var key := gi.mesh.get_instance_id()
-		if not _tri_cache.has(key): _tri_cache[key] = gi.mesh.generate_triangle_mesh()
+		var seen: Array = _mesh_seen.get(id, [key, 0])
+		if seen[0] != key: seen = [key, int(seen[1]) + 1]
+		_mesh_seen[id] = seen
+		if int(seen[1]) > 2: continue
+		if not _tri_cache.has(key):
+			if _tri_cache.size() > 400: _tri_cache.clear()
+			_tri_cache[key] = gi.mesh.generate_triangle_mesh()
 		var tm: TriangleMesh = _tri_cache[key]
 		if tm == null: continue
 		var inv := gi.global_transform.affine_inverse()
