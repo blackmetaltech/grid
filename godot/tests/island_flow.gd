@@ -171,6 +171,7 @@ func _initialize() -> void:
 	var all := " | ".join(out)
 	T.check(all.contains("At 21:00 the island went dark") and all.contains("No battery stood on the island") and all.contains("From the cut at 21:00") and all.contains("WO-30"), "incident report: cause, lesson, hint and the job (%s)" % all.left(200))
 	# ---- B02 (11-28b): the glass report fits its text, and a report whose text is not laid out yet keeps its full height ----
+	T.check(Career.score_int(173.6) == 174 and Career.score_int(173.4) == 173, "the saved career score rounds like the screen (B31)")
 	T.check(TitleScreen.first_job(["P0", "L01", "L02"]) == "P0" and TitleScreen.first_job(["L01", "L02"]) == "L01" and TitleScreen.first_job(["L05"]) == "L05", "a new night shift opens on the prologue (B21)")
 	T.check(ShiftReport.fit_height(1056.0, 900.0, 0.0, 1056.0) < 0.0, "a report with no laid-out text is not shrunk to its buttons (B02)")
 	T.check(is_equal_approx(ShiftReport.fit_height(1056.0, 900.0, 300.0, 1056.0), 460.0), "a short report shrinks to its text (156 + 300 + 4)")

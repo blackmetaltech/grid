@@ -6,7 +6,7 @@ class_name GridLoading
 static func start(app: CbApp, id: String, force := true) -> void:
 	var ov := Control.new(); ov.name = "loading"; ov.set_meta("cb_modal", true); ov.mouse_filter = Control.MOUSE_FILTER_STOP
 	ov.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var dim := ColorRect.new(); dim.color = Color(0.02, 0.03, 0.05, 0.72); dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); dim.mouse_filter = Control.MOUSE_FILTER_IGNORE; ov.add_child(dim)
+	var dim := ColorRect.new(); dim.color = Color(0.02, 0.03, 0.05, 0.95); dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); dim.mouse_filter = Control.MOUSE_FILTER_IGNORE; ov.add_child(dim)   # 11-28b (B32): at 0.72 the work order opening under it showed through the loading line
 	var lb := GridTheme.label(TranslationServer.translate("UI_LOADING"), 28, GridTheme.G_TEXT, "semi")
 	lb.set_anchors_and_offsets_preset(Control.PRESET_CENTER); lb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; lb.grow_horizontal = Control.GROW_DIRECTION_BOTH; ov.add_child(lb)
 	app.root.add_child(ov)

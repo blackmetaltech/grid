@@ -23,8 +23,11 @@ static func save(app: CbApp) -> void:
 	if not (q is Dictionary) or not q.get("active", false): return
 	var c := ConfigFile.new(); c.load(path)   # keep the other sections (the weekly bests)
 	c.set_value("c", "weekly", str(q.get("weekly", "")))
-	c.set_value("c", "code", str(q.code)); c.set_value("c", "year", int(q.year)); c.set_value("c", "quarter", int(q.quarter)); c.set_value("c", "score", int(q.score))
+	c.set_value("c", "code", str(q.code)); c.set_value("c", "year", int(q.year)); c.set_value("c", "quarter", int(q.quarter)); c.set_value("c", "score", score_int(q.score))
 	c.save(path)
+
+## The score as the Career screen shows it (rounded, 11-28b B31: the save truncated, so Continue said 173 where the screen said 174).
+static func score_int(v) -> int: return roundi(float(v))
 
 static func forget() -> void:   # the running career only: the weekly bests stay
 	var c := ConfigFile.new()
